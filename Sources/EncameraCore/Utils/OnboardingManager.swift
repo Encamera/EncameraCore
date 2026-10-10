@@ -42,7 +42,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case setPinCode
     case confirmPinCode
     case showKeyPhrase
-    /// iCloud Multi-Device Mode opt-in, shown AFTER auth setup and BEFORE
+    /// iCloud Backup & Sync opt-in, shown AFTER auth setup and BEFORE
     /// the app opens. Offers the mode defaulted OFF (no pre-check, explicit tap
     /// required), with the honest framing that the key lives in the user's iCloud
     /// Keychain. Gated on `.keychainSyncRestore`; skipped for a user who already

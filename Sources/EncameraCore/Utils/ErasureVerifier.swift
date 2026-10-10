@@ -7,7 +7,7 @@
 //  anything.
 //
 //  This exists because they demonstrably did not. "Erase All Data" swept the
-//  keychain with `kSecAttrSynchronizable == false` while Multi-Device Mode made
+//  keychain with `kSecAttrSynchronizable == false` while iCloud Backup & Sync made
 //  every credential synchronizable, so the sweep matched nothing, threw nothing,
 //  and the app exited reporting success with the user's passcode and key intact.
 //  Every step in `EraserUtils` is independently `try?`-tolerant by design, so

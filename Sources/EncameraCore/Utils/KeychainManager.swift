@@ -367,7 +367,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     /// `kSecAttrSynchronizableAny` sweep, which removes the credentials from
     /// every device on the iCloud account and cannot be undone.
     ///
-    /// Known consequence of the device-local scope: when iCloud key backup is on,
+    /// Known consequence of the device-local scope: when iCloud Backup & Sync is on,
     /// this device's copies of the key and passphrase *are* the synced items, so
     /// they survive a device-local reset. The keychain offers no way to drop a
     /// local copy of a synchronizable item without tombstoning it everywhere;
@@ -1181,7 +1181,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         return false
     }
 
-    /// See `KeyManager.enableMultiDeviceMode`.
+    /// See `KeyManager.enableICloudBackupAndSync`.
     ///
     /// The retention guarantee this ticket exists for: whatever iCloud Keychain
     /// does when this device's credentials meet the account's, every key the
@@ -1189,7 +1189,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     /// key it writes new media with does not change underneath the user. The
     /// losing key of a conflict stays as a decrypt-only library entry (ENC-78 /
     /// ENC-79), never overwritten.
-    public func enableMultiDeviceMode() throws {
+    public func enableICloudBackupAndSync() throws {
         let keysBefore = (try? storedKeys()) ?? []
         let activeFingerprintBefore = (try? getActiveKey())?.keychainLabel
 
@@ -1203,11 +1203,11 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         var retentionFailures: [String] = []
         let survivingFingerprints = Set(((try? storedKeys()) ?? []).map(\.keychainLabel))
         for key in keysBefore where !survivingFingerprints.contains(key.keychainLabel) {
-            printDebug("enableMultiDeviceMode: restoring key \(key.keychainLabel) lost during the flip")
+            printDebug("enableICloudBackupAndSync: restoring key \(key.keychainLabel) lost during the flip")
             do {
                 try save(key: key, setNewKeyToCurrent: false)
             } catch {
-                printDebug("enableMultiDeviceMode: FAILED to restore key \(key.keychainLabel):", error)
+                printDebug("enableICloudBackupAndSync: FAILED to restore key \(key.keychainLabel):", error)
                 retentionFailures.append("key \(key.keychainLabel) lost: \(error)")
             }
         }
@@ -1216,7 +1216,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             do {
                 try setActiveKey(key)
             } catch {
-                printDebug("enableMultiDeviceMode: FAILED to re-pin the active key:", error)
+                printDebug("enableICloudBackupAndSync: FAILED to re-pin the active key:", error)
                 retentionFailures.append("active key \(activeFingerprintBefore) not re-pinned: \(error)")
             }
         }
@@ -1955,7 +1955,7 @@ private extension KeychainManager {
     /// resolves to the OLDEST key carrying that name. Once a library holds
     /// several keys all named `encamera_default_key`, that runs on
     /// every unlock and silently demotes whatever was pinned — undoing
-    /// `enableMultiDeviceMode()`'s re-pin and a returning user's freshly
+    /// `enableICloudBackupAndSync()`'s re-pin and a returning user's freshly
     /// imported key. `testActiveKeyPointerSurvivesRepeatedAuthentication` pins this.
     private func getActiveKeyAndSet() throws {
         let keyObject = try getActiveKey()

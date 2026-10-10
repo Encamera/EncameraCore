@@ -143,7 +143,7 @@ public class DemoKeyManager: KeyManager {
     /// Set to stage a conflict for the confirmation copy.
     public var stagedKeyConflict: MultiDeviceKeyConflict?
 
-    public func enableMultiDeviceMode() throws {
+    public func enableICloudBackupAndSync() throws {
         try backupKeychainToiCloud(backupEnabled: true)
     }
 

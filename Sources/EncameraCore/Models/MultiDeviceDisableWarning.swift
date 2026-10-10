@@ -2,7 +2,7 @@
 //  MultiDeviceDisableWarning.swift
 //  EncameraCore
 //
-//  The copy shown before turning iCloud Multi-Device Mode OFF.
+//  The copy shown before turning iCloud Backup & Sync OFF.
 //
 //  De-syncing a keychain item tombstones it: it is removed from iCloud and from
 //  every other device on the account. The device performing the flip keeps its
@@ -12,7 +12,7 @@
 
 import Foundation
 
-/// Builds the warning for turning Multi-Device Mode off.
+/// Builds the warning for turning iCloud Backup & Sync off.
 public enum MultiDeviceDisableWarning {
 
     /// The devices, other than this one, that the roster knows about.
@@ -59,9 +59,9 @@ public enum MultiDeviceDisableWarning {
     ) -> String {
         let names = affectedDeviceNames(state: state, currentDeviceID: currentDeviceID)
         guard !names.isEmpty, let list = formattedList(names) else {
-            return L10n.Settings.MultiDeviceMode.disableGenericWarning
+            return L10n.Settings.ICloudBackupAndSync.disableGenericWarning
         }
-        return L10n.Settings.MultiDeviceMode.disableDevicesWarning(list)
+        return L10n.Settings.ICloudBackupAndSync.disableDevicesWarning(list)
     }
 
     private static func formattedList(_ names: [String]) -> String? {

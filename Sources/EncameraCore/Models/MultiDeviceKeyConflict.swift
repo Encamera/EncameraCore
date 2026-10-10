@@ -3,7 +3,7 @@
 //  EncameraCore
 //
 //  Describes the "another key is already in this iCloud account" situation that
-//  the Multi-Device Mode confirmation has to tell the user about.
+//  the iCloud Backup & Sync confirmation has to tell the user about.
 //
 
 import Foundation

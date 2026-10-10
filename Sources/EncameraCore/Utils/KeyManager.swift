@@ -65,7 +65,7 @@ public enum KeyManagerError: ErrorDescribable {
         case .keyDeletionFailed:
             return "Key deletion failed"
         case .syncFlipFailed:
-            return L10n.Settings.MultiDeviceMode.flipFailed
+            return L10n.Settings.ICloudBackupAndSync.flipFailed
         }
 
     }
@@ -167,13 +167,13 @@ public protocol KeyManager {
     func credentialSnapshot() -> KeychainCredentialSnapshot
     func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func backupKeychainToiCloud(backupEnabled: Bool) throws
-    /// Turns Multi-Device Mode on, retaining every key this device already has.
+    /// Turns iCloud Backup & Sync on, retaining every key this device already has.
     ///
     /// The only supported way to *enable* key sync. Unlike a bare
     /// `backupKeychainToiCloud(backupEnabled: true)` it guarantees that no key
     /// present before the flip is missing after it, and that the flip does not
     /// repoint which key this device writes new media with.
-    func enableMultiDeviceMode() throws
+    func enableICloudBackupAndSync() throws
     /// A different key already known to the iCloud account, or `nil` when this
     /// device's keys are the only ones the account knows about. Advisory: read
     /// from the last-writer-merges `MultiDeviceState` record, so it may be used

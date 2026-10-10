@@ -7,7 +7,7 @@
 //
 //  * `AuthenticationConfiguration` (`com.encamera.authenticationConfiguration`)
 //    is written with a hardcoded `kSecAttrSynchronizable: true` — it ALWAYS
-//    syncs, regardless of the iCloud key-backup toggle.
+//    syncs, regardless of the iCloud Backup & Sync toggle.
 //  * the password hash (`encamera`) honours the toggle, so it syncs only when
 //    key backup is on.
 //  * the key items honour the toggle too.

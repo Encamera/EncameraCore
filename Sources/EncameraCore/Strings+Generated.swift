@@ -1923,11 +1923,11 @@ public enum L10n {
     public static let remaining = L10n.tr("Localizable", "GlobalImportProgress.Remaining", fallback: "Remaining")
   }
   public enum GuidedSync {
-    /// On your other device, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.
-    public static let body = L10n.tr("Localizable", "GuidedSync.Body", fallback: "On your other device, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.")
-    /// On %@, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.
+    /// On your other device, open Encamera and turn on iCloud Backup & Sync in Settings. Your key will sync to this device automatically.
+    public static let body = L10n.tr("Localizable", "GuidedSync.Body", fallback: "On your other device, open Encamera and turn on iCloud Backup & Sync in Settings. Your key will sync to this device automatically.")
+    /// On %@, open Encamera and turn on iCloud Backup & Sync in Settings. Your key will sync to this device automatically.
     public static func bodyNamed(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "GuidedSync.BodyNamed", String(describing: p1), fallback: "On %@, open Encamera and turn on iCloud Multi-Device Mode in Settings. Your key will sync to this device automatically.")
+      return L10n.tr("Localizable", "GuidedSync.BodyNamed", String(describing: p1), fallback: "On %@, open Encamera and turn on iCloud Backup & Sync in Settings. Your key will sync to this device automatically.")
     }
     /// Continue
     public static let `continue` = L10n.tr("Localizable", "GuidedSync.Continue", fallback: "Continue")
@@ -1948,7 +1948,7 @@ public enum L10n {
     /// Still waiting for your key
     public static let timeoutTitle = L10n.tr("Localizable", "GuidedSync.TimeoutTitle", fallback: "Still waiting for your key")
     /// ./Encamera/Onboarding/OnboardingGuidedSyncView.swift - Guided flip-the-switch flow: wait for the key to arrive via iCloud Keychain (ENC-93)
-    public static let title = L10n.tr("Localizable", "GuidedSync.Title", fallback: "Turn on Multi-Device Mode")
+    public static let title = L10n.tr("Localizable", "GuidedSync.Title", fallback: "Turn on iCloud Backup & Sync")
     /// Waiting for your key to arrive…
     public static let waiting = L10n.tr("Localizable", "GuidedSync.Waiting", fallback: "Waiting for your key to arrive…")
   }
@@ -2099,13 +2099,13 @@ public enum L10n {
   public enum KeyMissing {
     /// another device
     public static let anotherDevice = L10n.tr("Localizable", "KeyMissing.AnotherDevice", fallback: "another device")
-    /// iCloud key backup was turned off from %@, which removes the key from all other devices.
+    /// iCloud Backup & Sync was turned off from %@, which removes the key from all other devices.
     public static func disabledFromDevice(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "KeyMissing.DisabledFromDevice", String(describing: p1), fallback: "iCloud key backup was turned off from %@, which removes the key from all other devices.")
+      return L10n.tr("Localizable", "KeyMissing.DisabledFromDevice", String(describing: p1), fallback: "iCloud Backup & Sync was turned off from %@, which removes the key from all other devices.")
     }
-    /// iCloud key backup was turned off from %@ on %@, which removes the key from all other devices.
+    /// iCloud Backup & Sync was turned off from %@ on %@, which removes the key from all other devices.
     public static func disabledFromDeviceOn(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "KeyMissing.DisabledFromDeviceOn", String(describing: p1), String(describing: p2), fallback: "iCloud key backup was turned off from %@ on %@, which removes the key from all other devices.")
+      return L10n.tr("Localizable", "KeyMissing.DisabledFromDeviceOn", String(describing: p1), String(describing: p2), fallback: "iCloud Backup & Sync was turned off from %@ on %@, which removes the key from all other devices.")
     }
     /// Enter Recovery Key
     public static let enterKeyPhrase = L10n.tr("Localizable", "KeyMissing.EnterKeyPhrase", fallback: "Enter Recovery Key")
@@ -2375,17 +2375,17 @@ public enum L10n {
       /// Encryption explainer
       public static let title = L10n.tr("Localizable", "Onboarding.Encryption.title", fallback: "Every file you add is encrypted")
     }
-    public enum MultiDeviceMode {
+    public enum ICloudBackupAndSync {
       /// Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.
-      public static let body = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.Body", fallback: "Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.")
+      public static let body = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.Body", fallback: "Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.")
       /// Turn On
-      public static let confirmTurnOn = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.ConfirmTurnOn", fallback: "Turn On")
-      /// Turn On Multi-Device Mode
-      public static let enableButton = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.EnableButton", fallback: "Turn On Multi-Device Mode")
+      public static let confirmTurnOn = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.ConfirmTurnOn", fallback: "Turn On")
+      /// Turn On iCloud Backup & Sync
+      public static let enableButton = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.EnableButton", fallback: "Turn On iCloud Backup & Sync")
       /// Not Now
-      public static let skipButton = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.SkipButton", fallback: "Not Now")
-      /// ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Multi-Device Mode opt-in during onboarding (ENC-95). Default off; explicit tap required.
-      public static let title = L10n.tr("Localizable", "Onboarding.MultiDeviceMode.Title", fallback: "Use Encamera on all your devices")
+      public static let skipButton = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.SkipButton", fallback: "Not Now")
+      /// ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Backup & Sync opt-in during onboarding (ENC-95). Default off; explicit tap required.
+      public static let title = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.Title", fallback: "Use Encamera on all your devices")
     }
     public enum NeedKey {
       /// Without your encryption key, you won't be able to access your existing encrypted files on this device.
@@ -2956,12 +2956,12 @@ public enum L10n {
     public static let giveInstantFeedback = L10n.tr("Localizable", "Settings.GiveInstantFeedback", fallback: "Give Instant Feedback")
     /// Hidden Albums
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
+    /// iCloud Backup & Sync
+    public static let iCloudBackupAndSync = L10n.tr("Localizable", "Settings.ICloudBackupAndSync", fallback: "iCloud Backup & Sync")
     /// Import Recovery Key
     public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Recovery Key")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
-    /// Sync Across Devices
-    public static let multiDeviceMode = L10n.tr("Localizable", "Settings.MultiDeviceMode", fallback: "Sync Across Devices")
     /// Purchases restored!
     public static let purchasesRestored = L10n.tr("Localizable", "Settings.PurchasesRestored", fallback: "Purchases restored!")
     /// Any valid purchases you made have been restored.
@@ -2986,69 +2986,69 @@ public enum L10n {
       /// Your hidden albums
       public static let title = L10n.tr("Localizable", "Settings.HiddenAlbumsModal.Title", fallback: "Your hidden albums")
     }
-    public enum MultiDeviceMode {
-      /// Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.
+    public enum ICloudBackupAndSync {
+      /// Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.
       public static func disableDevicesWarning(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDevicesWarning", String(describing: p1), fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDevicesWarning", String(describing: p1), fallback: "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")
       }
       /// Turn Off
-      public static let disableDrawerConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDrawerConfirm", fallback: "Turn Off")
+      public static let disableDrawerConfirm = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDrawerConfirm", fallback: "Turn Off")
       /// Turn off iCloud sync?
-      public static let disableDrawerTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableDrawerTitle", fallback: "Turn off iCloud sync?")
-      /// Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.
-      public static let disableGenericWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableGenericWarning", fallback: "Turning off Multi-Device Mode removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
-      /// Turn off iCloud Multi-Device Mode?
-      public static let disableTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.DisableTitle", fallback: "Turn off iCloud Multi-Device Mode?")
+      public static let disableDrawerTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDrawerTitle", fallback: "Turn off iCloud sync?")
+      /// Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.
+      public static let disableGenericWarning = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableGenericWarning", fallback: "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
+      /// Turn off iCloud Backup & Sync?
+      public static let disableTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableTitle", fallback: "Turn off iCloud Backup & Sync?")
       /// Turning off in %d
       public static func disablingIn(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.DisablingIn", p1, fallback: "Turning off in %d")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisablingIn", p1, fallback: "Turning off in %d")
       }
       /// Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.
       public static func enableConflictWarning(_ p1: Any, _ p2: Any) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableConflictWarning", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableConflictWarning", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.")
       }
       /// Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.
       public static func enableConflictWarningMultiple(_ p1: Any, _ p2: Any) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableConflictWarningMultiple", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableConflictWarningMultiple", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.")
       }
       /// Turn On
-      public static let enableDrawerConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerConfirm", fallback: "Turn On")
+      public static let enableDrawerConfirm = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerConfirm", fallback: "Turn On")
       /// Your credentials and encryption keys will be securely synced via iCloud Keychain.
       /// 
       /// Other devices will use this device’s passcode or password to unlock Encamera.
-      public static let enableDrawerSubtitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerSubtitle", fallback: "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.")
+      public static let enableDrawerSubtitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerSubtitle", fallback: "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.")
       /// Turn on iCloud sync?
-      public static let enableDrawerTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableDrawerTitle", fallback: "Turn on iCloud sync?")
+      public static let enableDrawerTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerTitle", fallback: "Turn on iCloud sync?")
       /// Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.
-      public static let enableSimpleWarning = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableSimpleWarning", fallback: "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.")
-      /// Turn on iCloud Multi-Device Mode?
-      public static let enableTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.EnableTitle", fallback: "Turn on iCloud Multi-Device Mode?")
+      public static let enableSimpleWarning = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableSimpleWarning", fallback: "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.")
+      /// Turn on iCloud Backup & Sync?
+      public static let enableTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableTitle", fallback: "Turn on iCloud Backup & Sync?")
       /// Turning on in %d
       public static func enablingIn(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.EnablingIn", p1, fallback: "Turning on in %d")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnablingIn", p1, fallback: "Turning on in %d")
       }
-      /// Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.
-      public static let flipFailed = L10n.tr("Localizable", "Settings.MultiDeviceMode.FlipFailed", fallback: "Multi-Device Mode could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.")
+      /// iCloud Backup & Sync could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.
+      public static let flipFailed = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.FlipFailed", fallback: "iCloud Backup & Sync could not be changed. Your key and passcode were left as they were, and the switch has been set back to the real setting.")
       /// Hold to Turn Off
-      public static let holdToDisable = L10n.tr("Localizable", "Settings.MultiDeviceMode.HoldToDisable", fallback: "Hold to Turn Off")
+      public static let holdToDisable = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.HoldToDisable", fallback: "Hold to Turn Off")
       /// Hold to Turn On
-      public static let holdToEnable = L10n.tr("Localizable", "Settings.MultiDeviceMode.HoldToEnable", fallback: "Hold to Turn On")
+      public static let holdToEnable = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.HoldToEnable", fallback: "Hold to Turn On")
       /// Move to iCloud
-      public static let migrateAlbumsConfirm = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsConfirm", fallback: "Move to iCloud")
+      public static let migrateAlbumsConfirm = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsConfirm", fallback: "Move to iCloud")
       /// These albums are still stored only on this device: %@. Your photos are safe — open an album to try moving it again.
       public static func migrateAlbumsFailedMessage(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsFailedMessage", String(describing: p1), fallback: "These albums are still stored only on this device: %@. Your photos are safe — open an album to try moving it again.")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsFailedMessage", String(describing: p1), fallback: "These albums are still stored only on this device: %@. Your photos are safe — open an album to try moving it again.")
       }
       /// Some albums didn't move
-      public static let migrateAlbumsFailedTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsFailedTitle", fallback: "Some albums didn't move")
+      public static let migrateAlbumsFailedTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsFailedTitle", fallback: "Some albums didn't move")
       /// %d of your albums are stored only on this device. Moving them to iCloud lets your other devices see them. You can leave them here and move them later instead.
       public static func migrateAlbumsMessage(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsMessage", p1, fallback: "%d of your albums are stored only on this device. Moving them to iCloud lets your other devices see them. You can leave them here and move them later instead.")
+        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsMessage", p1, fallback: "%d of your albums are stored only on this device. Moving them to iCloud lets your other devices see them. You can leave them here and move them later instead.")
       }
       /// Keep on This Device
-      public static let migrateAlbumsSkip = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsSkip", fallback: "Keep on This Device")
+      public static let migrateAlbumsSkip = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsSkip", fallback: "Keep on This Device")
       /// Move your albums to iCloud?
-      public static let migrateAlbumsTitle = L10n.tr("Localizable", "Settings.MultiDeviceMode.MigrateAlbumsTitle", fallback: "Move your albums to iCloud?")
+      public static let migrateAlbumsTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.MigrateAlbumsTitle", fallback: "Move your albums to iCloud?")
     }
   }
   public enum SettingsView {
