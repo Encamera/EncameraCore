@@ -94,7 +94,6 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// Save-recovery-key flow offered after the first item lands in a new
     /// album. Hosted by `RecoveryKeyFlowHostingView`, not `handleNavigationFor`.
     case recoveryKeyIntro
-    case recoveryKeyStorage
     case recoveryKeyPhrase
     // MARK: - Multi-Device Onboarding (ENC-264)
     // MARK: - Multi-Device Onboarding

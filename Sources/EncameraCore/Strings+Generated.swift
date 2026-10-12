@@ -1109,12 +1109,8 @@ public enum L10n {
     }
   }
   public enum AuthenticationView {
-    /// Encamera can't be unlocked
-    public static let cannotUnlock = L10n.tr("Localizable", "AuthenticationView.CannotUnlock", fallback: "Encamera can't be unlocked")
     /// Forgot Password? Reset App
     public static let forgotPassword = L10n.tr("Localizable", "AuthenticationView.ForgotPassword", fallback: "Forgot Password? Reset App")
-    /// Can't turn it on? Reset and start over
-    public static let resetAndStartOver = L10n.tr("Localizable", "AuthenticationView.ResetAndStartOver", fallback: "Can't turn it on? Reset and start over")
     /// You can retry your password in %@
     public static func retryIn(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AuthenticationView.RetryIn", String(describing: p1), fallback: "You can retry your password in %@")
@@ -1123,14 +1119,44 @@ public enum L10n {
     public static let tooManyAttempts = L10n.tr("Localizable", "AuthenticationView.TooManyAttempts", fallback: "Too many attempts")
     /// Try Again
     public static let tryAgain = L10n.tr("Localizable", "AuthenticationView.TryAgain", fallback: "Try Again")
+    public enum AwaitPasscode {
+      /// Go to Settings to allow %@, or set up a passcode on your other device to continue.
+      public static func allowOrSetPasscode(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.AllowOrSetPasscode", String(describing: p1), fallback: "Go to Settings to allow %@, or set up a passcode on your other device to continue.")
+      }
+      /// Go to Settings
+      public static let goToSettings = L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.GoToSettings", fallback: "Go to Settings")
+      /// I don’t have my other device
+      public static let noOtherDevice = L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.NoOtherDevice", fallback: "I don’t have my other device")
+      /// %@ isn’t allowed for Encamera on this device.
+      public static func notAllowed(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.NotAllowed", String(describing: p1), fallback: "%@ isn’t allowed for Encamera on this device.")
+      }
+      /// Welcome back to Encamera
+      public static let title = L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.Title", fallback: "Welcome back to Encamera")
+      /// We found that you’ve used Encamera on %@.
+      public static func usedOnDevice(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.UsedOnDevice", String(describing: p1), fallback: "We found that you’ve used Encamera on %@.")
+      }
+      /// We found that you’ve used Encamera on another device.
+      public static let usedOnOtherDevice = L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.UsedOnOtherDevice", fallback: "We found that you’ve used Encamera on another device.")
+      /// Waiting for you to set up a passcode…
+      public static let waiting = L10n.tr("Localizable", "AuthenticationView.AwaitPasscode.Waiting", fallback: "Waiting for you to set up a passcode…")
+    }
     public enum BiometricsOnly {
+      /// Enable %@ in your device settings to continue, or reset Encamera.
+      public static func enableInSettings(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.EnableInSettings", String(describing: p1), fallback: "Enable %@ in your device settings to continue, or reset Encamera.")
+      }
       /// This account has no passcode, so %@ is the only way in.
       public static func explanation(_ p1: Any) -> String {
         return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Explanation", String(describing: p1), fallback: "This account has no passcode, so %@ is the only way in.")
       }
-      /// Turn on %@ to unlock Encamera
-      public static func title(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Title", String(describing: p1), fallback: "Turn on %@ to unlock Encamera")
+      /// Reset Encamera
+      public static let reset = L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Reset", fallback: "Reset Encamera")
+      /// Encamera was only set up with %@, which isn’t available on this device.
+      public static func unavailable(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "AuthenticationView.BiometricsOnly.Unavailable", String(describing: p1), fallback: "Encamera was only set up with %@, which isn’t available on this device.")
       }
     }
   }
@@ -1205,6 +1231,8 @@ public enum L10n {
     public static let perYear = L10n.tr("Localizable", "BillingFrequency.PerYear", fallback: "per year")
   }
   public enum BiometricAvailability {
+    /// Face ID or Touch ID
+    public static let faceIDOrTouchID = L10n.tr("Localizable", "BiometricAvailability.FaceIDOrTouchID", fallback: "Face ID or Touch ID")
     /// Shown when biometrics is the only way into the app and it cannot run.
     public static let genericName = L10n.tr("Localizable", "BiometricAvailability.GenericName", fallback: "Biometric unlock")
     public enum CannotUnlock {
@@ -1212,24 +1240,30 @@ public enum L10n {
       public static func deniedBySystemSettings(_ p1: Any) -> String {
         return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.DeniedBySystemSettings", String(describing: p1), fallback: "%@ is turned off for Encamera. Turn it back on in Settings > Encamera, then try again.")
       }
-      /// %@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.
+      /// %@ is locked after too many failed attempts. Lock your device, unlock it, then try again.
       public static func lockedOut(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.LockedOut", String(describing: p1), fallback: "%@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.")
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.LockedOut", String(describing: p1), fallback: "%@ is locked after too many failed attempts. Lock your device, unlock it, then try again.")
       }
-      /// This device has no biometric unlock, and this account has no passcode.
-      public static let noHardware = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NoHardware", fallback: "This device has no biometric unlock, and this account has no passcode.")
+      /// This device has no biometric unlock, and this account has no passcode. To proceed, add a passcode on your other device.
+      public static let noHardware = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NoHardware", fallback: "This device has no biometric unlock, and this account has no passcode. To proceed, add a passcode on your other device.")
+      /// This device has no biometric unlock, and this account has no passcode. Reset Encamera to start over.
+      public static let noHardwareSyncOff = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NoHardwareSyncOff", fallback: "This device has no biometric unlock, and this account has no passcode. Reset Encamera to start over.")
       /// %@ hasn't been turned on for Encamera on this device yet.
       public static func notEnabled(_ p1: Any) -> String {
         return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnabled", String(describing: p1), fallback: "%@ hasn't been turned on for Encamera on this device yet.")
       }
-      /// No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.
-      public static let notEnrolled = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnrolled", fallback: "No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.")
-      /// This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.
-      public static let passcodeNotSet = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.PasscodeNotSet", fallback: "This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.")
-      /// Biometric unlock isn't available right now (error %d), and this account has no passcode.
-      public static func unavailable(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.Unavailable", p1, fallback: "Biometric unlock isn't available right now (error %d), and this account has no passcode.")
+      /// %@ isn't set up on this device. Set it up in Settings, or add a passcode on your other device.
+      public static func notEnrolled(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnrolled", String(describing: p1), fallback: "%@ isn't set up on this device. Set it up in Settings, or add a passcode on your other device.")
       }
+      /// %@ isn't set up on this device. Set it up in Settings, then try again.
+      public static func notEnrolledSyncOff(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.NotEnrolledSyncOff", String(describing: p1), fallback: "%@ isn't set up on this device. Set it up in Settings, then try again.")
+      }
+      /// Biometric unlock isn't available right now, and this account has no passcode. Try again later, or add a passcode on your other device.
+      public static let unavailable = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.Unavailable", fallback: "Biometric unlock isn't available right now, and this account has no passcode. Try again later, or add a passcode on your other device.")
+      /// Biometric unlock isn't available right now, and this account has no passcode.
+      public static let unavailableSyncOff = L10n.tr("Localizable", "BiometricAvailability.CannotUnlock.UnavailableSyncOff", fallback: "Biometric unlock isn't available right now, and this account has no passcode.")
     }
   }
   public enum BiometricMethod {
@@ -1678,6 +1712,8 @@ public enum L10n {
       public static let bodySyncOff = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.BodySyncOff", fallback: "Resetting Encamera removes all keys from all your devices. This can’t be undone.")
       /// Reset Encamera
       public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Confirm", fallback: "Reset Encamera")
+      /// Go Back
+      public static let goBack = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.GoBack", fallback: "Go Back")
       /// Reset Encamera?
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Title", fallback: "Reset Encamera?")
     }
@@ -2205,8 +2241,6 @@ public enum L10n {
     public static let copyButton = L10n.tr("Localizable", "KeyPhrase.CopyButton", fallback: "Copy Recovery Key")
     /// Copy to clipboard
     public static let copyToClipboard = L10n.tr("Localizable", "KeyPhrase.CopyToClipboard", fallback: "Copy to clipboard")
-    /// We can't recover this key if it's lost
-    public static let lossWarning = L10n.tr("Localizable", "KeyPhrase.LossWarning", fallback: "We can't recover this key if it's lost")
     /// This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.
     public static let privacyKeySubtitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeySubtitle", fallback: "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.")
     /// Your recovery key
@@ -2869,6 +2903,16 @@ public enum L10n {
       public static let row3 = L10n.tr("Localizable", "RecoveryKey.Intro.Row3", fallback: "If you lose it, we can't recover your media for you")
       /// The save-recovery-key flow
       public static let title = L10n.tr("Localizable", "RecoveryKey.Intro.Title", fallback: "Save your recovery key")
+    }
+    public enum Saved {
+      /// Make sure you save a copy somewhere safe. You can always find your key in Settings.
+      public static let body = L10n.tr("Localizable", "RecoveryKey.Saved.Body", fallback: "Make sure you save a copy somewhere safe. You can always find your key in Settings.")
+      /// I've saved my key
+      public static let confirm = L10n.tr("Localizable", "RecoveryKey.Saved.Confirm", fallback: "I've saved my key")
+      /// I'll do it later
+      public static let later = L10n.tr("Localizable", "RecoveryKey.Saved.Later", fallback: "I'll do it later")
+      /// Have you saved your recovery key?
+      public static let title = L10n.tr("Localizable", "RecoveryKey.Saved.Title", fallback: "Have you saved your recovery key?")
     }
     public enum Storage {
       /// Backed up automatically. Recoverable if you switch devices or lose your iPhone.

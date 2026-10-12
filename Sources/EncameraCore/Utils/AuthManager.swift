@@ -79,7 +79,6 @@ public enum BiometricAvailability: Equatable {
     case deniedBySystemSettings
     case notEnrolled
     case lockedOut
-    case passcodeNotSet
     case noHardware
     case unavailable(code: Int)
 
@@ -92,8 +91,21 @@ public enum BiometricAvailability: Equatable {
         switch self {
         case .available, .deniedBySystemSettings, .lockedOut:
             return true
-        case .notEnrolled, .passcodeNotSet, .noHardware, .unavailable:
+        case .notEnrolled, .noHardware, .unavailable:
             return false
+        }
+    }
+
+    /// A locale-independent name for the state, for analytics and test
+    /// markers. The `unavailable` code is dropped; `available` keeps no method.
+    public var token: String {
+        switch self {
+        case .available: return "available"
+        case .deniedBySystemSettings: return "denied"
+        case .notEnrolled: return "notEnrolled"
+        case .lockedOut: return "lockedOut"
+        case .noHardware: return "noHardware"
+        case .unavailable: return "unavailable"
         }
     }
 
@@ -104,7 +116,7 @@ public enum BiometricAvailability: Equatable {
 
     /// The biometry this state refers to, when the probe could tell. Lockout
     /// and per-app denial do not carry one, so callers that know the device's
-    /// biometry type pass it to `cannotUnlockMessage(biometryName:)`.
+    /// biometry type pass it to `cannotUnlockMessage(biometry:)`.
     public var method: AuthenticationMethod? {
         guard case .available(let method) = self else { return nil }
         return method
@@ -115,10 +127,13 @@ public enum BiometricAvailability: Equatable {
     /// that will not open needs to know whether to lock and unlock the phone,
     /// visit Settings, or give up and erase.
     ///
-    /// `biometryName` is what to call the biometry in the sentence; the states
-    /// that do not carry a method take it from the caller, which can still ask
-    /// the device.
-    public func cannotUnlockMessage(biometryName: String = L10n.BiometricAvailability.genericName) -> String {
+    /// `biometry` is the device's biometry type, which the probe reports even
+    /// when nothing is enrolled; the states that do not carry a method take it
+    /// from the caller. When it is unknown, the sentence uses a generic name.
+    /// `syncEnabled` decides whether the message may send the user to another
+    /// device: without sync, a passcode added elsewhere never arrives here.
+    public func cannotUnlockMessage(biometry: AuthenticationMethod? = nil, syncEnabled: Bool = true) -> String {
+        let biometryName = biometry?.nameForMethod ?? L10n.BiometricAvailability.genericName
         switch self {
         case .available(let method):
             return L10n.BiometricAvailability.CannotUnlock.notEnabled(method.nameForMethod)
@@ -127,13 +142,18 @@ public enum BiometricAvailability: Equatable {
         case .deniedBySystemSettings:
             return L10n.BiometricAvailability.CannotUnlock.deniedBySystemSettings(biometryName)
         case .notEnrolled:
-            return L10n.BiometricAvailability.CannotUnlock.notEnrolled
-        case .passcodeNotSet:
-            return L10n.BiometricAvailability.CannotUnlock.passcodeNotSet
+            let name = biometry?.nameForMethod ?? L10n.BiometricAvailability.faceIDOrTouchID
+            return syncEnabled
+                ? L10n.BiometricAvailability.CannotUnlock.notEnrolled(name)
+                : L10n.BiometricAvailability.CannotUnlock.notEnrolledSyncOff(name)
         case .noHardware:
-            return L10n.BiometricAvailability.CannotUnlock.noHardware
-        case .unavailable(let code):
-            return L10n.BiometricAvailability.CannotUnlock.unavailable(code)
+            return syncEnabled
+                ? L10n.BiometricAvailability.CannotUnlock.noHardware
+                : L10n.BiometricAvailability.CannotUnlock.noHardwareSyncOff
+        case .unavailable:
+            return syncEnabled
+                ? L10n.BiometricAvailability.CannotUnlock.unavailable
+                : L10n.BiometricAvailability.CannotUnlock.unavailableSyncOff
         }
     }
 }
@@ -214,8 +234,29 @@ public class DeviceAuthManager: AuthManager {
     
     /// Flag to track if biometric authentication is currently in progress
     private var isBiometricAuthInProgress = false
-    
+
+    // MARK: - UI Test Seams
+
+    /// The outcome a stubbed biometric evaluation returns.
+    public enum StubbedEvaluation {
+        case success
+        case cancel
+        case fail
+    }
+
+    /// Replaces the hardware probe. Set only by the app's UI-test harness at
+    /// creation, so a simulator or a rig phone can stand in for any device.
+    public var availabilityOverride: BiometricAvailability?
+
+    /// Replaces `evaluatePolicy`. Set only by the app's UI-test harness. It is
+    /// device-local and writes nothing: consent still goes through
+    /// `useBiometricsForAuth`, into `BiometricsDeviceConfirmation`.
+    public var stubbedEvaluation: StubbedEvaluation?
+
     public var biometricAvailability: BiometricAvailability {
+        if let availabilityOverride {
+            return availabilityOverride
+        }
         // Probe on a throwaway context, not the long-lived cached one: a stale
         // LAContext can report biometry unavailable even though a fresh
         // evaluation would prompt fine. canEvaluatePolicy is silent — the
@@ -239,8 +280,6 @@ public class DeviceAuthManager: AuthManager {
             return probe.biometryType == .none ? .noHardware : .deniedBySystemSettings
         case LAError.biometryLockout.rawValue:
             return .lockedOut
-        case LAError.passcodeNotSet.rawValue:
-            return .passcodeNotSet
         default:
             return .unavailable(code: probeError?.code ?? 0)
         }
@@ -261,6 +300,9 @@ public class DeviceAuthManager: AuthManager {
     }
 
     public var deviceBiometryType: AuthenticationMethod? {
+        if let staged = availabilityOverride?.method {
+            return staged
+        }
         _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         return AuthenticationMethod.methodFrom(biometryType: context.biometryType)
     }
@@ -400,6 +442,13 @@ public class DeviceAuthManager: AuthManager {
             throw AuthManagerError.biometricsNotAvailable
         }
 
+        switch stubbedEvaluation {
+        case .success: return true
+        case .cancel: throw AuthManagerError.userCancelledBiometrics
+        case .fail: throw AuthManagerError.biometricsFailed
+        case nil: break
+        }
+
         defer {
             setupNotificationObservers()
         }
@@ -435,7 +484,7 @@ public class DeviceAuthManager: AuthManager {
                     .systemCancel,
                     .notInteractive:
                 throw AuthManagerError.biometricsFailed
-            case .userCancel, .userFallback, .passcodeNotSet:
+            case .userCancel, .userFallback:
                 throw AuthManagerError.userCancelledBiometrics
                 
             default:

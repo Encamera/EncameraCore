@@ -962,8 +962,8 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     /// (which strands that item local-only and unable to sync). On any failure
     /// the flag is re-derived from what the items are *actually* in and the
     /// caller is told both what was attempted and where it ended up.
-    public func backupKeychainToiCloud(backupEnabled: Bool) throws {
-        printDebug("backupKeychainToiCloud(\(backupEnabled)) — state before flip:")
+    public func setiCloudKeychainSyncEnabled(enabled: Bool) throws {
+        printDebug("backupKeychainToiCloud(\(enabled)) — state before flip:")
         logCredentialVariantState(context: "before flip")
 
         var failures: [String] = []
@@ -973,7 +973,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
                 let label = (identity[kSecAttrLabel as String] as? Data)
                     .flatMap { String(data: $0, encoding: .utf8) } ?? "<unlabelled>"
                 do {
-                    try setSynchronizable(backupEnabled,
+                    try setSynchronizable(enabled,
                                           forItemMatching: identity,
                                           description: "key \(label)")
                 } catch {
@@ -993,12 +993,12 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         ]
 
         for credential in genericCredentials {
-            if backupEnabled && hasDivergentCredentialPair(account: credential.account) {
+            if enabled && hasDivergentCredentialPair(account: credential.account) {
                 printDebug("flip: \(credential.description) left unflipped — local and synced copies differ, leaving the choice to conflictResolution")
                 continue
             }
             do {
-                try setSynchronizable(backupEnabled, forItemMatching: [
+                try setSynchronizable(enabled, forItemMatching: [
                     kSecClass as String: kSecClassGenericPassword,
                     kSecAttrAccount as String: credential.account
                 ], description: credential.description)
@@ -1008,13 +1008,13 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             }
         }
 
-        printDebug("backupKeychainToiCloud(\(backupEnabled)) — state after flip:")
+        printDebug("backupKeychainToiCloud(\(enabled)) — state after flip:")
         logCredentialVariantState(context: "after flip")
 
         guard failures.isEmpty else {
             printDebug("backupKeychainToiCloud FAILURES: \(failures.joined(separator: "; "))")
 
-            let actual = observedKeySyncState() ?? !backupEnabled
+            let actual = observedKeySyncState() ?? !enabled
             do {
                 try writeBackupFlag(enabled: actual)
             } catch {
@@ -1022,13 +1022,13 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             }
 
             throw KeyManagerError.syncFlipFailed(
-                attempted: backupEnabled,
+                attempted: enabled,
                 actual: actual,
                 details: failures.joined(separator: "; ")
             )
         }
 
-        try writeBackupFlag(enabled: backupEnabled)
+        try writeBackupFlag(enabled: enabled)
     }
 
     /// A base query per distinct Encamera key item the app can see, synced
@@ -1179,63 +1179,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         if let bool = value as? Bool { return bool }
         if let number = value as? NSNumber { return number.boolValue }
         return false
-    }
-
-    /// See `KeyManager.enableICloudBackupAndSync`.
-    ///
-    /// The retention guarantee this ticket exists for: whatever iCloud Keychain
-    /// does when this device's credentials meet the account's, every key the
-    /// device held before the flip is still in the library afterwards, and the
-    /// key it writes new media with does not change underneath the user. The
-    /// losing key of a conflict stays as a decrypt-only library entry (ENC-78 /
-    /// ENC-79), never overwritten.
-    public func enableICloudBackupAndSync() throws {
-        let keysBefore = (try? storedKeys()) ?? []
-        let activeFingerprintBefore = (try? getActiveKey())?.keychainLabel
-
-        var flipError: Error?
-        do {
-            try backupKeychainToiCloud(backupEnabled: true)
-        } catch {
-            flipError = error
-        }
-
-        var retentionFailures: [String] = []
-        let survivingFingerprints = Set(((try? storedKeys()) ?? []).map(\.keychainLabel))
-        for key in keysBefore where !survivingFingerprints.contains(key.keychainLabel) {
-            printDebug("enableICloudBackupAndSync: restoring key \(key.keychainLabel) lost during the flip")
-            do {
-                try save(key: key, setNewKeyToCurrent: false)
-            } catch {
-                printDebug("enableICloudBackupAndSync: FAILED to restore key \(key.keychainLabel):", error)
-                retentionFailures.append("key \(key.keychainLabel) lost: \(error)")
-            }
-        }
-
-        if let activeFingerprintBefore, let key = keyWith(fingerprint: activeFingerprintBefore) {
-            do {
-                try setActiveKey(key)
-            } catch {
-                printDebug("enableICloudBackupAndSync: FAILED to re-pin the active key:", error)
-                retentionFailures.append("active key \(activeFingerprintBefore) not re-pinned: \(error)")
-            }
-        }
-
-        guard retentionFailures.isEmpty else {
-            var details = retentionFailures.joined(separator: "; ")
-            if let flipError {
-                details += "; flip: \(flipError)"
-            }
-            throw KeyManagerError.syncFlipFailed(
-                attempted: true,
-                actual: observedKeySyncState() ?? false,
-                details: details
-            )
-        }
-
-        if let flipError {
-            throw flipError
-        }
     }
 
     /// See `KeyManager.multiDeviceKeyConflict`.
@@ -1954,9 +1897,8 @@ private extension KeychainManager {
     /// `storedKeys()` sorts ascending by creation date, so the name lookup
     /// resolves to the OLDEST key carrying that name. Once a library holds
     /// several keys all named `encamera_default_key`, that runs on
-    /// every unlock and silently demotes whatever was pinned — undoing
-    /// `enableICloudBackupAndSync()`'s re-pin and a returning user's freshly
-    /// imported key. `testActiveKeyPointerSurvivesRepeatedAuthentication` pins this.
+    /// every unlock and silently demotes whatever was pinned, such as a
+    /// returning user's freshly imported key. `testActiveKeyPointerSurvivesRepeatedAuthentication` pins this.
     private func getActiveKeyAndSet() throws {
         let keyObject = try getActiveKey()
         try setActiveKey(keyObject)

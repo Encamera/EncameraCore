@@ -17,7 +17,9 @@ public enum LockScreenState: Equatable {
     /// No passcode, and biometrics cannot run. Nothing on the device can
     /// unlock the app until the user resolves the device-side condition, so
     /// the screen owes them the reason, a retry, and the erase escape hatch.
-    case noWayIn(BiometricAvailability)
+    /// `syncEnabled` is Multi-Device Mode: with it on, a passcode set on
+    /// another device arrives through iCloud Keychain, so waiting is a way in.
+    case noWayIn(BiometricAvailability, syncEnabled: Bool)
 
     /// - Parameters:
     ///   - passcodeType: `.none` means this account has no pin or password at
@@ -26,10 +28,13 @@ public enum LockScreenState: Equatable {
     ///     biometrics-only account but never answered the prompt has usable
     ///     hardware it is not yet allowed to use.
     ///   - availability: the silent `canEvaluatePolicy` probe.
+    ///   - syncEnabled: whether credentials sync between this account's
+    ///     devices, so one set elsewhere can still arrive here.
     public static func resolve(
         passcodeType: PasscodeType,
         biometricsEnabled: Bool,
-        availability: BiometricAvailability
+        availability: BiometricAvailability,
+        syncEnabled: Bool
     ) -> LockScreenState {
         let usableBiometric = biometricsEnabled ? availability.method : nil
 
@@ -37,7 +42,7 @@ public enum LockScreenState: Equatable {
             return .passcode(passcodeType, biometric: usableBiometric)
         }
         guard let usableBiometric else {
-            return .noWayIn(availability)
+            return .noWayIn(availability, syncEnabled: syncEnabled)
         }
         return .biometricOnly(usableBiometric)
     }
@@ -75,34 +80,52 @@ public enum LockScreenState: Equatable {
         case enableOnThisDevice(AuthenticationMethod)
         /// The app's Face ID permission is off; only Settings can undo it.
         case openSettings
-        /// The fix happens outside the app (enrol, set a device passcode,
-        /// unlock the device); re-probe when the user comes back.
+        /// The fix happens outside the app (enrol a face or fingerprint, unlock
+        /// the device); re-probe when the user comes back.
         case retry
+        /// Nothing on this device can ever unlock the account and no passcode
+        /// can sync in, so the reset is the only thing to offer.
+        case resetOnly
+        /// Multi-Device Mode is on, so a passcode set on the account's other
+        /// device will sync here. Wait for it, re-reading the keychain, while
+        /// still naming the device-side fix for this device's biometrics.
+        case awaitPasscodeFromOtherDevice(BiometricAvailability)
     }
 
+    /// Nil for a biometric lockout: it clears once the user unlocks the
+    /// phone, so the lock screen shows it as an error with a retry instead of
+    /// handing over to a recovery screen.
     public var recoveryAction: RecoveryAction? {
-        guard case .noWayIn(let availability) = self else { return nil }
+        guard case .noWayIn(let availability, let syncEnabled) = self else { return nil }
         switch availability {
         case .available(let method):
+            // One tap is still the quickest way in, synced or not.
             return .enableOnThisDevice(method)
+        case .lockedOut:
+            return nil
+        case _ where syncEnabled:
+            return .awaitPasscodeFromOtherDevice(availability)
         case .deniedBySystemSettings:
             return .openSettings
-        case .notEnrolled, .lockedOut, .passcodeNotSet, .noHardware, .unavailable:
+        case .noHardware:
+            return .resetOnly
+        case .notEnrolled, .unavailable:
             return .retry
         }
     }
 
-    /// Whether turning biometrics on is something the user can actually do,
-    /// so the screen can tell them it is the way in. A device without the
-    /// hardware, or one failing for an unknown reason, has no such step.
-    public var recoveryCanTurnOnBiometrics: Bool {
-        guard case .noWayIn(let availability) = self else { return false }
-        switch availability {
-        case .available, .deniedBySystemSettings, .notEnrolled, .lockedOut, .passcodeNotSet:
-            return true
-        case .noHardware, .unavailable:
-            return false
-        }
+    /// A biometrics-only account whose biometry is locked out after too many
+    /// failed attempts.
+    public var biometricsLockedOut: Bool {
+        if case .noWayIn(.lockedOut, _) = self { return true }
+        return false
+    }
+
+    /// Whether the screen should keep re-reading the keychain for a passcode
+    /// synced from another device.
+    public var awaitsSyncedCredentials: Bool {
+        if case .awaitPasscodeFromOtherDevice = recoveryAction { return true }
+        return false
     }
 
     /// The biometry to offer, if any.

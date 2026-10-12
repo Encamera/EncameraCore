@@ -130,11 +130,11 @@ public class DemoKeyManager: KeyManager {
         return DemoPrivateKey.dummyKey()
     }
     
-    public func backupKeychainToiCloud(backupEnabled: Bool) throws {
+    public func setiCloudKeychainSyncEnabled(enabled: Bool) throws {
         if let backupError {
             throw backupError
         }
-        isSyncEnabled = backupEnabled
+        isSyncEnabled = enabled
     }
 
     /// Set to make the next flip fail, so callers' error handling is testable.
@@ -142,10 +142,6 @@ public class DemoKeyManager: KeyManager {
 
     /// Set to stage a conflict for the confirmation copy.
     public var stagedKeyConflict: MultiDeviceKeyConflict?
-
-    public func enableICloudBackupAndSync() throws {
-        try backupKeychainToiCloud(backupEnabled: true)
-    }
 
     public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
         stagedKeyConflict

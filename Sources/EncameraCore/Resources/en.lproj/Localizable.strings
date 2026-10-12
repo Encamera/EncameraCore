@@ -436,7 +436,6 @@
 "KeyPhrase.PrivacyKeySubtitle" = "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.";
 "KeyPhrase.CopyToClipboard" = "Copy to clipboard";
 "KeyPhrase.CopiedToClipboard" = "Copied to clipboard";
-"KeyPhrase.LossWarning" = "We can't recover this key if it's lost";
 
 "New Album Subheading" = "Set the name for this encrypted photo album.";
 
@@ -1112,10 +1111,25 @@
 "AuthenticationView.RetryIn" = "You can retry your password in %@";
 "AuthenticationView.ForgotPassword" = "Forgot Password? Reset App";
 "AuthenticationView.TryAgain" = "Try Again";
-"AuthenticationView.CannotUnlock" = "Encamera can't be unlocked";
-"AuthenticationView.BiometricsOnly.Title" = "Turn on %@ to unlock Encamera";
 "AuthenticationView.BiometricsOnly.Explanation" = "This account has no passcode, so %@ is the only way in.";
-"AuthenticationView.ResetAndStartOver" = "Can't turn it on? Reset and start over";
+"AuthenticationView.BiometricsOnly.Unavailable" = "Encamera was only set up with %@, which isn’t available on this device.";
+"AuthenticationView.BiometricsOnly.EnableInSettings" = "Enable %@ in your device settings to continue, or reset Encamera.";
+"AuthenticationView.BiometricsOnly.Reset" = "Reset Encamera";
+"AuthenticationView.AwaitPasscode.Title" = "Welcome back to Encamera";
+"AuthenticationView.AwaitPasscode.UsedOnDevice" = "We found that you’ve used Encamera on %@.";
+"AuthenticationView.AwaitPasscode.UsedOnOtherDevice" = "We found that you’ve used Encamera on another device.";
+"AuthenticationView.AwaitPasscode.NotAllowed" = "%@ isn’t allowed for Encamera on this device.";
+"AuthenticationView.AwaitPasscode.AllowOrSetPasscode" = "Go to Settings to allow %@, or set up a passcode on your other device to continue.";
+"AuthenticationView.AwaitPasscode.Waiting" = "Waiting for you to set up a passcode…";
+"AuthenticationView.AwaitPasscode.GoToSettings" = "Go to Settings";
+"AuthenticationView.AwaitPasscode.NoOtherDevice" = "I don’t have my other device";
+
+/* ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift */
+"EncameraDrawerFactory.ResetDrawer.Title" = "Reset Encamera?";
+"EncameraDrawerFactory.ResetDrawer.Body" = "If you don’t have access to your other device, you can reset Encamera. You will not lose any of your encrypted files, but your encryption key and your passcode will be deleted from all devices.";
+"EncameraDrawerFactory.ResetDrawer.BodySyncOff" = "Resetting Encamera removes all keys from all your devices. This can’t be undone.";
+"EncameraDrawerFactory.ResetDrawer.Confirm" = "Reset Encamera";
+"EncameraDrawerFactory.ResetDrawer.GoBack" = "Go Back";
 
 /* ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift */
 "EncameraDrawerFactory.GoBack" = "Go Back";
@@ -1162,13 +1176,16 @@
 
 /* Shown when biometrics is the only way into the app and it cannot run. */
 "BiometricAvailability.GenericName" = "Biometric unlock";
+"BiometricAvailability.FaceIDOrTouchID" = "Face ID or Touch ID";
 "BiometricAvailability.CannotUnlock.NotEnabled" = "%@ hasn't been turned on for Encamera on this device yet.";
-"BiometricAvailability.CannotUnlock.LockedOut" = "%@ is locked after too many failed attempts. Lock your device and unlock it with your device passcode, then try again.";
+"BiometricAvailability.CannotUnlock.LockedOut" = "%@ is locked after too many failed attempts. Lock your device, unlock it, then try again.";
 "BiometricAvailability.CannotUnlock.DeniedBySystemSettings" = "%@ is turned off for Encamera. Turn it back on in Settings > Encamera, then try again.";
-"BiometricAvailability.CannotUnlock.NotEnrolled" = "No face or fingerprint is enrolled on this device. Set one up in Settings, then try again.";
-"BiometricAvailability.CannotUnlock.PasscodeNotSet" = "This device has no passcode, which turns off Face ID and Touch ID. Set a device passcode in Settings, then try again.";
-"BiometricAvailability.CannotUnlock.NoHardware" = "This device has no biometric unlock, and this account has no passcode.";
-"BiometricAvailability.CannotUnlock.Unavailable" = "Biometric unlock isn't available right now (error %d), and this account has no passcode.";
+"BiometricAvailability.CannotUnlock.NotEnrolled" = "%@ isn't set up on this device. Set it up in Settings, or add a passcode on your other device.";
+"BiometricAvailability.CannotUnlock.NoHardware" = "This device has no biometric unlock, and this account has no passcode. To proceed, add a passcode on your other device.";
+"BiometricAvailability.CannotUnlock.NotEnrolledSyncOff" = "%@ isn't set up on this device. Set it up in Settings, then try again.";
+"BiometricAvailability.CannotUnlock.NoHardwareSyncOff" = "This device has no biometric unlock, and this account has no passcode. Reset Encamera to start over.";
+"BiometricAvailability.CannotUnlock.Unavailable" = "Biometric unlock isn't available right now, and this account has no passcode. Try again later, or add a passcode on your other device.";
+"BiometricAvailability.CannotUnlock.UnavailableSyncOff" = "Biometric unlock isn't available right now, and this account has no passcode.";
 
 /* ./Encamera/Settings/SettingsView.swift */
 "SettingsView.UnknownError" = "Unknown error";
@@ -1624,6 +1641,10 @@
 "RecoveryKey.Intro.Row1" = "Your recovery key is needed to recover your media on a new device";
 "RecoveryKey.Intro.Row2" = "Keep it somewhere safe, like a password manager";
 "RecoveryKey.Intro.Row3" = "If you lose it, we can't recover your media for you";
+"RecoveryKey.Saved.Title" = "Have you saved your recovery key?";
+"RecoveryKey.Saved.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
+"RecoveryKey.Saved.Confirm" = "I've saved my key";
+"RecoveryKey.Saved.Later" = "I'll do it later";
 "RecoveryKey.Storage.Title" = "Where should we save your recovery key?";
 "RecoveryKey.Storage.Subtitle" = "Only you have access. We can't recover it for you.";
 "RecoveryKey.Storage.ICloudTitle" = "iCloud (Recommended)";
