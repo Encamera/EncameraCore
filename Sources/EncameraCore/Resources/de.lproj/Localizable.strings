@@ -681,9 +681,6 @@
 "OnboardingCarousel.HeadingText3" = "Keine Konten. Kein Profiling. Keine Werbung.";
 "Settings.BackupKeyToiCloudDescription" = "Wenn aktiviert, wird Ihr Schlüssel automatisch in Ihrem iCloud-Schlüsselbund gesichert. Wenn Sie Ihr Gerät verlieren, haben Sie immer noch Zugriff auf Dateien, die auf iCloud gespeichert sind, wenn Sie diese Option wählen.";
 "KeyPhrase.ContinueButton" = "Mein Schlüssel wurde gespeichert";
-"MainHomeView.BackupEncryptionKey" = "Sichern Sie Ihren Verschlüsselungsschlüssel";
-"MainHomeView.ViewTheKey" = "Den Schlüssel anzeigen";
-"MainHomeView.KeyBackupWarning" = "Sie können Ihre Medien ohne diesen Schlüssel nicht anzeigen.";
 "Settings.CopiedToClipboard" = "In die Zwischenablage kopiert";
 "Settings.RevenueCatCustomerId" = "RevenueCat-Kundennummer";
 "BillingFrequency.PerYear" = "pro Jahr";
@@ -996,3 +993,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Wählen Sie weitere Medien aus oder gewähren Sie vollen Zugriff";
 "CustomPhotoPicker.LimitedAccessTitle" = "Eingeschränkter Zugriff";
 "AlbumNameValidator.Forbidden" = "Albumnamen dürfen nicht \".\" oder \"..\" sein und dürfen kein \"/\" oder \":\" enthalten.";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Sichern Sie Ihren Verschlüsselungsschlüssel";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "Sie können Ihre Medien ohne diesen Schlüssel nicht anzeigen.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Den Schlüssel anzeigen";

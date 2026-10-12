@@ -546,9 +546,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "AuthenticationView.RetryIn" = "Poți să încerci din nou parola în %@";
 "AuthenticationView.ForgotPassword" = "Ai uitat parola? Resetează aplicația";
 "SettingsView.UnknownError" = "Eroare necunoscută";
-"MainHomeView.BackupEncryptionKey" = "Salvează cheia ta de criptare";
-"MainHomeView.KeyBackupWarning" = "Nu veți putea vizualiza conținutul media fără această cheie.";
-"MainHomeView.ViewTheKey" = "Vezi cheia";
 
 "Settings.CopiedToClipboard" = "Copiat în clipboard";
 "Settings.RevenueCatCustomerId" = "ID client RevenueCat";
@@ -862,3 +859,7 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Selectează mai multe fișiere media sau acordă acces complet";
 "CustomPhotoPicker.LimitedAccessTitle" = "Acces limitat";
 "AlbumNameValidator.Forbidden" = "Numele albumelor nu pot fi „.” sau „..”, și nu pot conține „/” sau „:”.";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Salvează cheia ta de criptare";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "Nu veți putea vizualiza conținutul media fără această cheie.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Vezi cheia";

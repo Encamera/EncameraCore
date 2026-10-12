@@ -1465,12 +1465,6 @@ public enum L10n {
     public static let `continue` = L10n.tr("Localizable", "CloudKitUpgrade.Continue", fallback: "Continue")
     /// Estimated time
     public static let estimatedTime = L10n.tr("Localizable", "CloudKitUpgrade.EstimatedTime", fallback: "Estimated time")
-    /// Not now
-    public static let failedNotNow = L10n.tr("Localizable", "CloudKitUpgrade.FailedNotNow", fallback: "Not now")
-    /// Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.
-    public static let howItWorksBody = L10n.tr("Localizable", "CloudKitUpgrade.HowItWorksBody", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
-    /// How the upgrade works
-    public static let howItWorksTitle = L10n.tr("Localizable", "CloudKitUpgrade.HowItWorksTitle", fallback: "How the upgrade works")
     /// To start using the new syncing experience, your photo library needs a one-time upgrade.
     public static let introBody = L10n.tr("Localizable", "CloudKitUpgrade.IntroBody", fallback: "To start using the new syncing experience, your photo library needs a one-time upgrade.")
     /// Plural format key: "This update includes %#@album_count@"
@@ -1493,14 +1487,6 @@ public enum L10n {
     public static let laterUpdateNow = L10n.tr("Localizable", "CloudKitUpgrade.LaterUpdateNow", fallback: "Update now")
     /// Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.
     public static let otherDevicesNeedUpdate = L10n.tr("Localizable", "CloudKitUpgrade.OtherDevicesNeedUpdate", fallback: "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.")
-    /// Continue upgrading
-    public static let pauseContinue = L10n.tr("Localizable", "CloudKitUpgrade.PauseContinue", fallback: "Continue upgrading")
-    /// You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.
-    public static let pauseMessage = L10n.tr("Localizable", "CloudKitUpgrade.PauseMessage", fallback: "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.")
-    /// Pause Update
-    public static let pausePause = L10n.tr("Localizable", "CloudKitUpgrade.PausePause", fallback: "Pause Update")
-    /// Pause the upgrade?
-    public static let pauseTitle = L10n.tr("Localizable", "CloudKitUpgrade.PauseTitle", fallback: "Pause the upgrade?")
     /// Upgrading album %@ of %@
     public static func progressTitle(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "CloudKitUpgrade.ProgressTitle", String(describing: p1), String(describing: p2), fallback: "Upgrading album %@ of %@")
@@ -1511,10 +1497,6 @@ public enum L10n {
     public static func timeLeft(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitUpgrade.TimeLeft", String(describing: p1), fallback: "About %@ left")
     }
-    /// Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
-    public static let wifiBody = L10n.tr("Localizable", "CloudKitUpgrade.WifiBody", fallback: "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
-    /// We recommend using Wi‑Fi
-    public static let wifiTitle = L10n.tr("Localizable", "CloudKitUpgrade.WifiTitle", fallback: "We recommend using Wi‑Fi")
   }
   public enum Common {
     /// Cancel
@@ -1555,18 +1537,6 @@ public enum L10n {
     public static let headerText = L10n.tr("Localizable", "CreateAlbumModal.HeaderText", fallback: "Name this encrypted album")
     /// Your memories
     public static let placeholder = L10n.tr("Localizable", "CreateAlbumModal.Placeholder", fallback: "Your memories")
-  }
-  public enum CredentialConflict {
-    /// Keep this device's account
-    public static let keepLocal = L10n.tr("Localizable", "CredentialConflict.KeepLocal", fallback: "Keep this device's account")
-    /// This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?
-    public static let message = L10n.tr("Localizable", "CredentialConflict.Message", fallback: "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?")
-    /// ./Encamera/EncameraApp.swift - Credential conflict prompt (two accounts detected)
-    public static let title = L10n.tr("Localizable", "CredentialConflict.Title", fallback: "Another account found")
-    /// Use the other device's account
-    public static let useSynced = L10n.tr("Localizable", "CredentialConflict.UseSynced", fallback: "Use the other device's account")
-    /// You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.
-    public static let useSyncedWarning = L10n.tr("Localizable", "CredentialConflict.UseSyncedWarning", fallback: "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.")
   }
   public enum CustomPhotoPicker {
     /// Add
@@ -1609,6 +1579,116 @@ public enum L10n {
     public static let selectPhotos = L10n.tr("Localizable", "CustomPhotoPicker.SelectPhotos", fallback: "Select Photos")
     /// ./Encamera/Components/CustomPhotoPicker.swift
     public static let swipeInstruction = L10n.tr("Localizable", "CustomPhotoPicker.SwipeInstruction", fallback: "Long press & swipe to select multiple photos")
+  }
+  public enum EncameraDrawerFactory {
+    /// ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift
+    public static let goBack = L10n.tr("Localizable", "EncameraDrawerFactory.GoBack", fallback: "Go Back")
+    public enum CloudKitUpgradeFailedDrawer {
+      /// Not now
+      public static let notNow = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow", fallback: "Not now")
+    }
+    public enum CloudKitUpgradeHowItWorksDrawer {
+      /// Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Body", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
+      /// How the upgrade works
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title", fallback: "How the upgrade works")
+    }
+    public enum CloudKitUpgradePauseDrawer {
+      /// Continue upgrading
+      public static let `continue` = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Continue", fallback: "Continue upgrading")
+      /// You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.
+      public static let message = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Message", fallback: "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.")
+      /// Pause Update
+      public static let pause = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Pause", fallback: "Pause Update")
+      /// Pause the upgrade?
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Title", fallback: "Pause the upgrade?")
+    }
+    public enum CloudKitUpgradeWifiDrawer {
+      /// Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Body", fallback: "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
+      /// We recommend using Wi‑Fi
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Title", fallback: "We recommend using Wi‑Fi")
+    }
+    public enum ContinueWithoutKeyDrawer {
+      /// Your existing encrypted files won't be accessible on this device until you import your encryption key.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.ContinueWithoutKeyDrawer.Body", fallback: "Your existing encrypted files won't be accessible on this device until you import your encryption key.")
+      /// Continue without your key?
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.ContinueWithoutKeyDrawer.Title", fallback: "Continue without your key?")
+    }
+    public enum CredentialConflictDrawer {
+      /// Keep this device's account
+      public static let keepLocal = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.KeepLocal", fallback: "Keep this device's account")
+      /// This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?
+      public static let message = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.Message", fallback: "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?")
+      /// Another account found
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.Title", fallback: "Another account found")
+      /// Use the other device's account
+      public static let useSynced = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.UseSynced", fallback: "Use the other device's account")
+      /// You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.
+      public static let useSyncedWarning = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.UseSyncedWarning", fallback: "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.")
+    }
+    public enum DisableICloudBackupAndSyncDrawer {
+      /// Turn Off
+      public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Confirm", fallback: "Turn Off")
+      /// Turn off iCloud sync?
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Title", fallback: "Turn off iCloud sync?")
+    }
+    public enum KeyBackupDrawer {
+      /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.
+      public static let explanation = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.Explanation", fallback: "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.")
+      /// Back up your Encryption Key
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.Title", fallback: "Back up your Encryption Key")
+      /// View the Key
+      public static let viewTheKey = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey", fallback: "View the Key")
+      /// You will not be able to view your media without this key.
+      public static let warning = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.Warning", fallback: "You will not be able to view your media without this key.")
+    }
+    public enum PasscodeSetDrawer {
+      /// Your password is ready. You'll need it to unlock your encrypted files.
+      public static let passwordBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody", fallback: "Your password is ready. You'll need it to unlock your encrypted files.")
+      /// Your PIN is ready. You'll need it to unlock your encrypted files.
+      public static let pinBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PinBody", fallback: "Your PIN is ready. You'll need it to unlock your encrypted files.")
+      /// You're all set
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.Title", fallback: "You're all set")
+    }
+    public enum RecoveryKeyPromptDrawer {
+      /// Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Body", fallback: "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.")
+      /// Maybe later
+      public static let later = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Later", fallback: "Maybe later")
+      /// Save recovery key
+      public static let save = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Save", fallback: "Save recovery key")
+      /// Never lose access to your media
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Title", fallback: "Never lose access to your media")
+    }
+    public enum RecoveryKeySavedDrawer {
+      /// Make sure you save a copy somewhere safe. You can always find your key in Settings.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeySavedDrawer.Body", fallback: "Make sure you save a copy somewhere safe. You can always find your key in Settings.")
+      /// I've saved my key
+      public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm", fallback: "I've saved my key")
+      /// I'll do it later
+      public static let later = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeySavedDrawer.Later", fallback: "I'll do it later")
+      /// Have you saved your recovery key?
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.RecoveryKeySavedDrawer.Title", fallback: "Have you saved your recovery key?")
+    }
+    public enum ResetDrawer {
+      /// If you don’t have access to your other device, you can reset Encamera. You will not lose any of your encrypted files, but your encryption key and your passcode will be deleted from all devices.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Body", fallback: "If you don’t have access to your other device, you can reset Encamera. You will not lose any of your encrypted files, but your encryption key and your passcode will be deleted from all devices.")
+      /// Resetting Encamera removes all keys from all your devices. This can’t be undone.
+      public static let bodySyncOff = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.BodySyncOff", fallback: "Resetting Encamera removes all keys from all your devices. This can’t be undone.")
+      /// Reset Encamera
+      public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Confirm", fallback: "Reset Encamera")
+      /// Reset Encamera?
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Title", fallback: "Reset Encamera?")
+    }
+    public enum WelcomeBackDrawer {
+      /// Enter passcode
+      public static let `continue` = L10n.tr("Localizable", "EncameraDrawerFactory.WelcomeBackDrawer.Continue", fallback: "Enter passcode")
+      /// We found your Encamera account from another device. Enter your passcode to unlock it here.
+      public static let message = L10n.tr("Localizable", "EncameraDrawerFactory.WelcomeBackDrawer.Message", fallback: "We found your Encamera account from another device. Enter your passcode to unlock it here.")
+      /// Welcome back!
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.WelcomeBackDrawer.Title", fallback: "Welcome back!")
+    }
   }
   public enum EnterTheNameOfTheKeyToDeleteItForever {
     /// Enter the name of the key to delete it forever. All media will remain saved.
@@ -2151,16 +2231,8 @@ public enum L10n {
     }
   }
   public enum MainHomeView {
-    /// ./Encamera/MainHomeView/MainHomeView.swift
-    public static let backupEncryptionKey = L10n.tr("Localizable", "MainHomeView.BackupEncryptionKey", fallback: "Back up your Encryption Key")
-    /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.
-    public static let keyBackupExplanation = L10n.tr("Localizable", "MainHomeView.KeyBackupExplanation", fallback: "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.")
-    /// You will not be able to view your media without this key.
-    public static let keyBackupWarning = L10n.tr("Localizable", "MainHomeView.KeyBackupWarning", fallback: "You will not be able to view your media without this key.")
-    /// View the Key
-    public static let viewTheKey = L10n.tr("Localizable", "MainHomeView.ViewTheKey", fallback: "View the Key")
     public enum TabBar {
-      /// Camera
+      /// ./Encamera/MainHomeView/MainHomeView.swift
       public static let camera = L10n.tr("Localizable", "MainHomeView.TabBar.Camera", fallback: "Camera")
     }
   }
@@ -2394,22 +2466,8 @@ public enum L10n {
       public static let body = L10n.tr("Localizable", "Onboarding.NeedKey.body", fallback: "Without your encryption key, you won't be able to access your existing encrypted files on this device.\n\nYou can import your key later if you get access to it.")
       /// Continue without key
       public static let continueWithoutKey = L10n.tr("Localizable", "Onboarding.NeedKey.continueWithoutKey", fallback: "Continue without key")
-      /// Your existing encrypted files won't be accessible on this device until you import your encryption key.
-      public static let drawerBody = L10n.tr("Localizable", "Onboarding.NeedKey.drawerBody", fallback: "Your existing encrypted files won't be accessible on this device until you import your encryption key.")
-      /// Continue without your key?
-      public static let drawerTitle = L10n.tr("Localizable", "Onboarding.NeedKey.drawerTitle", fallback: "Continue without your key?")
-      /// Go Back
-      public static let goBack = L10n.tr("Localizable", "Onboarding.NeedKey.goBack", fallback: "Go Back")
       /// Need key
       public static let title = L10n.tr("Localizable", "Onboarding.NeedKey.title", fallback: "You'll need your encryption key")
-    }
-    public enum PasscodeSet {
-      /// Your password is ready. You'll need it to unlock your encrypted files.
-      public static let passwordBody = L10n.tr("Localizable", "Onboarding.PasscodeSet.passwordBody", fallback: "Your password is ready. You'll need it to unlock your encrypted files.")
-      /// Your PIN is ready. You'll need it to unlock your encrypted files.
-      public static let pinBody = L10n.tr("Localizable", "Onboarding.PasscodeSet.pinBody", fallback: "Your PIN is ready. You'll need it to unlock your encrypted files.")
-      /// Passcode set drawer
-      public static let title = L10n.tr("Localizable", "Onboarding.PasscodeSet.title", fallback: "You're all set")
     }
     public enum Password {
       /// Confirm your password
@@ -2809,28 +2867,8 @@ public enum L10n {
       public static let row2 = L10n.tr("Localizable", "RecoveryKey.Intro.Row2", fallback: "Keep it somewhere safe, like a password manager")
       /// If you lose it, we can't recover your media for you
       public static let row3 = L10n.tr("Localizable", "RecoveryKey.Intro.Row3", fallback: "If you lose it, we can't recover your media for you")
-      /// Save your recovery key
+      /// The save-recovery-key flow
       public static let title = L10n.tr("Localizable", "RecoveryKey.Intro.Title", fallback: "Save your recovery key")
-    }
-    public enum Prompt {
-      /// Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.
-      public static let body = L10n.tr("Localizable", "RecoveryKey.Prompt.Body", fallback: "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.")
-      /// Maybe later
-      public static let later = L10n.tr("Localizable", "RecoveryKey.Prompt.Later", fallback: "Maybe later")
-      /// Save recovery key
-      public static let save = L10n.tr("Localizable", "RecoveryKey.Prompt.Save", fallback: "Save recovery key")
-      /// Recovery key prompt after the first item lands in a new album, and the save-recovery-key flow behind it
-      public static let title = L10n.tr("Localizable", "RecoveryKey.Prompt.Title", fallback: "Never lose access to your media")
-    }
-    public enum Saved {
-      /// Make sure you save a copy somewhere safe. You can always find your key in Settings.
-      public static let body = L10n.tr("Localizable", "RecoveryKey.Saved.Body", fallback: "Make sure you save a copy somewhere safe. You can always find your key in Settings.")
-      /// I've saved my key
-      public static let confirm = L10n.tr("Localizable", "RecoveryKey.Saved.Confirm", fallback: "I've saved my key")
-      /// I'll do it later
-      public static let later = L10n.tr("Localizable", "RecoveryKey.Saved.Later", fallback: "I'll do it later")
-      /// Have you saved your recovery key?
-      public static let title = L10n.tr("Localizable", "RecoveryKey.Saved.Title", fallback: "Have you saved your recovery key?")
     }
     public enum Storage {
       /// Backed up automatically. Recoverable if you switch devices or lose your iPhone.
@@ -3003,10 +3041,6 @@ public enum L10n {
       public static func disableDevicesWarning(_ p1: Any) -> String {
         return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDevicesWarning", String(describing: p1), fallback: "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.")
       }
-      /// Turn Off
-      public static let disableDrawerConfirm = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDrawerConfirm", fallback: "Turn Off")
-      /// Turn off iCloud sync?
-      public static let disableDrawerTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableDrawerTitle", fallback: "Turn off iCloud sync?")
       /// Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.
       public static let disableGenericWarning = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisableGenericWarning", fallback: "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.")
       /// Turn off iCloud Backup & Sync?
@@ -3294,14 +3328,6 @@ public enum L10n {
     public static let subtitle = L10n.tr("Localizable", "VerticalPaywall.subtitle", fallback: "Keep your entire private library in Encamera with unlimited, automatic encryption.")
     /// ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282)
     public static let title = L10n.tr("Localizable", "VerticalPaywall.title", fallback: "Get Unlimited Storage")
-  }
-  public enum WelcomeBack {
-    /// Enter passcode
-    public static let `continue` = L10n.tr("Localizable", "WelcomeBack.Continue", fallback: "Enter passcode")
-    /// We found your Encamera account from another device. Enter your passcode to unlock it here.
-    public static let message = L10n.tr("Localizable", "WelcomeBack.Message", fallback: "We found your Encamera account from another device. Enter your passcode to unlock it here.")
-    /// ./Encamera/Onboarding/OnboardingHostingView.swift - Welcome back takeover for synced accounts
-    public static let title = L10n.tr("Localizable", "WelcomeBack.Title", fallback: "Welcome back!")
   }
   public enum ZipExport {
     /// Cancel

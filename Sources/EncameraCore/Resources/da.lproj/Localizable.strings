@@ -69,7 +69,6 @@
 "AlbumDetailView.Select" = "Vælg medier";
 "Settings.PurchasesRestored" = "Køb gendannet!";
 "SettingsView.UnknownError" = "Ukendt fejl";
-"MainHomeView.ViewTheKey" = "Vis nøglen";
 "PromoPremiumUnlockTheseBenefits" = "Ubegrænsede albummer og iCloud-lagring
  og TO MÅNEDER GRATIS";
 "SplashScreen.Subline" = "Sikr dine minder";
@@ -136,7 +135,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "No info available" = "Ingen information tilgængelig";
 "NotificationBannerBody" = "Al medier krypteres før de gemmes. Ingen kan se dine filer undtagen dig.";
 "Close" = "Luk";
-"MainHomeView.KeyBackupWarning" = "Du vil ikke kunne se dine medier uden denne nøgle.";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "SetAPasswordWarning" = "Opret en adgangskode for at få adgang til appen. Sørg for at opbevare den et sikkert sted – du kan ikke gendanne den senere.";
 "Back to album" = "Tilbage til album";
@@ -243,7 +241,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "Decrypting..." = "Dekrypterer...";
 "PHOTO" = "FOTO";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Hvis du ændrer din godkendelsesmetode, skal du oprette en ny PIN-kode eller adgangskode. Vil du fortsætte?";
-"MainHomeView.BackupEncryptionKey" = "Sikkerhedskopiér din krypteringsnøgle";
 "PhotoPickerWrapper.PrivacyFirst" = "Privatliv først";
 "Create an unlimited number of keys." = "Opret et ubegrænset antal nøgler.";
 "CustomPhotoPicker.GrantAccessMessage" = "Giv venligst fuld adgang til dit fotobibliotek for at bruge swipevalg. Du kan ændre dette i Indstillinger.";
@@ -849,3 +846,7 @@ Encamera!";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Vælg mere medie eller giv fuld adgang";
 "CustomPhotoPicker.LimitedAccessTitle" = "Begrænset adgang";
 "AlbumNameValidator.Forbidden" = "Albumnavne kan ikke være \".\" eller \"..\", eller indeholde \"/\" eller \":\".";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Sikkerhedskopiér din krypteringsnøgle";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "Du vil ikke kunne se dine medier uden denne nøgle.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Vis nøglen";

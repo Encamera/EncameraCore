@@ -69,7 +69,6 @@
 "AlbumDetailView.Select" = "Seleziona media";
 "Settings.PurchasesRestored" = "Acquisti ripristinati!";
 "SettingsView.UnknownError" = "Errore sconosciuto";
-"MainHomeView.ViewTheKey" = "Visualizza la chiave";
 "PromoPremiumUnlockTheseBenefits" = "Album illimitati e spazio di archiviazione iCloud\n e DUE MESI GRATIS";
 "SplashScreen.Subline" = "Proteggi i tuoi ricordi";
 "UseCameraToTakePhotos" = "Usa la fotocamera integrata per scattare foto e registrare video.";
@@ -135,7 +134,6 @@ Questa frase viene utilizzata per generare la chiave di crittografia che protegg
 "No info available" = "Nessuna informazione disponibile";
 "NotificationBannerBody" = "Tutti i file multimediali vengono crittografati prima del salvataggio. Nessuno può visualizzare i tuoi file tranne te.";
 "Close" = "Chiudi";
-"MainHomeView.KeyBackupWarning" = "Non potrai visualizzare i tuoi file multimediali senza questa chiave.";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "SetAPasswordWarning" = "Imposta una password per accedere all'app. Assicurati di conservarla in un luogo sicuro: non potrai recuperarla in seguito.";
 "Back to album" = "Torna all'album";
@@ -244,7 +242,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Decrypting..." = "Decrittazione in corso...";
 "PHOTO" = "FOTO";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Cambiare il metodo di autenticazione richiederà la configurazione di un nuovo PIN o password. Vuoi continuare?";
-"MainHomeView.BackupEncryptionKey" = "Esegui il backup della tua chiave di crittografia";
 "PhotoPickerWrapper.PrivacyFirst" = "Privacy prima di tutto";
 "Create an unlimited number of keys." = "Crea un numero illimitato di chiavi.";
 "CustomPhotoPicker.GrantAccessMessage" = "Per utilizzare la selezione tramite scorrimento, concedi l'accesso completo alla tua libreria foto. Puoi modificare questa impostazione in Impostazioni.";
@@ -853,3 +850,7 @@ album";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Seleziona altri media o concedi l'accesso completo";
 "CustomPhotoPicker.LimitedAccessTitle" = "Accesso limitato";
 "AlbumNameValidator.Forbidden" = "I nomi degli album non possono essere \".\" o \"..\", né contenere \"/\" o \":\".";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Esegui il backup della tua chiave di crittografia";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "Non potrai visualizzare i tuoi file multimediali senza questa chiave.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Visualizza la chiave";

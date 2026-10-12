@@ -545,9 +545,6 @@ Encamera！";
 "AuthenticationView.RetryIn" = "您可以在 %@ 後再次嘗試輸入密碼";
 "AuthenticationView.ForgotPassword" = "忘記密碼？重設應用程式";
 "SettingsView.UnknownError" = "未知錯誤";
-"MainHomeView.BackupEncryptionKey" = "備份你的加密金鑰";
-"MainHomeView.KeyBackupWarning" = "沒有這個金鑰，你將無法查看你的媒體。";
-"MainHomeView.ViewTheKey" = "查看金鑰";
 
 "BillingFrequency.PerYear" = "每年";
 "BillingFrequency.OneTime" = "一次性";
@@ -859,3 +856,7 @@ Encamera！";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "選擇更多媒體或授予完整存取權限";
 "CustomPhotoPicker.LimitedAccessTitle" = "有限存取";
 "AlbumNameValidator.Forbidden" = "專輯名稱不能是「.」或「..」，也不能包含「/」或「:」。";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "備份你的加密金鑰";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "沒有這個金鑰，你將無法查看你的媒體。";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "查看金鑰";

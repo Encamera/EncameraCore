@@ -679,9 +679,6 @@
 "OnboardingCarousel.HeadingText3" = "Sin cuentas. Sin perfilado. Sin anuncios.";
 "Settings.BackupKeyToiCloudDescription" = "Si está habilitado, su clave se respaldará automáticamente en su iCloud Keychain. Si pierde su dispositivo, aún tendrá acceso a los archivos almacenados en iCloud si elige esta opción.";
 "KeyPhrase.ContinueButton" = "Mi clave ha sido almacenada";
-"MainHomeView.BackupEncryptionKey" = "Haga una copia de seguridad de su clave de cifrado";
-"MainHomeView.ViewTheKey" = "Ver la clave";
-"MainHomeView.KeyBackupWarning" = "No podrás ver tu contenido multimedia sin esta clave.";
 "Settings.CopiedToClipboard" = "Copiado al portapapeles";
 "Settings.RevenueCatCustomerId" = "ID de cliente de RevenueCat";
 "BillingFrequency.PerYear" = "por año";
@@ -995,3 +992,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Selecciona más medios o concede acceso completo";
 "CustomPhotoPicker.LimitedAccessTitle" = "Acceso limitado";
 "AlbumNameValidator.Forbidden" = "Los nombres de los álbumes no pueden ser \".\" o \"..\", ni contener \"/\" o \":\".";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Haga una copia de seguridad de su clave de cifrado";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "No podrás ver tu contenido multimedia sin esta clave.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Ver la clave";

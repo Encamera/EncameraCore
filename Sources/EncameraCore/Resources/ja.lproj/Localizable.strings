@@ -69,7 +69,6 @@
 "AlbumDetailView.Select" = "メディアを選択";
 "Settings.PurchasesRestored" = "購入が復元されました！";
 "SettingsView.UnknownError" = "不明なエラー";
-"MainHomeView.ViewTheKey" = "キーを見る";
 "PromoPremiumUnlockTheseBenefits" = "無制限のアルバムとiCloudストレージ\nさらに2か月間無料";
 "SplashScreen.Subline" = "思い出を守ろう";
 "UseCameraToTakePhotos" = "内蔵カメラを使って写真や動画を撮影しましょう。";
@@ -146,7 +145,6 @@
 "No info available" = "情報がありません";
 "NotificationBannerBody" = "すべてのメディアは保存前に暗号化されます。あなた以外は誰もファイルを見ることができません。";
 "Close" = "閉じる";
-"MainHomeView.KeyBackupWarning" = "このキーがないとメディアを表示できません。";
 "AuthenticationMethod.TextDescription.FaceID" = "Face ID";
 "SetAPasswordWarning" = "アプリにアクセスするためのパスワードを設定してください。後から復元できないため、安全な場所に保管してください。";
 "Back to album" = "アルバムに戻る";
@@ -255,7 +253,6 @@
 "Decrypting..." = "復号中...";
 "PHOTO" = "写真";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "認証方法を変更すると、新しいPINまたはパスワードの設定が必要になります。続行しますか？";
-"MainHomeView.BackupEncryptionKey" = "暗号化キーのバックアップを取る";
 "PhotoPickerWrapper.PrivacyFirst" = "プライバシー第一";
 "Create an unlimited number of keys." = "無制限にキーを作成できます。";
 "CustomPhotoPicker.GrantAccessMessage" = "スワイプ選択を使用するには、写真ライブラリへのフルアクセスを許可してください。設定で変更できます。";
@@ -862,3 +859,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "さらにメディアを選択するか、フルアクセスを許可してください";
 "CustomPhotoPicker.LimitedAccessTitle" = "アクセスが制限されています";
 "AlbumNameValidator.Forbidden" = "アルバム名は「.」や「..」にはできません。また、「/」や「:」を含めることもできません。";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "暗号化キーのバックアップを取る";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "このキーがないとメディアを表示できません。";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "キーを見る";

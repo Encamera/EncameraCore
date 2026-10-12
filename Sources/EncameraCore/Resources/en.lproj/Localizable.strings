@@ -761,8 +761,6 @@
 "Settings.ICloudBackupAndSync.DisableTitle" = "Turn off iCloud Backup & Sync?";
 "Settings.ICloudBackupAndSync.DisableGenericWarning" = "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy will no longer be able to open your photos.";
 "Settings.ICloudBackupAndSync.DisableDevicesWarning" = "Turning off iCloud Backup & Sync removes your key and passcode from your iCloud Keychain. This device keeps its copy. Any other device that only had the iCloud copy — including %@ — will no longer be able to open your photos.";
-"Settings.ICloudBackupAndSync.DisableDrawerTitle" = "Turn off iCloud sync?";
-"Settings.ICloudBackupAndSync.DisableDrawerConfirm" = "Turn Off";
 "Settings.BackupKeyChangeFailed" = "Couldn't Change Key Backup";
 "Settings.BackupKeyChangeFailedMessage" = "Your iCloud Keychain refused the change, so this setting was left as it was. Make sure you're signed in to iCloud with Keychain turned on, then try again.";
 "Settings.ICloudBackupAndSync.HoldToDisable" = "Hold to Turn Off";
@@ -1119,6 +1117,49 @@
 "AuthenticationView.BiometricsOnly.Explanation" = "This account has no passcode, so %@ is the only way in.";
 "AuthenticationView.ResetAndStartOver" = "Can't turn it on? Reset and start over";
 
+/* ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift */
+"EncameraDrawerFactory.GoBack" = "Go Back";
+"EncameraDrawerFactory.ResetDrawer.Title" = "Reset Encamera?";
+"EncameraDrawerFactory.ResetDrawer.Body" = "If you don’t have access to your other device, you can reset Encamera. You will not lose any of your encrypted files, but your encryption key and your passcode will be deleted from all devices.";
+"EncameraDrawerFactory.ResetDrawer.BodySyncOff" = "Resetting Encamera removes all keys from all your devices. This can’t be undone.";
+"EncameraDrawerFactory.ResetDrawer.Confirm" = "Reset Encamera";
+"EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Title" = "Turn off iCloud sync?";
+"EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Confirm" = "Turn Off";
+"EncameraDrawerFactory.RecoveryKeyPromptDrawer.Title" = "Never lose access to your media";
+"EncameraDrawerFactory.RecoveryKeyPromptDrawer.Body" = "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.";
+"EncameraDrawerFactory.RecoveryKeyPromptDrawer.Save" = "Save recovery key";
+"EncameraDrawerFactory.RecoveryKeyPromptDrawer.Later" = "Maybe later";
+"EncameraDrawerFactory.RecoveryKeySavedDrawer.Title" = "Have you saved your recovery key?";
+"EncameraDrawerFactory.RecoveryKeySavedDrawer.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
+"EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm" = "I've saved my key";
+"EncameraDrawerFactory.RecoveryKeySavedDrawer.Later" = "I'll do it later";
+"EncameraDrawerFactory.CredentialConflictDrawer.Title" = "Another account found";
+"EncameraDrawerFactory.CredentialConflictDrawer.Message" = "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?";
+"EncameraDrawerFactory.CredentialConflictDrawer.KeepLocal" = "Keep this device's account";
+"EncameraDrawerFactory.CredentialConflictDrawer.UseSynced" = "Use the other device's account";
+"EncameraDrawerFactory.CredentialConflictDrawer.UseSyncedWarning" = "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.";
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Back up your Encryption Key";
+"EncameraDrawerFactory.KeyBackupDrawer.Explanation" = "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "You will not be able to view your media without this key.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "View the Key";
+"EncameraDrawerFactory.WelcomeBackDrawer.Title" = "Welcome back!";
+"EncameraDrawerFactory.WelcomeBackDrawer.Message" = "We found your Encamera account from another device. Enter your passcode to unlock it here.";
+"EncameraDrawerFactory.WelcomeBackDrawer.Continue" = "Enter passcode";
+"EncameraDrawerFactory.ContinueWithoutKeyDrawer.Title" = "Continue without your key?";
+"EncameraDrawerFactory.ContinueWithoutKeyDrawer.Body" = "Your existing encrypted files won't be accessible on this device until you import your encryption key.";
+"EncameraDrawerFactory.PasscodeSetDrawer.Title" = "You're all set";
+"EncameraDrawerFactory.PasscodeSetDrawer.PinBody" = "Your PIN is ready. You'll need it to unlock your encrypted files.";
+"EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody" = "Your password is ready. You'll need it to unlock your encrypted files.";
+"EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Title" = "We recommend using Wi‑Fi";
+"EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Body" = "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
+"EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title" = "How the upgrade works";
+"EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Body" = "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.";
+"EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Title" = "Pause the upgrade?";
+"EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Message" = "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.";
+"EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Continue" = "Continue upgrading";
+"EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Pause" = "Pause Update";
+"EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow" = "Not now";
+
 /* Shown when biometrics is the only way into the app and it cannot run. */
 "BiometricAvailability.GenericName" = "Biometric unlock";
 "BiometricAvailability.CannotUnlock.NotEnabled" = "%@ hasn't been turned on for Encamera on this device yet.";
@@ -1143,10 +1184,6 @@
 "SettingsView.SectionHeader.General" = "GENERAL";
 
 /* ./Encamera/MainHomeView/MainHomeView.swift */
-"MainHomeView.BackupEncryptionKey" = "Back up your Encryption Key";
-"MainHomeView.KeyBackupExplanation" = "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.";
-"MainHomeView.KeyBackupWarning" = "You will not be able to view your media without this key.";
-"MainHomeView.ViewTheKey" = "View the Key";
 "MainHomeView.TabBar.Camera" = "Camera";
 
 /* ./Encamera/Settings/FeatureTogglesView.swift */
@@ -1327,10 +1364,6 @@
 "RestoringFromICloud.SetUpAsNew" = "Set up as a new device";
 "RestoringFromICloud.EnterKeyPhrase" = "Enter recovery key instead";
 "RestoringFromICloud.FinishingRestore" = "Finishing restore…";
-/* ./Encamera/Onboarding/OnboardingHostingView.swift - Welcome back takeover for synced accounts */
-"WelcomeBack.Title" = "Welcome back!";
-"WelcomeBack.Message" = "We found your Encamera account from another device. Enter your passcode to unlock it here.";
-"WelcomeBack.Continue" = "Enter passcode";
 "Onboarding.AlreadyUseEncamera" = "I already use Encamera on another device";
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Backup & Sync opt-in during onboarding (ENC-95). Default off; explicit tap required. */
 "Onboarding.ICloudBackupAndSync.Title" = "Use Encamera on all your devices";
@@ -1399,12 +1432,6 @@
 "GuidedSync.Retry" = "Keep waiting";
 "GuidedSync.MismatchTitle" = "That's a different key";
 "GuidedSync.MismatchBody" = "A key arrived from another device, but it isn't the one your photos here need. Enter your recovery key instead, or keep waiting for the right device to sync.";
-/* ./Encamera/EncameraApp.swift - Credential conflict prompt (two accounts detected) */
-"CredentialConflict.Title" = "Another account found";
-"CredentialConflict.Message" = "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?";
-"CredentialConflict.KeepLocal" = "Keep this device's account";
-"CredentialConflict.UseSynced" = "Use the other device's account";
-"CredentialConflict.UseSyncedWarning" = "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.";
 /* ./Encamera/Components/KeyMissingView.swift - No encryption key on this device */
 "KeyMissing.Title" = "No encryption key on this device";
 "KeyMissing.Subtitle" = "Your encryption key isn't available on this device, so existing photos can't be decrypted.";
@@ -1480,11 +1507,7 @@
 "CloudKitUpgrade.OtherDevicesNeedUpdate" = "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.";
 "CloudKitUpgrade.Continue" = "Continue";
 "CloudKitUpgrade.SeeHowItWorks" = "See how it works";
-"CloudKitUpgrade.HowItWorksTitle" = "How the upgrade works";
-"CloudKitUpgrade.HowItWorksBody" = "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.";
 "CloudKitUpgrade.AlbumsIncludedTitle" = "Albums included";
-"CloudKitUpgrade.WifiTitle" = "We recommend using Wi‑Fi";
-"CloudKitUpgrade.WifiBody" = "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
 "CloudKitUpgrade.EstimatedTime" = "Estimated time";
 "CloudKitUpgrade.LaterTitle" = "Upgrade later?";
 "CloudKitUpgrade.LaterMessage" = "You'll still be able to use Encamera, but your existing library won't benefit from the improved sync experience until you complete the upgrade.";
@@ -1494,11 +1517,6 @@
 "CloudKitUpgrade.TimeLeft" = "About %@ left";
 "CloudKitUpgrade.AlmostDone" = "Almost done";
 "CloudKitUpgrade.KeepOpen" = "Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.";
-"CloudKitUpgrade.PauseTitle" = "Pause the upgrade?";
-"CloudKitUpgrade.PauseMessage" = "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.";
-"CloudKitUpgrade.PauseContinue" = "Continue upgrading";
-"CloudKitUpgrade.PausePause" = "Pause Update";
-"CloudKitUpgrade.FailedNotNow" = "Not now";
 "CloudKitUpgrade.CompleteTitle" = "Upgrade complete";
 "CloudKitUpgrade.CompleteBody" = "Your photos will now sync faster and more reliably across your devices.";
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";
@@ -1538,11 +1556,6 @@
 "Onboarding.Password.field" = "Your password";
 "Onboarding.Password.setButton" = "Set Password";
 
-/* Passcode set drawer */
-"Onboarding.PasscodeSet.title" = "You're all set";
-"Onboarding.PasscodeSet.pinBody" = "Your PIN is ready. You'll need it to unlock your encrypted files.";
-"Onboarding.PasscodeSet.passwordBody" = "Your password is ready. You'll need it to unlock your encrypted files.";
-
 /* Encryption explainer */
 "Onboarding.Encryption.title" = "Every file you add is encrypted";
 "Onboarding.Encryption.row1" = "Before it's stored on your device or in iCloud";
@@ -1572,9 +1585,6 @@
 "Onboarding.NeedKey.title" = "You'll need your encryption key";
 "Onboarding.NeedKey.body" = "Without your encryption key, you won't be able to access your existing encrypted files on this device.\n\nYou can import your key later if you get access to it.";
 "Onboarding.NeedKey.continueWithoutKey" = "Continue without key";
-"Onboarding.NeedKey.drawerTitle" = "Continue without your key?";
-"Onboarding.NeedKey.drawerBody" = "Your existing encrypted files won't be accessible on this device until you import your encryption key.";
-"Onboarding.NeedKey.goBack" = "Go Back";
 
 /* ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282) */
 "VerticalPaywall.title" = "Get Unlimited Storage";
@@ -1609,11 +1619,7 @@
 "CameraCapture.TryAgain" = "Try Again";
 "CameraCapture.DeleteCapture" = "Delete";
 
-/* Recovery key prompt after the first item lands in a new album, and the save-recovery-key flow behind it */
-"RecoveryKey.Prompt.Title" = "Never lose access to your media";
-"RecoveryKey.Prompt.Body" = "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.";
-"RecoveryKey.Prompt.Save" = "Save recovery key";
-"RecoveryKey.Prompt.Later" = "Maybe later";
+/* The save-recovery-key flow */
 "RecoveryKey.Intro.Title" = "Save your recovery key";
 "RecoveryKey.Intro.Row1" = "Your recovery key is needed to recover your media on a new device";
 "RecoveryKey.Intro.Row2" = "Keep it somewhere safe, like a password manager";
@@ -1623,7 +1629,3 @@
 "RecoveryKey.Storage.ICloudTitle" = "iCloud (Recommended)";
 "RecoveryKey.Storage.ICloudLabel" = "Backed up automatically. Recoverable if you switch devices or lose your iPhone.";
 "RecoveryKey.Storage.ThisIPhoneLabel" = "Stored locally only. Not backed up. You'll need to export and manage it yourself.";
-"RecoveryKey.Saved.Title" = "Have you saved your recovery key?";
-"RecoveryKey.Saved.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
-"RecoveryKey.Saved.Confirm" = "I've saved my key";
-"RecoveryKey.Saved.Later" = "I'll do it later";

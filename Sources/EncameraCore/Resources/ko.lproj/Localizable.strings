@@ -548,11 +548,8 @@
 "OnboardingCarousel.SubheadingText2" = "당신의 앨범은 당신만의 고유 키로 잠겨 있으며, 기기 또는 iCloud에 안전하게 저장됩니다.";
 "OnboardingCarousel.HeadingText2" = "암호화 키는 오직 당신만이 보유하고 있습니다.";
 "OnboardingCarousel.HeadingText3" = "계정 없음. 프로파일링 없음. 광고 없음.";
-"MainHomeView.BackupEncryptionKey" = "암호화 키를 백업하세요";
-"MainHomeView.ViewTheKey" = "키 보기";
 "KeyPhrase.ContinueButton" = "내 키가 저장되었습니다";
 "Settings.BackupKeyToiCloudDescription" = "사용 설정하면 키가 iCloud 키체인에 자동으로 백업됩니다. 이 옵션을 선택하면 장치를 분실하더라도 iCloud에 저장된 파일에 액세스할 수 있습니다.";
-"MainHomeView.KeyBackupWarning" = "이 키 없이는 미디어를 볼 수 없습니다.";
 "Settings.CopiedToClipboard" = "클립보드에 복사됨";
 "Settings.RevenueCatCustomerId" = "RevenueCat 고객 ID";
 "BillingFrequency.PerYear" = "연간";
@@ -865,3 +862,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "더 많은 미디어를 선택하거나 전체 접근 권한을 허용하세요";
 "CustomPhotoPicker.LimitedAccessTitle" = "제한된 접근";
 "AlbumNameValidator.Forbidden" = "앨범 이름은 \".\" 또는 \"..\"이 될 수 없으며, \"/\"나 \":\"를 포함할 수 없습니다.";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "암호화 키를 백업하세요";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "이 키 없이는 미디어를 볼 수 없습니다.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "키 보기";

@@ -69,7 +69,6 @@
 "AlbumDetailView.Select" = "اختر الوسائط";
 "Settings.PurchasesRestored" = "تمت استعادة المشتريات!";
 "SettingsView.UnknownError" = "خطأ غير معروف";
-"MainHomeView.ViewTheKey" = "عرض المفتاح";
 "PromoPremiumUnlockTheseBenefits" = "ألبومات غير محدودة وتخزين iCloud\n وشهران مجاناً";
 "SplashScreen.Subline" = "احفظ ذكرياتك بأمان";
 "UseCameraToTakePhotos" = "استخدم الكاميرا المدمجة لالتقاط الصور ومقاطع الفيديو.";
@@ -134,7 +133,6 @@
 "No info available" = "لا توجد معلومات متاحة";
 "NotificationBannerBody" = "يتم تشفير جميع الوسائط قبل الحفظ. لا أحد يمكنه عرض ملفاتك غيرك.";
 "Close" = "إغلاق";
-"MainHomeView.KeyBackupWarning" = "لن تتمكن من عرض وسائطك بدون هذا المفتاح.";
 "AuthenticationMethod.TextDescription.FaceID" = "معرّف الوجه";
 "SetAPasswordWarning" = "قم بتعيين كلمة مرور للوصول إلى التطبيق. تأكد من حفظها في مكان آمن – لا يمكنك استعادتها لاحقًا.";
 "Back to album" = "العودة إلى الألبوم";
@@ -241,7 +239,6 @@
 "Decrypting..." = "جارٍ فك التشفير...";
 "PHOTO" = "صورة";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "تغيير طريقة المصادقة سيتطلب إعداد رقم تعريف شخصي أو كلمة مرور جديدة. هل ترغب في المتابعة؟";
-"MainHomeView.BackupEncryptionKey" = "قم بعمل نسخة احتياطية من مفتاح التشفير الخاص بك";
 "PhotoPickerWrapper.PrivacyFirst" = "الخصوصية أولاً";
 "Create an unlimited number of keys." = "أنشئ عددًا غير محدود من المفاتيح.";
 "CustomPhotoPicker.GrantAccessMessage" = "يرجى منح حق الوصول الكامل إلى مكتبة الصور الخاصة بك لاستخدام ميزة اختيار السحب. يمكنك تغيير ذلك في الإعدادات.";
@@ -847,3 +844,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "حدد المزيد من الوسائط أو امنح حق الوصول الكامل";
 "CustomPhotoPicker.LimitedAccessTitle" = "وصول محدود";
 "AlbumNameValidator.Forbidden" = "لا يمكن أن تكون أسماء الألبومات \".\" أو \"..\"، أو تحتوي على \"/\" أو \":\".";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "قم بعمل نسخة احتياطية من مفتاح التشفير الخاص بك";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "لن تتمكن من عرض وسائطك بدون هذا المفتاح.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "عرض المفتاح";

@@ -82,7 +82,6 @@
 "Local" = "Paikallinen";
 "Enter Promo Code" = "Syötä kampanjakoodi";
 "EmptyAlbumTakeAPictureActionTitle" = "Ota kuva";
-"MainHomeView.ViewTheKey" = "Näytä avain";
 "Cancel" = "Peruuta";
 "New Album" = "Uusi albumi";
 "TakeSurveyTitle" = "Haluatko 3 kuukautta ilmaiseksi?";
@@ -345,7 +344,6 @@ Kun jaat sen heidän kanssaan, he voivat purkaa minkä tahansa median salauksen,
 "MediaSelectionTray.ItemSelected" = "Valittu";
 "Import from files" = "Tuo tiedostoista";
 "Subscribe" = "Tilaa";
-"MainHomeView.BackupEncryptionKey" = "Varmuuskopioi salausavain";
 "DoYouRememberYourPin" = "Muistatko pääkoodisi?";
 "Share Image" = "Jaa kuva";
 "Notification.VideoSave.EducationalContent" = "Näytetään opettavaista sisältöä videoiden tallentamisesta.";
@@ -396,7 +394,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "Privacy Policy" = "Tietosuojakäytäntö";
 "AlbumSelectionModal.Move" = "Siirrä";
 "AlbumSelectionModal.Description" = "Valitse albumi, johon siirrät %@ kohdetta";
-"MainHomeView.KeyBackupWarning" = "Et voi tarkastella mediaasi ilman tätä avainta.";
 "PhotoPickerWrapper.UpgradeTitle" = "Päivitä täyteen kuvien käyttöoikeuteen";
 "RepeatPinCode" = "Toista PIN-koodi";
 "Share Decrypted" = "Jaa salauksen purkamaton";
@@ -861,3 +858,7 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "CustomPhotoPicker.LimitedAccessSubtitle" = "Valitse lisää mediaa tai myönnä täysi käyttöoikeus";
 "CustomPhotoPicker.LimitedAccessTitle" = "Rajoitettu käyttöoikeus";
 "AlbumNameValidator.Forbidden" = "Albumien nimet eivät voi olla \".\" tai \"..\", eivätkä ne saa sisältää \"/\" tai \":\".";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "Varmuuskopioi salausavain";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "Et voi tarkastella mediaasi ilman tätä avainta.";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "Näytä avain";

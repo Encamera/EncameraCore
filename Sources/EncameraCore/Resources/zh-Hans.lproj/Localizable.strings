@@ -526,9 +526,6 @@
 "AuthenticationView.RetryIn" = "您可以在 %@ 重试您的密码";
 "AuthenticationView.ForgotPassword" = "忘记密码？重置应用";
 "SettingsView.UnknownError" = "未知错误";
-"MainHomeView.BackupEncryptionKey" = "备份您的加密密钥";
-"MainHomeView.KeyBackupWarning" = "没有这个密钥，您将无法查看您的媒体。";
-"MainHomeView.ViewTheKey" = "查看密钥";
 
 "Settings.CopiedToClipboard" = "已复制到剪贴板";
 "Settings.RevenueCatCustomerId" = "RevenueCat 客户 ID";
@@ -842,3 +839,7 @@
 "CustomPhotoPicker.LimitedAccessSubtitle" = "选择更多媒体或授予完全访问权限";
 "CustomPhotoPicker.LimitedAccessTitle" = "受限访问";
 "AlbumNameValidator.Forbidden" = "专辑名称不能为“.”或“..”，也不能包含“/”或“:”。";
+
+"EncameraDrawerFactory.KeyBackupDrawer.Title" = "备份您的加密密钥";
+"EncameraDrawerFactory.KeyBackupDrawer.Warning" = "没有这个密钥，您将无法查看您的媒体。";
+"EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey" = "查看密钥";
