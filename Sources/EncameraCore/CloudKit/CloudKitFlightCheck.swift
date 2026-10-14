@@ -436,7 +436,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
         guard let key = keyManager.currentKey else {
             throw FlightCheckError.noKey
         }
-        return "Using key \(key.keychainLabel) (\(key.keyBytes.count) bytes)"
+        return "Using key \(key.keyFingerprint) (\(key.keyBytes.count) bytes)"
     }
 
     private func checkCreateAlbum() throws -> String? {

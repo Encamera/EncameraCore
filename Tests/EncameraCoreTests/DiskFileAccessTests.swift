@@ -510,8 +510,8 @@ final class DiskFileAccessTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: savedURL) }
 
         var attempts: [String] = []
-        let result = await KeyDiscovery.discoverKey(for: savedURL, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
-        XCTAssertEqual(attempts, [keyA.keychainLabel], "A born-stamped file must resolve with a single test-decrypt, no sweep")
+        let result = await KeyDiscovery.discoverKey(for: savedURL, keyManager: keyManager, onAttempt: { attempts.append($0.keyFingerprint) })
+        XCTAssertEqual(attempts, [keyA.keyFingerprint], "A born-stamped file must resolve with a single test-decrypt, no sweep")
         XCTAssertEqual(result?.key, keyA)
         XCTAssertEqual(result?.stampMatched, true)
     }

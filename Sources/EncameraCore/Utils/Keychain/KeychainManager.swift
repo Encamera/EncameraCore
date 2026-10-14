@@ -168,7 +168,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         if keys.isEmpty {
             printDebug("variant state (\(context)) keys: none")
         } else {
-            let describedKeys = keys.map { "\($0.keychainLabel)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
+            let describedKeys = keys.map { "\($0.keyFingerprint)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
             printDebug("variant state (\(context)) keys: \(describedKeys)")
         }
     }
@@ -397,14 +397,14 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     /// See `KeyManager.multiDeviceKeyConflict`.
     public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
-        let localFingerprints = Set(((try? storedKeys()) ?? []).map(\.keychainLabel))
+        let localFingerprints = Set(((try? storedKeys()) ?? []).map(\.keyFingerprint))
         let accountFingerprints = getMultiDeviceState()?.keyFingerprints ?? []
         let remoteOnly = accountFingerprints.filter { !localFingerprints.contains($0) }
         guard !remoteOnly.isEmpty else {
             return nil
         }
         return MultiDeviceKeyConflict(
-            localFingerprint: (try? getActiveKey())?.keychainLabel,
+            localFingerprint: (try? getActiveKey())?.keyFingerprint,
             remoteFingerprints: remoteOnly
         )
     }
@@ -592,7 +592,7 @@ private extension KeychainManager {
         do {
             let restored = try restoreDefaultKeyFromPassphraseIfNeeded()
             try privateKeyManager.getActiveKeyAndSet()
-            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.keychainLabel ?? "nil")')")
+            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.keyFingerprint ?? "nil")')")
         } catch {
             printDebug("Key restore after failed load did not succeed:", error)
         }

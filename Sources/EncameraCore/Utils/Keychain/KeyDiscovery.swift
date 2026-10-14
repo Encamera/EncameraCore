@@ -113,12 +113,12 @@ public struct KeyDiscovery: DebugPrintable {
         var candidates: [PrivateKey] = []
         var seen = Set<String>()
         func addCandidate(_ key: PrivateKey?) {
-            guard let key, seen.insert(key.keychainLabel).inserted else { return }
+            guard let key, seen.insert(key.keyFingerprint).inserted else { return }
             candidates.append(key)
         }
 
         if let hint {
-            addCandidate(storedKeys.first { $0.keychainLabel == hint })
+            addCandidate(storedKeys.first { $0.keyFingerprint == hint })
         }
         addCandidate(keyManager.currentKey)
         for key in storedKeys {

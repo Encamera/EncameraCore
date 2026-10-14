@@ -329,7 +329,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
                                            createdAt: createdAt,
                                            isHidden: true,
                                            schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                           keyFingerprint: key.keychainLabel,
+                                           keyFingerprint: key.keyFingerprint,
                                            recordChangeTag: "tag",
                                            coverMediaID: "cover-1")
         let manager = makeManager(keys: [key], currentKey: key)
@@ -338,7 +338,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: albumID))
         XCTAssertEqual(marker, CloudKitAlbumMarker(encName: encName, createdAt: createdAt, isHidden: true,
-                                                   coverMediaID: "cover-1", keyFingerprint: key.keychainLabel,
+                                                   coverMediaID: "cover-1", keyFingerprint: key.keyFingerprint,
                                                    dirty: false))
         let found = try XCTUnwrap(manager.fetchAlbumsFromSources(includingHidden: true).first { $0.albumID == albumID })
         XCTAssertEqual(found.name, name)
@@ -530,7 +530,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
                                            createdAt: Date(),
                                            isHidden: true,
                                            schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                           keyFingerprint: key.keychainLabel,
+                                           keyFingerprint: key.keyFingerprint,
                                            recordChangeTag: "tag")
 
         harness.manager.adoptCloudKitAlbum(record: record, key: key)
@@ -968,7 +968,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
                                                       createdAt: album.creationDate,
                                                       isHidden: false,
                                                       schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                                      keyFingerprint: album.key.keychainLabel,
+                                                      keyFingerprint: album.key.keyFingerprint,
                                                       recordChangeTag: "tag"))
         harness.store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let newName = "Offline-\(UUID().uuidString)"

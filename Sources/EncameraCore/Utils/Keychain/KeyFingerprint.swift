@@ -58,11 +58,11 @@ public enum KeyFingerprint {
     }
 
     /// The same short label derived from a full fingerprint hex string
-    /// (`PrivateKey.keychainLabel`). Used where only the fingerprint is known
+    /// (`PrivateKey.keyFingerprint`). Used where only the fingerprint is known
     /// and the key bytes are not — e.g. a fingerprint read from the synced
     /// `MultiDeviceState` record, which by design never carries key material.
     ///
-    /// `keychainLabel` is lowercase hex of the fingerprint bytes in order, and
+    /// `keyFingerprint` is lowercase hex of the fingerprint bytes in order, and
     /// `displayLabel(stampPrefix:)` renders bytes 0–3 in that same order, so
     /// taking the first eight hex characters produces an identical label.
     public static func displayLabel(fingerprintHex: String) -> String? {

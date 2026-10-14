@@ -63,7 +63,7 @@ struct CloudKitRecordKeyResolver: DebugPrintable {
         let resolution = KeyDiscovery(keyManager: keyManager)
             .resolveKey(hint: hint, storedKeysSnapshot: storedKeys) { probe.authenticates(keyBytes: $0.keyBytes) }
         if case .resolved(let key) = resolution {
-            printDebug("key resolved recordName=\(recordName) key=\(key.keychainLabel.prefix(8)) hintMatched=\(hint == key.keychainLabel)")
+            printDebug("key resolved recordName=\(recordName) key=\(key.keyFingerprint.prefix(8)) hintMatched=\(hint == key.keyFingerprint)")
             resolved[recordName] = key
             return key
         }

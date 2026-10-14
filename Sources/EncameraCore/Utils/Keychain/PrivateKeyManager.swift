@@ -243,7 +243,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// Identity lookup: the fingerprint is what uniquely identifies a key.
     func keyWith(fingerprint: String) -> PrivateKey? {
         let keys = try? storedKeys()
-        return keys?.first(where: { $0.keychainLabel == fingerprint })
+        return keys?.first(where: { $0.keyFingerprint == fingerprint })
     }
 
     @MainActor
@@ -282,7 +282,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// usable key.
     func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws {
         let keys = try storedKeys()
-        guard keys.contains(where: { $0.keychainLabel == fingerprint }) else {
+        guard keys.contains(where: { $0.keyFingerprint == fingerprint }) else {
             throw KeyManagerError.notFound
         }
         guard keys.count > 1 else {
@@ -290,9 +290,9 @@ final class PrivateKeyManager: DebugPrintable {
         }
         let activeFingerprint: String?
         if let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String {
-            activeFingerprint = PrivateKey.isFingerprintLabel(pointer) ? pointer : keys.first?.keychainLabel
+            activeFingerprint = PrivateKey.isFingerprintLabel(pointer) ? pointer : keys.first?.keyFingerprint
         } else {
-            activeFingerprint = currentKey?.keychainLabel
+            activeFingerprint = currentKey?.keyFingerprint
         }
         if activeFingerprint == fingerprint {
             throw KeyManagerError.keyDeletionFailed
@@ -333,7 +333,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// Pins the current key by fingerprint.
     func setActiveKey(_ key: PrivateKey) throws {
         currentKey = key
-        UserDefaultUtils.set(key.keychainLabel, forKey: UserDefaultKey.currentKey)
+        UserDefaultUtils.set(key.keyFingerprint, forKey: UserDefaultKey.currentKey)
     }
 
     func getActiveKey() throws -> PrivateKey {
@@ -412,7 +412,7 @@ final class PrivateKeyManager: DebugPrintable {
             )
             if updateStatus == errSecSuccess {
                 relabelled += 1
-                printDebug("migrateKeyLabels: relabelled \(existingLabel) -> \(key.keychainLabel) (synced=\(isSynced))")
+                printDebug("migrateKeyLabels: relabelled \(existingLabel) -> \(key.keyFingerprint) (synced=\(isSynced))")
             } else {
                 printDebug("migrateKeyLabels: FAILED to relabel \(existingLabel) — status \(updateStatus) (\(determineOSStatus(status: updateStatus)))")
             }
@@ -444,12 +444,12 @@ final class PrivateKeyManager: DebugPrintable {
 
         for key in keys {
             do {
-                let originalSyncStatus = try isKeyItemSynced(fingerprint: key.keychainLabel)
+                let originalSyncStatus = try isKeyItemSynced(fingerprint: key.keyFingerprint)
 
                 try saveKeyPreservingSync(key: key, syncStatus: originalSyncStatus)
-                printDebug("Successfully processed key: \(key.keychainLabel)")
+                printDebug("Successfully processed key: \(key.keyFingerprint)")
             } catch {
-                printDebug("Failed to migrate key \(key.keychainLabel): \(error)")
+                printDebug("Failed to migrate key \(key.keyFingerprint): \(error)")
                 throw error
             }
         }
@@ -506,8 +506,8 @@ final class PrivateKeyManager: DebugPrintable {
 
         try syncFlipper.setSynchronizable(synchronizable,
                                           forItemMatching: query,
-                                          description: "key \(key.keychainLabel)")
-        printDebug("Key updated: \(key.keychainLabel), iCloud: \(synchronizable)")
+                                          description: "key \(key.keyFingerprint)")
+        printDebug("Key updated: \(key.keyFingerprint), iCloud: \(synchronizable)")
     }
 
     /// The sync state the stored key items are observably in, independent of
@@ -572,8 +572,8 @@ final class PrivateKeyManager: DebugPrintable {
     /// would update another key's item in place and destroy the material every
     /// file encrypted with it depends on.
     func existingKeyItemQuery(for key: PrivateKey) -> [String: Any]? {
-        if keyItemExists(fingerprint: key.keychainLabel) {
-            return try? keyIdentityQuery(forFingerprint: key.keychainLabel)
+        if keyItemExists(fingerprint: key.keyFingerprint) {
+            return try? keyIdentityQuery(forFingerprint: key.keyFingerprint)
         }
         return legacyKeyItemQuery(forKeyBytes: key.keyBytes)
     }

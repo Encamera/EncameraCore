@@ -55,18 +55,18 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     // MARK: - Fingerprint known
 
     func testMatchingFingerprintAddsKeyWithoutReplacingCurrent() async throws {
-        let scenario = try makeScenario { .fingerprint($0.keychainLabel) }
+        let scenario = try makeScenario { .fingerprint($0.keyFingerprint) }
 
         let added = try await addKey(foreignPhrase, manager: scenario.manager, placeholder: scenario.placeholder)
 
-        XCTAssertEqual(added.keychainLabel, scenario.foreignKey.keychainLabel)
-        let labels = Set(try scenario.manager.storedKeys().map(\.keychainLabel))
-        XCTAssertEqual(labels, [deviceKey.keychainLabel, scenario.foreignKey.keychainLabel])
+        XCTAssertEqual(added.keyFingerprint, scenario.foreignKey.keyFingerprint)
+        let labels = Set(try scenario.manager.storedKeys().map(\.keyFingerprint))
+        XCTAssertEqual(labels, [deviceKey.keyFingerprint, scenario.foreignKey.keyFingerprint])
         XCTAssertEqual(scenario.manager.currentKey?.keyBytes, deviceKey.keyBytes, "an added key must never become current")
     }
 
     func testMismatchedFingerprintIsRejectedAndSavesNothing() async throws {
-        let scenario = try makeScenario { .fingerprint($0.keychainLabel) }
+        let scenario = try makeScenario { .fingerprint($0.keyFingerprint) }
 
         do {
             _ = try await addKey(wrongPhrase, manager: scenario.manager, placeholder: scenario.placeholder)
@@ -91,7 +91,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
         let stale = LockedAlbumPlaceholder(encryptedDirectoryName: scenario.placeholder.encryptedDirectoryName,
                                            storageOption: .cloudKit,
                                            creationDate: scenario.placeholder.creationDate,
-                                           requiredKey: .fingerprint(wrongKey.keychainLabel))
+                                           requiredKey: .fingerprint(wrongKey.keyFingerprint))
 
         do {
             _ = try await addKey(wrongPhrase, manager: scenario.manager, placeholder: stale)
@@ -133,7 +133,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     // MARK: - Never overwrite
 
     func testKeyAlreadyHeldIsRefusedAndLeftUntouched() async throws {
-        let scenario = try makeScenario { .fingerprint($0.keychainLabel) }
+        let scenario = try makeScenario { .fingerprint($0.keyFingerprint) }
         try scenario.manager.save(key: scenario.foreignKey, setNewKeyToCurrent: false)
         let before = try scenario.manager.storedKeys()
 
@@ -145,7 +145,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
         }
 
         let after = try scenario.manager.storedKeys()
-        XCTAssertEqual(after.map(\.keychainLabel), before.map(\.keychainLabel))
+        XCTAssertEqual(after.map(\.keyFingerprint), before.map(\.keyFingerprint))
         XCTAssertEqual(after.map(\.uuid), before.map(\.uuid), "the stored item must not be rewritten")
     }
 
@@ -163,9 +163,9 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     func testFingerprintAndStampPrefixOfTheSameKeyShareALabel() throws {
         let key = try DemoKeyManager().deriveKey(from: foreignPhrase)
 
-        XCTAssertEqual(RequiredKeyIdentity.fingerprint(key.keychainLabel).displayLabel,
+        XCTAssertEqual(RequiredKeyIdentity.fingerprint(key.keyFingerprint).displayLabel,
                        RequiredKeyIdentity.stampPrefix(key.stampPrefix).displayLabel)
-        XCTAssertTrue(RequiredKeyIdentity.fingerprint(key.keychainLabel).matches(key))
+        XCTAssertTrue(RequiredKeyIdentity.fingerprint(key.keyFingerprint).matches(key))
         XCTAssertTrue(RequiredKeyIdentity.stampPrefix(key.stampPrefix).matches(key))
     }
 

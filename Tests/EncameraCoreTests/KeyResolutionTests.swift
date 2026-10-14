@@ -44,7 +44,7 @@ final class KeyResolutionTests: XCTestCase {
         guard case .resolved(let key) = resolver.key(forEncryptedAlbumName: ciphertext, hint: nil) else {
             return XCTFail("A key in the library encrypted this name; resolution must find it")
         }
-        XCTAssertEqual(key.keychainLabel, keyB.keychainLabel)
+        XCTAssertEqual(key.keyFingerprint, keyB.keyFingerprint)
     }
 
     /// The current key must not win by being current — it is a candidate like any
@@ -56,7 +56,7 @@ final class KeyResolutionTests: XCTestCase {
         guard case .resolved(let key) = resolver.key(forEncryptedAlbumName: ciphertext, hint: nil) else {
             return XCTFail("Key C is in the library and encrypted this name")
         }
-        XCTAssertEqual(key.keychainLabel, keyC.keychainLabel,
+        XCTAssertEqual(key.keyFingerprint, keyC.keyFingerprint,
                        "Resolution returned the current key over the one that actually decrypts")
     }
 
@@ -91,10 +91,10 @@ final class KeyResolutionTests: XCTestCase {
         let resolver = discovery(keys: [keyA, keyB, keyC], current: keyA)
 
         guard case .resolved(let key) = resolver.key(forEncryptedAlbumName: ciphertext,
-                                                     hint: keyC.keychainLabel) else {
+                                                     hint: keyC.keyFingerprint) else {
             return XCTFail("A wrong hint must fall through to the rest of the library, not fail")
         }
-        XCTAssertEqual(key.keychainLabel, keyB.keychainLabel,
+        XCTAssertEqual(key.keyFingerprint, keyB.keyFingerprint,
                        "The hint named C but only B decrypts; the decrypt has to decide")
     }
 
@@ -107,16 +107,16 @@ final class KeyResolutionTests: XCTestCase {
         let resolver = discovery(keys: [keyA, keyB, keyC], current: keyA)
 
         var attempted: [String] = []
-        let resolution = resolver.resolveKey(hint: keyC.keychainLabel) { candidate in
-            attempted.append(candidate.keychainLabel)
+        let resolution = resolver.resolveKey(hint: keyC.keyFingerprint) { candidate in
+            attempted.append(candidate.keyFingerprint)
             return Album.decryptedAlbumName(ciphertext, key: candidate) != nil
         }
 
         guard case .resolved(let key) = resolution else {
             return XCTFail("The hinted key does decrypt this name")
         }
-        XCTAssertEqual(key.keychainLabel, keyC.keychainLabel)
-        XCTAssertEqual(attempted.first, keyC.keychainLabel,
+        XCTAssertEqual(key.keyFingerprint, keyC.keyFingerprint)
+        XCTAssertEqual(attempted.first, keyC.keyFingerprint,
                        "The hinted key must be the first candidate proved; attempts were \(attempted)")
     }
 
@@ -152,7 +152,7 @@ final class KeyResolutionTests: XCTestCase {
         guard case .resolved(let key) = resolver.key(forCiphertextBlob: blob, hint: nil) else {
             return XCTFail("Key B encrypted this blob and is in the library")
         }
-        XCTAssertEqual(key.keychainLabel, keyB.keychainLabel)
+        XCTAssertEqual(key.keyFingerprint, keyB.keyFingerprint)
     }
 
     func testBlobEncryptedWithAnAbsentKeyIsNoKnownKey() throws {

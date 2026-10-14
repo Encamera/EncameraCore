@@ -788,7 +788,7 @@ extension DiskFileAccess {
                                                      keyManager: keyManager,
                                                      storedKeysSnapshot: currentStoredKeys(keyManager)) {
         case .resolved(let discovered):
-            printDebug("resolveKey: Discovered key \(discovered.key.keychainLabel) for file \(mediaID), stampMatched: \(discovered.stampMatched)")
+            printDebug("resolveKey: Discovered key \(discovered.key.keyFingerprint) for file \(mediaID), stampMatched: \(discovered.stampMatched)")
             discoveredKeyMemo[mediaID] = discovered.key.uuid
             if !discovered.stampMatched && shouldStampFile(at: sourceURL) {
                 // First-block authentication is sufficient proof of the key

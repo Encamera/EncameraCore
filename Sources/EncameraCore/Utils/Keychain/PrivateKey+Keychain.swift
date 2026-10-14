@@ -21,8 +21,8 @@ extension PrivateKey {
     /// off label; writing both keeps real and fake keychains in agreement.
     var keychainIdentityAttributes: [String: Any] {
         [
-            kSecAttrLabel as String: keychainLabel.data(using: .utf8)!,
-            kSecAttrApplicationLabel as String: keychainLabel.data(using: .utf8)!,
+            kSecAttrLabel as String: keyFingerprint.data(using: .utf8)!,
+            kSecAttrApplicationLabel as String: keyFingerprint.data(using: .utf8)!,
             kSecAttrApplicationTag as String: KeychainConstants.keyApplicationTag.data(using: .utf8)!,
         ]
     }

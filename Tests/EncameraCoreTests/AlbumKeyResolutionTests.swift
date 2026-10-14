@@ -83,9 +83,9 @@ final class AlbumKeyResolutionTests: XCTestCase {
                            cannot decrypt a name key A wrote.
                            """)
         }
-        XCTAssertEqual(album.key.keychainLabel, keyA.keychainLabel,
+        XCTAssertEqual(album.key.keyFingerprint, keyA.keyFingerprint,
                        "The album was written with key A, so it must be keyed by A. It came back "
-                       + "keyed by \(album.key.keychainLabel == keyB.keychainLabel ? "B, the current key" : "some other key").")
+                       + "keyed by \(album.key.keyFingerprint == keyB.keyFingerprint ? "B, the current key" : "some other key").")
     }
 
     /// The same album must not change identity when the user's current key changes.
@@ -98,7 +98,7 @@ final class AlbumKeyResolutionTests: XCTestCase {
 
         let underA = manager(keys: [keyA, keyB], current: keyA)
             .fetchAlbumsFromSources(includingHidden: true)
-            .first { $0.key.keychainLabel == keyA.keychainLabel && $0.name == name }
+            .first { $0.key.keyFingerprint == keyA.keyFingerprint && $0.name == name }
         let underB = manager(keys: [keyA, keyB], current: keyB)
             .fetchAlbumsFromSources(includingHidden: true)
             .first { $0.name == name }
@@ -127,9 +127,9 @@ final class AlbumKeyResolutionTests: XCTestCase {
         let resolvedA = albums.first { $0.name == nameA }
         let resolvedB = albums.first { $0.name == nameB }
 
-        XCTAssertEqual(resolvedA?.key.keychainLabel, keyA.keychainLabel,
+        XCTAssertEqual(resolvedA?.key.keyFingerprint, keyA.keyFingerprint,
                        "The album written under A must resolve to A")
-        XCTAssertEqual(resolvedB?.key.keychainLabel, keyB.keychainLabel,
+        XCTAssertEqual(resolvedB?.key.keyFingerprint, keyB.keyFingerprint,
                        "The album written under B must resolve to B")
     }
 

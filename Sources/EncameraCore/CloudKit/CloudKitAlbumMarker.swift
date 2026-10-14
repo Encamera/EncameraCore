@@ -56,7 +56,7 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
                   createdAt: album.creationDate,
                   isHidden: isHidden,
                   coverMediaID: coverMediaID,
-                  keyFingerprint: album.key.keychainLabel,
+                  keyFingerprint: album.key.keyFingerprint,
                   dirty: dirty)
     }
 

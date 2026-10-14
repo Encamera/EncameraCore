@@ -15,7 +15,7 @@ final class KeyEntryValidationTests: XCTestCase {
     /// The fingerprint (full hex) a phrase derives to under the given manager —
     /// the same derivation `acceptKey` uses, so a match is by construction.
     private func fingerprint(of phrase: [String], manager: KeyManager) throws -> String {
-        try manager.deriveKey(from: phrase).keychainLabel
+        try manager.deriveKey(from: phrase).keyFingerprint
     }
 
     // MARK: - Tests
@@ -31,10 +31,10 @@ final class KeyEntryValidationTests: XCTestCase {
 
         XCTAssertTrue(outcome.validatedAgainstFingerprint,
                       "a known-fingerprint match must report as validated")
-        XCTAssertEqual(outcome.key.keychainLabel, required)
-        XCTAssertEqual(manager.currentKey?.keychainLabel, required,
+        XCTAssertEqual(outcome.key.keyFingerprint, required)
+        XCTAssertEqual(manager.currentKey?.keyFingerprint, required,
                        "the accepted key becomes current so the user's media is readable")
-        XCTAssertTrue(try manager.storedKeys().contains { $0.keychainLabel == required })
+        XCTAssertTrue(try manager.storedKeys().contains { $0.keyFingerprint == required })
     }
 
     /// A well-formed but wrong phrase is a DETECTABLE mismatch — reported as a
@@ -59,7 +59,7 @@ final class KeyEntryValidationTests: XCTestCase {
                           "the mismatch must name the key the photos actually need")
         }
 
-        XCTAssertTrue(try manager.storedKeys().allSatisfy { $0.keychainLabel != enteredExpected },
+        XCTAssertTrue(try manager.storedKeys().allSatisfy { $0.keyFingerprint != enteredExpected },
                       "a rejected key must not reach the keychain")
     }
 
@@ -97,7 +97,7 @@ final class KeyEntryValidationTests: XCTestCase {
         XCTAssertEqual(try manager.storedKeys().count, 2, "the library grew rather than being replaced")
         XCTAssertTrue(try manager.storedKeys().contains { $0.keyBytes == deviceKey.keyBytes },
                       "accepting a key must never drop the device's own key")
-        XCTAssertTrue(try manager.storedKeys().contains { $0.keychainLabel == required },
+        XCTAssertTrue(try manager.storedKeys().contains { $0.keyFingerprint == required },
                       "the entered key was added")
     }
 
@@ -111,7 +111,7 @@ final class KeyEntryValidationTests: XCTestCase {
 
         XCTAssertFalse(outcome.validatedAgainstFingerprint,
                        "with no known fingerprints the key is accepted unvalidated")
-        XCTAssertEqual(manager.currentKey?.keychainLabel, outcome.key.keychainLabel,
+        XCTAssertEqual(manager.currentKey?.keyFingerprint, outcome.key.keyFingerprint,
                        "the key is still saved and made current")
         XCTAssertEqual(try manager.storedKeys().count, 1)
     }

@@ -476,13 +476,13 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(manager.state, .completed)
         XCTAssertEqual(store.uploadedItems.count, 2)
         for upload in store.uploadedItems {
-            XCTAssertEqual(upload.keyFingerprint, album.key.keychainLabel,
+            XCTAssertEqual(upload.keyFingerprint, album.key.keyFingerprint,
                            "every migrated record must name the key that encrypted it")
         }
-        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, album.key.keychainLabel,
+        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, album.key.keyFingerprint,
                        "and the album record agrees with its media")
         let census = try await store.fetchFingerprintCensus()
-        XCTAssertEqual(census, .counted(mediaCount: 2, fingerprints: [album.key.keychainLabel: 2]),
+        XCTAssertEqual(census, .counted(mediaCount: 2, fingerprints: [album.key.keyFingerprint: 2]),
                        "so the census can name the key for the whole migrated library")
     }
 
@@ -2047,7 +2047,7 @@ extension CloudKitMigrationManagerTests {
                               createdAt: createdAt,
                               isHidden: false,
                               schemaVersion: CloudKitSchema.currentSchemaVersion,
-                              keyFingerprint: key.keychainLabel,
+                              keyFingerprint: key.keyFingerprint,
                               recordChangeTag: "tag")
     }
 

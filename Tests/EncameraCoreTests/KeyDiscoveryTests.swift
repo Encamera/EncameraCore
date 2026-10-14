@@ -168,7 +168,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager: KeyManager
     ) async -> (result: KeyDiscoveryResult?, attempts: [String]) {
         var attempts: [String] = []
-        let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
+        let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keyFingerprint) })
         return (result, attempts)
     }
 
@@ -181,7 +181,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, [keyB.keychainLabel], "A stamped file must resolve with exactly one test-decrypt attempt")
+        XCTAssertEqual(attempts, [keyB.keyFingerprint], "A stamped file must resolve with exactly one test-decrypt attempt")
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, true)
     }
@@ -194,7 +194,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, [keyA.keychainLabel, keyB.keychainLabel], "Stale stamp candidate rejected by pull, then the sweep finds the real key")
+        XCTAssertEqual(attempts, [keyA.keyFingerprint, keyB.keyFingerprint], "Stale stamp candidate rejected by pull, then the sweep finds the real key")
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, false)
     }
@@ -207,7 +207,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, [keyA.keychainLabel, keyB.keychainLabel])
+        XCTAssertEqual(attempts, [keyA.keyFingerprint, keyB.keyFingerprint])
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, false)
     }
@@ -220,7 +220,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyC
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, [keyC.keychainLabel, keyA.keychainLabel, keyB.keychainLabel], "No hints: current key first, then remaining stored keys in order")
+        XCTAssertEqual(attempts, [keyC.keyFingerprint, keyA.keyFingerprint, keyB.keyFingerprint], "No hints: current key first, then remaining stored keys in order")
         XCTAssertEqual(result?.key, keyB)
     }
 
@@ -242,7 +242,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = nil
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, [collider1.keychainLabel, collider2.keychainLabel], "Both stamp matches tried in stored-key order")
+        XCTAssertEqual(attempts, [collider1.keyFingerprint, collider2.keyFingerprint], "Both stamp matches tried in stored-key order")
         XCTAssertEqual(result?.key, collider2)
         XCTAssertEqual(result?.stampMatched, true)
     }
@@ -524,8 +524,8 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts.first, keyB.keychainLabel, "the xattr-named key must be tried first, ahead of the current key")
-        XCTAssertEqual(attempts, [keyB.keychainLabel, keyA.keychainLabel, keyC.keychainLabel])
+        XCTAssertEqual(attempts.first, keyB.keyFingerprint, "the xattr-named key must be tried first, ahead of the current key")
+        XCTAssertEqual(attempts, [keyB.keyFingerprint, keyA.keyFingerprint, keyC.keyFingerprint])
         XCTAssertEqual(result?.key, keyC)
     }
 

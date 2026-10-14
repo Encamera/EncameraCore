@@ -55,7 +55,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                               createdAt: album.creationDate,
                               isHidden: isHidden,
                               schemaVersion: CloudKitSchema.currentSchemaVersion,
-                              keyFingerprint: album.key.keychainLabel,
+                              keyFingerprint: album.key.keyFingerprint,
                               recordChangeTag: "tag",
                               coverMediaID: coverMediaID)
     }
@@ -85,7 +85,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                      createdAt: Date(),
                                      isHidden: isHidden,
                                      schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                     keyFingerprint: key.keychainLabel,
+                                     keyFingerprint: key.keyFingerprint,
                                      recordChangeTag: "tag")
     }
 
@@ -168,7 +168,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                      createdAt: Date(),
                                      isHidden: false,
                                      schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                     keyFingerprint: key.keychainLabel,
+                                     keyFingerprint: key.keyFingerprint,
                                      recordChangeTag: "tag")
     }
 
@@ -205,7 +205,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                            createdAt: Date(),
                                            isHidden: false,
                                            schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                           keyFingerprint: key.keychainLabel,
+                                           keyFingerprint: key.keyFingerprint,
                                            recordChangeTag: "tag")
 
         XCTAssertNil(CloudKitAlbumReconciler.match(record: record, keys: [key, makeKey(2)]))
@@ -219,7 +219,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                               createdAt: Date(),
                                               isHidden: false,
                                               schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                              keyFingerprint: key.keychainLabel,
+                                              keyFingerprint: key.keyFingerprint,
                                               recordChangeTag: "tag"))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
@@ -253,7 +253,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID }, [local.albumID])
-        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, key.keychainLabel,
+        XCTAssertEqual(store.savedAlbumCalls.first?.keyFingerprint, key.keyFingerprint,
                        "the self-heal push must stamp the album with the key that encrypts it")
     }
 
@@ -763,7 +763,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         try await store.saveAlbum(CloudKitAlbumUpload(albumID: record.albumID, encName: record.encName,
                                                       createdAt: record.createdAt, isHidden: false,
-                                                      keyFingerprint: key.keychainLabel,
+                                                      keyFingerprint: key.keyFingerprint,
                                                       migrationInProgress: false))
         _ = await reconciler.reconcileAlbums()
 
@@ -1240,7 +1240,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(store.savedAlbumCalls.count, 1)
         XCTAssertEqual(saved.albumID, album.albumID)
         XCTAssertEqual(saved.encName, localEncName, "the record takes the local name ciphertext byte for byte")
-        XCTAssertEqual(saved.keyFingerprint, key.keychainLabel)
+        XCTAssertEqual(saved.keyFingerprint, key.keyFingerprint)
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
         XCTAssertFalse(marker.dirty, "a saved change leaves the marker clean")
         XCTAssertEqual(marker.encName, localEncName)

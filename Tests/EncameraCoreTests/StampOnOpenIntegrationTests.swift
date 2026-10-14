@@ -57,7 +57,7 @@ final class StampOnOpenIntegrationTests: XCTestCase {
 
     private func recordedDiscoveryAttempts(for url: URL) async -> [String] {
         var attempts: [String] = []
-        _ = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
+        _ = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keyFingerprint) })
         return attempts
     }
 
@@ -77,14 +77,14 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         XCTAssertNil(KeyStampSlot.readStamp(url: url), "Fixture must start unstamped")
 
         let sweepAttempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(sweepAttempts, [keyB.keychainLabel, keyA.keychainLabel], "An unstamped foreign-key file resolves via the sweep")
+        XCTAssertEqual(sweepAttempts, [keyB.keyFingerprint, keyA.keyFingerprint], "An unstamped foreign-key file resolves via the sweep")
 
         let firstOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(firstOpen, plaintext)
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must stamp the confirmed key")
 
         let stampedAttempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(stampedAttempts, [keyA.keychainLabel], "A stamped file must resolve with a single test-decrypt")
+        XCTAssertEqual(stampedAttempts, [keyA.keyFingerprint], "A stamped file must resolve with a single test-decrypt")
         let secondOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(secondOpen, plaintext)
     }
@@ -108,7 +108,7 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must heal the file with a correct stamp")
 
         let attempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(attempts, [keyA.keychainLabel])
+        XCTAssertEqual(attempts, [keyA.keyFingerprint])
     }
 
     func testLegacyAlbumPassivelyMigrates() async throws {

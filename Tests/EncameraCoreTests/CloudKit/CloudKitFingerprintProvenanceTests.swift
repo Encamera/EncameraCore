@@ -85,8 +85,8 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
 
         let proven = try await CloudKitKeyStamp.proveKey(forCiphertextAt: url, keyManager: manager)
 
-        XCTAssertEqual(proven.fingerprint, keyA.keychainLabel,
-                       "The file was encrypted with A. Reporting \(proven.fingerprint == keyB.keychainLabel ? "B, the current key" : "another key") "
+        XCTAssertEqual(proven.fingerprint, keyA.keyFingerprint,
+                       "The file was encrypted with A. Reporting \(proven.fingerprint == keyB.keyFingerprint ? "B, the current key" : "another key") "
                        + "would publish a record naming a key that cannot open it.")
     }
 
@@ -100,7 +100,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         let manager = keyManager(keys: [keyB, keyA], current: keyB)
         let proven = try await CloudKitKeyStamp.proveKey(forCiphertextAt: url, keyManager: manager)
 
-        XCTAssertEqual(proven.fingerprint, keyA.keychainLabel,
+        XCTAssertEqual(proven.fingerprint, keyA.keyFingerprint,
                        "With no stamp to route by, the sweep must still find the key that authenticates")
     }
 
@@ -115,7 +115,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         let manager = keyManager(keys: [keyA, keyB], current: keyB)
         let proven = try await CloudKitKeyStamp.proveKey(forCiphertextAt: url, keyManager: manager)
 
-        XCTAssertEqual(proven.fingerprint, keyA.keychainLabel,
+        XCTAssertEqual(proven.fingerprint, keyA.keyFingerprint,
                        "The stamp named B and B fails to authenticate, so A must win on proof")
     }
 
@@ -163,7 +163,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
 
         let proven = try await CloudKitKeyStamp.stampAndProveKey(forCiphertextAt: url, keyManager: manager)
 
-        XCTAssertEqual(proven.fingerprint, keyA.keychainLabel)
+        XCTAssertEqual(proven.fingerprint, keyA.keyFingerprint)
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix,
                        "The uploaded ciphertext must carry A's stamp, or a CloudKit -> local move "
                        + "produces a file with nothing on it that names its key")
@@ -262,13 +262,13 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         XCTAssertEqual(uploads.count, ids.count, "every item should have been offered for upload")
 
         let divergent = try XCTUnwrap(uploads[divergentID])
-        XCTAssertEqual(divergent.keyFingerprint, keyB.keychainLabel,
-                       "This file is encrypted with B. Recording \(divergent.keyFingerprint == keyA.keychainLabel ? "A, the album's key" : "another key") "
+        XCTAssertEqual(divergent.keyFingerprint, keyB.keyFingerprint,
+                       "This file is encrypted with B. Recording \(divergent.keyFingerprint == keyA.keyFingerprint ? "A, the album's key" : "another key") "
                        + "publishes a record naming a key that cannot decrypt its own blob.")
 
         for id in ids where id != divergentID {
             let upload = try XCTUnwrap(uploads[id])
-            XCTAssertEqual(upload.keyFingerprint, keyA.keychainLabel,
+            XCTAssertEqual(upload.keyFingerprint, keyA.keyFingerprint,
                            "the untouched files really are under the album's key and must say so")
         }
     }
@@ -371,7 +371,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         XCTAssertEqual(KeyStampSlot.readStamp(url: downloaded), keyA.stampPrefix,
                        "The bytes CloudKit handed back carry no stamp, so a device receiving this "
                        + "blob has nothing on it naming its key — the loop is not closed.")
-        XCTAssertEqual(uploaded.keyFingerprint, keyA.keychainLabel)
+        XCTAssertEqual(uploaded.keyFingerprint, keyA.keyFingerprint)
         XCTAssertEqual(CloudKitKeyStamp.stampPrefix(fromFingerprintHex: uploaded.keyFingerprint),
                        KeyStampSlot.readStamp(url: downloaded),
                        "the record's fingerprint and the blob's own stamp must name the same key")
@@ -400,7 +400,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
     /// name the key that opens it — not whichever key the local album object happens to
     /// carry. The fixture separates the two deliberately: `album.key` is A while the
     /// stored ciphertext name was written under B, so an implementation that copies
-    /// `album.key.keychainLabel` records A and publishes a record no device can match.
+    /// `album.key.keyFingerprint` records A and publishes a record no device can match.
     func testAlbumRecordNamesTheKeyThatDecryptsItsName() async throws {
         let realName = "ckfp-\(UUID().uuidString.prefix(8))"
         let underB = Album(name: realName, storageOption: .local, creationDate: Date(), key: keyB)
@@ -421,7 +421,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
         await manager.start(album: album)
 
         let saved = try XCTUnwrap(store.savedAlbumCalls.first)
-        XCTAssertEqual(saved.keyFingerprint, keyB.keychainLabel,
+        XCTAssertEqual(saved.keyFingerprint, keyB.keyFingerprint,
                        "the stored name is encrypted with B, so the record must name B")
         XCTAssertEqual(Album.decryptedAlbumName(saved.encName, key: keyB), realName,
                        "and that fingerprint must be the key that actually opens the name")
@@ -440,11 +440,11 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
                                            createdAt: Date(),
                                            isHidden: false,
                                            schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                           keyFingerprint: keyB.keychainLabel,
+                                           keyFingerprint: keyB.keyFingerprint,
                                            recordChangeTag: nil)
 
         let matched = CloudKitAlbumReconciler.match(record: record, keys: [keyA, keyB])
-        XCTAssertEqual(matched?.key.keychainLabel, keyB.keychainLabel)
+        XCTAssertEqual(matched?.key.keyFingerprint, keyB.keyFingerprint)
         XCTAssertEqual(matched?.name, album.name)
 
         let staleHint = CloudKitAlbumMetadata(albumID: albumID,
@@ -452,10 +452,10 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
                                               createdAt: Date(),
                                               isHidden: false,
                                               schemaVersion: CloudKitSchema.currentSchemaVersion,
-                                              keyFingerprint: foreignKey.keychainLabel,
+                                              keyFingerprint: foreignKey.keyFingerprint,
                                               recordChangeTag: nil)
-        XCTAssertEqual(CloudKitAlbumReconciler.match(record: staleHint, keys: [keyA, keyB])?.key.keychainLabel,
-                       keyB.keychainLabel,
+        XCTAssertEqual(CloudKitAlbumReconciler.match(record: staleHint, keys: [keyA, keyB])?.key.keyFingerprint,
+                       keyB.keyFingerprint,
                        "a wrong fingerprint must cost an ordering miss, not the album")
     }
 }

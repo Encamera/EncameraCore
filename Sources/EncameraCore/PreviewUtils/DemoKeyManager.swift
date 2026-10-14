@@ -216,7 +216,7 @@ public class DemoKeyManager: KeyManager {
     }
 
     public func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws {
-        storedKeysValue.removeAll { $0.keychainLabel == fingerprint }
+        storedKeysValue.removeAll { $0.keyFingerprint == fingerprint }
     }
 
 

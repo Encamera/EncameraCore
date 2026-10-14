@@ -19,7 +19,7 @@ public enum KeyEntryValidationError: Error, ErrorDescribable, Equatable {
 
     /// The phrase derives a real, well-formed key, but not the one the existing
     /// photos are encrypted with. Both fingerprints are full hex
-    /// (`PrivateKey.keychainLabel`); the message renders them via
+    /// (`PrivateKey.keyFingerprint`); the message renders them via
     /// `KeyFingerprint.displayLabel(fingerprintHex:)`.
     case fingerprintMismatch(entered: String, required: String)
 
@@ -54,7 +54,7 @@ public enum KeyFingerprintVerification: Equatable {
     /// when photos load.
     case unvalidated
     /// A well-formed key that is not one the existing data needs. Both hex
-    /// strings are full `PrivateKey.keychainLabel`s.
+    /// strings are full `PrivateKey.keyFingerprint`s.
     case mismatch(entered: String, required: String)
 }
 
@@ -98,7 +98,7 @@ public struct KeyEntryValidator {
     /// The fingerprint gate, factored out so both the manual-entry path (a key
     /// derived from a typed phrase) and the guided flip-the-switch path (a key
     /// that ARRIVED via iCloud Keychain) apply exactly the same check. Identity
-    /// is the full fingerprint (`PrivateKey.keychainLabel`), never the display
+    /// is the full fingerprint (`PrivateKey.keyFingerprint`), never the display
     /// name. Leads the mismatch with the primary (most-used) required fingerprint.
     public static func verify(fingerprint entered: String,
                               against requiredFingerprints: [String]) -> KeyFingerprintVerification {
@@ -117,7 +117,7 @@ public struct KeyEntryValidator {
     /// - Parameters:
     ///   - phraseComponents: the parsed key-phrase words.
     ///   - requiredFingerprints: full fingerprint hex strings
-    ///     (`PrivateKey.keychainLabel`) the probe collected, most-used first.
+    ///     (`PrivateKey.keyFingerprint`) the probe collected, most-used first.
     ///     Empty means the probe could not tell (offline / `.unknown`), in which
     ///     case the key is accepted without validation.
     /// - Note: derivation runs Argon2 (`generateKeyFromPasswordComponentsAndSave`
@@ -133,7 +133,7 @@ public struct KeyEntryValidator {
             throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
         }
 
-        let enteredFingerprint = candidate.keychainLabel
+        let enteredFingerprint = candidate.keyFingerprint
 
         let validated: Bool
         switch KeyEntryValidator.verify(fingerprint: enteredFingerprint, against: requiredFingerprints) {

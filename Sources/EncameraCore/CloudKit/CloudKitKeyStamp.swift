@@ -30,7 +30,7 @@ public enum CloudKitKeyStamp: DebugPrintable {
         /// Lowercase hex of the full 16-byte fingerprint — what `EncMedia.keyFingerprint`
         /// and `EncAlbum.keyFingerprint` carry. The in-file stamp is the first 4 bytes of
         /// this same value, which is why a blob and its record agree by construction.
-        public var fingerprint: String { key.keychainLabel }
+        public var fingerprint: String { key.keyFingerprint }
     }
 
     /// Why a file may not be uploaded.
@@ -79,13 +79,13 @@ public enum CloudKitKeyStamp: DebugPrintable {
                                               storedKeysSnapshot: [PrivateKey]? = nil) -> String? {
         let resolution = KeyDiscovery(keyManager: keyManager)
             .key(forEncryptedAlbumName: album.encryptedPathComponent,
-                 hint: album.key.keychainLabel,
+                 hint: album.key.keyFingerprint,
                  storedKeysSnapshot: storedKeysSnapshot)
         switch resolution {
         case .resolved(let key):
-            return key.keychainLabel
+            return key.keyFingerprint
         case .notProvable:
-            return album.key.keychainLabel
+            return album.key.keyFingerprint
         case .noKnownKey:
             printDebug("provenAlbumFingerprint: no held key decrypts this album's name; not publishing a record for it")
             return nil
@@ -153,7 +153,7 @@ public enum CloudKitKeyStamp: DebugPrintable {
         public let uploadURL: URL
         private let temporaryCopy: URL?
 
-        public var fingerprint: String { key.keychainLabel }
+        public var fingerprint: String { key.keyFingerprint }
 
         init(key: PrivateKey, uploadURL: URL, temporaryCopy: URL?) {
             self.key = key

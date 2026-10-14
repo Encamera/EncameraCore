@@ -33,7 +33,7 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
     public let mediaType: MediaType
     public let createdAt: Date
     public let sizeBytes: Int64
-    /// `PrivateKey.keychainLabel` of the key that produced the ciphertext —
+    /// `PrivateKey.keyFingerprint` of the key that produced the ciphertext —
     /// lowercase hex of the full 16-byte fingerprint, proven against the file's own
     /// bytes by `CloudKitKeyStamp`. Readers try this key first and prove it against
     /// the content (`CloudKitRecordKeyResolver`), since the field is not covered by the
@@ -260,7 +260,7 @@ public struct CloudKitAlbumUpload: Sendable {
     public let createdAt: Date
     public let isHidden: Bool
     public let schemaVersion: Int64
-    /// `PrivateKey.keychainLabel` of the album's key — the key its encrypted name is
+    /// `PrivateKey.keyFingerprint` of the album's key — the key its encrypted name is
     /// written with, and the key a device needs to recognise this album at all.
     public let keyFingerprint: String
     /// The `mediaID` of the media item chosen as the album's cover image, or `nil`

@@ -48,7 +48,7 @@ public struct MultiDeviceState: Codable, Equatable {
     /// Every device known to have run Encamera on this account.
     public var devices: [DeviceRecord]
 
-    /// Lowercase fingerprint hex (`PrivateKey.keychainLabel`). Never key bytes.
+    /// Lowercase fingerprint hex (`PrivateKey.keyFingerprint`). Never key bytes.
     public var keyFingerprints: [String]
 
     /// True when the roster or fingerprint list carries evidence that this

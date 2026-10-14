@@ -627,7 +627,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                          createdAt: record.createdAt,
                                          isHidden: record.isHidden,
                                          coverMediaID: record.coverMediaID,
-                                         keyFingerprint: key.keychainLabel,
+                                         keyFingerprint: key.keyFingerprint,
                                          dirty: false)
         do {
             try marker.write(albumID: record.albumID)
@@ -1316,9 +1316,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
 
     /// Identifies the keys a probe ran against, so adding a key re-probes.
     func keyLibraryIdentity(storedKeys: [PrivateKey]) -> Set<String> {
-        var labels = Set(storedKeys.map(\.keychainLabel))
+        var labels = Set(storedKeys.map(\.keyFingerprint))
         if let currentKey = keyManager.currentKey {
-            labels.insert(currentKey.keychainLabel)
+            labels.insert(currentKey.keyFingerprint)
         }
         return labels
     }

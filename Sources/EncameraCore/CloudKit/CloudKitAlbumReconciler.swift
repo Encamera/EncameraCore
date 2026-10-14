@@ -458,8 +458,8 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// unit-tested directly.
     static func match(record: CloudKitAlbumMetadata, keys: [PrivateKey]) -> (name: String, key: PrivateKey)? {
         let ordered = record.keyFingerprint
-            .flatMap { fingerprint in keys.first { $0.keychainLabel == fingerprint } }
-            .map { hinted in [hinted] + keys.filter { $0.keychainLabel != hinted.keychainLabel } }
+            .flatMap { fingerprint in keys.first { $0.keyFingerprint == fingerprint } }
+            .map { hinted in [hinted] + keys.filter { $0.keyFingerprint != hinted.keyFingerprint } }
             ?? keys
         for key in ordered {
             if let name = Album.decryptedAlbumName(record.encName, key: key) {

@@ -59,7 +59,7 @@ public struct PrivateKey: Hashable {
     /// re-derivations of the same key phrase. The fingerprint is a pure
     /// function of the key bytes, so the same key yields the same label on
     /// every device and across imports.
-    public var keychainLabel: String {
+    public var keyFingerprint: String {
         KeyFingerprint.fingerprint(keyBytes: keyBytes)
             .map { String(format: "%02x", $0) }
             .joined()

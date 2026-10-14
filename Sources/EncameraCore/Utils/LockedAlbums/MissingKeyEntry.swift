@@ -126,7 +126,7 @@ public struct MissingKeyEntry {
         // Identity is the full fingerprint, never the display name — every
         // production key is named `encamera_default_key`.
         let alreadyHeld = ((try? keyManager.storedKeys()) ?? [])
-            .contains { $0.keychainLabel == candidate.keychainLabel }
+            .contains { $0.keyFingerprint == candidate.keyFingerprint }
         if alreadyHeld {
             throw MissingKeyEntryError.alreadyHeld
         }

@@ -225,10 +225,10 @@ final class CloudKitFileAccessTests: XCTestCase {
         await access.drainUploads()
 
         let upload = try XCTUnwrap(store.uploadedItems.first)
-        XCTAssertEqual(upload.keyFingerprint, album.key.keychainLabel,
+        XCTAssertEqual(upload.keyFingerprint, album.key.keyFingerprint,
                        "every saved record must name the key that encrypted it")
         let census = try await store.fetchFingerprintCensus()
-        XCTAssertEqual(census, .counted(mediaCount: 1, fingerprints: [album.key.keychainLabel: 1]),
+        XCTAssertEqual(census, .counted(mediaCount: 1, fingerprints: [album.key.keyFingerprint: 1]),
                        "so the census can name the key for an ordinary capture")
 
         try? FileManager.default.removeItem(at: encURL(for: album, id: id))
@@ -1458,7 +1458,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let cleartext = Data("moved in from another key".utf8)
         store.blobContents = try await makeENC2(key: Self.foreignKey, id: id, data: cleartext)
-        await bankFingerprint(Self.foreignKey.keychainLabel,
+        await bankFingerprint(Self.foreignKey.keyFingerprint,
                               recordName: MediaRecordName.componentRecordName(mediaID: id, type: .photo),
                               id: id, mediaType: .photo, album: album, store: store, access: access)
 
@@ -1477,7 +1477,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let cleartext = Data("wrong hint".utf8)
         store.blobContents = try await makeENC2(key: Self.foreignKey, id: id, data: cleartext, stamped: false)
-        await bankFingerprint(Self.unrelatedKey.keychainLabel,
+        await bankFingerprint(Self.unrelatedKey.keyFingerprint,
                               recordName: MediaRecordName.componentRecordName(mediaID: id, type: .photo),
                               id: id, mediaType: .photo, album: album, store: store, access: access)
 
@@ -1599,7 +1599,7 @@ final class CloudKitFileAccessTests: XCTestCase {
             CloudKitMediaMetadata(recordName: recordName, albumID: source.albumID!, mediaID: id,
                                   mediaType: .photo, createdAt: Date(), sizeBytes: 100,
                                   creationDeviceID: "d", schemaVersion: 1,
-                                  keyFingerprint: Self.foreignKey.keychainLabel, recordChangeTag: "t1")
+                                  keyFingerprint: Self.foreignKey.keyFingerprint, recordChangeTag: "t1")
         ]
         let (targetAccess, _) = await makeAccess(album: target, store: store, heldKeys: [target.key, Self.foreignKey])
 
@@ -1619,7 +1619,7 @@ final class CloudKitFileAccessTests: XCTestCase {
                                            heldKeys: [album.key, Self.foreignKey])
         let id = UUID().uuidString
         _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore,
-                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keychainLabel)
+                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keyFingerprint)
 
         let playback = try await access.streamingPlayback(for: try videoMedia(album: album, id: id))
 
@@ -1629,7 +1629,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     func testStreamingProvesTheKeyWhenTheFingerprintIsWrongOrAbsent() async throws {
-        for hint in [Self.unrelatedKey.keychainLabel, ""] {
+        for hint in [Self.unrelatedKey.keyFingerprint, ""] {
             let album = makeAlbum()
             let store = MockCloudKitMediaStore()
             let chunkStore = InMemoryChunkedBlobStore()
@@ -1656,7 +1656,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let (access, _) = await makeAccess(album: album, store: store, chunkStore: chunkStore, heldKeys: [album.key])
         let id = UUID().uuidString
         _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore,
-                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keychainLabel)
+                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keyFingerprint)
 
         await XCTAssertThrowsErrorAsync(
             try await access.streamingPlayback(for: try self.videoMedia(album: album, id: id))
@@ -1678,7 +1678,7 @@ final class CloudKitFileAccessTests: XCTestCase {
                                                     heldKeys: [album.key, Self.foreignKey])
         let id = UUID().uuidString
         let recordName = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore,
-                                                    keyFingerprint: album.key.keychainLabel)
+                                                    keyFingerprint: album.key.keyFingerprint)
 
         let playback = try await access.streamingPlayback(for: try videoMedia(album: album, id: id))
 
@@ -1781,7 +1781,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let recordName = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore,
                                                     key: Self.foreignKey,
-                                                    keyFingerprint: Self.foreignKey.keychainLabel,
+                                                    keyFingerprint: Self.foreignKey.keyFingerprint,
                                                     metadata: Self.infoMetadata())
 
         let metadata = try await access.loadMetadata(for: try videoMedia(album: album, id: id))
@@ -1852,7 +1852,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let (access, _) = await makeAccess(album: album, store: store, chunkStore: chunkStore, heldKeys: [album.key])
         let id = UUID().uuidString
         _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore,
-                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keychainLabel,
+                                       key: Self.foreignKey, keyFingerprint: Self.foreignKey.keyFingerprint,
                                        metadata: Self.infoMetadata())
 
         await XCTAssertThrowsErrorAsync(

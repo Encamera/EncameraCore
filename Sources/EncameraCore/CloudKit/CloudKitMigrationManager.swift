@@ -400,7 +400,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 continue
             }
             if failure.category == .missingKey, heldKeyFingerprints == nil {
-                heldKeyFingerprints = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keychainLabel)
+                heldKeyFingerprints = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keyFingerprint)
             }
             if failure.category == .accountUnavailable, isAccountAvailable == nil {
                 let namespace = plan.destination.cloudKitAlbumID ?? plan.source.cloudKitAlbumID ?? plan.source.albumID
@@ -621,7 +621,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return MigrationLastFailure(category: .accountUnavailable, date: now)
         case .schemaNotDeployed, .other:
             guard failedForMissingKey else { return MigrationLastFailure(category: .other, date: now) }
-            let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keychainLabel)
+            let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keyFingerprint)
             return MigrationLastFailure(category: .missingKey, date: now, heldKeyFingerprints: held)
         }
     }
@@ -1867,7 +1867,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         do {
             try await store.saveAlbum(CloudKitAlbumUpload(albumID: record.albumID, encName: record.encName,
                                                           createdAt: record.createdAt, isHidden: record.isHidden,
-                                                          keyFingerprint: record.keyFingerprint ?? key.keychainLabel,
+                                                          keyFingerprint: record.keyFingerprint ?? key.keyFingerprint,
                                                           coverMediaID: record.coverMediaID,
                                                           migrationInProgress: false,
                                                           schemaVersion: record.schemaVersion))

@@ -68,7 +68,7 @@ public struct MultiDeviceStateRecorder {
     /// creation path before any published state has settled; the sweep below
     /// picks up anything this misses on the next launch.
     public func recordKeyCreated(_ key: PrivateKey) {
-        write(extraFingerprints: [key.keychainLabel])
+        write(extraFingerprints: [key.keyFingerprint])
     }
 
     // MARK: - Private
@@ -81,9 +81,9 @@ public struct MultiDeviceStateRecorder {
         )
 
         var fingerprints = extraFingerprints
-        // Fingerprints only; `keychainLabel` is a keyed BLAKE2b digest, never
+        // Fingerprints only; `keyFingerprint` is a keyed BLAKE2b digest, never
         // the key bytes. See the security note on MultiDeviceState.
-        for label in (try? keyManager.storedKeys())?.map(\.keychainLabel) ?? []
+        for label in (try? keyManager.storedKeys())?.map(\.keyFingerprint) ?? []
         where !fingerprints.contains(label) {
             fingerprints.append(label)
         }

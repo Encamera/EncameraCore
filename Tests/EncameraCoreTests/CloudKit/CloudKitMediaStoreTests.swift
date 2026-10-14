@@ -61,7 +61,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
     }
 
     /// Real keys, so assertions use the same fingerprint production writes
-    /// (`PrivateKey.keychainLabel`).
+    /// (`PrivateKey.keyFingerprint`).
     private let keyA = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 0))
     private let keyB = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32),
@@ -74,10 +74,10 @@ final class CloudKitMediaStoreTests: XCTestCase {
     func testUploadAlwaysWritesTheKeyFingerprint() async throws {
         let adapter = MockCloudKitDatabase()
         let store = makeStore(adapter: adapter, defaults: freshDefaults())
-        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keychainLabel), progress: { _ in })
+        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keyFingerprint), progress: { _ in })
 
         let record = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
-        XCTAssertEqual(record[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keychainLabel)
+        XCTAssertEqual(record[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keyFingerprint)
     }
 
     func testSaveAlbumAlwaysWritesTheKeyFingerprint() async throws {
@@ -87,10 +87,10 @@ final class CloudKitMediaStoreTests: XCTestCase {
                                                       encName: "Album_x",
                                                       createdAt: Date(),
                                                       isHidden: false,
-                                                      keyFingerprint: keyB.keychainLabel))
+                                                      keyFingerprint: keyB.keyFingerprint))
 
         let record = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
-        XCTAssertEqual(record[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyB.keychainLabel)
+        XCTAssertEqual(record[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyB.keyFingerprint)
     }
 
 
@@ -360,11 +360,11 @@ final class CloudKitMediaStoreTests: XCTestCase {
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
-        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keychainLabel), progress: { _ in })
+        _ = try await store.upload(makeUpload(keyFingerprint: keyA.keyFingerprint), progress: { _ in })
 
         let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
-        XCTAssertEqual(saved[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keychainLabel)
-        XCTAssertNotEqual(keyA.keychainLabel, keyB.keychainLabel,
+        XCTAssertEqual(saved[CloudKitSchema.EncMedia.keyFingerprint] as? String, keyA.keyFingerprint)
+        XCTAssertNotEqual(keyA.keyFingerprint, keyB.keyFingerprint,
                           "The fixture keys must have distinct fingerprints for this to mean anything")
     }
 
@@ -383,15 +383,15 @@ final class CloudKitMediaStoreTests: XCTestCase {
     func testFetchFingerprintCensusCountsPerKey() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
-            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keychainLabel),
-            CloudKitTestFactory.encMediaRecord(recordName: "m2", albumID: "a1", keyFingerprint: keyA.keychainLabel),
-            CloudKitTestFactory.encMediaRecord(recordName: "m3", albumID: "a2", keyFingerprint: keyB.keychainLabel)
+            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keyFingerprint),
+            CloudKitTestFactory.encMediaRecord(recordName: "m2", albumID: "a1", keyFingerprint: keyA.keyFingerprint),
+            CloudKitTestFactory.encMediaRecord(recordName: "m3", albumID: "a2", keyFingerprint: keyB.keyFingerprint)
         ]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
         let census = try await store.fetchFingerprintCensus()
         XCTAssertEqual(census, .counted(mediaCount: 3,
-                                        fingerprints: [keyA.keychainLabel: 2, keyB.keychainLabel: 1]))
+                                        fingerprints: [keyA.keyFingerprint: 2, keyB.keyFingerprint: 1]))
     }
 
     /// Unknown does not become a bucket of its own. `mediaCount: 3` pins "records
@@ -400,21 +400,21 @@ final class CloudKitMediaStoreTests: XCTestCase {
     func testFetchFingerprintCensusCountsRecordsThatNameNoKey() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
-            CloudKitTestFactory.encMediaRecord(recordName: "live", albumID: "a1", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encMediaRecord(recordName: "live", albumID: "a1", keyFingerprint: keyA.keyFingerprint),
             CloudKitTestFactory.encMediaRecord(recordName: "legacy", albumID: "a1"),
             CloudKitTestFactory.encMediaRecord(recordName: "blank", albumID: "a1", keyFingerprint: "")
         ]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
         let census = try await store.fetchFingerprintCensus()
-        XCTAssertEqual(census, .counted(mediaCount: 3, fingerprints: [keyA.keychainLabel: 1]))
+        XCTAssertEqual(census, .counted(mediaCount: 3, fingerprints: [keyA.keyFingerprint: 1]))
     }
 
     /// Counting downloads no media and issues no save, so no `CKAsset` is rewritten.
     func testFetchFingerprintCensusFetchesNoAssets() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
-            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keychainLabel)
+            CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1", keyFingerprint: keyA.keyFingerprint)
         ]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
@@ -466,11 +466,11 @@ final class CloudKitMediaStoreTests: XCTestCase {
                                                       encName: "cipher",
                                                       createdAt: Date(timeIntervalSince1970: 100),
                                                       isHidden: false,
-                                                      keyFingerprint: keyA.keychainLabel))
+                                                      keyFingerprint: keyA.keyFingerprint))
 
         let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
         XCTAssertEqual(saved.recordType, CloudKitSchema.EncAlbum.recordType)
-        XCTAssertEqual(saved[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyA.keychainLabel)
+        XCTAssertEqual(saved[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyA.keyFingerprint)
     }
 
 
@@ -480,13 +480,13 @@ final class CloudKitMediaStoreTests: XCTestCase {
     func testFetchAllAlbumsReadsKeyFingerprintBack() async throws {
         let mock = MockCloudKitDatabase()
         mock.stubbedQueryRecords = [
-            CloudKitTestFactory.encAlbumRecord(albumID: "stamped", keyFingerprint: keyA.keychainLabel),
+            CloudKitTestFactory.encAlbumRecord(albumID: "stamped", keyFingerprint: keyA.keyFingerprint),
             CloudKitTestFactory.encAlbumRecord(albumID: "legacy")
         ]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
         let albums = try await store.fetchAllAlbums()
-        XCTAssertEqual(albums.first { $0.albumID == "stamped" }?.keyFingerprint, keyA.keychainLabel)
+        XCTAssertEqual(albums.first { $0.albumID == "stamped" }?.keyFingerprint, keyA.keyFingerprint)
         let legacy = try XCTUnwrap(albums.first { $0.albumID == "legacy" })
         XCTAssertNil(legacy.keyFingerprint)
     }
@@ -523,14 +523,14 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
     func testFetchAlbumReadsTheRecordByIDNotThroughTheQuery() async throws {
         let mock = MockCloudKitDatabase()
-        let record = CloudKitTestFactory.encAlbumRecord(albumID: "fresh", keyFingerprint: keyA.keychainLabel)
+        let record = CloudKitTestFactory.encAlbumRecord(albumID: "fresh", keyFingerprint: keyA.keyFingerprint)
         mock.stubbedFetchRecords = [record.recordID: record]
         let store = makeStore(adapter: mock, defaults: freshDefaults())
 
         let album = try await store.fetchAlbum(albumID: "fresh")
 
         XCTAssertEqual(album?.albumID, "fresh")
-        XCTAssertEqual(album?.keyFingerprint, keyA.keychainLabel)
+        XCTAssertEqual(album?.keyFingerprint, keyA.keyFingerprint)
         XCTAssertEqual(mock.fetchCount, 1, "a fetch by id is the strongly consistent read")
         XCTAssertNil(mock.lastQueryDesiredKeys, "the eventually consistent query must not be used")
     }

@@ -14,7 +14,7 @@ import Foundation
 /// accepting a key still requires an authenticated decrypt.
 public enum RequiredKeyIdentity: Hashable, Sendable {
 
-    /// The full fingerprint hex (`PrivateKey.keychainLabel`), as a CloudKit
+    /// The full fingerprint hex (`PrivateKey.keyFingerprint`), as a CloudKit
     /// album or media record carries it.
     case fingerprint(String)
 
@@ -34,7 +34,7 @@ public enum RequiredKeyIdentity: Hashable, Sendable {
     public func matches(_ key: PrivateKey) -> Bool {
         switch self {
         case .fingerprint(let hex):
-            return key.keychainLabel == hex
+            return key.keyFingerprint == hex
         case .stampPrefix(let prefix):
             return key.stampPrefix == prefix
         }

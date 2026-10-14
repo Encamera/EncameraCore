@@ -56,7 +56,7 @@ public enum CloudKitSchema {
         /// plaintext `albumID` field above is retained as the queryable join key.
         public static let albumRef       = "albumRef"         // CKRecord.Reference(.deleteSelf)
         /// Lowercase hex of the 16-byte `KeyFingerprint` of the key this record's
-        /// ciphertext was encrypted under — i.e. `PrivateKey.keychainLabel`. Needs no
+        /// ciphertext was encrypted under — i.e. `PrivateKey.keyFingerprint`. Needs no
         /// index: the census retrieves it via `desiredKeys` on a `createdAt`-filtered
         /// query and never filters on it. The fingerprint is a domain-separated
         /// BLAKE2b hash of the key bytes, so it discloses no key material and nothing

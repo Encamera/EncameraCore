@@ -172,7 +172,7 @@ final class CloudKitMediaMoveTests: XCTestCase {
         XCTAssertEqual(store.uploadedItems.count, 1)
         // The fingerprint must be the SOURCE key's label: it was written by the
         // source key, and the record tells readers which key decrypts it.
-        XCTAssertEqual(store.uploadedItems.first?.keyFingerprint, sourcePriv.keychainLabel,
+        XCTAssertEqual(store.uploadedItems.first?.keyFingerprint, sourcePriv.keyFingerprint,
                        "the record's keyFingerprint must name the key that encrypted the file, not the destination key")
     }
 
