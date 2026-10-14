@@ -320,11 +320,6 @@ public enum KeyProofOutcome: Equatable {
 /// once so multiple candidate keys can be tried without re-reading the file.
 struct FirstBlockProbe {
 
-    /// Upper bound for a plausible first-block length. Both shipped encoders
-    /// write 20480-byte plaintext blocks (~20KB ciphertext); anything much
-    /// larger means a corrupt block-size field, not a real file.
-    private static let maxPlausibleBlockSize: UInt32 = 16 * 1024 * 1024
-
     /// What the probe authenticates against, by file format.
     private enum Payload {
         /// v1/v2: the secretstream header plus the first ciphertext block.
@@ -334,8 +329,6 @@ struct FirstBlockProbe {
         /// ENC3 with no chunk in hand: the header's sealed metadata section.
         case seekableMetadata(header: SeekableEncryptedHeader)
     }
-
-    private let payload: Payload
 
     /// The file's key stamp, or nil when the slot is zero ("unstamped").
     ///
@@ -358,6 +351,13 @@ struct FirstBlockProbe {
         case .seekableMetadata: return []
         }
     }
+
+    /// Upper bound for a plausible first-block length. Both shipped encoders
+    /// write 20480-byte plaintext blocks (~20KB ciphertext); anything much
+    /// larger means a corrupt block-size field, not a real file.
+    private static let maxPlausibleBlockSize: UInt32 = 16 * 1024 * 1024
+
+    private let payload: Payload
 
     init?(url: URL) {
         guard let fileHandle = try? FileHandle(forReadingFrom: url) else {
@@ -454,14 +454,6 @@ struct FirstBlockProbe {
         self.stamp = Self.stamp(of: header)
     }
 
-    /// The stamp an ENC3 header carries in the first bytes of its mutable plaintext.
-    private static func stamp(of header: SeekableEncryptedHeader) -> UInt32? {
-        let mp = header.mutablePlaintext
-        guard mp.count >= SeekableEncryptedHeader.keyStampSize else { return nil }
-        let raw: UInt32 = mp.readLE(at: 0)
-        return raw == 0 ? nil : raw
-    }
-
     /// Whether the key authenticates the first block.
     ///
     /// v1/v2: initPull succeeds with a WRONG key — only pull authenticates.
@@ -488,5 +480,16 @@ struct FirstBlockProbe {
         case .seekableMetadata(let header):
             return header.openMetadata(keyBytes: keyBytes) != nil
         }
+    }
+}
+
+private extension FirstBlockProbe {
+
+    /// The stamp an ENC3 header carries in the first bytes of its mutable plaintext.
+    static func stamp(of header: SeekableEncryptedHeader) -> UInt32? {
+        let mp = header.mutablePlaintext
+        guard mp.count >= SeekableEncryptedHeader.keyStampSize else { return nil }
+        let raw: UInt32 = mp.readLE(at: 0)
+        return raw == 0 ? nil : raw
     }
 }

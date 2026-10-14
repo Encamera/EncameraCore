@@ -115,13 +115,15 @@ public enum KeyDeletionScope {
 }
 
 public protocol KeyManager {
-    
-    init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol)
+
     var isSyncEnabled: Bool { get }
     var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
     var passcodeType: PasscodeType { get }
+
+    init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol)
+
     /// Wipes this app's keychain footprint.
     ///
     /// There is deliberately no default value here: account-wide erasure is

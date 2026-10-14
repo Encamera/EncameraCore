@@ -50,11 +50,14 @@ public enum KeychainDumpMarkdown {
         }
         return lines.joined(separator: "\n")
     }
+}
+
+private extension KeychainDumpMarkdown {
 
     /// Redacts a rendered attribute value, preserving the trailing byte count
     /// that `describeKeychainValue` appends ("… (32 bytes)") since the size of
     /// a secret is metadata worth keeping.
-    private static func redactedValue(replacing value: String) -> String {
+    static func redactedValue(replacing value: String) -> String {
         if let range = value.range(of: #"\(\d+ bytes\)$"#, options: .regularExpression) {
             let byteCount = value[range].dropFirst().dropLast()
             return "(redacted · \(byteCount))"
@@ -62,7 +65,7 @@ public enum KeychainDumpMarkdown {
         return "(redacted)"
     }
 
-    private static func escapeCell(_ text: String) -> String {
+    static func escapeCell(_ text: String) -> String {
         text
             .replacingOccurrences(of: "|", with: "\\|")
             .replacingOccurrences(of: "\r\n", with: " ")

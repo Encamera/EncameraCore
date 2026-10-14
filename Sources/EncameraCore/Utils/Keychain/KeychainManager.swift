@@ -13,28 +13,6 @@ import UIKit
 
 public class KeychainManager: ObservableObject, @preconcurrency KeyManager, DebugPrintable {
 
-
-    private enum BackupFlagState {
-        case enabled, disabled, notSet
-    }
-
-    public var backupFlagState: KeychainBackupFlagState {
-        switch getBackupFlagState() {
-        case .enabled: return .enabled
-        case .disabled: return .disabled
-        case .notSet: return .notSet
-        }
-    }
-
-    /// Full payload of the backup status item, including which device flipped
-    /// the switch and when. Nil when the item is absent or undecodable;
-    /// metadata fields are nil for legacy boolean payloads.
-    public var backupStatus: KeychainBackupStatus? {
-        getBackupStatus()
-    }
-
-    // MARK: - Credential conflict handling
-
     /// Which credential set this device uses when a local (this device) and a
     /// synced (another device) copy of the same item coexist with different
     /// values — the aftermath of onboarding on a second device before iCloud
@@ -42,14 +20,182 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     public enum CredentialConflictResolution: String {
         case preferLocal
         case preferSynced
+
+        /// The resolution this device has chosen, or nil when none is set.
+        static var stored: CredentialConflictResolution? {
+            guard let raw = UserDefaultUtils.string(forKey: .credentialConflictResolution) else {
+                return nil
+            }
+            return CredentialConflictResolution(rawValue: raw)
+        }
+    }
+
+    // MARK: - Public Properties
+
+    public var isAuthenticated: AnyPublisher<Bool, Never>
+
+    public var currentKey: PrivateKey? {
+        privateKeyManager.currentKey
+    }
+
+    public var keyPublisher: AnyPublisher<PrivateKey?, Never> {
+        privateKeyManager.keyPublisher
+    }
+
+    public var passcodeType: PasscodeType {
+        passwordManager.passcodeType
+    }
+
+    public var backupFlagState: KeychainBackupFlagState {
+        backupStatusManager.getBackupFlagState()
+    }
+
+    /// Full payload of the backup status item, including which device flipped
+    /// the switch and when. Nil when the item is absent or undecodable;
+    /// metadata fields are nil for legacy boolean payloads.
+    public var backupStatus: KeychainBackupStatus? {
+        backupStatusManager.getBackupStatus()
     }
 
     public var conflictResolution: CredentialConflictResolution? {
-        guard let raw = UserDefaultUtils.string(forKey: .credentialConflictResolution) else {
-            return nil
-        }
-        return CredentialConflictResolution(rawValue: raw)
+        CredentialConflictResolution.stored
     }
+
+    public var isSyncEnabled: Bool {
+        switch backupStatusManager.getBackupFlagState() {
+        case .enabled: return true
+        case .disabled: return false
+        case .notSet:
+            if let observed = privateKeyManager.observedKeySyncState() {
+                printDebug("isSyncEnabled: flag notSet, key library observed sync state → \(observed)")
+                return observed
+            }
+
+            // The backup-flag account itself is excluded: that item is always
+            // written synchronizable and would make this check unconditionally true.
+            let credentialAccounts = [
+                KeychainConstants.account,
+                KeychainConstants.passPhraseKeyItem,
+                KeychainConstants.passcodeTypeKeyItem
+            ]
+            if let matched = credentialAccounts.first(where: { genericPasswordData(account: $0, synchronizable: true) != nil }) {
+                printDebug("isSyncEnabled: flag notSet, but synchronizable '\(matched)' item exists → true")
+                return true
+            }
+            printDebug("isSyncEnabled: flag notSet and no synchronizable credential items → false (writes will be local-only)")
+            return false
+        }
+    }
+
+    // MARK: - Internal Properties
+
+    let keychainWrapper: KeychainWrapperProtocol
+
+    // MARK: - Private Properties
+
+    private var cancellables = Set<AnyCancellable>()
+    private let multiDeviceManager: MultiDeviceManager
+    private let privateKeyManager: PrivateKeyManager
+    private let passwordManager: KeychainPasswordManager
+    private let eraseManager: KeychainEraseManager
+    private let backupStatusManager: KeychainBackupStatusManager
+    private var passwordValidator = PasswordValidator()
+    private var didLogVariantDetail = false
+
+    // MARK: - Init
+
+    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
+        self.isAuthenticated = isAuthenticated
+        self.keychainWrapper = keychainWrapper
+        self.multiDeviceManager = MultiDeviceManager(keychainWrapper: keychainWrapper)
+        self.privateKeyManager = PrivateKeyManager(keychainWrapper: keychainWrapper)
+        self.passwordManager = KeychainPasswordManager(keychainWrapper: keychainWrapper)
+        self.backupStatusManager = KeychainBackupStatusManager(keychainWrapper: keychainWrapper)
+        self.eraseManager = KeychainEraseManager(keychainWrapper: keychainWrapper,
+                                                 privateKeyManager: privateKeyManager,
+                                                 multiDeviceManager: multiDeviceManager,
+                                                 passwordManager: passwordManager)
+        self.isAuthenticated.sink { [weak self] newValue in
+            guard let self = self, newValue == true else { return }
+            do {
+                try self.privateKeyManager.getActiveKeyAndSet()
+            } catch {
+                self.printDebug("Error during initial key setup (migration/load):", error)
+                self.attemptKeyRestoreAfterFailedLoad()
+            }
+        }.store(in: &cancellables)
+    }
+
+    // MARK: - Credential State
+
+    public func credentialSnapshot() -> KeychainCredentialSnapshot {
+        if !didLogVariantDetail {
+            didLogVariantDetail = true
+            logCredentialVariantState(context: "first credentialSnapshot")
+        }
+        let configuration = getAuthenticationConfiguration()
+        let status = backupStatusManager.getBackupStatus()
+        let flagState: KeychainBackupFlagState = status.map { $0.enabled ? .enabled : .disabled } ?? .notSet
+        let snapshot = KeychainCredentialSnapshot(
+            passwordExists: passwordExists(),
+            passphraseExists: keyPassphraseExists(),
+            defaultKeyExists: keyWith(name: AppConstants.defaultKeyName) != nil,
+            biometricsEnabled: configuration?.isTypeEnabled(.biometrics) ?? false,
+            backupFlagState: flagState,
+            backupStatus: status
+        )
+        printDebug("credentialSnapshot: \(snapshot)")
+        return snapshot
+    }
+
+    /// Logs, for every credential account and key, whether a local and/or a
+    /// synced variant exists. This is the view that distinguishes "item never
+    /// marked synchronizable on the source device" from "item hasn't arrived
+    /// here yet" — run it on BOTH devices when diagnosing sync.
+    public func logCredentialVariantState(context: String) {
+        let accounts = [
+            KeychainConstants.account,
+            KeychainConstants.passPhraseKeyItem,
+            KeychainConstants.passcodeTypeKeyItem,
+            KeychainConstants.backupStatusKeyItem
+        ]
+        for account in accounts {
+            let local = genericPasswordData(account: account, synchronizable: false) != nil
+            let synced = genericPasswordData(account: account, synchronizable: true) != nil
+            printDebug("variant state (\(context)) '\(account)': local=\(local), synced=\(synced)")
+        }
+        let keys = (try? storedKeys()) ?? []
+        if keys.isEmpty {
+            printDebug("variant state (\(context)) keys: none")
+        } else {
+            let describedKeys = keys.map { "\($0.name)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
+            printDebug("variant state (\(context)) keys: \(describedKeys)")
+        }
+    }
+
+    public func hasResolvedCredentialsBefore() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
+            kSecAttrSynchronizable as String: kCFBooleanFalse!
+        ]
+        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    @discardableResult
+    public func setResolvedCredentialsBefore() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
+            kSecAttrSynchronizable as String: kCFBooleanFalse!
+        ]
+        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) != errSecSuccess else { return true }
+        var add = query
+        add[kSecValueData as String] = Data([1])
+        return keychainWrapper.secItemAdd(add as CFDictionary, nil) == errSecSuccess
+    }
+
+    // MARK: - Credential Conflicts
 
     public func setConflictResolution(_ resolution: CredentialConflictResolution?) {
         printDebug("setConflictResolution(\(resolution?.rawValue ?? "nil")) — was \(conflictResolution?.rawValue ?? "nil")")
@@ -91,360 +237,28 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         return conflicts
     }
 
-    /// Fetches one specific variant (local or synced) of a generic-password
-    /// item. All other reads in this class match either synchronizableAny or
-    /// the flag-driven value, which can't distinguish coexisting variants.
-    private func genericPasswordData(account: String, synchronizable: Bool) -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrSynchronizable as String: synchronizable ? kCFBooleanTrue! : kCFBooleanFalse!
-        ]
-        var item: CFTypeRef?
-        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else {
-            return nil
-        }
-        return item as? Data
-    }
+    // MARK: - Erase
 
-    public func credentialSnapshot() -> KeychainCredentialSnapshot {
-        if !didLogVariantDetail {
-            didLogVariantDetail = true
-            logCredentialVariantState(context: "first credentialSnapshot")
-        }
-        let configuration = getAuthenticationConfiguration()
-        let status = getBackupStatus()
-        let flagState: KeychainBackupFlagState = status.map { $0.enabled ? .enabled : .disabled } ?? .notSet
-        let snapshot = KeychainCredentialSnapshot(
-            passwordExists: passwordExists(),
-            passphraseExists: keyPassphraseExists(),
-            defaultKeyExists: keyWith(name: AppConstants.defaultKeyName) != nil,
-            biometricsEnabled: configuration?.isTypeEnabled(.biometrics) ?? false,
-            backupFlagState: flagState,
-            backupStatus: status
-        )
-        printDebug("credentialSnapshot: \(snapshot)")
-        return snapshot
-    }
-
-    private var didLogVariantDetail = false
-
-    /// Logs, for every credential account and key, whether a local and/or a
-    /// synced variant exists. This is the view that distinguishes "item never
-    /// marked synchronizable on the source device" from "item hasn't arrived
-    /// here yet" — run it on BOTH devices when diagnosing sync.
-    public func logCredentialVariantState(context: String) {
-        let accounts = [
-            KeychainConstants.account,
-            KeychainConstants.passPhraseKeyItem,
-            KeychainConstants.passcodeTypeKeyItem,
-            KeychainConstants.backupStatusKeyItem
-        ]
-        for account in accounts {
-            let local = genericPasswordData(account: account, synchronizable: false) != nil
-            let synced = genericPasswordData(account: account, synchronizable: true) != nil
-            printDebug("variant state (\(context)) '\(account)': local=\(local), synced=\(synced)")
-        }
-        let keys = (try? storedKeys()) ?? []
-        if keys.isEmpty {
-            printDebug("variant state (\(context)) keys: none")
-        } else {
-            let describedKeys = keys.map { "\($0.name)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
-            printDebug("variant state (\(context)) keys: \(describedKeys)")
-        }
-    }
-
-    public var passcodeType: PasscodeType {
-        if passwordExists() == false {
-            return .none
-        }
-
-        if let storedPasscodeType = try? retrievePasscodeTypeFromKeychain(), passwordExists() {
-            return storedPasscodeType
-        }
-
-        let defaultPasscodeType = PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength)
-        try? savePasscodeTypeToKeychain(defaultPasscodeType)
-        return defaultPasscodeType
-    }
-
-
-    public var isAuthenticated: AnyPublisher<Bool, Never>
-    private var cancellables = Set<AnyCancellable>()
-    private var sodium = Sodium()
-    let keychainWrapper: KeychainWrapperProtocol
-
-    private var passwordValidator = PasswordValidator()
-    private(set) public var currentKey: PrivateKey? {
-        didSet {
-            keySubject.send(currentKey)
-        }
-    }
-    public var keyPublisher: AnyPublisher<PrivateKey?, Never> {
-        keySubject.eraseToAnyPublisher()
-    }
-
-    public var isSyncEnabled: Bool {
-        switch getBackupFlagState() {
-        case .enabled: return true
-        case .disabled: return false
-        case .notSet:
-            if let observed = observedKeySyncState() {
-                printDebug("isSyncEnabled: flag notSet, key library observed sync state → \(observed)")
-                return observed
-            }
-
-            // The backup-flag account itself is excluded: that item is always
-            // written synchronizable and would make this check unconditionally true.
-            let credentialAccounts = [
-                KeychainConstants.account,
-                KeychainConstants.passPhraseKeyItem,
-                KeychainConstants.passcodeTypeKeyItem
-            ]
-            if let matched = credentialAccounts.first(where: { genericPasswordData(account: $0, synchronizable: true) != nil }) {
-                printDebug("isSyncEnabled: flag notSet, but synchronizable '\(matched)' item exists → true")
-                return true
-            }
-            printDebug("isSyncEnabled: flag notSet and no synchronizable credential items → false (writes will be local-only)")
-            return false
-        }
-    }
-
-    private var keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
-
-    public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
-        self.isAuthenticated = isAuthenticated
-        self.keychainWrapper = keychainWrapper
-        self.isAuthenticated.sink { [weak self] newValue in
-            guard let self = self, newValue == true else { return }
-            do {
-                try self.getActiveKeyAndSet()
-            } catch {
-                self.printDebug("Error during initial key setup (migration/load):", error)
-                self.attemptKeyRestoreAfterFailedLoad()
-            }
-        }.store(in: &cancellables)
-    }
-
-    /// Heals key state after authentication when the active key can't be loaded.
-    /// On a second device, the KVS-synced `currentKey` default may name a key
-    /// that never reached this device, and the default key itself may still be
-    /// derivable from the synced passphrase even if its keychain item hasn't
-    /// arrived. Runs on every unlock, so key material that syncs in minutes
-    /// after first launch is picked up on the next authentication.
-    private func attemptKeyRestoreAfterFailedLoad() {
-        printDebug("attemptKeyRestoreAfterFailedLoad: snapshot \(credentialSnapshot()), currentKey default='\(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String ?? "nil")'")
-        if let activeKeyName = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
-           (try? getKey(by: activeKeyName)) == nil {
-            printDebug("Clearing stale currentKey '\(activeKeyName)' — key not present on this device")
-            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
-        }
-
-        do {
-            let restored = try restoreDefaultKeyFromPassphraseIfNeeded()
-            try getActiveKeyAndSet()
-            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.name ?? "nil")')")
-        } catch {
-            printDebug("Key restore after failed load did not succeed:", error)
-        }
-    }
-
-    /// Wipes this app's keychain footprint at the requested scope.
-    ///
-    /// `.deviceLocal` matches only `kSecAttrSynchronizable: false` items, so no
-    /// deletion tombstone is created and the account's other devices keep their
-    /// key, passphrase and password hash. `.accountWide` restores the historical
-    /// `kSecAttrSynchronizableAny` sweep, which removes the credentials from
-    /// every device on the iCloud account and cannot be undone.
-    ///
-    /// Known consequence of the device-local scope: when iCloud Backup & Sync is on,
-    /// this device's copies of the key and passphrase *are* the synced items, so
-    /// they survive a device-local reset. The keychain offers no way to drop a
-    /// local copy of a synchronizable item without tombstoning it everywhere;
-    /// removing them here would be exactly the account nuke this split exists to
-    /// prevent. Turning backup off (or removing the device from iCloud) is the
-    /// supported way to clear those.
     public func clearKeychainData(scope: KeyDeletionScope) {
-        let syncMatch: Any
-        switch scope {
-        case .deviceLocal:
-            syncMatch = kCFBooleanFalse!
-        case .accountWide:
-            syncMatch = kSecAttrSynchronizableAny
-        }
-
-        let keychainClasses: [CFString] = [
-            kSecClassGenericPassword,
-            kSecClassInternetPassword,
-            kSecClassCertificate,
-            kSecClassKey,
-            kSecClassIdentity
-        ]
-
-        for keychainClass in keychainClasses {
-            let query: [String: Any] = [
-                kSecClass as String: keychainClass,
-                kSecAttrSynchronizable as String: syncMatch
-            ]
-
-            let status = keychainWrapper.secItemDelete(query as CFDictionary)
-            if status != errSecSuccess && status != errSecItemNotFound {
-                print("Failed to delete items for class \(keychainClass): \(status)")
-            }
-        }
-
-        let passphraseQuery = queryForPassphrase(additionalQuery: [
-            kSecAttrSynchronizable as String: syncMatch
-        ])
-        let passphraseStatus = keychainWrapper.secItemDelete(passphraseQuery as CFDictionary)
-        if passphraseStatus != errSecSuccess && passphraseStatus != errSecItemNotFound {
-            print("Failed to delete passphrase item: \(passphraseStatus)")
-        }
-
-        // The backup status flag and the authentication configuration are both
-        // hardcoded-synchronizable account state. Only an account-wide erase may
-        // remove them; deleting them on a device-local reset would tell every
-        // other device that backup was never enabled and that no passcode is set.
-        switch scope {
-        case .deviceLocal:
-            try? clearLocalPasswordItems()
-        case .accountWide:
-            let backupStatusQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-            ]
-            let backupStatusDeleteStatus = keychainWrapper.secItemDelete(backupStatusQuery as CFDictionary)
-            if backupStatusDeleteStatus != errSecSuccess && backupStatusDeleteStatus != errSecItemNotFound {
-                print("Failed to delete backup status flag item: \(backupStatusDeleteStatus)")
-            }
-
-            let multiDeviceStateQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: KeychainConstants.multiDeviceState,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-            ]
-            let multiDeviceStateDeleteStatus = keychainWrapper.secItemDelete(multiDeviceStateQuery as CFDictionary)
-            if multiDeviceStateDeleteStatus != errSecSuccess && multiDeviceStateDeleteStatus != errSecItemNotFound {
-                print("Failed to delete multi-device state item: \(multiDeviceStateDeleteStatus)")
-            }
-
-            try? clearPassword()
-        }
-
-        try? setActiveKey(nil)
-        print("Keychain data cleared (scope: \(scope))")
+        eraseManager.clearKeychainData(scope: scope)
     }
 
-    /// See `KeyManager.residualKeychainItemNames()`. Queries the same five classes
-    /// the sweep does, with the same widest-match sync predicate, so a survivor the
-    /// sweep should have taken cannot hide from the check that follows it.
     public func residualKeychainItemNames() -> [String] {
-        let classes: [(secClass: CFString, name: String)] = [
-            (kSecClassGenericPassword, "GenericPassword"),
-            (kSecClassInternetPassword, "InternetPassword"),
-            (kSecClassCertificate, "Certificate"),
-            (kSecClassKey, "Key"),
-            (kSecClassIdentity, "Identity")
-        ]
-
-        var names: [String] = []
-        for entry in classes {
-            let query: [String: Any] = [
-                kSecClass as String: entry.secClass,
-                kSecReturnAttributes as String: true,
-                kSecMatchLimit as String: kSecMatchLimitAll,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-            ]
-            var result: CFTypeRef?
-            guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-                  let items = result as? [[String: Any]] else { continue }
-            for item in items {
-                let name = (item[kSecAttrAccount as String] as? String)
-                    ?? (item[kSecAttrLabel as String] as? String)
-                    ?? (item[kSecAttrService as String] as? String)
-                    ?? (item[kSecAttrApplicationTag as String] as? Data).flatMap { String(data: $0, encoding: .utf8) }
-                    ?? "<unnamed>"
-                names.append("\(entry.name)|\(name)")
-            }
-        }
-        return names.sorted()
+        eraseManager.residualKeychainItemNames()
     }
 
-    /// Removes only this device's non-synchronizable password hash and legacy
-    /// passcode-type items. Unlike `clearPassword()` it does not rewrite the
-    /// always-synced `AuthenticationConfiguration`, because that write would
-    /// propagate to every device on the account.
-    private func clearLocalPasswordItems() throws {
-        let accounts = [KeychainConstants.account, KeychainConstants.passcodeTypeKeyItem]
-        for account in accounts {
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: account,
-                kSecAttrSynchronizable as String: kCFBooleanFalse!
-            ]
-            let status = keychainWrapper.secItemDelete(query as CFDictionary)
-            if status != errSecItemNotFound {
-                try checkStatus(status: status)
-            }
-        }
-    }
-
+    // MARK: - Keys
 
     @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
-
-        guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
-              let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
-            throw KeyManagerError.dictionaryLoadError
-        }
-
-        let words = dictionaryContent.components(separatedBy: .newlines).filter { !$0.isEmpty && $0.lengthOfBytes(using: .utf8) > 4 }
-
-        guard words.count >= 10 else {
-            throw KeyManagerError.dictionaryTooSmall
-        }
-
-        let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
-
-        return try generateKeyFromPasswordComponentsAndSave(selectedWords, name: name)
+        try privateKeyManager.generateKeyUsingRandomWords(name: name, synchronizable: synchronizableForWrites)
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
-
-        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, name: AppConstants.defaultKeyName)
+        try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: synchronizableForWrites)
     }
 
-    /// Derives a key from passphrase components without writing anything to the
-    /// keychain. Words 1-4 are the salt, the rest the password input to pwHash.
     public func deriveKey(from components: [String], name: String) throws -> PrivateKey {
-        guard !components.isEmpty else {
-            throw KeyManagerError.invalidInput
-        }
-
-        try validateKeyName(name: name)
-        let splitIndex = 4
-        let saltComponents = components.prefix(splitIndex)
-        let saltString = saltComponents.joined(separator: "-")
-        let passwordComponents = components.dropFirst(splitIndex)
-        let password = passwordComponents.joined(separator: "-")
-
-        let saltBytes = Array(saltString.bytes.prefix(Sodium().pwHash.SaltBytes))
-        if saltBytes.count < Sodium().pwHash.SaltBytes {
-            throw KeyManagerError.invalidSalt
-        }
-
-        let keyLength = Sodium().secretStream.xchacha20poly1305.KeyBytes
-        guard let keyBytes = sodium.pwHash.hash(outputLength: keyLength,
-                                                passwd: password.bytes,
-                                                salt: saltBytes,
-                                                opsLimit: sodium.pwHash.OpsLimitInteractive,
-                                                memLimit: sodium.pwHash.MemLimitInteractive) else {
-            throw KeyManagerError.keyDerivationFailed
-        }
-
-        return PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
+        try privateKeyManager.deriveKey(from: components, name: name)
     }
 
     /// Re-derives the default key from an already-present passphrase item.
@@ -474,372 +288,137 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     }
 
     @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
-        let key = try deriveKey(from: components, name: name)
-        let fullPassword = components.joined(separator: "-")
-
-        do {
-            try save(key: key, setNewKeyToCurrent: true)
-        } catch {
-            self.printDebug("Could not save key", error)
-            throw error
-        }
-
-        let passphraseData = fullPassword.data(using: .utf8)!
-        let passphraseQuery = queryForPassphrase(additionalQuery: [:])
-
-        var withOptions: [String: Any] = passphraseQuery
-        withOptions[kSecReturnData as String] = true
-
-        var item: CFTypeRef?
-        let queryResult = keychainWrapper.secItemCopyMatching(withOptions as CFDictionary, &item)
-
-        switch queryResult {
-        case errSecSuccess:
-            let updateQuery: [String: Any] = [
-                kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites,
-            ]
-            let updateStatus = keychainWrapper.secItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
-
-            if updateStatus != errSecItemNotFound {
-                try checkStatus(status: updateStatus)
-            }
-        case errSecItemNotFound:
-            let addQuery = queryForPassphrase(additionalQuery: [
-                kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites
-            ])
-            let addStatus = keychainWrapper.secItemAdd(addQuery as CFDictionary, nil)
-            try checkStatus(status: addStatus)
-        default:
-            try checkStatus(status: queryResult)
-        }
-
-
-        return key
-
+        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, name: name, synchronizable: synchronizableForWrites)
     }
 
     public func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        var additionalQuery: [String: Any] = [
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        // While a conflict resolution is active, pin the read to the chosen
-        // credential set — with both a local and a synced passphrase present,
-        // the default synchronizableAny match is nondeterministic.
-        switch conflictResolution {
-        case .preferLocal:
-            additionalQuery[kSecAttrSynchronizable as String] = kCFBooleanFalse!
-        case .preferSynced:
-            additionalQuery[kSecAttrSynchronizable as String] = kCFBooleanTrue!
-        case nil:
-            break
-        }
-        let query: [String: Any] = queryForPassphrase(additionalQuery: additionalQuery)
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else {
-            throw KeyManagerError.notFound
-        }
-
-        guard let result = item as? [String: Any],
-              let data = result[kSecValueData as String] as? Data,
-              let passphrase = String(data: data, encoding: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-
-        let words = passphrase.components(separatedBy: "-")
-
-        let keyPassphrase = KeyPassphrase(words: words)
-
-        return keyPassphrase
+        try privateKeyManager.retrieveKeyPassphrase(conflictResolution: conflictResolution)
     }
 
     public func validateKeyName(name: String) throws {
-        guard name.count > KeychainConstants.minKeyLength else {
-            throw KeyManagerError.keyNameError
-        }
+        try privateKeyManager.validateKeyName(name: name)
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
-        var query = key.keychainQueryDictForKeychain
-        query[kSecAttrSynchronizable as String] = syncValueForWrites
-
-        if let baseQuery = existingKeyItemQuery(for: key) {
-            // Deliberately does NOT write kSecAttrCreationDate: storedKeys()
-            // sorts by it, so refreshing it on every save reorders the library.
-            var updateQuery: [String: Any] = [
-                kSecValueData as String: key.keyData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites,
-            ]
-            updateQuery.merge(key.keychainIdentityAttributes) { current, _ in current }
-            let updateStatus = keychainWrapper.secItemUpdate(baseQuery as CFDictionary, updateQuery as CFDictionary)
-            try checkStatus(status: updateStatus)
-
-        } else {
-            let addStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
-            try checkStatus(status: addStatus)
-        }
-
-        if setNewKeyToCurrent {
-            try setActiveKey(key)
-        }
+        try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizableForWrites)
     }
 
+    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
+        try privateKeyManager.setSynchronizable(backupToiCloud, for: key)
+    }
+
+    public func keyWith(name: String) -> PrivateKey? {
+        privateKeyManager.keyWith(name: name)
+    }
+
+    public func keyWith(fingerprint: String) -> PrivateKey? {
+        privateKeyManager.keyWith(fingerprint: fingerprint)
+    }
+
+    @MainActor
+    public func keyWith(uuid: UUID) -> PrivateKey? {
+        privateKeyManager.keyWith(uuid: uuid)
+    }
+
+    public func deleteKey(fingerprint: String, scope: KeyDeletionScope = .deviceLocal) throws {
+        try privateKeyManager.deleteKey(fingerprint: fingerprint, scope: scope)
+    }
+
+    public func storedKeys() throws -> [PrivateKey] {
+        try privateKeyManager.storedKeys()
+    }
+
+    public func setActiveKey(_ name: KeyName?) throws {
+        try privateKeyManager.setActiveKey(name)
+    }
+
+    public func setActiveKey(_ key: PrivateKey) throws {
+        try privateKeyManager.setActiveKey(key)
+    }
+
+    func getActiveKey() throws -> PrivateKey {
+        try privateKeyManager.getActiveKey()
+    }
+
+    func getKey(by keyName: KeyName) throws -> PrivateKey {
+        try privateKeyManager.getKey(by: keyName)
+    }
+
+    public func keyPassphraseExists() -> Bool {
+        privateKeyManager.keyPassphraseExists()
+    }
+
+    // MARK: - Password and Authentication
+
     public func getAuthenticationConfiguration() -> AuthenticationConfiguration? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else {
-            if status != errSecItemNotFound {
-                printDebug("getAuthenticationConfiguration: query failed with status \(status) (\(determineOSStatus(status: status)))")
-            }
-            return nil
-        }
-
-        guard let data = item as? Data,
-              let config = try? JSONDecoder().decode(AuthenticationConfiguration.self, from: data) else {
-            printDebug("getAuthenticationConfiguration: Could not decode authentication configuration")
-            return nil
-        }
-
-        return config
+        passwordManager.getAuthenticationConfiguration()
     }
 
     public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
-
-        guard let encoded = try? JSONEncoder().encode(config) else {
-            printDebug("setAuthenticationConfiguration: Could not encode authentication configuration")
-            throw KeyManagerError.dataError
-        }
-
-        let updateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
-            kSecValueData as String: encoded,
-            kSecAttrSynchronizable as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-        ]
-
-        var status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
-        if status == errSecDuplicateItem {
-            let newAttributes: [String: Any] = [
-                kSecValueData as String: encoded
-            ]
-            status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
-        }
-
-        try checkStatus(status: status)
-
-        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully")
+        try passwordManager.setAuthenticationConfiguration(config: config)
     }
 
-    /// Reads the always-synced multi-device state record. `nil` means no device
-    /// on this account has written it yet (or it hasn't arrived from iCloud).
-    ///
-    /// Queried with `kSecAttrSynchronizableAny` so it is found regardless of the
-    /// stored item's sync flag, matching `getAuthenticationConfiguration`.
+    public func passwordExists() -> Bool {
+        passwordManager.passwordExists()
+    }
+
+    public func clearPassword() throws {
+        try passwordManager.clearPassword()
+    }
+
+    public func setPassword(_ password: String, type: PasscodeType) throws {
+        try passwordManager.setPassword(password, type: type, synchronizable: synchronizableForWrites)
+    }
+
+    public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
+        try passwordManager.setOrUpdatePassword(password, type: type, synchronizable: synchronizableForWrites)
+    }
+
+    public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
+        try passwordManager.changePassword(newPassword: newPassword, existingPassword: existingPassword, type: type, synchronizable: synchronizableForWrites)
+    }
+
+    public func getPasswordHash() throws -> Data {
+        try passwordManager.getPasswordHash()
+    }
+
+    public func setPasswordHash(hash: Data) throws {
+        try passwordManager.setPasswordHash(hash: hash, synchronizable: synchronizableForWrites)
+    }
+
+    public func checkPassword(_ password: String) throws -> Bool {
+        try passwordManager.checkPassword(password)
+    }
+
+    // MARK: - Multi-Device
+
     public func getMultiDeviceState() -> MultiDeviceState? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.multiDeviceState,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else {
-            if status != errSecItemNotFound {
-                printDebug("getMultiDeviceState: query failed with status \(status) (\(determineOSStatus(status: status)))")
-            }
-            return nil
-        }
-
-        guard let data = item as? Data,
-              let state = try? JSONDecoder().decode(MultiDeviceState.self, from: data) else {
-            printDebug("getMultiDeviceState: Could not decode multi-device state")
-            return nil
-        }
-
-        return state
+        multiDeviceManager.getState()
     }
 
-    /// Merges `state` into the stored multi-device state record and writes it back.
-    ///
-    /// Merging rather than replacing means a device appending itself to the
-    /// roster can't drop another device that appeared since it last read.
-    /// See `MultiDeviceState.merging(existing:incoming:)`.
     public func setMultiDeviceState(_ state: MultiDeviceState) throws {
-        let merged = MultiDeviceState.merging(existing: getMultiDeviceState(), incoming: state)
-        try writeMultiDeviceStateRecord(merged)
+        try multiDeviceManager.setState(state)
     }
 
-    /// Replaces the record with exactly `state`, bypassing the merge, so the
-    /// destructive path can clear the fingerprints while keeping the
-    /// roster the caller carried over. Still an update (never a delete), so the
-    /// synchronizable item is not tombstoned.
     public func overwriteMultiDeviceState(_ state: MultiDeviceState) throws {
-        try writeMultiDeviceStateRecord(state)
+        try multiDeviceManager.overwriteState(state)
     }
 
-    /// The raw synchronizable write shared by the merging setter and the
-    /// non-merging overwrite. Adds the item, or updates its value data in place if
-    /// it already exists — never deletes it, so no cross-device tombstone.
-    private func writeMultiDeviceStateRecord(_ state: MultiDeviceState) throws {
-        guard let encoded = try? JSONEncoder().encode(state) else {
-            printDebug("setMultiDeviceState: Could not encode multi-device state")
-            throw KeyManagerError.dataError
-        }
-
-        let updateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.multiDeviceState,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item — it must
-        // reach every device on the account regardless of the backup toggle.
-        // That is why nothing secret may ever enter MultiDeviceState.
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.multiDeviceState,
-            kSecValueData as String: encoded,
-            kSecAttrSynchronizable as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-        ]
-
-        var status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
-        if status == errSecDuplicateItem {
-            let newAttributes: [String: Any] = [
-                kSecValueData as String: encoded
-            ]
-            status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
-        }
-
-        try checkStatus(status: status)
-
-        printDebug("setMultiDeviceState: Multi-device state set successfully")
-    }
-
-    /// Writes the always-synced central backup status flag. Extracted so the
-    /// partial-failure path can rewrite it with the state the keychain items are
-    /// *actually* in, rather than leaving it asserting the attempted state.
-    private func writeBackupFlag(enabled backupEnabled: Bool) throws {
-        let backupStatusQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        let statusPayload = try Self.encodeBackupStatus(KeychainBackupStatus(
-            enabled: backupEnabled,
-            deviceID: DeviceIDProvider.deviceID(),
-            deviceName: DeviceIDProvider.deviceName(),
-            timestamp: Date()
-        ))
-
-        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
-        let backupStatusAttributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecValueData as String: statusPayload,
-            kSecAttrSynchronizable as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-        ]
-
-        var status = keychainWrapper.secItemAdd(backupStatusAttributes as CFDictionary, nil)
-
-        if status == errSecDuplicateItem {
-            let newAttributes: [String: Any] = [
-                kSecValueData as String: statusPayload,
-            ]
-            status = keychainWrapper.secItemUpdate(backupStatusQuery as CFDictionary, newAttributes as CFDictionary)
-        }
-
-        printDebug("flip: backup flag write status \(status) (\(determineOSStatus(status: status)))")
-        try checkStatus(status: status)
-    }
-
-    /// The sync state the stored key items are observably in, independent of
-    /// what the flag claims. `true` only when every key item is synchronizable,
-    /// so a half-flipped library reads as "not enabled" — the conservative
-    /// answer, since it makes subsequent writes stay local rather than assume a
-    /// sync that did not happen. `nil` when there are no keys to judge by.
-    ///
-    /// Judged on the raw `kSecClassKey` items rather than on `storedKeys()`:
-    /// a key item that fails to decode — a corrupt or not-yet-migrated
-    /// blob — is still a key sitting in the keychain in some sync scope, and a
-    /// local one of those means the library is not fully synced. Decoding first
-    /// would make it invisible and report the library as clean.
-    ///
-    /// `isSyncEnabled` calls this on its `.notSet` path, so nothing this touches
-    /// may consult `syncValueForWrites`, or the loop closes into unbounded
-    /// recursion. Querying `SecItem` directly keeps that guaranteed.
-    private func observedKeySyncState() -> Bool? {
-        // Scoped to Encamera's own key items by `kSecAttrApplicationTag`, which
-        // `PrivateKey.keychainIdentityAttributes` writes as
-        // `"\(KeychainConstants.applicationTag).\(name)"`. The tag can't be matched
-        // server-side by prefix, so the items are enumerated and filtered here.
-        func encameraKeyItemExists(synchronizable: CFBoolean) -> Bool {
-            let query: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrSynchronizable as String: synchronizable,
-                kSecReturnAttributes as String: true,
-                kSecMatchLimit as String: kSecMatchLimitAll
-            ]
-            var item: CFTypeRef?
-            guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-                  let items = item as? [[String: Any]] else {
-                return false
-            }
-            let prefix = KeychainConstants.applicationTag
-            return items.contains { attributes in
-                guard let tagData = attributes[kSecAttrApplicationTag as String] as? Data,
-                      let tag = String(data: tagData, encoding: .utf8) else {
-                    return false
-                }
-                return tag.hasPrefix(prefix)
-            }
-        }
-
-        let hasLocalKey = encameraKeyItemExists(synchronizable: kCFBooleanFalse!)
-        let hasSyncedKey = encameraKeyItemExists(synchronizable: kCFBooleanTrue!)
-        guard hasLocalKey || hasSyncedKey else {
+    /// See `KeyManager.multiDeviceKeyConflict`.
+    public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
+        let localFingerprints = Set(((try? storedKeys()) ?? []).map(\.keychainLabel))
+        let accountFingerprints = getMultiDeviceState()?.keyFingerprints ?? []
+        let remoteOnly = accountFingerprints.filter { !localFingerprints.contains($0) }
+        guard !remoteOnly.isEmpty else {
             return nil
         }
-        return !hasLocalKey
+        return MultiDeviceKeyConflict(
+            localFingerprint: (try? getActiveKey())?.keychainLabel,
+            remoteFingerprints: remoteOnly
+        )
     }
 
-    /// True when a local and a synced copy of this generic-password account both
-    /// exist and hold different bytes — a genuine credential conflict rather
-    /// than the ordinary redundant duplicate a second device accumulates.
-    private func hasDivergentCredentialPair(account: String) -> Bool {
-        guard let local = genericPasswordData(account: account, synchronizable: false),
-              let synced = genericPasswordData(account: account, synchronizable: true) else {
-            return false
-        }
-        return local != synced
-    }
+    // MARK: - iCloud Sync
 
     /// Moves every secret the app owns on or off the iCloud keychain, then
     /// records the new state in the central backup flag.
@@ -858,47 +437,11 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         printDebug("backupKeychainToiCloud(\(enabled)) — state before flip:")
         logCredentialVariantState(context: "before flip")
 
-        var failures: [String] = []
-
-        do {
-            for identity in try encameraKeyIdentities() {
-                let label = (identity[kSecAttrLabel as String] as? Data)
-                    .flatMap { String(data: $0, encoding: .utf8) } ?? "<unlabelled>"
-                do {
-                    try setSynchronizable(enabled,
-                                          forItemMatching: identity,
-                                          description: "key \(label)")
-                } catch {
-                    printDebug("flip: key '\(label)' FAILED:", error)
-                    failures.append("key \(label): \(error)")
-                }
-            }
-        } catch {
-            printDebug("flip: could not enumerate key items:", error)
-            failures.append("keyItems: \(error)")
+        let skipsDivergentPair: (String) -> Bool = { account in
+            enabled && self.hasDivergentCredentialPair(account: account)
         }
-
-        let genericCredentials: [(account: String, description: String)] = [
-            (KeychainConstants.passPhraseKeyItem, "key passphrase"),
-            (KeychainConstants.passcodeTypeKeyItem, "passcode type"),
-            (KeychainConstants.account, "password hash"),
-        ]
-
-        for credential in genericCredentials {
-            if enabled && hasDivergentCredentialPair(account: credential.account) {
-                printDebug("flip: \(credential.description) left unflipped — local and synced copies differ, leaving the choice to conflictResolution")
-                continue
-            }
-            do {
-                try setSynchronizable(enabled, forItemMatching: [
-                    kSecClass as String: kSecClassGenericPassword,
-                    kSecAttrAccount as String: credential.account
-                ], description: credential.description)
-            } catch {
-                printDebug("flip: \(credential.description) FAILED:", error)
-                failures.append("\(credential.description): \(error)")
-            }
-        }
+        let failures = privateKeyManager.setKeysSynchronizable(enabled, skipping: skipsDivergentPair)
+            + passwordManager.setPasswordSynchronizable(enabled, skipping: skipsDivergentPair)
 
         printDebug("backupKeychainToiCloud(\(enabled)) — state after flip:")
         logCredentialVariantState(context: "after flip")
@@ -906,9 +449,9 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         guard failures.isEmpty else {
             printDebug("backupKeychainToiCloud FAILURES: \(failures.joined(separator: "; "))")
 
-            let actual = observedKeySyncState() ?? !enabled
+            let actual = privateKeyManager.observedKeySyncState() ?? !enabled
             do {
-                try writeBackupFlag(enabled: actual)
+                try backupStatusManager.writeBackupFlag(enabled: actual)
             } catch {
                 printDebug("flip: could not correct backup flag:", error)
             }
@@ -920,585 +463,24 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             )
         }
 
-        try writeBackupFlag(enabled: enabled)
+        try backupStatusManager.writeBackupFlag(enabled: enabled)
     }
 
-    /// A base query per distinct Encamera key item the app can see, synced
-    /// copies included and deduplicated — one identity normally has both a
-    /// local and an iCloud-delivered copy.
-    ///
-    /// Scoped by `kSecAttrApplicationTag` for the same reason
-    /// `observedKeySyncState()` is: a foreign `kSecClassKey` item written by
-    /// anything else sharing the access group is not ours to move.
-    private func encameraKeyIdentities() throws -> [[String: Any]] {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound {
-            return []
-        }
-        try checkStatus(status: status)
-        guard let items = item as? [[String: Any]] else {
-            return []
-        }
+    // MARK: - Migrations
 
-        let prefix = KeychainConstants.applicationTag
-        var identities: [[String: Any]] = []
-        var seen: [Data] = []
-        for attributes in items {
-            guard let tagData = attributes[kSecAttrApplicationTag as String] as? Data,
-                  let tag = String(data: tagData, encoding: .utf8),
-                  tag.hasPrefix(prefix) else { continue }
-            guard let label = attributes[kSecAttrLabel as String] as? Data else { continue }
-            if seen.contains(label) { continue }
-            seen.append(label)
-
-            // The full identity, not just the label: for `kSecClassKey` the
-            // primary key is applicationLabel/applicationTag/keyType/…, so a
-            // query on `kSecAttrLabel` alone can match a key that is not this
-            // one, and an add built from it would write an item the app can no
-            // longer recognize as its own.
-            var identity: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrLabel as String: label,
-                kSecAttrApplicationTag as String: tagData
-            ]
-            if let applicationLabel = attributes[kSecAttrApplicationLabel as String] {
-                identity[kSecAttrApplicationLabel as String] = applicationLabel
-            }
-            identities.append(identity)
-        }
-        return identities
-    }
-
-    /// Leaves exactly one copy of the matched item behind, carrying the data
-    /// that was in use, marked `synchronizable == enabled`.
-    ///
-    /// It cannot be done with a single `SecItemUpdate`. Once a device holds
-    /// both a local and an iCloud-delivered copy of an item — the normal state
-    /// of any second device — an update that would collapse the two onto one
-    /// sync value collides, and the keychain refuses it with
-    /// `errSecDuplicateItem` without changing anything. That refusal, swallowed
-    /// by the toggle, is why key backup could not be turned off.
-    /// `KeychainSyncFlipPlatformContractTests` pins the behavior against the
-    /// real Security framework.
-    ///
-    /// So: write the target copy FIRST, then delete the other. Never the
-    /// reverse — a delete-then-add that is interrupted (backgrounded, killed,
-    /// device locked) between the two steps would destroy the only copy of the
-    /// user's key and with it every encrypted file.
-    ///
-    /// Deleting the synchronizable copy is what takes the secret off iCloud:
-    /// the deletion propagates, so the other devices drop their copies too.
-    /// That is precisely what turning key backup off means.
-    private func setSynchronizable(_ enabled: Bool,
-                                   forItemMatching baseQuery: [String: Any],
-                                   description: String) throws {
-        var readQuery = baseQuery
-        readQuery[kSecReturnData as String] = true
-        readQuery[kSecReturnAttributes as String] = true
-        readQuery[kSecMatchLimit as String] = kSecMatchLimitAll
-        readQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
-
-        var result: CFTypeRef?
-        let readStatus = keychainWrapper.secItemCopyMatching(readQuery as CFDictionary, &result)
-        if readStatus == errSecItemNotFound {
-            return
-        }
-        try checkStatus(status: readStatus)
-        guard let copies = result as? [[String: Any]], !copies.isEmpty else {
-            return
-        }
-
-        let target = enabled ? kCFBooleanTrue! : kCFBooleanFalse!
-        let other = enabled ? kCFBooleanFalse! : kCFBooleanTrue!
-        let copiesInTargetState = copies.filter { syncFlag(of: $0) == enabled }
-
-        if copies.count == 1 && copiesInTargetState.count == 1 {
-            return
-        }
-
-        let winner = copies.first { syncFlag(of: $0) != enabled } ?? copies[0]
-        guard let winningData = winner[kSecValueData as String] as? Data else {
-            throw KeyManagerError.dataError
-        }
-
-        // 1. Make sure a copy with the target flag exists, holding those bytes.
-        if copiesInTargetState.isEmpty {
-            var addQuery = baseQuery
-            addQuery[kSecValueData as String] = winningData
-            addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-            addQuery[kSecAttrSynchronizable as String] = target
-            if let creationDate = winner[kSecAttrCreationDate as String] {
-                addQuery[kSecAttrCreationDate as String] = creationDate
-            }
-            if let applicationLabel = winner[kSecAttrApplicationLabel as String] {
-                addQuery[kSecAttrApplicationLabel as String] = applicationLabel
-            }
-            if let applicationTag = winner[kSecAttrApplicationTag as String] {
-                addQuery[kSecAttrApplicationTag as String] = applicationTag
-            }
-            try checkStatus(status: keychainWrapper.secItemAdd(addQuery as CFDictionary, nil))
-        } else {
-            var updateQuery = baseQuery
-            updateQuery[kSecAttrSynchronizable as String] = target
-            let attributes: [String: Any] = [
-                kSecValueData as String: winningData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
-            try checkStatus(status: keychainWrapper.secItemUpdate(updateQuery as CFDictionary,
-                                                                  attributes as CFDictionary))
-        }
-
-        // 2. Drop the copies on the other side. Only now is it safe.
-        var deleteQuery = baseQuery
-        deleteQuery[kSecAttrSynchronizable as String] = other
-        let deleteStatus = keychainWrapper.secItemDelete(deleteQuery as CFDictionary)
-        if deleteStatus != errSecItemNotFound {
-            try checkStatus(status: deleteStatus)
-        }
-
-        printDebug("Set \(description) synchronizable=\(enabled)")
-    }
-
-    private func syncFlag(of attributes: [String: Any]) -> Bool {
-        let value = attributes[kSecAttrSynchronizable as String]
-        if let bool = value as? Bool { return bool }
-        if let number = value as? NSNumber { return number.boolValue }
-        return false
-    }
-
-    /// See `KeyManager.multiDeviceKeyConflict`.
-    public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
-        let localFingerprints = Set(((try? storedKeys()) ?? []).map(\.keychainLabel))
-        let accountFingerprints = getMultiDeviceState()?.keyFingerprints ?? []
-        let remoteOnly = accountFingerprints.filter { !localFingerprints.contains($0) }
-        guard !remoteOnly.isEmpty else {
-            return nil
-        }
-        return MultiDeviceKeyConflict(
-            localFingerprint: (try? getActiveKey())?.keychainLabel,
-            remoteFingerprints: remoteOnly
-        )
-    }
-
-    /// Moves a single key on or off the iCloud keychain. Routed through
-    /// `setSynchronizable` like everything else — the one-shot `SecItemUpdate`
-    /// this used to do cannot flip a key that has both a local and an
-    /// iCloud-delivered copy, which is the normal state of any second device.
-    /// `setSynchronizable` writes the target copy before deleting the other, so
-    /// no interruption can leave the key material gone.
-    public func update(key: PrivateKey, backupToiCloud: Bool) throws {
-        guard var query = existingKeyItemQuery(for: key) else {
-            throw KeyManagerError.notFound
-        }
-        query.removeValue(forKey: kSecAttrSynchronizable as String)
-        query.removeValue(forKey: kSecMatchLimit as String)
-        query.removeValue(forKey: kSecReturnData as String)
-
-        try setSynchronizable(backupToiCloud,
-                              forItemMatching: query,
-                              description: "key \(key.keychainLabel) ('\(key.name)')")
-        printDebug("Key updated: \(key.name), iCloud: \(backupToiCloud)")
-    }
-
-    public func keyWith(name: String) -> PrivateKey? {
-
-        let keys = try? storedKeys()
-        return keys?.first(where: {$0.name == name})
-    }
-
-    /// Identity lookup. Names are display metadata and may repeat across keys;
-    /// the fingerprint is what uniquely identifies a key.
-    public func keyWith(fingerprint: String) -> PrivateKey? {
-        let keys = try? storedKeys()
-        return keys?.first(where: { $0.keychainLabel == fingerprint })
-    }
-
-    /// Removes one key from the library.
-    ///
-    /// Refuses to remove the last remaining key or the key that is currently
-    /// active — both throw rather than silently no-op, because a caller that
-    /// hits either has a logic error and would otherwise leave the app with no
-    /// usable key.
-    public func deleteKey(fingerprint: String, scope: KeyDeletionScope = .deviceLocal) throws {
-        let keys = try storedKeys()
-        guard keys.contains(where: { $0.keychainLabel == fingerprint }) else {
-            throw KeyManagerError.notFound
-        }
-        guard keys.count > 1 else {
-            throw KeyManagerError.keyDeletionFailed
-        }
-        let activeFingerprint: String?
-        if let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String {
-            activeFingerprint = PrivateKey.isFingerprintLabel(pointer)
-                ? pointer
-                : keys.first(where: { $0.name == pointer })?.keychainLabel
-        } else {
-            activeFingerprint = currentKey?.keychainLabel
-        }
-        if activeFingerprint == fingerprint {
-            throw KeyManagerError.keyDeletionFailed
-        }
-
-        guard let labelData = fingerprint.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-        var query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: labelData,
-            kSecAttrApplicationLabel as String: labelData,
-        ]
-        switch scope {
-        case .deviceLocal:
-            // Targets only the non-synchronizable copy, so the deletion is not
-            // tombstoned to the rest of the account.
-            query[kSecAttrSynchronizable as String] = kCFBooleanFalse!
-        case .accountWide:
-            query[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
-        }
-
-        let status = keychainWrapper.secItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            printDebug("deleteKey: FAILED fingerprint=\(fingerprint) scope=\(scope) status=\(status) (\(determineOSStatus(status: status)))")
-            throw KeyManagerError.keyDeletionFailed
-        }
-        printDebug("deleteKey: removed fingerprint=\(fingerprint) scope=\(scope)")
-    }
-
-    @MainActor
-    public func keyWith(uuid: UUID) -> PrivateKey? {
-        if UIApplication.shared.applicationState == .background,
-           let currentKey = currentKey,
-           currentKey.uuid == uuid {
-            printDebug("Returning cached key in background for UUID: \(uuid)")
-            return currentKey
-        }
-
-        let keys = try? storedKeys()
-        return keys?.first(where: {$0.uuid == uuid})
-    }
-
-    public func storedKeys() throws -> [PrivateKey] {
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        return try keysFromQuery(query: query)
-    }
-
-    private func keysFromQuery(query: [String: Any]) throws -> [PrivateKey]  {
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-
-        if status == errSecItemNotFound {
-            return []
-        }
-        try checkStatus(status: status)
-
-        guard let keychainItems = item as? [[String: Any]] else {
-            printDebug("Keychain query succeeded but failed to cast items.")
-            return []
-        }
-        let keys = keychainItems.compactMap { keychainItem -> PrivateKey? in
-            do {
-                return try PrivateKey(keychainItem: keychainItem)
-            } catch {
-                return nil
-            }
-        }.sorted(by: {
-            $1.creationDate.compare($0.creationDate) == .orderedDescending
-        })
-        return keys
-    }
-
-    public func setActiveKey(_ name: KeyName?) throws {
-
-        guard let name = name else {
-            currentKey = nil
-            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
-            return
-        }
-        guard let key = try? getKey(by: name) else {
-            throw KeyManagerError.notFound
-        }
-        try setActiveKey(key)
-    }
-
-    /// Pins the current key by fingerprint. Display names are no longer unique,
-    /// so a name is not enough to identify which key is current.
-    public func setActiveKey(_ key: PrivateKey) throws {
-        currentKey = key
-        UserDefaultUtils.set(key.keychainLabel, forKey: UserDefaultKey.currentKey)
-    }
-
-    func getActiveKey() throws -> PrivateKey {
-        guard let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String else {
-            guard let firstStoredKey = try storedKeys().first else {
-                throw KeyManagerError.notFound
-            }
-            try setActiveKey(firstStoredKey)
-            return firstStoredKey
-        }
-        if PrivateKey.isFingerprintLabel(activeKeyRef), let key = keyWith(fingerprint: activeKeyRef) {
-            return key
-        }
-        let key = try getKey(by: activeKeyRef)
-        try setActiveKey(key)
-        return key
-    }
-
-    func getKey(by keyName: KeyName) throws -> PrivateKey {
-
-
-
-        // Scans the library rather than querying by label: the label now carries
-        // the fingerprint, not the name. Ambiguous by nature once two keys share
-        // a display name — returns the first in `storedKeys()` order.
-        guard let key = keyWith(name: keyName) else {
-            throw KeyManagerError.notFound
-        }
-        return key
-    }
-
-    public func keyPassphraseExists() -> Bool {
-        let query = queryForPassphrase(additionalQuery: [
-            kSecReturnData as String: true
-        ])
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess,
-              let data = item as? Data,
-              !data.isEmpty else {
-            if status != errSecItemNotFound {
-                printDebug("keyPassphraseExists: status \(status) (\(determineOSStatus(status: status)))")
-            }
-            return false
-        }
-        return true
-    }
-
-    public func passwordExists() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-
-        guard status == errSecSuccess,
-              let existingItem = item as? [String: Any],
-              let data = existingItem[kSecValueData as String] as? Data,
-              !data.isEmpty else {
-            if status != errSecItemNotFound {
-                printDebug("passwordExists: status \(status) (\(determineOSStatus(status: status)))")
-            }
-            return false
-        }
-        return true
-    }
-
-    public func hasResolvedCredentialsBefore() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
-            kSecAttrSynchronizable as String: kCFBooleanFalse!
-        ]
-        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    public func migrateLegacyBackupStatusIfNeeded() {
+        backupStatusManager.migrateLegacyBackupStatusIfNeeded()
     }
 
     @discardableResult
-    public func setResolvedCredentialsBefore() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
-            kSecAttrSynchronizable as String: kCFBooleanFalse!
-        ]
-        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) != errSecSuccess else { return true }
-        var add = query
-        add[kSecValueData as String] = Data([1])
-        return keychainWrapper.secItemAdd(add as CFDictionary, nil) == errSecSuccess
+    public func migrateKeyLabelsToFingerprintsIfNeeded() throws -> Int {
+        try privateKeyManager.migrateKeyLabelsToFingerprintsIfNeeded()
     }
 
-    public func clearPassword() throws {
-        let passwordQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        let passwordStatus = keychainWrapper.secItemDelete(passwordQuery as CFDictionary)
-        if passwordStatus != errSecItemNotFound {
-            try checkStatus(status: passwordStatus)
-        }
-
-        let passcodeTypeQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        let passcodeTypeStatus = keychainWrapper.secItemDelete(passcodeTypeQuery as CFDictionary)
-        if passcodeTypeStatus != errSecItemNotFound {
-            try checkStatus(status: passcodeTypeStatus)
-        }
-
-        if var config = getAuthenticationConfiguration(), let type = config.passcodeType {
-            config.removeAuthenticationType(.passcode(type))
-            try setAuthenticationConfiguration(config: config)
-        }
-    }
-    
-    public func setPassword(_ password: String, type: PasscodeType) throws {
-        let hashed = try hashFrom(password: password)
-        try setPasswordHash(hash: hashed)
-        try savePasscodeTypeToKeychain(type)
+    public func migrateLegacyKeysIfNeeded() throws {
+        try privateKeyManager.migrateLegacyKeysIfNeeded()
     }
 
-    public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
-        let hashed = try hashFrom(password: password)
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecAttrSynchronizable as String: syncValueForWrites
-        ]
-
-        let update: [String: Any] = [
-            kSecValueData as String: hashed,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: syncValueForWrites
-        ]
-
-        let status = keychainWrapper.secItemUpdate(query as CFDictionary, update as CFDictionary)
-
-        if status == errSecItemNotFound {
-            try setPassword(password, type: type)
-        } else {
-            try checkStatus(status: status)
-            try savePasscodeTypeToKeychain(type)
-        }
-    }
-
-    public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
-        guard try checkPassword(existingPassword) == true else {
-            throw KeyManagerError.invalidPassword
-        }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecReturnData as String: true,
-        ]
-        let deletePasswordStatus = keychainWrapper.secItemDelete(query as CFDictionary)
-        do {
-            try checkStatus(status: deletePasswordStatus)
-        } catch {
-            printDebug("Clearing password failed", error)
-        }
-        try setPassword(newPassword, type: type)
-    }
-
-    public func getPasswordHash() throws -> Data  {
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: syncQueryValueForReads
-        ]
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        do {
-            try checkStatus(status: status)
-            guard let item = item, let passwordData = item as? Data else {
-                throw KeyManagerError.notFound
-            }
-            return passwordData
-        } catch let managerError as KeyManagerError {
-            if case .notFound = managerError {
-                throw KeyManagerError.invalidPassword
-            } else {
-                throw managerError
-            }
-        }
-    }
-
-    public func setPasswordHash(hash: Data) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecValueData as String: hash,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-            kSecAttrSynchronizable as String: syncValueForWrites
-        ]
-        let setPasswordStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
-
-        if setPasswordStatus == errSecDuplicateItem {
-             let updateQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: KeychainConstants.account,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-            ]
-            let attributesToUpdate: [String: Any] = [
-                kSecValueData as String: hash,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValueForWrites
-            ]
-            let updateStatus = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, attributesToUpdate as CFDictionary)
-            try checkStatus(status: updateStatus, defaultError: .keyUpdateFailed)
-        } else {
-            try checkStatus(status: setPasswordStatus)
-        }
-
-    }
-
-    public func checkPassword(_ password: String) throws -> Bool {
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.account,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        do {
-            try checkStatus(status: status)
-            let passwordData = try getPasswordHash()
-            guard let hashString = String(data: passwordData, encoding: .utf8) else {
-                throw KeyManagerError.dataError
-            }
-            let passwordBytes = password.bytes
-            let passwordMatch = sodium.pwHash.strVerify(hash: hashString, passwd: passwordBytes)
-            if passwordMatch != true {
-                throw KeyManagerError.invalidPassword
-            }
-            return passwordMatch
-        }
-        catch let managerError as KeyManagerError {
-            if case .notFound = managerError {
-                throw KeyManagerError.invalidPassword
-            } else {
-                throw managerError
-            }
-        }
-        catch {
-            printDebug("error checking password", error)
-        }
-        return false
-    }
-    
     // MARK: - Debugging
 
     public func dumpAllKeychainItems() {
@@ -1528,7 +510,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
                     printDebug("  Result found, but failed to cast to [[String: Any]] for class \(itemClass).")
                     continue
                 }
-                
+
                 if foundItems.isEmpty {
                     printDebug("  No items found for this class.")
                 } else {
@@ -1554,7 +536,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
                             } else {
                                 printableValue = "\(value) (Type: \(type(of: value)))"
                             }
-                            
+
                             if key == (kSecAttrSynchronizable as String) {
                                 var syncStatusDesc = "Unknown/Not Present"
                                 if let boolValue = value as? Bool {
@@ -1579,157 +561,9 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
         printDebug("--- End Keychain Dump ---")
     }
-
-    /// Relabels name-addressed key items to fingerprint-addressed ones, in
-    /// place. Idempotent — items already carrying a fingerprint label are left
-    /// untouched, so it is safe to run on every launch.
-    ///
-    /// Uses `SecItemUpdate` exclusively and never `SecItemDelete`: deleting a
-    /// synchronizable item tombstones it account-wide and the deletion
-    /// propagates to every other device. Each item is targeted in its
-    /// own sync scope so a local and a synced copy of the same key are
-    /// relabelled independently rather than one clobbering the other.
-    @discardableResult
-    public func migrateKeyLabelsToFingerprintsIfNeeded() throws -> Int {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return 0 }
-        try checkStatus(status: status)
-        guard let items = item as? [[String: Any]] else { return 0 }
-
-        var relabelled = 0
-        for keychainItem in items {
-            guard let labelData = keychainItem[kSecAttrLabel as String] as? Data,
-                  let existingLabel = String(data: labelData, encoding: .utf8) else {
-                continue
-            }
-            guard !PrivateKey.isFingerprintLabel(existingLabel) else {
-                continue
-            }
-            guard let key = try? PrivateKey(keychainItem: keychainItem) else {
-                printDebug("migrateKeyLabels: skipping undecodable item labelled \(existingLabel)")
-                continue
-            }
-
-            let isSynced = (keychainItem[kSecAttrSynchronizable as String] as? Bool) ?? false
-            let targetQuery: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrLabel as String: labelData,
-                kSecAttrSynchronizable as String: isSynced ? kCFBooleanTrue! : kCFBooleanFalse!
-            ]
-            let updateStatus = keychainWrapper.secItemUpdate(
-                targetQuery as CFDictionary,
-                key.keychainIdentityAttributes as CFDictionary
-            )
-            if updateStatus == errSecSuccess {
-                relabelled += 1
-                printDebug("migrateKeyLabels: relabelled \(existingLabel) -> \(key.keychainLabel) (synced=\(isSynced))")
-            } else {
-                printDebug("migrateKeyLabels: FAILED to relabel \(existingLabel) — status \(updateStatus) (\(determineOSStatus(status: updateStatus)))")
-            }
-        }
-
-        // Re-pin an existing name-based pointer onto the fingerprint. Guarded on
-        // a pointer already being set: getActiveKey() promotes the first stored
-        // key when there is none, and migration must never choose a current key.
-        if relabelled > 0,
-           let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
-           !PrivateKey.isFingerprintLabel(pointer) {
-            _ = try? getActiveKey()
-        }
-        printDebug("migrateKeyLabels: relabelled \(relabelled) of \(items.count) key items")
-        return relabelled
-    }
-
-    public func migrateLegacyKeysIfNeeded() throws {
-        try migrateKeyLabelsToFingerprintsIfNeeded()
-        
-        let keys = try storedKeys()
-        
-        guard !keys.isEmpty else {
-            printDebug("No keys found, skipping migration")
-            return
-        }
-        
-        printDebug("Starting migration for \(keys.count) keys")
-
-        for key in keys {
-            do {
-                let originalSyncStatus = try isKeyItemSynced(fingerprint: key.keychainLabel)
-                
-                try saveKeyPreservingSync(key: key, syncStatus: originalSyncStatus)
-                printDebug("Successfully processed key: \(key.name)")
-            } catch {
-                printDebug("Failed to migrate key \(key.name): \(error)")
-                throw error
-            }
-        }
-        
-        printDebug("Migration completed for \(keys.count) keys")
-    }
-    
-    private func saveKeyPreservingSync(key: PrivateKey, syncStatus: Bool) throws {
-        var query = key.keychainQueryDictForKeychain
-        query[kSecAttrSynchronizable as String] = syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!
-
-        if let baseQuery = existingKeyItemQuery(for: key) {
-            // Key exists, update it. Creation date is deliberately left alone —
-            // storedKeys() sorts by it.
-            var updateQuery: [String: Any] = [
-                kSecValueData as String: key.keyData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!,
-            ]
-            updateQuery.merge(key.keychainIdentityAttributes) { current, _ in current }
-            let updateStatus = keychainWrapper.secItemUpdate(baseQuery as CFDictionary, updateQuery as CFDictionary)
-            try self.checkStatus(status: updateStatus)
-        } else {
-            let addStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
-            try self.checkStatus(status: addStatus)
-        }
-    }
-    
-    private func isKeyItemSynced(fingerprint: String) throws -> Bool {
-        var query = try keyIdentityQuery(forFingerprint: fingerprint)
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        query[kSecReturnAttributes as String] = true
-        
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        
-        guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                return false
-            } else {
-                throw KeyManagerError.unhandledError("Error checking sync status: \(status)")
-            }
-        }
-        
-        guard let attributes = item as? [String: Any] else {
-            return false
-        }
-        
-        let syncAttribute = attributes[kSecAttrSynchronizable as String]
-        
-        if let isSyncedBool = syncAttribute as? Bool {
-            return isSyncedBool
-        } else if let isSyncedNum = syncAttribute as? NSNumber {
-            return isSyncedNum.boolValue
-        }
-        
-        return false
-    }
 }
 
-private extension KeychainManager {
+extension KeychainManager {
     static func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
         let throwDefault = defaultError ?? .unhandledError(determineOSStatus(status: status))
         switch status {
@@ -1743,324 +577,79 @@ private extension KeychainManager {
             throw throwDefault
         }
     }
+}
 
-    func checkStatus(status: OSStatus, defaultError: KeyManagerError? = nil) throws {
-        try Self.checkStatus(status: status, defaultError: defaultError)
+private extension KeychainManager {
+
+    // MARK: - Key Restore
+
+    /// Heals key state after authentication when the active key can't be loaded.
+    /// On a second device, the KVS-synced `currentKey` default may name a key
+    /// that never reached this device, and the default key itself may still be
+    /// derivable from the synced passphrase even if its keychain item hasn't
+    /// arrived. Runs on every unlock, so key material that syncs in minutes
+    /// after first launch is picked up on the next authentication.
+    func attemptKeyRestoreAfterFailedLoad() {
+        printDebug("attemptKeyRestoreAfterFailedLoad: snapshot \(credentialSnapshot()), currentKey default='\(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String ?? "nil")'")
+        if let activeKeyName = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
+           (try? getKey(by: activeKeyName)) == nil {
+            printDebug("Clearing stale currentKey '\(activeKeyName)' — key not present on this device")
+            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
+        }
+
+        do {
+            let restored = try restoreDefaultKeyFromPassphraseIfNeeded()
+            try privateKeyManager.getActiveKeyAndSet()
+            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.name ?? "nil")')")
+        } catch {
+            printDebug("Key restore after failed load did not succeed:", error)
+        }
     }
 
-    func queryForPassphrase(additionalQuery: [String: Any]? = nil) -> [String: Any] {
-        let baseQuery: [String: Any] = [
+    // MARK: - Keychain Reads
+
+    /// Fetches one specific variant (local or synced) of a generic-password
+    /// item. All other reads in this class match either synchronizableAny or
+    /// the flag-driven value, which can't distinguish coexisting variants.
+    func genericPasswordData(account: String, synchronizable: Bool) -> Data? {
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrSynchronizable as String: synchronizable ? kCFBooleanTrue! : kCFBooleanFalse!
         ]
-
-        if let additionalQuery {
-            return baseQuery.merging(additionalQuery, uniquingKeysWith: { $1 })
+        var item: CFTypeRef?
+        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else {
+            return nil
         }
-
-        return baseQuery
-    }
-
-    func hashFrom(password: String) throws -> Data {
-        let bytes = password.bytes
-        let hashString = sodium.pwHash.str(passwd: bytes,
-                                           opsLimit: sodium.pwHash.OpsLimitInteractive,
-                                                 memLimit: sodium.pwHash.MemLimitInteractive)
-        guard let hashed = hashString?.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-        return hashed
-    }
-    
-    func bytes(from string: String) throws -> [UInt8] {
-        guard let passwordData = string.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-        
-        var bytes = [UInt8](repeating: 0, count: passwordData.count)
-        passwordData.copyBytes(to: &bytes, count: string.count)
-        return bytes
-    }
-    
-    /// Re-pins the resolved active key by its own identity. Deliberately NOT
-    /// `setActiveKey(keyObject.name)`: a name round-trip goes back through
-    /// `getKey(by:)` -> `keyWith(name:)` -> `storedKeys().first(where:)`, and
-    /// `storedKeys()` sorts ascending by creation date, so the name lookup
-    /// resolves to the OLDEST key carrying that name. Once a library holds
-    /// several keys all named `encamera_default_key`, that runs on
-    /// every unlock and silently demotes whatever was pinned, such as a
-    /// returning user's freshly imported key. `testActiveKeyPointerSurvivesRepeatedAuthentication` pins this.
-    private func getActiveKeyAndSet() throws {
-        let keyObject = try getActiveKey()
-        try setActiveKey(keyObject)
-    }
-    
-    /// Targets a single key item by fingerprint identity, regardless of its
-    /// sync state, for update and existence probes.
-    private func keyIdentityQuery(forFingerprint fingerprint: String) throws -> [String: Any] {
-        guard let labelData = fingerprint.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-        return [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: labelData,
-            kSecAttrApplicationLabel as String: labelData,
-            // Existence probes must use Any, never syncQueryValueForReads: with
-            // the backup flag disabled, a synced item would be invisible and
-            // save() would SecItemAdd over an item that already exists.
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
+        return item as? Data
     }
 
-    /// True when a key with these bytes is already stored, in either sync scope.
-    func keyItemExists(fingerprint: String) -> Bool {
-        guard var query = try? keyIdentityQuery(forFingerprint: fingerprint) else {
+    // MARK: - Credential Conflicts
+
+    /// True when a local and a synced copy of this generic-password account both
+    /// exist and hold different bytes — a genuine credential conflict rather
+    /// than the ordinary redundant duplicate a second device accumulates.
+    func hasDivergentCredentialPair(account: String) -> Bool {
+        guard let local = genericPasswordData(account: account, synchronizable: false),
+              let synced = genericPasswordData(account: account, synchronizable: true) else {
             return false
         }
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+        return local != synced
     }
 
-    /// Targets a pre-migration item, which is still labelled with its display
-    /// name rather than a fingerprint.
-    private func legacyKeyItemQuery(forName name: KeyName) -> [String: Any]? {
-        guard let nameData = name.data(using: .utf8) else { return nil }
-        return [
-            kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: nameData,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
-    }
-
-    /// Locates the stored item for `key`, preferring fingerprint identity and
-    /// falling back to the legacy name label so that installs which have not yet
-    /// run `migrateKeyLabelsToFingerprintsIfNeeded()` still update in place
-    /// instead of gaining a duplicate.
-    private func existingKeyItemQuery(for key: PrivateKey) -> [String: Any]? {
-        if keyItemExists(fingerprint: key.keychainLabel) {
-            return try? keyIdentityQuery(forFingerprint: key.keychainLabel)
-        }
-        guard var legacy = legacyKeyItemQuery(forName: key.name) else { return nil }
-        var probe = legacy
-        probe[kSecMatchLimit as String] = kSecMatchLimitOne
-        probe[kSecReturnData as String] = true
-        var item: CFTypeRef?
-        guard keychainWrapper.secItemCopyMatching(probe as CFDictionary, &item) == errSecSuccess else {
-            return nil
-        }
-        // A name match alone is not identity. Every production key is called
-        // `encamera_default_key`, so importing a second key phrase on an
-        // install that has not yet been relabelled would otherwise update the
-        // existing item in place and destroy the material every already-encrypted
-        // file depends on. Only reuse the legacy item when its bytes
-        // really are this key's.
-        guard let data = item as? Data,
-              Self.storedKeyBytes(from: data) == key.keyBytes else {
-            return nil
-        }
-        legacy.removeValue(forKey: kSecMatchLimit as String)
-        return legacy
-    }
-
-    /// Key material out of a stored `kSecValueData`, in either shipped
-    /// encoding: the current JSON `KeyCore` blob, or the pre-migration raw
-    /// bytes that `migrateLegacyKeysIfNeeded()` still upgrades. Mirrors the
-    /// same fallback in `PrivateKey.init(keychainItem:)`.
-    private static func storedKeyBytes(from data: Data) -> KeyBytes {
-        if let decoded = try? PrivateKey(name: AppConstants.defaultKeyName, keyData: data, creationDate: Date()) {
-            return decoded.keyBytes
-        }
-        return Array(data)
-    }
-
-    private func updateKeyQuery(forFingerprint fingerprint: String) throws -> CFDictionary {
-        return try keyIdentityQuery(forFingerprint: fingerprint) as CFDictionary
-    }
-    
-    /// Persists the passcode type into the AuthenticationConfiguration. The
-    /// deprecated standalone item (`encamera_passcode_type`) is no longer
-    /// written — it remains only as a read fallback in
-    /// `retrieveLegacyPasscodeTypeFromKeychain`.
-    private func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
-        var config = getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
-        config.addAuthenticationType(.passcode(passcodeType))
-        try setAuthenticationConfiguration(config: config)
-    }
-    
-    private func retrievePasscodeTypeFromKeychain() throws -> PasscodeType {
-        if let type = getAuthenticationConfiguration()?.passcodeType {
-            return type
-        }
-        return try retrieveLegacyPasscodeTypeFromKeychain()
-    }
-
-    /// Reads the deprecated standalone passcode-type item
-    /// (`encamera_passcode_type`). New writes go into the
-    /// AuthenticationConfiguration; this exists only as a read fallback until
-    /// the type has been written there.
-    private func retrieveLegacyPasscodeTypeFromKeychain() throws -> PasscodeType {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: syncQueryValueForReads
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        try checkStatus(status: status)
-
-        guard let data = item as? Data else {
-            throw KeyManagerError.dataError
-        }
-
-        let decoder = JSONDecoder()
-        return try decoder.decode(PasscodeType.self, from: data)
-    }
-
-    // --- Private Helpers for Sync Status Handling ---
-
-    /// Determines the explicit state of the central backup status flag.
-    private func getBackupFlagState() -> BackupFlagState {
-        guard let status = getBackupStatus() else { return .notSet }
-        return status.enabled ? .enabled : .disabled
-    }
-
-    /// Reads and decodes the central backup status item. Both payload formats
-    /// must stay readable forever: a device on an older app version can rewrite
-    /// the legacy boolean at any time, and the item syncs.
-    private func getBackupStatus() -> KeychainBackupStatus? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-
-        switch status {
-        case errSecSuccess:
-            guard let data = item as? Data else {
-                print("Warning: Found backup status flag but couldn't read its data.")
-                return nil
-            }
-            return Self.decodeBackupStatus(from: data)
-        case errSecItemNotFound:
-            return nil
-        default:
-            print("Error reading backup status flag: \(determineOSStatus(status: status)). Assuming not set.")
-            return nil
-        }
-    }
-
-    static func decodeBackupStatus(from data: Data) -> KeychainBackupStatus? {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if let status = try? decoder.decode(KeychainBackupStatus.self, from: data) {
-            return status
-        }
-        // Legacy format: the flag was a raw Int-width boolean with no metadata.
-        if let boolVal = data.boolValue {
-            return KeychainBackupStatus(enabled: boolVal, deviceID: nil, deviceName: nil, timestamp: nil)
-        }
-        print("Warning: Found backup status flag but couldn't decode its value.")
-        return nil
-    }
-
-    static func encodeBackupStatus(_ status: KeychainBackupStatus) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return try encoder.encode(status)
-    }
-
-    /// One-time migration of the backup status item's payload from the legacy
-    /// raw boolean to the structured `KeychainBackupStatus` JSON. Preserves
-    /// `enabled`; the flipping device was never recorded in the legacy format,
-    /// so the metadata stays nil rather than claiming this device flipped it.
-    /// Only writes when the legacy format is actually present.
-    public func migrateLegacyBackupStatusIfNeeded() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data else {
-            return
-        }
-        // Already JSON — nothing to migrate.
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if (try? decoder.decode(KeychainBackupStatus.self, from: data)) != nil {
-            return
-        }
-        guard let legacyEnabled = data.boolValue else {
-            printDebug("migrateLegacyBackupStatus: item present but not legacy bool or JSON — leaving as-is")
-            return
-        }
-
-        let migrated = KeychainBackupStatus(enabled: legacyEnabled, deviceID: nil, deviceName: nil, timestamp: nil)
-        guard let payload = try? Self.encodeBackupStatus(migrated) else { return }
-
-        let updateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        let newAttributes: [String: Any] = [
-            kSecValueData as String: payload
-        ]
-        let status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
-        printDebug("migrateLegacyBackupStatus: rewrote legacy bool (enabled=\(legacyEnabled)) as JSON — status \(status) (\(determineOSStatus(status: status)))")
-    }
-
-    /// The value for `kSecAttrSynchronizable` in READ queries.
-    ///
-    /// A chosen conflict resolution still pins reads to one credential set, so
-    /// that two genuinely different coexisting credentials don't make lookups
-    /// nondeterministic — that pin is a decision the user made.
-    ///
-    /// Absent one it is always "either". It used to fall back to narrowing by
-    /// the backup flag — synced items when backup was on, local ones when off —
-    /// which meant any disagreement between the flag and an item made that item
-    /// invisible to the app. Not a theoretical state: build 1087 wrote the flag
-    /// and then failed to move the items, and the on-device rig reproduced the
-    /// consequence directly — the flag read ON, `encamera_default_key` existed
-    /// only as a local copy, and the app could not load its own key ("Error
-    /// during initial key setup: notFound") even though `storedKeys()`, which
-    /// always queried both, could see it perfectly well.
-    ///
-    /// Reading both makes the app find its key whatever state a previous
-    /// version left behind. Ambiguity is bounded: `setSynchronizable` collapses
-    /// an item to a single copy whenever backup is toggled.
-    private var syncQueryValueForReads: CFTypeRef {
+    /// Whether writes go to the iCloud keychain. Pinned like reads while a
+    /// conflict resolution is active, so updates land on the credential set the
+    /// user chose.
+    var synchronizableForWrites: Bool {
         switch conflictResolution {
-        case .preferLocal: return kCFBooleanFalse!
-        case .preferSynced: return kCFBooleanTrue!
-        case nil: return kSecAttrSynchronizableAny
-        }
-    }
-
-    /// Provides the correct value for kSecAttrSynchronizable in write/update operations.
-    /// Pinned like reads while a conflict resolution is active, so updates land
-    /// on the credential set the user chose.
-    private var syncValueForWrites: CFBoolean {
-        switch conflictResolution {
-        case .preferLocal: return kCFBooleanFalse!
-        case .preferSynced: return kCFBooleanTrue!
+        case .preferLocal: return false
+        case .preferSynced: return true
         case nil: break
         }
-        return self.isSyncEnabled ? kCFBooleanTrue! : kCFBooleanFalse!
+        return self.isSyncEnabled
     }
-
-    // --------------------------------------------------
-
 }
 
 // Helper extension for Bool to Data conversion (if not already present)

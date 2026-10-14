@@ -88,8 +88,11 @@ extension KeychainDumping where Self: KeychainManager {
         }
         return entries
     }
+}
 
-    private func makeDumpEntry(from item: [String: Any], className: String) -> KeychainDumpEntry {
+private extension KeychainDumping where Self: KeychainManager {
+
+    func makeDumpEntry(from item: [String: Any], className: String) -> KeychainDumpEntry {
         let attributes = item
             .map { KeychainDumpAttribute(label: Self.friendlyAttributeName(for: $0.key), rawKey: $0.key, value: Self.describeKeychainValue(key: $0.key, value: $0.value)) }
             .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
@@ -111,7 +114,7 @@ extension KeychainDumping where Self: KeychainManager {
     /// Renders any keychain attribute value into a readable string: UTF-8 text
     /// when the bytes decode, otherwise a hex preview and byte count; sync flags
     /// as Yes/No; dates and numbers verbatim.
-    private static func describeKeychainValue(key: String, value: Any) -> String {
+    static func describeKeychainValue(key: String, value: Any) -> String {
         if key == (kSecAttrSynchronizable as String) {
             if let bool = value as? Bool { return bool ? "Yes" : "No" }
             if let num = value as? NSNumber { return num.boolValue ? "Yes" : "No" }
@@ -141,7 +144,7 @@ extension KeychainDumping where Self: KeychainManager {
 
     /// Maps raw keychain attribute keys (the short "acct"/"cdat" codes) to
     /// human-readable names. Unknown keys fall through to the raw key itself.
-    private static func friendlyAttributeName(for rawKey: String) -> String {
+    static func friendlyAttributeName(for rawKey: String) -> String {
         let mapping: [String: String] = [
             kSecClass as String: "Class",
             kSecAttrAccount as String: "Account",

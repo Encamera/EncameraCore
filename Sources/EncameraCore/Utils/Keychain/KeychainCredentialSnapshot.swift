@@ -25,17 +25,17 @@ public struct KeychainBackupStatus: Codable, Equatable {
     public let deviceName: String?
     public let timestamp: Date?
 
+    /// True when the flip was recorded by a device other than this one.
+    public var flippedByOtherDevice: Bool {
+        guard let deviceID else { return false }
+        return deviceID != DeviceIDProvider.deviceID()
+    }
+
     public init(enabled: Bool, deviceID: String?, deviceName: String?, timestamp: Date?) {
         self.enabled = enabled
         self.deviceID = deviceID
         self.deviceName = deviceName
         self.timestamp = timestamp
-    }
-
-    /// True when the flip was recorded by a device other than this one.
-    public var flippedByOtherDevice: Bool {
-        guard let deviceID else { return false }
-        return deviceID != DeviceIDProvider.deviceID()
     }
 }
 
@@ -53,6 +53,14 @@ public struct KeychainCredentialSnapshot: Equatable {
     /// Full flag payload with flip metadata; nil when the item is absent.
     public let backupStatus: KeychainBackupStatus?
 
+    public var hasAccessCredential: Bool {
+        passwordExists || biometricsEnabled
+    }
+
+    public var hasAnyCredential: Bool {
+        passwordExists || passphraseExists || defaultKeyExists || biometricsEnabled
+    }
+
     public init(
         passwordExists: Bool,
         passphraseExists: Bool,
@@ -67,14 +75,6 @@ public struct KeychainCredentialSnapshot: Equatable {
         self.biometricsEnabled = biometricsEnabled
         self.backupFlagState = backupFlagState
         self.backupStatus = backupStatus
-    }
-
-    public var hasAccessCredential: Bool {
-        passwordExists || biometricsEnabled
-    }
-
-    public var hasAnyCredential: Bool {
-        passwordExists || passphraseExists || defaultKeyExists || biometricsEnabled
     }
 }
 
