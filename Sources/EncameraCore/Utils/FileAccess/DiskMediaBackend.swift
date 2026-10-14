@@ -181,9 +181,11 @@ public actor DiskMediaBackend: MediaBackend {
 
     public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         var encrypted: [EncryptedMedia] = []
-        for mediaItem in media.underlyingMedia {
+        let weights = ComponentProgressWeights(urls: media.underlyingMedia.map(\.url))
+        for (index, mediaItem) in media.underlyingMedia.enumerated() {
             try Task.checkCancellation()
-            if let encryptedMedia = try await fileAccess.save(media: mediaItem, metadata: metadata, progress: progress) {
+            let componentProgress: (Double) -> Void = { progress(weights.overall(component: index, fraction: $0)) }
+            if let encryptedMedia = try await fileAccess.save(media: mediaItem, metadata: metadata, progress: componentProgress) {
                 encrypted.append(encryptedMedia)
             }
         }

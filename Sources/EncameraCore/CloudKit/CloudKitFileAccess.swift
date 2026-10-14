@@ -192,12 +192,13 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             ? media.underlyingMedia.sorted { $0.mediaType == .photo && $1.mediaType != .photo }
             : media.underlyingMedia
         var encrypted: [EncryptedMedia] = []
-        for item in components {
+        let weights = ComponentProgressWeights(urls: components.map(\.url))
+        for (index, item) in components.enumerated() {
             try Task.checkCancellation()
             let encMedia = try await saveSingle(item,
                                                 writesPreview: !(isLivePhoto && item.mediaType == .video),
                                                 metadata: metadata,
-                                                progress: progress)
+                                                progress: { progress(weights.overall(component: index, fraction: $0)) })
             encrypted.append(encMedia)
         }
         guard !encrypted.isEmpty else {

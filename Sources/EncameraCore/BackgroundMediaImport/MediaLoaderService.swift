@@ -93,13 +93,15 @@ public class MediaLoaderService: DebugPrintable {
     }
     
     /// Loads media from a single MediaSelectionResult
-    /// Returns the loaded media, metadata, and optional asset ID
-    public func loadSingleMedia(from result: MediaSelectionResult) async throws -> LoadedMediaItem {
+    /// Returns the loaded media, metadata, and optional asset ID. `progress`
+    /// reports 0...1 while iCloud downloads the original, on any queue.
+    public func loadSingleMedia(from result: MediaSelectionResult,
+                                progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> LoadedMediaItem {
         try await ensureTempDirectoryExists()
         
         switch result {
         case .phAsset(let asset):
-            let media = try await loadMediaFromAsset(asset)
+            let media = try await loadMediaFromAsset(asset, progress: progress)
             var metadata = await metadataExtractor.extractMetadata(from: asset)
             if let originalFilename = media.compactMap(\.originalFilename).first {
                 metadata.originalFilename = originalFilename
@@ -107,7 +109,7 @@ public class MediaLoaderService: DebugPrintable {
             return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: asset.localIdentifier)
             
         case .phPickerResult(let pickerResult):
-            let media = try await loadMediaAsync(result: pickerResult)
+            let media = try await loadMediaAsync(result: pickerResult, progress: progress)
             var metadata: EncryptedFileMetadata?
             if let assetId = pickerResult.assetIdentifier {
                 let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
@@ -135,22 +137,24 @@ public class MediaLoaderService: DebugPrintable {
     
     // MARK: - PHPickerResult Loading
     
-    private func loadMediaAsync(result: PHPickerResult) async throws -> [CleartextMedia] {
+    private func loadMediaAsync(result: PHPickerResult, progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
         let isLivePhoto = result.itemProvider.canLoadObject(ofClass: PHLivePhoto.self)
         if isLivePhoto {
-            return try await loadLivePhoto(result: result)
+            return try await loadLivePhoto(result: result, progress: progress)
         } else {
-            return [try await loadMedia(result: result)]
+            return [try await loadMedia(result: result, progress: progress)]
         }
     }
     
-    private func loadMedia(result: PHPickerResult) async throws -> CleartextMedia {
+    private func loadMedia(result: PHPickerResult, progress: @escaping @Sendable (Double) -> Void) async throws -> CleartextMedia {
         let isVideo = result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier)
         let preferredType = isVideo ? UTType.movie.identifier : UTType.image.identifier
         let suggestedName = result.itemProvider.suggestedName
 
+        var observation: NSKeyValueObservation?
+        defer { observation?.invalidate() }
         let loaded: (url: URL, originalFilename: String)? = try await withCheckedThrowingContinuation { continuation in
-            result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
+            let loadProgress = result.itemProvider.loadFileRepresentation(forTypeIdentifier: preferredType) { url, error in
                 guard let url = url else {
                     debugPrint("Error loading file representation: \(String(describing: error))")
                     continuation.resume(returning: nil)
@@ -170,6 +174,7 @@ public class MediaLoaderService: DebugPrintable {
                     continuation.resume(throwing: error)
                 }
             }
+            observation = Self.forward(loadProgress, to: progress)
         }
 
         guard let loaded = loaded else {
@@ -186,9 +191,13 @@ public class MediaLoaderService: DebugPrintable {
         )
     }
     
-    private func loadLivePhoto(result: PHPickerResult) async throws -> [CleartextMedia] {
+    /// The picker hands over a Live Photo in two steps, fetching the object and
+    /// then writing its resources; each takes half of the item's progress.
+    private func loadLivePhoto(result: PHPickerResult, progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
+        var observation: NSKeyValueObservation?
+        defer { observation?.invalidate() }
         let assetResources = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[PHAssetResource], Error>) in
-            result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
+            let loadProgress = result.itemProvider.loadObject(ofClass: PHLivePhoto.self) { (object, error) in
                 if let error = error {
                     continuation.resume(throwing: error)
                     return
@@ -201,22 +210,24 @@ public class MediaLoaderService: DebugPrintable {
                 
                 continuation.resume(returning: PHAssetResource.assetResources(for: livePhoto))
             }
+            observation = Self.forward(loadProgress) { progress($0 * 0.5) }
         }
-        
-        return try await processAssetResources(assetResources)
+        observation?.invalidate()
+
+        return try await processAssetResources(assetResources) { progress(0.5 + $0 * 0.5) }
     }
     
     // MARK: - PHAsset Loading
     
-    private func loadMediaFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+    private func loadMediaFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
         if asset.mediaSubtypes.contains(.photoLive) {
-            return try await loadLivePhotoFromAsset(asset)
+            return try await loadLivePhotoFromAsset(asset, progress: progress)
         } else {
-            return [try await loadRegularMediaFromAsset(asset)]
+            return [try await loadRegularMediaFromAsset(asset, progress: progress)]
         }
     }
     
-    private func loadRegularMediaFromAsset(_ asset: PHAsset) async throws -> CleartextMedia {
+    private func loadRegularMediaFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> CleartextMedia {
         let isVideo = asset.mediaType == .video
         let id = UUID().uuidString
         let originalFilename = MediaMetadataExtractor.primaryResourceFilename(for: asset)
@@ -226,6 +237,7 @@ public class MediaLoaderService: DebugPrintable {
                 let options = PHVideoRequestOptions()
                 options.isNetworkAccessAllowed = true
                 options.version = .current
+                options.progressHandler = { fraction, _, _, _ in progress(fraction) }
                 
                 PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
                     guard let urlAsset = avAsset as? AVURLAsset else {
@@ -251,6 +263,7 @@ public class MediaLoaderService: DebugPrintable {
                 options.isNetworkAccessAllowed = true
                 options.deliveryMode = .highQualityFormat
                 options.version = .current
+                options.progressHandler = { fraction, _, _, _ in progress(fraction) }
                 
                 PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
                     guard let data = data else {
@@ -273,20 +286,26 @@ public class MediaLoaderService: DebugPrintable {
         }
     }
     
-    private func loadLivePhotoFromAsset(_ asset: PHAsset) async throws -> [CleartextMedia] {
+    private func loadLivePhotoFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
         let resources = PHAssetResource.assetResources(for: asset)
-        return try await processAssetResources(resources)
+        return try await processAssetResources(resources, progress: progress)
     }
     
     // MARK: - Helper Methods
     
-    private func processAssetResources(_ resources: [PHAssetResource]) async throws -> [CleartextMedia] {
+    /// Writes a Live Photo's photo and paired video out, each taking an equal
+    /// share of `progress` — their sizes are not known until they download.
+    private func processAssetResources(_ resources: [PHAssetResource],
+                                       progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
         var cleartextMediaArray: [CleartextMedia] = []
         let id = UUID().uuidString
-        
-        for resource in resources {
+        let resources = resources.filter { $0.type == .photo || $0.type == .pairedVideo }
+        let weights = ComponentProgressWeights(byteCounts: resources.map { _ in nil })
+
+        for (index, resource) in resources.enumerated() {
             let options = PHAssetResourceRequestOptions()
             options.isNetworkAccessAllowed = true
+            options.progressHandler = { fraction in progress(weights.overall(component: index, fraction: fraction)) }
             
             let documentsDirectory = URL.tempMediaDirectory
             let fileExtension = (resource.originalFilename as NSString).pathExtension
@@ -319,6 +338,13 @@ public class MediaLoaderService: DebugPrintable {
         return cleartextMediaArray
     }
     
+    /// Forwards a `Progress`'s fraction until the returned observation is invalidated.
+    private static func forward(_ loadProgress: Progress, to progress: @escaping @Sendable (Double) -> Void) -> NSKeyValueObservation {
+        loadProgress.observe(\.fractionCompleted, options: [.new]) { observed, _ in
+            progress(observed.fractionCompleted)
+        }
+    }
+
     private func ensureTempDirectoryExists() async throws {
         if tempDirectoryChecked { return }
         

@@ -77,10 +77,11 @@ public protocol MediaImporting: AnyObject {
     func startImport(media: [CleartextMedia], albumId: String, source: ImportSource, assetIdentifiers: [String], userBatchId: String?, plannedSizes: [Int64?]?) async throws -> ImportResultSummary
 }
 
-/// Loads one selected item into temporary cleartext files.
+/// Loads one selected item into temporary cleartext files, reporting 0...1
+/// while it does. Progress may arrive on any queue.
 @MainActor
 public protocol ImportMediaLoading {
-    func loadSingleMedia(from result: MediaSelectionResult) async throws -> LoadedMediaItem
+    func loadSingleMedia(from result: MediaSelectionResult, progress: @escaping @Sendable (Double) -> Void) async throws -> LoadedMediaItem
 }
 
 extension MediaLoaderService: ImportMediaLoading {}
@@ -481,6 +482,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
 
         let mediaGroups = groupMediaById(media)
         let totalGroups = mediaGroups.count
+        let progress = ImportProgressAggregator(totalItems: totalGroups)
         printDebug("Grouped \(media.count) media items into \(totalGroups) groups (live photos count as 1)")
 
         let batchSize = 3
@@ -513,7 +515,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                                 groupIndex: globalIndex,
                                 totalGroups: totalGroups,
                                 startTime: startTime,
-                                processedGroups: processedGroups
+                                progress: progress
                             )
                             return .success
                         } catch is CancellationError {
@@ -544,6 +546,9 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 }
             }
 
+            for index in batchStart..<batchStart + batch.count {
+                finishItem(index, task: task, totalGroups: totalGroups, startTime: startTime, progress: progress)
+            }
             processedGroups += batch.count
             printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
 
@@ -582,7 +587,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         var mediaIdsByAssetId: [String: String] = [:]
         var attemptedCount = 0
         var stoppedForSpace = false
-        
+        let progress = ImportProgressAggregator(totalItems: results.count)
+
         for (index, result) in results.enumerated() {
             // Cancelling stops the loop but keeps what already landed: the caller
             // sees fewer processed items than requested and finalizes as cancelled
@@ -600,10 +606,25 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             printDebug("📄 Processing item \(index + 1)/\(results.count)")
             
             var loaded: LoadedMediaItem?
+            defer {
+                if !Task.isCancelled {
+                    finishItem(index, task: task, totalGroups: results.count, startTime: startTime, progress: progress)
+                }
+            }
             do {
-                let item = try await mediaLoader.loadSingleMedia(from: result)
+                let item = try await mediaLoader.loadSingleMedia(from: result) { loadFraction in
+                    Task { @MainActor in
+                        self.reportItemProgress(loadFraction * Self.streamingLoadShare,
+                                                item: index,
+                                                task: task,
+                                                totalGroups: results.count,
+                                                startTime: startTime,
+                                                mediaId: nil,
+                                                progress: progress)
+                    }
+                }
                 loaded = item
-                
+
                 try await importSingleItem(
                     mediaGroup: item.media,
                     metadata: item.metadata,
@@ -612,7 +633,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                     groupIndex: index,
                     totalGroups: results.count,
                     startTime: startTime,
-                    processedGroups: processedCount
+                    progress: progress,
+                    saveStart: Self.streamingLoadShare
                 )
                 
                 if task.source.canDeleteTempFilesAfterImport {
@@ -674,6 +696,11 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     
     // MARK: - Media Processing
     
+    /// Share of a picked item's progress spent loading it out of the photo
+    /// library; the rest is the save. Loading dominates for anything iCloud has
+    /// to download, and is near-instant for what is already on the device.
+    static let streamingLoadShare = 0.5
+
     /// Helper to process a single item (load -> save -> progress)
     private func importSingleItem(
         mediaGroup: [CleartextMedia],
@@ -683,7 +710,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         groupIndex: Int,
         totalGroups: Int,
         startTime: Date,
-        processedGroups: Int
+        progress: ImportProgressAggregator,
+        saveStart: Double = 0.0
     ) async throws {
         try await MediaImportTestHooks.beforeSavingItem(at: groupIndex)
         let mediaId = mediaGroup.first?.id ?? "unknown"
@@ -699,7 +727,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             groupIndex: groupIndex,
             totalGroups: totalGroups,
             startTime: startTime,
-            processedGroups: processedGroups
+            progress: progress,
+            saveStart: saveStart
         )
     }
     
@@ -711,7 +740,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         groupIndex: Int,
         totalGroups: Int,
         startTime: Date,
-        processedGroups: Int
+        progress: ImportProgressAggregator
     ) async throws {
         let mediaId = mediaGroup.first?.id ?? "unknown"
         let isLivePhoto = mediaGroup.count > 1
@@ -736,13 +765,14 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             groupIndex: groupIndex,
             totalGroups: totalGroups,
             startTime: startTime,
-            processedGroups: processedGroups
+            progress: progress
         )
         
         printDebug("Successfully saved \(isLivePhoto ? "live photo" : "media") \(groupIndex + 1)/\(totalGroups): \(mediaId)")
     }
     
-    /// Saves the InteractableMedia to disk and updates progress.
+    /// Saves the InteractableMedia to disk and updates progress. The save's own
+    /// 0...1 maps onto the item's progress from `saveStart` to 1.
     private func saveMedia(
         _ interactableMedia: InteractableMedia<CleartextMedia>,
         metadata: EncryptedFileMetadata? = nil,
@@ -753,19 +783,20 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         groupIndex: Int,
         totalGroups: Int,
         startTime: Date,
-        processedGroups: Int
+        progress: ImportProgressAggregator,
+        saveStart: Double
     ) async throws {
         do {
             try await saveOperation(fileAccess, interactableMedia, metadata) { fileProgress in
                 Task { @MainActor in
-                    self.updateImportProgress(
+                    self.reportItemProgress(
+                        saveStart + (1.0 - saveStart) * fileProgress,
+                        item: groupIndex,
                         task: task,
-                        groupIndex: groupIndex,
                         totalGroups: totalGroups,
-                        fileProgress: fileProgress,
-                        processedGroups: processedGroups,
                         startTime: startTime,
-                        mediaId: mediaId
+                        mediaId: mediaId,
+                        progress: progress
                     )
                 }
             }
@@ -773,26 +804,55 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             logSaveError(error, mediaGroup: mediaGroup, mediaId: mediaId)
             throw error
         }
+        finishItem(groupIndex, task: task, totalGroups: totalGroups, startTime: startTime, progress: progress)
     }
-    
+
+    /// Records one item's progress and publishes it when the aggregator says
+    /// the change is worth it.
+    private func reportItemProgress(
+        _ itemFraction: Double,
+        item groupIndex: Int,
+        task: ImportTask,
+        totalGroups: Int,
+        startTime: Date,
+        mediaId: String?,
+        progress: ImportProgressAggregator
+    ) {
+        guard progress.update(item: groupIndex, fraction: itemFraction) else { return }
+        updateImportProgress(task: task, groupIndex: groupIndex, totalGroups: totalGroups,
+                             startTime: startTime, mediaId: mediaId, progress: progress)
+    }
+
+    /// Counts an item as done, imported or failed, and publishes the new total.
+    private func finishItem(
+        _ groupIndex: Int,
+        task: ImportTask,
+        totalGroups: Int,
+        startTime: Date,
+        progress: ImportProgressAggregator
+    ) {
+        guard progress.finish(item: groupIndex) else { return }
+        updateImportProgress(task: task, groupIndex: groupIndex, totalGroups: totalGroups,
+                             startTime: startTime, mediaId: nil, progress: progress)
+    }
+
     /// Updates progress during import
     private func updateImportProgress(
         task: ImportTask,
         groupIndex: Int,
         totalGroups: Int,
-        fileProgress: Double,
-        processedGroups: Int,
         startTime: Date,
-        mediaId: String
+        mediaId: String?,
+        progress aggregator: ImportProgressAggregator
     ) {
-        let overallProgress = (Double(processedGroups) + fileProgress) / Double(totalGroups)
+        let overallProgress = aggregator.fraction
         let estimatedTimeRemaining = taskManager.calculateEstimatedTime(startTime: startTime, progress: overallProgress)
         
         let progress = ImportProgressUpdate(
             taskId: task.id,
             currentFileIndex: groupIndex,
             totalFiles: totalGroups,
-            currentFileProgress: fileProgress,
+            currentFileProgress: aggregator.fraction(ofItem: groupIndex),
             overallProgress: overallProgress,
             currentFileName: mediaId,
             state: .running,
