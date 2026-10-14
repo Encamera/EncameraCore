@@ -19,7 +19,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     private func randomKey() -> [UInt8] { (0..<32).map { _ in UInt8.random(in: 0...255) } }
 
     private func makeAlbum(storage: StorageType = .local) -> Album {
-        let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let key = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         return Album(name: "mig-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key,
                      albumID: storage == .cloudKit ? UUID().uuidString : nil)
     }
@@ -985,7 +985,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     func testMoveAlbumToCloudKitIsRejectedInFavorOfMigration() async throws {
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let album = makeAlbum()
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
         do {
@@ -1026,7 +1026,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { CloudKitStoreProvider.makeStore = priorMakeStore }
 
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let album = makeAlbum()
         let model = album.storageOption.modelForType.init(album: album)
         try model.initializeDirectories()
@@ -1097,7 +1097,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
 
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
         XCTAssertThrowsError(
@@ -1115,7 +1115,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
 
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
         let album = makeAlbum()
@@ -1136,7 +1136,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     /// quick-create paths, which would walk straight into the create backstop.
     func testPersistedICloudDefaultIsCoercedToLocal() throws {
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
         let prior = manager.defaultStorageForAlbum
@@ -1161,7 +1161,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
                            "but an existing container is still readable")
 
             let keyManager = DemoKeyManager()
-            let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+            let key = PrivateKey(keyBytes: randomKey(), creationDate: Date())
             keyManager.currentKey = key
             let manager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
 
@@ -2008,7 +2008,7 @@ extension CloudKitMigrationManagerTests {
     private func makeTransportHarness(store: CloudKitMediaStoring,
                                       key: PrivateKey? = nil,
                                       function: String = #function) -> TransportHarness {
-        let key = key ?? PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let key = key ?? PrivateKey(keyBytes: randomKey(), creationDate: Date())
         let keyManager = DemoKeyManager(keys: [key])
         keyManager.currentKey = key
         let dataStore = SyncedDataStore(keyManager: keyManager,
@@ -2136,7 +2136,7 @@ extension CloudKitMigrationManagerTests {
         store.reflectUploadsInMetadata = true
         defer { cleanup(album) }
         _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
-        let otherKey = PrivateKey(name: "other", keyBytes: randomKey(), creationDate: Date())
+        let otherKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         store.seedAlbum(record(for: album.name, key: otherKey))
         store.seedAlbum(record(for: "someone else", key: album.key))
         let existing = record(for: album.name, key: album.key)
@@ -2198,7 +2198,7 @@ extension CloudKitMigrationManagerTests {
         CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
         defer { CloudKitStoreProvider.makeStore = priorMakeStore }
         try await withICloudDriveRoot {
-            let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+            let key = PrivateKey(keyBytes: randomKey(), creationDate: Date())
             let album = Album(name: "Default Album", storageOption: .icloud, creationDate: Date(), key: key)
             let (manager, albumManager, store) = makeExecutableManager(for: album)
             store.reflectUploadsInMetadata = true

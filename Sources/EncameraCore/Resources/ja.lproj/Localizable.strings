@@ -39,7 +39,6 @@
 "FooterView.MediaDetails" = "メディアの詳細";
 "Notification.InactiveUserReminder.Body" = "画像をアルバムに追加して、さらに多くの画像を確保するのをお忘れなく。今すぐインポート！";
 "EmptyAlbumTakeAPictureHeading" = "新しいメモリーを作成";
-"Key name is invalid, must be more than two characters" = "キー名が無効です。2文字以上で入力してください。";
 "AuthenticationMethod.SecurityLevel.password" = "最も安全なオプション";
 "Delete Album question" = "アルバムを削除しますか？";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "理解しました";
@@ -181,7 +180,6 @@
 "Roadmap" = "ロードマップと機能リクエスト";
 "Support privacy-focused development." = "プライバシー重視の開発をサポートしてください。";
 "CannotClearTitle" = "クリアできません";
-"Key Name: %@" = "キー名: %@";
 "ViewInFiles" = "ファイルアプリで表示";
 "TelegramGroupJoinTitle" = "Telegramグループに参加";
 "DoYouRememberYourPin" = "パスコードを覚えていますか？";

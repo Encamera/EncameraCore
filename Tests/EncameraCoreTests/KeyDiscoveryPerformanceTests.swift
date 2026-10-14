@@ -47,8 +47,7 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
 
     /// The key the media is actually encrypted under — deliberately NOT in the
     /// key manager, so every discovery exhausts the candidate list.
-    private let foreignKey = PrivateKey(name: "foreign",
-                                        keyBytes: Array(repeating: 0x11, count: 32),
+    private let foreignKey = PrivateKey(keyBytes: Array(repeating: 0x11, count: 32),
                                         creationDate: Date(timeIntervalSince1970: 0))
 
     /// Multi-block plaintext so the first block is a full 20480-byte block —
@@ -62,8 +61,7 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
 
         let storedKeys = (0..<storedKeyCount).map { index in
-            PrivateKey(name: "stored-\(index)",
-                       keyBytes: Array(repeating: UInt8(0x20 + index), count: 32),
+            PrivateKey(keyBytes: Array(repeating: UInt8(0x20 + index), count: 32),
                        creationDate: Date(timeIntervalSince1970: 0))
         }
         keyManager = DemoKeyManager(keys: storedKeys)
@@ -386,8 +384,7 @@ final class KeyDiscoveryPerformanceTests: XCTestCase {
     /// The additive-key-entry path: `GalleryGridViewModel.proveKey` probes every
     /// item in the album, and a rejected phrase never short-circuits.
     func testProveFirstBlockAcrossAlbumWithWrongKey() throws {
-        let wrongKey = PrivateKey(name: "wrong",
-                                  keyBytes: Array(repeating: 0x99, count: 32),
+        let wrongKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 0))
         measure {
             let expectation = expectation(description: "probe complete")

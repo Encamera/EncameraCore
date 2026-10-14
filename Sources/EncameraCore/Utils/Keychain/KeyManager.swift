@@ -13,7 +13,6 @@ public enum KeyManagerError: ErrorDescribable {
     case deleteKeychainItemsFailed
     case unhandledError(String)
     case notAuthenticatedError
-    case keyNameError
     case notFound
     case dataError
     case keyExists
@@ -38,8 +37,6 @@ public enum KeyManagerError: ErrorDescribable {
             return "Unhandled error: \(error)"
         case .notAuthenticatedError:
             return L10n.notAuthenticatedForThisOperation
-        case .keyNameError:
-            return L10n.keyNameIsInvalidMustBeMoreThanTwoCharacters
         case .notFound:
             return L10n.keyNotFound
         case .dataError:
@@ -77,7 +74,6 @@ extension KeyManagerError: Equatable {
         switch (lhs, rhs) {
         case (.deleteKeychainItemsFailed, .deleteKeychainItemsFailed),
              (.notAuthenticatedError, .notAuthenticatedError),
-             (.keyNameError, .keyNameError),
              (.notFound, .notFound),
              (.dataError, .dataError),
              (.keyExists, .keyExists),
@@ -141,7 +137,6 @@ public protocol KeyManager {
     /// no tombstone API, so the only local evidence available is that a
     /// widest-match query (`kSecAttrSynchronizableAny`) no longer returns the item.
     func residualKeychainItemNames() -> [String]
-    func keyWith(name: String) -> PrivateKey?
     @MainActor
     func keyWith(uuid: UUID) -> PrivateKey?
     func storedKeys() throws -> [PrivateKey]
@@ -154,9 +149,9 @@ public protocol KeyManager {
     /// Derives the key a phrase encodes without writing anything to the keychain.
     /// Lets a caller inspect a candidate key's fingerprint before deciding to
     /// keep it — the fingerprint gate on additive key entry.
-    func deriveKey(from components: [String], name: String) throws -> PrivateKey
-    func generateKeyUsingRandomWords(name: String) throws -> PrivateKey
-    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey
+    func deriveKey(from components: [String]) throws -> PrivateKey
+    func generateKeyUsingRandomWords() throws -> PrivateKey
+    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     @discardableResult func restoreDefaultKeyFromPassphraseIfNeeded() throws -> Bool
     func retrieveKeyPassphrase() throws -> KeyPassphrase

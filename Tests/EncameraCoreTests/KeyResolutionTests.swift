@@ -17,14 +17,11 @@ import XCTest
 
 final class KeyResolutionTests: XCTestCase {
 
-    private let keyA = PrivateKey(name: AppConstants.defaultKeyName,
-                                  keyBytes: Array(repeating: 0xA1, count: 32),
+    private let keyA = PrivateKey(keyBytes: Array(repeating: 0xA1, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 1_000))
-    private let keyB = PrivateKey(name: AppConstants.defaultKeyName,
-                                  keyBytes: Array(repeating: 0xB2, count: 32),
+    private let keyB = PrivateKey(keyBytes: Array(repeating: 0xB2, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 2_000))
-    private let keyC = PrivateKey(name: AppConstants.defaultKeyName,
-                                  keyBytes: Array(repeating: 0xC3, count: 32),
+    private let keyC = PrivateKey(keyBytes: Array(repeating: 0xC3, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 3_000))
 
     private func discovery(keys: [PrivateKey], current: PrivateKey?) -> KeyDiscovery {

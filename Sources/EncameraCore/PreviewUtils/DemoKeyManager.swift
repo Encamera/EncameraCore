@@ -65,10 +65,10 @@ public class DemoKeyManager: KeyManager {
             ),
             KeychainDumpEntry(
                 itemClass: "Key",
-                displayName: AppConstants.defaultKeyName,
+                displayName: "0123456789abcdef0123456789abcdef",
                 isSynchronizable: true,
                 attributes: [
-                    KeychainDumpAttribute(label: "Label", rawKey: "labl", value: AppConstants.defaultKeyName),
+                    KeychainDumpAttribute(label: "Label", rawKey: "labl", value: "0123456789abcdef0123456789abcdef"),
                     KeychainDumpAttribute(label: "iCloud Sync", rawKey: "sync", value: "Yes"),
                     KeychainDumpAttribute(label: "Value Data", rawKey: "v_Data", value: "0x…  (32 bytes)")
                 ]
@@ -85,10 +85,6 @@ public class DemoKeyManager: KeyManager {
         didSet {
             hasExistingPassword = password != nil
         }
-    }
-
-    public func keyWith(name: String) -> PrivateKey? {
-        return nil
     }
 
     public func keyWith(uuid: UUID) -> PrivateKey? {
@@ -126,7 +122,7 @@ public class DemoKeyManager: KeyManager {
             backupFlagState: .notSet
         )
     }
-    public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
+    public func generateKeyUsingRandomWords() throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
     
@@ -146,7 +142,7 @@ public class DemoKeyManager: KeyManager {
     public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
         stagedKeyConflict
     }
-    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
 
@@ -181,8 +177,7 @@ public class DemoKeyManager: KeyManager {
 
     }
 
-    /// Deduplicates on key material (never display name — every production key
-    /// is `encamera_default_key`), mirroring `KeychainManager.save`. Honors
+    /// Deduplicates on key material, mirroring `KeychainManager.save`. Honors
     /// `setNewKeyToCurrent` so a test can prove a decrypt-only add does not
     /// repoint which key new media is written with.
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
@@ -197,7 +192,7 @@ public class DemoKeyManager: KeyManager {
     /// Deterministic stand-in for Argon2 derivation: distinct phrases yield
     /// distinct keys and the same phrase always yields the same key, which is
     /// all a fingerprint-gating test needs, without the pwHash cost.
-    public func deriveKey(from components: [String], name: String) throws -> PrivateKey {
+    public func deriveKey(from components: [String]) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
@@ -205,7 +200,7 @@ public class DemoKeyManager: KeyManager {
         guard let bytes = Sodium().genericHash.hash(message: material, outputLength: 32) else {
             throw KeyManagerError.keyDerivationFailed
         }
-        return PrivateKey(name: name, keyBytes: bytes, creationDate: Date(timeIntervalSince1970: 0))
+        return PrivateKey(keyBytes: bytes, creationDate: Date(timeIntervalSince1970: 0))
     }
 
     public func update(key: PrivateKey) throws {
@@ -214,24 +209,7 @@ public class DemoKeyManager: KeyManager {
 
     public var currentKey: PrivateKey?
 
-    public func setActiveKey(_ name: KeyName?) throws {
-
-    }
-
-
     public var storedKeysValue: [PrivateKey] = []
-
-    func deleteKey(by name: KeyName) throws {
-
-    }
-
-    func setActiveKey(_ name: KeyName) throws {
-
-    }
-
-    public func generateNewKey(name: String) throws -> PrivateKey {
-        return try PrivateKey(base64String: "")
-    }
 
     public func storedKeys() throws -> [PrivateKey] {
         return storedKeysValue
@@ -239,10 +217,6 @@ public class DemoKeyManager: KeyManager {
 
     public func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws {
         storedKeysValue.removeAll { $0.keychainLabel == fingerprint }
-    }
-
-    public func validateKeyName(name: String) throws {
-
     }
 
 
@@ -257,7 +231,7 @@ public class DemoKeyManager: KeyManager {
 
     public required init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol = KeychainWrapper()) {
         self.isAuthenticated = isAuthenticated
-        self.currentKey = PrivateKey(name: "secrets", keyBytes: [], creationDate: Date())
+        self.currentKey = PrivateKey(keyBytes: [], creationDate: Date())
         self.keyPublisher = PassthroughSubject<PrivateKey?, Never>().eraseToAnyPublisher()
     }
 

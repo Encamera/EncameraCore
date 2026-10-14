@@ -32,7 +32,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     private func makeAlbum(name: String = "Vacation-\(UUID().uuidString)", storage: StorageType = .cloudKit) -> Album {
-        let key = PrivateKey(name: "test-key", keyBytes: Array(repeating: UInt8(9), count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: UInt8(9), count: 32), creationDate: Date())
         return Album(name: name, storageOption: storage, creationDate: Date(), key: key,
                      albumID: storage == .cloudKit ? UUID().uuidString : nil)
     }
@@ -907,7 +907,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     func testCloudKitAlbumIsDiscoverable() throws {
-        let key = PrivateKey(name: "disc-key", keyBytes: Array(repeating: UInt8(5), count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: UInt8(5), count: 32), creationDate: Date())
         let name = "CKDisc-\(UUID().uuidString)"
         let albumID = UUID().uuidString
         let album = Album(name: name, storageOption: .cloudKit, creationDate: Date(), key: key, albumID: albumID)
@@ -929,7 +929,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     /// Why V1 blobs exist at all: the app's own local save writes V1 whenever no metadata is
     /// supplied. Anchors the `makeV1` fixture to the real production path.
     func testDiskSaveWithoutMetadataProducesV1Ciphertext() async throws {
-        let key = PrivateKey(name: "v1-disk-key", keyBytes: Array(repeating: UInt8(3), count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: UInt8(3), count: 32), creationDate: Date())
         let album = Album(name: "V1Source-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
         let keyManager = DemoKeyManager(keys: [key])
         keyManager.currentKey = key
@@ -1149,7 +1149,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     /// on V1. If someone ever teaches it V1 compatibility this test should be deleted along
     /// with the comment — but until then the comment must not claim otherwise.
     func testSecretFileHandlerV2ThrowsOnV1WhileSecretFileHandlerReadsIt() async throws {
-        let key = PrivateKey(name: "v1-key", keyBytes: Array(repeating: UInt8(7), count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: UInt8(7), count: 32), creationDate: Date())
         let id = UUID().uuidString
         let cleartext = Data("format sniffing cleartext".utf8)
         let v1Bytes = try await makeV1(key: key, id: id, data: cleartext)
@@ -1387,11 +1387,9 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
     }
 
-    private static let foreignKey = PrivateKey(name: "foreign-key",
-                                               keyBytes: Array(repeating: UInt8(7), count: 32),
+    private static let foreignKey = PrivateKey(keyBytes: Array(repeating: UInt8(7), count: 32),
                                                creationDate: Date())
-    private static let unrelatedKey = PrivateKey(name: "unrelated-key",
-                                                 keyBytes: Array(repeating: UInt8(3), count: 32),
+    private static let unrelatedKey = PrivateKey(keyBytes: Array(repeating: UInt8(3), count: 32),
                                                  creationDate: Date())
     /// What `seedChunkedVideo` encrypts.
     private static let chunkedPlaintext = Data(repeating: 0x5A, count: 5_000)
@@ -1871,10 +1869,5 @@ final class CloudKitFileAccessTests: XCTestCase {
         let data = try JSONEncoder().encode(StorageType.cloudKit)
         let decoded = try JSONDecoder().decode(StorageType.self, from: data)
         XCTAssertEqual(decoded, .cloudKit)
-
-        let album = makeAlbum()
-        let albumData = try JSONEncoder().encode(album)
-        let decodedAlbum = try JSONDecoder().decode(Album.self, from: albumData)
-        XCTAssertEqual(decodedAlbum.storageOption, .cloudKit)
     }
 }

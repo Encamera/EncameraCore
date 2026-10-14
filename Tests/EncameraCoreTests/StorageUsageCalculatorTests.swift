@@ -49,7 +49,7 @@ final class StorageUsageCalculatorTests: XCTestCase {
     }
 
     private func makeAlbum(_ storage: StorageType) -> Album {
-        let key = PrivateKey(name: "key", keyBytes: Array(repeating: 4, count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: 4, count: 32), creationDate: Date())
         return Album(name: "Calc-\(UUID().uuidString)", storageOption: storage, creationDate: Date(), key: key,
                      albumID: storage == .cloudKit ? UUID().uuidString : nil)
     }

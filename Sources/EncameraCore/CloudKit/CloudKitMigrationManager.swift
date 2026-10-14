@@ -392,15 +392,15 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// added since. Those stay on disk, resumable by the user.
     public func autoResumablePlans(now: Date = Date()) async -> [MigrationPlan] {
         var result: [MigrationPlan] = []
-        var heldKeyNames: [KeyName]?
+        var heldKeyFingerprints: [String]?
         var isAccountAvailable: Bool?
         for plan in await pendingPlans() {
             guard let failure = plan.lastFailure else {
                 result.append(plan)
                 continue
             }
-            if failure.category == .missingKey, heldKeyNames == nil {
-                heldKeyNames = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.name)
+            if failure.category == .missingKey, heldKeyFingerprints == nil {
+                heldKeyFingerprints = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keychainLabel)
             }
             if failure.category == .accountUnavailable, isAccountAvailable == nil {
                 let namespace = plan.destination.cloudKitAlbumID ?? plan.source.cloudKitAlbumID ?? plan.source.albumID
@@ -408,7 +408,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             }
             if failure.blocksAutomaticResume(now: now,
                                              isAccountAvailable: isAccountAvailable ?? true,
-                                             heldKeyNames: heldKeyNames ?? []) {
+                                             heldKeyFingerprints: heldKeyFingerprints ?? []) {
                 printDebug("autoResume SKIP plan=\(plan.id) source=\(plan.source.albumID) lastFailure=\(failure.category) at=\(failure.date)")
                 continue
             }
@@ -621,8 +621,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return MigrationLastFailure(category: .accountUnavailable, date: now)
         case .schemaNotDeployed, .other:
             guard failedForMissingKey else { return MigrationLastFailure(category: .other, date: now) }
-            let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.name)
-            return MigrationLastFailure(category: .missingKey, date: now, heldKeyNames: held)
+            let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keychainLabel)
+            return MigrationLastFailure(category: .missingKey, date: now, heldKeyFingerprints: held)
         }
     }
 

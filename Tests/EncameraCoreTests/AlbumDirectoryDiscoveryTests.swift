@@ -131,7 +131,7 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
     /// local storage is listed, with its media counted.
     @MainActor
     func testFetchAlbumsFromSourcesListsADotPrefixedLocalAlbumWithItsMedia() throws {
-        let key = PrivateKey(name: "key", keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
                              creationDate: Date())
         let keyManager = DemoKeyManager(keys: [key])
         keyManager.currentKey = key
@@ -319,8 +319,7 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         iCloudStorageModel.containerSource = .init(hasIdentityToken: { true },
                                                    containerURL: { nil })
 
-        let key = PrivateKey(name: AppConstants.defaultKeyName,
-                             keyBytes: Array(repeating: 0x7E, count: 32),
+        let key = PrivateKey(keyBytes: Array(repeating: 0x7E, count: 32),
                              creationDate: Date())
         let suffix = UUID().uuidString.prefix(8)
         let migrated = Album(name: "NoContainer-albums-\(suffix)", storageOption: .local,
@@ -351,7 +350,7 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
     /// `AlbumManager` listing is used, with the album's real directories.
     @MainActor
     func testFetchAlbumsFromSourcesHidesTheToLocalTwinWhileItsPlanExists() async throws {
-        let key = PrivateKey(name: "key", keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
                              creationDate: Date())
         let albumID = UUID().uuidString
         let cloudAlbum = Album(name: "twin-\(UUID().uuidString)", storageOption: .cloudKit,

@@ -85,7 +85,7 @@ struct KeychainEraseManager {
             try? passwordManager.clearPassword()
         }
 
-        try? privateKeyManager.setActiveKey(nil)
+        privateKeyManager.clearActiveKey()
         print("Keychain data cleared (scope: \(scope))")
     }
 

@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import Sodium
 
-public struct Album: Codable, Identifiable, Hashable {
+public struct Album: Identifiable, Hashable {
 
     public init(name: String, storageOption: StorageType, creationDate: Date, key: PrivateKey, albumID: String? = nil) {
         self.name = name

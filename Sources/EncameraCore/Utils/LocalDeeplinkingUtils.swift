@@ -30,11 +30,6 @@ public class LocalDeeplinkingUtils {
         
         UIApplication.shared.open(url)
     }
-    
-    public static func deeplinkFor(key: PrivateKey) -> URL? {
-        
-        return URLType.key(key: key).url
-    }
 }
 
 private extension URL {

@@ -55,7 +55,7 @@ final class ICloudDriveLegacyContractTests: XCTestCase {
     /// a legacy album can only be seeded the way an existing user's already is:
     /// as directories that predate the gate.
     private func seedLegacyAlbum() throws -> Album {
-        let key = PrivateKey(name: "key", keyBytes: randomKeyBytes(), creationDate: Date())
+        let key = PrivateKey(keyBytes: randomKeyBytes(), creationDate: Date())
         let album = Album(name: "legacy-\(UUID().uuidString)", storageOption: .icloud,
                           creationDate: Date(), key: key)
         try iCloudStorageModel(album: album).initializeDirectories()

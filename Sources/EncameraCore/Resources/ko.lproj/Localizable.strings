@@ -157,7 +157,6 @@
 "Key length: %@" = "키 길이: %@";
 "UnlimitedAlbumsFeatureRowTitle" = "추억을 위한 무제한 앨범";
 "Upgrade Today!" = "오늘 업그레이드하세요!";
-"Key Name: %@" = "키 이름: %@";
 "FeedbackView.Submit" = "제출";
 "AlbumExistsError" = "해당 이름의 앨범이 이미 존재합니다.";
 "Key Management" = "키 관리";
@@ -328,7 +327,6 @@
 "Change Key Album" = "다른 목적지 앨범을 선택하고 싶습니다";
 "Tap to Upgrade" = "업그레이드하려면 누르세요";
 "EmptyAlbumImportPhotosActionTitle" = "사진 가져오기";
-"Key name is invalid, must be more than two characters" = "키 이름이 잘못되었습니다. 두 글자 이상이어야 합니다";
 "Password is too short, <%@" = "비밀번호가 너무 짧습니다, <%@";
 "OpenSettings" = "설정 열기";
 "OpenSourceExplanation" = "Encamera의 핵심 기능은 오픈 소스로 제공되어, 사진을 안전하게 만드는 코드를 볼 수 있습니다.";

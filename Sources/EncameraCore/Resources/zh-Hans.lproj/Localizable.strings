@@ -3,7 +3,6 @@
 "DefaultAlbumName" = "我的相册";
 "Could not delete keychain items." = "无法删除钥匙串项目。";
 "Not authenticated for this operation." = "未通过身份验证，无法执行此操作。";
-"Key name is invalid, must be more than two characters" = "密钥名称无效，必须多于两个字符";
 "Key not found." = "未找到密钥。";
 "Error coding keychain data." = "编码钥匙串数据时出错。";
 "A key with this name already exists." = "具有此名称的密钥已存在。";
@@ -130,7 +129,6 @@
 "Backup Keys" = "备份密钥";
 "Keys" = "密钥";
 "Key Management" = "密钥管理";
-"Key Name: %@" = "密钥名称：%@";
 "Creation Date: %@" = "创建日期：%@";
 "Save Key" = "保存密钥";
 "Confirm adding key" = "确认添加密钥";

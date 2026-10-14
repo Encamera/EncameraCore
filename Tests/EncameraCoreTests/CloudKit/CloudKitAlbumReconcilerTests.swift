@@ -72,7 +72,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     private func randomKey() -> [UInt8] { (0..<32).map { _ in UInt8.random(in: 0...255) } }
 
     private func makeKey(_ seed: UInt8) -> PrivateKey {
-        PrivateKey(name: "key-\(seed)", keyBytes: Array(repeating: seed, count: 32), creationDate: Date())
+        PrivateKey(keyBytes: Array(repeating: seed, count: 32), creationDate: Date())
     }
 
     /// Build the remote album record exactly as a device would: encName is the

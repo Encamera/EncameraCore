@@ -4,7 +4,6 @@
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Schlüsselbund-Elemente konnten nicht gelöscht werden.";
 "Not authenticated for this operation." = "Für diese Operation nicht authentifiziert.";
-"Key name is invalid, must be more than two characters" = "Der Schlüsselname ist ungültig, er muss mehr als zwei Zeichen haben";
 "Key not found." = "Schlüssel nicht gefunden.";
 "Error coding keychain data." = "Fehler beim Kodieren der Schlüsselbund-Daten.";
 "A key with this name already exists." = "Ein Schlüssel mit diesem Namen existiert bereits."; 
@@ -163,7 +162,6 @@
 "Active" = "Aktiv"; 
 
 /* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Key Name: %@" = "Schlüsselname: %@";
 "Creation Date: %@" = "Erstellungsdatum: %@";
 "Save Key" = "Schlüssel speichern";
 "Confirm adding key" = "Hinzufügen des Schlüssels bestätigen"; 

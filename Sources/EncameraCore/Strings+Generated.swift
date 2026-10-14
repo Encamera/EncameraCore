@@ -156,7 +156,7 @@ public enum L10n {
   public static let createFirstAlbum = L10n.tr("Localizable", "CreateFirstAlbum", fallback: "Create First Album")
   /// Create New Album
   public static let createNewAlbum = L10n.tr("Localizable", "CreateNewAlbum", fallback: "Create New Album")
-  /// Creation Date: %@
+  /// ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift
   public static func creationDate(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Creation Date: %@", String(describing: p1), fallback: "Creation Date: %@")
   }
@@ -349,12 +349,6 @@ public enum L10n {
   }
   /// Key Management
   public static let keyManagement = L10n.tr("Localizable", "Key Management", fallback: "Key Management")
-  /// Key name is invalid, must be more than two characters
-  public static let keyNameIsInvalidMustBeMoreThanTwoCharacters = L10n.tr("Localizable", "Key name is invalid, must be more than two characters", fallback: "Key name is invalid, must be more than two characters")
-  /// ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift
-  public static func keyName(_ p1: Any) -> String {
-    return L10n.tr("Localizable", "Key Name: %@", String(describing: p1), fallback: "Key Name: %@")
-  }
   /// Key not found.
   public static let keyNotFound = L10n.tr("Localizable", "Key not found.", fallback: "Key not found.")
   /// Keys

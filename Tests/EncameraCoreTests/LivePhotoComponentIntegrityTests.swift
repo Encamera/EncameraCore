@@ -30,7 +30,7 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
     private func randomKey() -> [UInt8] { (0..<32).map { _ in UInt8.random(in: 0...255) } }
 
     private func makeAlbum() -> Album {
-        let key = PrivateKey(name: "key", keyBytes: randomKey(), creationDate: Date())
+        let key = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         return Album(name: "live-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
     }
 

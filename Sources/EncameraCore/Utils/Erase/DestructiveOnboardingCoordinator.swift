@@ -103,16 +103,13 @@ public struct DestructiveOnboardingCoordinator {
 
     private let store: CloudKitMediaStoring
     private let keyManager: KeyManager
-    private let freshKeyName: String
     private let removeLegacyICloudDriveFiles: @Sendable () async -> (removed: Int, error: String?)
 
     public init(store: CloudKitMediaStoring,
                 keyManager: KeyManager,
-                freshKeyName: String = AppConstants.defaultKeyName,
                 removeLegacyICloudDriveFiles: (@Sendable () async -> (removed: Int, error: String?))? = nil) {
         self.store = store
         self.keyManager = keyManager
-        self.freshKeyName = freshKeyName
         self.removeLegacyICloudDriveFiles = removeLegacyICloudDriveFiles
             ?? { await LegacyICloudDriveEraser.removeAll() }
     }
@@ -194,7 +191,7 @@ public struct DestructiveOnboardingCoordinator {
             return report
         }
 
-        _ = try keyManager.generateKeyUsingRandomWords(name: freshKeyName)
+        _ = try keyManager.generateKeyUsingRandomWords()
         report.freshKeyGenerated = true
 
         return report

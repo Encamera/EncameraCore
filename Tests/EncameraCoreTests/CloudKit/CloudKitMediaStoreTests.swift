@@ -62,11 +62,9 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
     /// Real keys, so assertions use the same fingerprint production writes
     /// (`PrivateKey.keychainLabel`).
-    private let keyA = PrivateKey(name: "keyA",
-                                  keyBytes: Array(repeating: 0x42, count: 32),
+    private let keyA = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 0))
-    private let keyB = PrivateKey(name: "keyB",
-                                  keyBytes: Array(repeating: 0x24, count: 32),
+    private let keyB = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32),
                                   creationDate: Date(timeIntervalSince1970: 0))
 
     // MARK: - Upload

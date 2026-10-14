@@ -6,8 +6,8 @@ import XCTest
 /// using the real DiskFileAccess, real handlers, and temp directories.
 final class StampOnOpenIntegrationTests: XCTestCase {
 
-    private let keyA = PrivateKey(name: "keyA", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
-    private let keyB = PrivateKey(name: "keyB", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyA = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyB = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
 
     /// Multi-block plaintext (> 20480-byte block size) so discovery and full
     /// decrypts exercise real block iteration.
@@ -57,7 +57,7 @@ final class StampOnOpenIntegrationTests: XCTestCase {
 
     private func recordedDiscoveryAttempts(for url: URL) async -> [String] {
         var attempts: [String] = []
-        _ = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.name) })
+        _ = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
         return attempts
     }
 
@@ -77,14 +77,14 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         XCTAssertNil(KeyStampSlot.readStamp(url: url), "Fixture must start unstamped")
 
         let sweepAttempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(sweepAttempts, ["keyB", "keyA"], "An unstamped foreign-key file resolves via the sweep")
+        XCTAssertEqual(sweepAttempts, [keyB.keychainLabel, keyA.keychainLabel], "An unstamped foreign-key file resolves via the sweep")
 
         let firstOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(firstOpen, plaintext)
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must stamp the confirmed key")
 
         let stampedAttempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(stampedAttempts, ["keyA"], "A stamped file must resolve with a single test-decrypt")
+        XCTAssertEqual(stampedAttempts, [keyA.keychainLabel], "A stamped file must resolve with a single test-decrypt")
         let secondOpen = try await openInMemory(url, id: id)
         XCTAssertEqual(secondOpen, plaintext)
     }
@@ -108,7 +108,7 @@ final class StampOnOpenIntegrationTests: XCTestCase {
         XCTAssertEqual(KeyStampSlot.readStamp(url: url), keyA.stampPrefix, "The open must heal the file with a correct stamp")
 
         let attempts = await recordedDiscoveryAttempts(for: url)
-        XCTAssertEqual(attempts, ["keyA"])
+        XCTAssertEqual(attempts, [keyA.keychainLabel])
     }
 
     func testLegacyAlbumPassivelyMigrates() async throws {

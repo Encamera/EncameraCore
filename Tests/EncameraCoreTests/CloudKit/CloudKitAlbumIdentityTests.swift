@@ -25,7 +25,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
     }
 
     private func makeKey(_ name: String = "identity-\(UUID().uuidString.prefix(6))") -> PrivateKey {
-        PrivateKey(name: name, keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
+        PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
     }
 
     private func cloudKitAlbum(name: String = "Identity-\(UUID().uuidString)",

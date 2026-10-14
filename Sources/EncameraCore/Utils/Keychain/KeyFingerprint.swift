@@ -76,28 +76,18 @@ public enum KeyFingerprint {
 
 /// Resolves the human-readable key identity shown in the media info sheet.
 ///
-/// Display-only: one bounded stamp read plus an in-memory scan of stored
-/// keys. No discovery, no test-decrypts, no writes — the label must never
-/// make opening the info sheet slower or mutate anything.
+/// Display-only: one bounded stamp read. No discovery, no test-decrypts, no
+/// writes — the label must never make opening the info sheet slower or
+/// mutate anything.
 public enum KeyFingerprintDisplay {
 
-    /// The label for the file's stamp, or nil when the file is unstamped or
-    /// unreadable. Exactly one stored key matching the stamp yields
-    /// "keyA (54E0-7B52)"; zero or several matches yield bare "54E0-7B52".
-    ///
-    /// The stamp is only a 4-byte prefix, so two distinct keys can collide on it.
-    /// Naming one of them would assert an identity the stamp cannot prove, so an
-    /// ambiguous match deliberately falls back to bare hex.
-    public static func label(for url: URL, storedKeys: [PrivateKey]) -> String? {
+    /// The file's stamp as "54E0-7B52", or nil when the file is unstamped or
+    /// unreadable.
+    public static func label(for url: URL) -> String? {
         guard let stamp = KeyStampSlot.readStamp(url: url) else {
             return nil
         }
-        let hex = KeyFingerprint.displayLabel(stampPrefix: stamp)
-        let matches = storedKeys.filter { $0.stampPrefix == stamp }
-        guard matches.count == 1, let match = matches.first else {
-            return hex
-        }
-        return "\(match.name) (\(hex))"
+        return KeyFingerprint.displayLabel(stampPrefix: stamp)
     }
 }
 

@@ -16,7 +16,6 @@
 "GlobalImportProgress.ImportingBatches" = "Tuodaan %@ erää";
 "AuthenticationMethod.SecurityLevel.PinCode" = "Kohtalainen suojaus";
 "Tap the " = "Napauta ";
-"Key Name: %@" = "Avaimen nimi: %@";
 "Password" = "Salasana";
 "Add Permissions" = "Lisää käyttöoikeudet";
 "PhotoPickerWrapper.GrantAccessDescription" = "Anna täysi pääsy valokuviisi ottaaksesi käyttöön pyyhkäisyn monen kuvan valitsemiseksi kerralla!";
@@ -72,7 +71,6 @@
 "Save" = "Tallenna";
 "DoneOnboarding" = "Valmis!";
 "FeedbackRequest" = "Koska Encamera ei seuraa käyttäjien toimintaa millään tavalla eikä kerää mitään tietoja sinusta, käyttäjästä, luotamme palautteeseesi sovelluksen parantamiseksi.";
-"Key name is invalid, must be more than two characters" = "Avaimen nimi on virheellinen, sen on oltava yli kaksi merkkiä pitkä";
 "GlobalImportProgress.ImportStopped" = "Tuonti keskeytetty";
 "AlbumExistsError" = "Albumi sillä nimellä on jo olemassa.";
 "FaceIDOnlyAlert.Message" = "Siirtyminen pelkkään Face ID:hen poistaa nykyisen PIN-koodisi/salasanasi. Voit avata sovelluksen jatkossa vain Face ID:llä.";

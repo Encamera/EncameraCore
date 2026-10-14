@@ -39,7 +39,6 @@
 "FooterView.MediaDetails" = "Dettagli media";
 "Notification.InactiveUserReminder.Body" = "Non dimenticare di mettere al sicuro altre immagini aggiungendole al tuo album. Importa ora!";
 "EmptyAlbumTakeAPictureHeading" = "Crea un nuovo ricordo";
-"Key name is invalid, must be more than two characters" = "Il nome della chiave non è valido, deve contenere più di due caratteri";
 "AuthenticationMethod.SecurityLevel.password" = "Opzione più sicura";
 "Delete Album question" = "Elimina album?";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Ho capito";
@@ -170,7 +169,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Roadmap" = "Tabella di marcia e richieste di funzionalità";
 "Support privacy-focused development." = "Supporta lo sviluppo orientato alla privacy.";
 "CannotClearTitle" = "Impossibile cancellare";
-"Key Name: %@" = "Nome chiave: %@";
 "ViewInFiles" = "Visualizza nell'app File";
 "TelegramGroupJoinTitle" = "Unisciti al gruppo Telegram";
 "DoYouRememberYourPin" = "Ricordi il tuo codice di accesso?";

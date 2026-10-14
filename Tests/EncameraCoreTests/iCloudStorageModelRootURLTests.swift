@@ -51,7 +51,7 @@ final class iCloudStorageModelRootURLTests: XCTestCase {
     /// album) must fail its writes, not trap and not write somewhere local.
     func testICloudAlbumWithoutAContainerFailsToInitializeInsteadOfTrapping() throws {
         simulateSignedInAccountWithoutContainer()
-        let key = PrivateKey(name: "key", keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date())
         let album = Album(name: "no-container-\(UUID().uuidString)", storageOption: .icloud,
                           creationDate: Date(), key: key)
         let model = iCloudStorageModel(album: album)

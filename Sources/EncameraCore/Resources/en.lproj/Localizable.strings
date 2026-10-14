@@ -12,7 +12,6 @@
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "Could not delete keychain items.";
 "Not authenticated for this operation." = "Not authenticated for this operation.";
-"Key name is invalid, must be more than two characters" = "Key name is invalid, must be more than two characters";
 "Key not found." = "Key not found.";
 "Error coding keychain data." = "Error coding keychain data.";
 "A key with this name already exists." = "A key with this name already exists.";
@@ -305,7 +304,6 @@
 "Key Management" = "Key Management";
 "Active" = "Active";
 /* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Key Name: %@" = "Key Name: %@";
 "Creation Date: %@" = "Creation Date: %@";
 "Save Key" = "Save Key";
 "Confirm adding key" = "Confirm adding key";

@@ -118,7 +118,7 @@ public struct MissingKeyEntry {
 
         let candidate: PrivateKey
         do {
-            candidate = try keyManager.deriveKey(from: phraseComponents, name: AppConstants.defaultKeyName)
+            candidate = try keyManager.deriveKey(from: phraseComponents)
         } catch let error as KeyManagerError {
             throw MissingKeyEntryError.invalidPhrase(error.displayDescription)
         }

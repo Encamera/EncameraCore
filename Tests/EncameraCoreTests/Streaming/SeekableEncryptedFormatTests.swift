@@ -527,8 +527,8 @@ final class SeekableEncryptedFormatTests: XCTestCase {
         try SeekableEncryptedWriter(keyBytes: key, chunkSize: 512)
             .encrypt(source: source, destination: dest, metadata: Data(#"{"width":1920}"#.utf8))
 
-        let right = PrivateKey(name: "right", keyBytes: key, creationDate: Date(timeIntervalSince1970: 0))
-        let wrong = PrivateKey(name: "wrong", keyBytes: [UInt8](repeating: 0x43, count: 32),
+        let right = PrivateKey(keyBytes: key, creationDate: Date(timeIntervalSince1970: 0))
+        let wrong = PrivateKey(keyBytes: [UInt8](repeating: 0x43, count: 32),
                                creationDate: Date(timeIntervalSince1970: 0))
         let proved = await KeyDiscovery.proveFirstBlock(of: dest, with: right)
         XCTAssertEqual(proved, .proved)

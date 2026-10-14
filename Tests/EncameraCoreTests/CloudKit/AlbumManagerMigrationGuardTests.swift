@@ -13,7 +13,7 @@ import XCTest
 
 final class AlbumManagerMigrationGuardTests: XCTestCase {
 
-    private let key = PrivateKey(name: "guard", keyBytes: Array(repeating: 0x5A, count: 32),
+    private let key = PrivateKey(keyBytes: Array(repeating: 0x5A, count: 32),
                                  creationDate: Date(timeIntervalSince1970: 0))
     private var store: MockCloudKitMediaStore!
     private var previousMakeStore: (@Sendable (String) -> CloudKitMediaStoring)!

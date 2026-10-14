@@ -39,7 +39,6 @@
 "FooterView.MediaDetails" = "تفاصيل الوسائط";
 "Notification.InactiveUserReminder.Body" = "لا تنسَ تأمين المزيد من الصور عن طريق إضافتها إلى ألبومك. قم بالاستيراد الآن!";
 "EmptyAlbumTakeAPictureHeading" = "أنشئ ذكرى جديدة";
-"Key name is invalid, must be more than two characters" = "اسم المفتاح غير صالح، يجب أن يكون أكثر من حرفين";
 "AuthenticationMethod.SecurityLevel.password" = "الخيار الأكثر أمانًا";
 "Delete Album question" = "حذف الألبوم؟";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "أنا أفهم";
@@ -167,7 +166,6 @@
 "Roadmap" = "خريطة الطريق وطلبات الميزات";
 "Support privacy-focused development." = "ادعم تطوير يركز على الخصوصية.";
 "CannotClearTitle" = "لا يمكن المسح";
-"Key Name: %@" = "اسم المفتاح: %@";
 "ViewInFiles" = "عرض في تطبيق الملفات";
 "TelegramGroupJoinTitle" = "انضم إلى مجموعة تيليجرام";
 "DoYouRememberYourPin" = "هل تتذكر رمز المرور الخاص بك؟";

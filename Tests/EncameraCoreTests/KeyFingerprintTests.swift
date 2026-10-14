@@ -40,8 +40,8 @@ final class KeyFingerprintTests: XCTestCase {
     }
 
     func testPrivateKeysWithSameBytesShareFingerprint() {
-        let first = PrivateKey(name: "first", keyBytes: keyBytes, creationDate: Date(timeIntervalSince1970: 0))
-        let second = PrivateKey(name: "second", keyBytes: keyBytes, creationDate: Date(timeIntervalSince1970: 1000))
+        let first = PrivateKey(keyBytes: keyBytes, creationDate: Date(timeIntervalSince1970: 0))
+        let second = PrivateKey(keyBytes: keyBytes, creationDate: Date(timeIntervalSince1970: 1000))
         XCTAssertNotEqual(first.uuid, second.uuid)
         XCTAssertEqual(first.fingerprint, second.fingerprint)
         XCTAssertEqual(first.stampPrefix, second.stampPrefix)
@@ -78,16 +78,5 @@ final class KeyFingerprintTests: XCTestCase {
             let end = hex.index(start, offsetBy: 2)
             return UInt8(hex[start..<end], radix: 16)!
         }
-    }
-
-    func testPrivateKeyCodableShapeUnchanged() throws {
-        let key = PrivateKey(name: "codable", keyBytes: keyBytes, creationDate: Date(timeIntervalSince1970: 0))
-        let encoded = try JSONEncoder().encode(key)
-        let decoded = try JSONDecoder().decode(PrivateKey.self, from: encoded)
-        XCTAssertEqual(decoded, key)
-        XCTAssertEqual(decoded.uuid, key.uuid)
-        let json = String(data: encoded, encoding: .utf8)!
-        XCTAssertFalse(json.contains("fingerprint"))
-        XCTAssertFalse(json.contains("stampPrefix"))
     }
 }

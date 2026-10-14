@@ -4,7 +4,6 @@
 /* ./EncameraCore/Utils/KeyManager.swift */
 "Could not delete keychain items." = "No se pudieron eliminar los elementos del llavero.";
 "Not authenticated for this operation." = "No autenticado para esta operación.";
-"Key name is invalid, must be more than two characters" = "El nombre de la clave es inválido, debe tener más de dos caracteres";
 "Key not found." = "Clave no encontrada.";
 "Error coding keychain data." = "Error al codificar datos del llavero.";
 "A key with this name already exists." = "Ya existe una clave con este nombre."; 
@@ -163,7 +162,6 @@
 "Active" = "Activo"; 
 
 /* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Key Name: %@" = "Nombre de la clave: %@";
 "Creation Date: %@" = "Fecha de creación: %@";
 "Save Key" = "Guardar clave";
 "Confirm adding key" = "Confirmar la adición de la clave"; 

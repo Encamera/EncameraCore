@@ -139,7 +139,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         let snapshot = KeychainCredentialSnapshot(
             passwordExists: passwordExists(),
             passphraseExists: keyPassphraseExists(),
-            defaultKeyExists: keyWith(name: AppConstants.defaultKeyName) != nil,
+            defaultKeyExists: !((try? storedKeys()) ?? []).isEmpty,
             biometricsEnabled: configuration?.isTypeEnabled(.biometrics) ?? false,
             backupFlagState: flagState,
             backupStatus: status
@@ -168,7 +168,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         if keys.isEmpty {
             printDebug("variant state (\(context)) keys: none")
         } else {
-            let describedKeys = keys.map { "\($0.name)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
+            let describedKeys = keys.map { "\($0.keychainLabel)(synced=\($0.savedToiCloud))" }.joined(separator: ", ")
             printDebug("variant state (\(context)) keys: \(describedKeys)")
         }
     }
@@ -206,7 +206,10 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
     }
 
-    /// Returns the accounts (or the default key name) whose local and synced
+    /// Reported by `detectCredentialConflicts()` when the stored keys disagree.
+    public static let keyConflictIdentifier = "key"
+
+    /// Returns the accounts (or `keyConflictIdentifier`) whose local and synced
     /// keychain items coexist with differing values. Empty when there is no
     /// conflict. Never deletes or modifies anything.
     public func detectCredentialConflicts() -> [String] {
@@ -226,11 +229,11 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             }
         }
 
-        let defaultKeyVariants = ((try? storedKeys()) ?? []).filter { $0.name == AppConstants.defaultKeyName }
-        let distinctKeyBytes = Set(defaultKeyVariants.map { $0.keyBytes }).count
-        printDebug("conflict check default key: \(defaultKeyVariants.count) variant(s), \(distinctKeyBytes) distinct keyBytes")
-        if defaultKeyVariants.count > 1, distinctKeyBytes > 1 {
-            conflicts.append(AppConstants.defaultKeyName)
+        let keyVariants = (try? storedKeys()) ?? []
+        let distinctKeyBytes = Set(keyVariants.map { $0.keyBytes }).count
+        printDebug("conflict check keys: \(keyVariants.count) variant(s), \(distinctKeyBytes) distinct keyBytes")
+        if keyVariants.count > 1, distinctKeyBytes > 1 {
+            conflicts.append(Self.keyConflictIdentifier)
         }
 
         printDebug("detectCredentialConflicts result: \(conflicts.isEmpty ? "none" : conflicts.joined(separator: ", "))")
@@ -249,16 +252,16 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     // MARK: - Keys
 
-    @discardableResult public func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
-        try privateKeyManager.generateKeyUsingRandomWords(name: name, synchronizable: synchronizableForWrites)
+    @discardableResult public func generateKeyUsingRandomWords() throws -> PrivateKey {
+        try privateKeyManager.generateKeyUsingRandomWords(synchronizable: synchronizableForWrites)
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
         try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: synchronizableForWrites)
     }
 
-    public func deriveKey(from components: [String], name: String) throws -> PrivateKey {
-        try privateKeyManager.deriveKey(from: components, name: name)
+    public func deriveKey(from components: [String]) throws -> PrivateKey {
+        try privateKeyManager.deriveKey(from: components)
     }
 
     /// Re-derives the default key from an already-present passphrase item.
@@ -271,8 +274,8 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
             printDebug("restore: skipping — no password hash present")
             return false
         }
-        guard keyWith(name: AppConstants.defaultKeyName) == nil else {
-            printDebug("restore: skipping — default key already present")
+        guard ((try? storedKeys()) ?? []).isEmpty else {
+            printDebug("restore: skipping — a key is already present")
             return false
         }
         guard let passphrase = try? retrieveKeyPassphrase() else {
@@ -281,22 +284,18 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
 
         printDebug("restore: password present, default key absent, passphrase has \(passphrase.words.count) words — deriving key")
-        let key = try deriveKey(from: passphrase.words, name: AppConstants.defaultKeyName)
+        let key = try deriveKey(from: passphrase.words)
         try save(key: key, setNewKeyToCurrent: true)
         printDebug("restore: default key re-derived and saved as current (isSyncEnabled=\(isSyncEnabled))")
         return true
     }
 
-    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String) throws -> PrivateKey {
-        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, name: name, synchronizable: synchronizableForWrites)
+    @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey {
+        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, synchronizable: synchronizableForWrites)
     }
 
     public func retrieveKeyPassphrase() throws -> KeyPassphrase {
         try privateKeyManager.retrieveKeyPassphrase(conflictResolution: conflictResolution)
-    }
-
-    public func validateKeyName(name: String) throws {
-        try privateKeyManager.validateKeyName(name: name)
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
@@ -305,10 +304,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
         try privateKeyManager.setSynchronizable(backupToiCloud, for: key)
-    }
-
-    public func keyWith(name: String) -> PrivateKey? {
-        privateKeyManager.keyWith(name: name)
     }
 
     public func keyWith(fingerprint: String) -> PrivateKey? {
@@ -328,8 +323,8 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         try privateKeyManager.storedKeys()
     }
 
-    public func setActiveKey(_ name: KeyName?) throws {
-        try privateKeyManager.setActiveKey(name)
+    public func clearActiveKey() {
+        privateKeyManager.clearActiveKey()
     }
 
     public func setActiveKey(_ key: PrivateKey) throws {
@@ -338,10 +333,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     func getActiveKey() throws -> PrivateKey {
         try privateKeyManager.getActiveKey()
-    }
-
-    func getKey(by keyName: KeyName) throws -> PrivateKey {
-        try privateKeyManager.getKey(by: keyName)
     }
 
     public func keyPassphraseExists() -> Bool {
@@ -591,16 +582,17 @@ private extension KeychainManager {
     /// after first launch is picked up on the next authentication.
     func attemptKeyRestoreAfterFailedLoad() {
         printDebug("attemptKeyRestoreAfterFailedLoad: snapshot \(credentialSnapshot()), currentKey default='\(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String ?? "nil")'")
-        if let activeKeyName = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
-           (try? getKey(by: activeKeyName)) == nil {
-            printDebug("Clearing stale currentKey '\(activeKeyName)' — key not present on this device")
+        if let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
+           PrivateKey.isFingerprintLabel(activeKeyRef),
+           keyWith(fingerprint: activeKeyRef) == nil {
+            printDebug("Clearing stale currentKey '\(activeKeyRef)' — key not present on this device")
             UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
         }
 
         do {
             let restored = try restoreDefaultKeyFromPassphraseIfNeeded()
             try privateKeyManager.getActiveKeyAndSet()
-            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.name ?? "nil")')")
+            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.keychainLabel ?? "nil")')")
         } catch {
             printDebug("Key restore after failed load did not succeed:", error)
         }

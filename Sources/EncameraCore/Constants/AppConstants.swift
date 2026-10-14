@@ -17,7 +17,7 @@ public enum AppConstants {
     public static var numberOfPhotosBeforeInitialTutorial: Double = 1
     public static let maxPhotoCountBeforePurchase: Double = 10
     public static let defaultAlbumName: String = L10n.defaultAlbumName
-    public static let defaultKeyName: String = "encamera_default_key"
+    public static let legacyDefaultKeyName: String = "encamera_default_key"
     public static let reviewRequestThreshold = 20
     public static let lowOpacity = 0.4
     public static let previewDirectory = "preview_thumbnails"

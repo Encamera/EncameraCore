@@ -6,7 +6,7 @@ import XCTest
 final class LockedAlbumKeyEntryTests: XCTestCase {
 
     private var tempDirectory: URL!
-    private let deviceKey = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let deviceKey = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
 
     private let foreignPhrase = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"]
     private let wrongPhrase = ["zulu", "yankee", "xray", "whiskey", "victor", "uniform"]
@@ -34,7 +34,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     private func makeScenario(requiredKey: (PrivateKey) -> RequiredKeyIdentity?) throws -> (manager: DemoKeyManager, foreignKey: PrivateKey, placeholder: LockedAlbumPlaceholder) {
         let manager = DemoKeyManager(keys: [deviceKey])
         manager.currentKey = deviceKey
-        let foreignKey = try manager.deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let foreignKey = try manager.deriveKey(from: foreignPhrase)
         let album = Album(name: "Holiday", storageOption: .cloudKit, creationDate: Date(), key: foreignKey)
         let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: album.encryptedPathComponent,
                                                  storageOption: .cloudKit,
@@ -87,7 +87,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     /// saved.
     func testMatchingFingerprintThatDoesNotOpenTheNameIsRejected() async throws {
         let scenario = try makeScenario { _ in nil }
-        let wrongKey = try scenario.manager.deriveKey(from: wrongPhrase, name: AppConstants.defaultKeyName)
+        let wrongKey = try scenario.manager.deriveKey(from: wrongPhrase)
         let stale = LockedAlbumPlaceholder(encryptedDirectoryName: scenario.placeholder.encryptedDirectoryName,
                                            storageOption: .cloudKit,
                                            creationDate: scenario.placeholder.creationDate,
@@ -161,7 +161,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     // MARK: - RequiredKeyIdentity
 
     func testFingerprintAndStampPrefixOfTheSameKeyShareALabel() throws {
-        let key = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let key = try DemoKeyManager().deriveKey(from: foreignPhrase)
 
         XCTAssertEqual(RequiredKeyIdentity.fingerprint(key.keychainLabel).displayLabel,
                        RequiredKeyIdentity.stampPrefix(key.stampPrefix).displayLabel)
@@ -191,7 +191,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     }
 
     func testProbeReadsTheStampTheAlbumsMediaAgreesOn() async throws {
-        let key = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let key = try DemoKeyManager().deriveKey(from: foreignPhrase)
         try await writeMedia(named: "a", in: tempDirectory, key: key, stamp: true)
         try await writeMedia(named: "b", in: tempDirectory, key: key, stamp: false)
 
@@ -205,7 +205,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     }
 
     func testProbeReportsUnknownWhenStampsDisagree() async throws {
-        let key = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let key = try DemoKeyManager().deriveKey(from: foreignPhrase)
         try await writeMedia(named: "a", in: tempDirectory, key: key, stamp: true)
         try await writeMedia(named: "b", in: tempDirectory, key: nil, stamp: true)
 
@@ -258,7 +258,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     /// named it, so a device whose key was K2 imported K2 media into an album named
     /// under K1. With K1 absent, that album must open under K2 and keep its directory.
     func testAlbumNamedUnderMissingKeyWithCurrentKeyContentsIsReachable() async throws {
-        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase)
         let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
         try await writeMedia(named: "one", in: directory, key: deviceKey, stamp: false)
         try await writeMedia(named: "two", in: directory, key: deviceKey, stamp: false)
@@ -286,7 +286,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     /// media is reported as needing a missing key, which the grid shows as a
     /// locked tile.
     func testAlbumWithMixedKeyContentsIsSurfacedPartially() async throws {
-        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase)
         let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
         try await writeMedia(named: "mine", in: directory, key: deviceKey, stamp: false)
         try await writeMedia(named: "theirs", in: directory, key: nameKey, stamp: false)
@@ -314,7 +314,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     }
 
     func testAlbumWithNoReadableContentsStaysLocked() async throws {
-        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase)
         let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
         try await writeMedia(named: "a", in: directory, key: nameKey, stamp: false)
         try await writeMedia(named: "b", in: directory, key: nameKey, stamp: false)
@@ -328,7 +328,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     }
 
     func testContentProbeIsBoundedPerAlbum() async throws {
-        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let nameKey = try DemoKeyManager().deriveKey(from: foreignPhrase)
         let fileCount = LockedAlbumContentProbe.maxFilesSampled * 3
         for index in 0..<fileCount {
             try await writeMedia(named: "file-\(index)", in: tempDirectory, key: nameKey, stamp: false)
@@ -371,7 +371,7 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
     /// The Enter Key flow relies on the alert naming the key, so an album whose
     /// contents no key opens must still lead with it.
     func testAlertNamesTheRequiredKeyWhenNoContentsOpened() throws {
-        let key = try DemoKeyManager().deriveKey(from: foreignPhrase, name: AppConstants.defaultKeyName)
+        let key = try DemoKeyManager().deriveKey(from: foreignPhrase)
         let required = RequiredKeyIdentity.stampPrefix(key.stampPrefix)
         let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x",
                                                  storageOption: .local,

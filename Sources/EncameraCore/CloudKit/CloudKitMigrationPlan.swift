@@ -189,14 +189,14 @@ public struct MigrationLastFailure: Codable, Sendable, Equatable {
 
     public let category: Category
     public let date: Date
-    /// The keys on this device when a `.missingKey` failure was recorded, so a key
+    /// Fingerprints of the keys on this device when a `.missingKey` failure was recorded, so a key
     /// added since re-enables automatic resume. Empty for other categories.
-    public let heldKeyNames: [KeyName]
+    public let heldKeyFingerprints: [String]
 
-    public init(category: Category, date: Date, heldKeyNames: [KeyName] = []) {
+    public init(category: Category, date: Date, heldKeyFingerprints: [String] = []) {
         self.category = category
         self.date = date
-        self.heldKeyNames = heldKeyNames
+        self.heldKeyFingerprints = heldKeyFingerprints
     }
 
     /// Whether launch-time resume should leave the plan alone. A quota failure waits
@@ -205,14 +205,14 @@ public struct MigrationLastFailure: Codable, Sendable, Equatable {
     /// failure is retried.
     public func blocksAutomaticResume(now: Date,
                                       isAccountAvailable: Bool,
-                                      heldKeyNames current: [KeyName]) -> Bool {
+                                      heldKeyFingerprints current: [String]) -> Bool {
         switch category {
         case .quota:
             return now.timeIntervalSince(date) < Self.quotaRetryInterval
         case .accountUnavailable:
             return !isAccountAvailable
         case .missingKey:
-            return Set(current).isSubset(of: Set(heldKeyNames))
+            return Set(current).isSubset(of: Set(heldKeyFingerprints))
         case .other:
             return false
         }

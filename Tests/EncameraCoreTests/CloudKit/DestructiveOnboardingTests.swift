@@ -81,7 +81,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         XCTAssertTrue(report.hasFailures)
         XCTAssertFalse(report.mediaFailures.isEmpty, "Per-record failures must be surfaced, not swallowed")
         XCTAssertFalse(report.freshKeyGenerated)
-        XCTAssertTrue(keyManager.generatedKeyNames.isEmpty,
+        XCTAssertEqual(keyManager.generatedKeyCount, 0,
                       "No fresh key may be created when deletion did not fully succeed")
     }
 
@@ -107,7 +107,7 @@ final class DestructiveOnboardingTests: XCTestCase {
         let report = try await makeCoordinator(store: store, keyManager: keyManager).run(expectedMediaCount: 3)
 
         XCTAssertTrue(report.freshKeyGenerated)
-        XCTAssertEqual(keyManager.generatedKeyNames, [AppConstants.defaultKeyName],
+        XCTAssertEqual(keyManager.generatedKeyCount, 1,
                        "A fresh default key must be generated after a clean deletion")
         XCTAssertEqual(try keyManager.storedKeys().count, 1,
                        "The fresh key must be persisted")
@@ -155,7 +155,7 @@ final class DestructiveOnboardingTests: XCTestCase {
                        "Failing to enumerate what to delete must never report a complete success")
         XCTAssertNotNil(report.enumerationFailures["albums"])
         XCTAssertFalse(report.freshKeyGenerated, "No fresh key over data we never enumerated")
-        XCTAssertEqual(keyManager.generatedKeyNames, [])
+        XCTAssertEqual(keyManager.generatedKeyCount, 0)
         XCTAssertEqual(store.deleteCalls, [], "Nothing was enumerated, so nothing may be deleted")
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
@@ -220,7 +220,7 @@ final class DestructiveOnboardingTests: XCTestCase {
                        "Tombstoning nothing while the census says 47 must never report success")
         XCTAssertEqual(report.censusShortfall, 47)
         XCTAssertFalse(report.freshKeyGenerated, "No fresh key over media we never reached")
-        XCTAssertEqual(keyManager.generatedKeyNames, [])
+        XCTAssertEqual(keyManager.generatedKeyCount, 0)
 
         let state = try XCTUnwrap(keyManager.getMultiDeviceState())
         XCTAssertTrue(state.hasEvidence,
@@ -293,7 +293,7 @@ final class DestructiveOnboardingTests: XCTestCase {
                        "A failed marker clear must not read as a complete success")
         XCTAssertNotNil(report.markerClearError)
         XCTAssertFalse(report.freshKeyGenerated)
-        XCTAssertEqual(keyManager.generatedKeyNames, [],
+        XCTAssertEqual(keyManager.generatedKeyCount, 0,
                        "No key may be minted over a marker that still says the account was used")
     }
 }
@@ -303,7 +303,7 @@ final class DestructiveOnboardingTests: XCTestCase {
 /// have something concrete to check.
 private final class DestructiveSpyKeyManager: DemoKeyManager {
     var clearScopes: [KeyDeletionScope] = []
-    var generatedKeyNames: [String] = []
+    var generatedKeyCount = 0
     /// Injects a failing marker overwrite (an encode failure, or a non-`errSecSuccess`
     /// add/update out of `writeMultiDeviceStateRecord`).
     var overwriteError: Error?
@@ -317,10 +317,9 @@ private final class DestructiveSpyKeyManager: DemoKeyManager {
         try super.overwriteMultiDeviceState(state)
     }
 
-    override func generateKeyUsingRandomWords(name: String) throws -> PrivateKey {
-        generatedKeyNames.append(name)
-        let key = PrivateKey(name: name,
-                             keyBytes: Array((0..<32).map { _ in UInt8.random(in: 0...255) }),
+    override func generateKeyUsingRandomWords() throws -> PrivateKey {
+        generatedKeyCount += 1
+        let key = PrivateKey(keyBytes: Array((0..<32).map { _ in UInt8.random(in: 0...255) }),
                              creationDate: Date())
         storedKeysValue.append(key)
         return key

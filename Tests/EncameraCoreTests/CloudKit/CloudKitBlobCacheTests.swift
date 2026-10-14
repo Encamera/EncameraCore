@@ -475,8 +475,7 @@ final class CloudKitBlobCacheTests: XCTestCase {
     /// offline exists on the device only as its marker, so the purge must not take
     /// the album, its hidden flag, or the link from its queued captures to it.
     func testPurgingBlobCacheKeepsUnpublishedHiddenAlbum() async throws {
-        let key = PrivateKey(name: "purge-\(UUID().uuidString.prefix(6))",
-                             keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
         let albumID = UUID().uuidString
         let album = Album(name: "Private-\(UUID().uuidString)", storageOption: .cloudKit,
                           creationDate: Date(), key: key, albumID: albumID)

@@ -9,25 +9,16 @@ import Foundation
 import Sodium
 
 enum ImageKeyEncodingError: Error {
-    case invalidBase64Data
     case invalidKeychainItemData
 }
 
-public typealias KeyName = String
 public typealias KeyBytes = Array<UInt8>
 
-public struct PrivateKey: Codable, Hashable {
+public struct PrivateKey: Hashable {
 
-    public var name: KeyName
     public private(set) var savedToiCloud: Bool = false
     public var creationDate: Date
-    private static let keyPrefix = "com.encamera.key."
 
-    private enum CodingKeys: CodingKey {
-        case name
-        case creationDate
-        case keyCore
-    }
     private var keyCore: KeyCore
     private struct KeyCore: Codable, Hashable {
         var keyBytes: KeyBytes
@@ -80,75 +71,34 @@ public struct PrivateKey: Codable, Hashable {
         label.count == 32 && label.allSatisfy { $0.isHexDigit && ($0.isNumber || $0.isLowercase) }
     }
 
-    public init(name: String, keyData: Data, creationDate: Date) throws {
-        self.name = name
+    public init(keyData: Data, creationDate: Date) throws {
         self.creationDate = creationDate
         self.keyCore = try JSONDecoder().decode(KeyCore.self, from: keyData)
     }
 
-    public init(name: String, keyBytes: Array<UInt8>, creationDate: Date) {
-        self.name = name
+    public init(keyBytes: Array<UInt8>, creationDate: Date) {
         self.keyCore = KeyCore(keyBytes: keyBytes, uuid: UUID())
         self.creationDate = creationDate
-    }
-
-    public init(base64String: String) throws {
-        guard let data = Data(base64Encoded: base64String) else {
-            throw ImageKeyEncodingError.invalidBase64Data
-        }
-        self = try JSONDecoder().decode(PrivateKey.self, from: data)
     }
 
     init(keychainItem: [String: Any]) throws {
         guard
             let keyData = keychainItem[kSecValueData as String] as? Data,
-            let labelData = keychainItem[kSecAttrLabel as String] as? Data,
             let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
             throw ImageKeyEncodingError.invalidKeychainItemData
         }
-        // Post-migration the display name lives in kSecAttrApplicationTag and
-        // kSecAttrLabel holds the fingerprint. Pre-migration items carry the
-        // name in kSecAttrLabel, so fall back to it.
-        let name = PrivateKey.displayName(from: keychainItem)
-            ?? PrivateKey.keyName(from: labelData)
         do {
-            try self.init(name: name, keyData: keyData, creationDate: creationDate)
+            try self.init(keyData: keyData, creationDate: creationDate)
         } catch {
             let keyBytes = try keyData.withUnsafeBytes({ (body: UnsafeRawBufferPointer) throws -> [UInt8] in
                 [UInt8](UnsafeRawBufferPointer(body))
             })
-            self.init(name: name, keyBytes: keyBytes, creationDate: creationDate)
+            self.init(keyBytes: keyBytes, creationDate: creationDate)
         }
         if let synced = keychainItem[kSecAttrSynchronizable as String] as? Bool, synced == true {
             self.savedToiCloud = true
         }
     }
-
-    private static func keyName(from entry: Data) -> String {
-        let name = String(data: entry, encoding: .utf8)!
-
-        return name.replacingOccurrences(of: keyPrefix, with: "")
-    }
-
-    /// Reads the display name out of `kSecAttrApplicationTag`. The Security
-    /// framework hands key attributes back as `Data`, but the in-memory test
-    /// wrapper stores whatever it was given, so accept both representations.
-    private static func displayName(from keychainItem: [String: Any]) -> String? {
-        let raw = keychainItem[kSecAttrApplicationTag as String]
-        let string: String?
-        if let data = raw as? Data {
-            string = String(data: data, encoding: .utf8)
-        } else {
-            string = raw as? String
-        }
-        guard let string, !string.isEmpty else { return nil }
-        return string.replacingOccurrences(of: keyPrefix, with: "")
-    }
-
-    public var base64String: String? {
-        return try? String(data: JSONEncoder().encode(self).base64EncodedData(), encoding: .utf8)
-    }
-
 }
 
 extension PrivateKey: Identifiable {
@@ -161,7 +111,11 @@ extension PrivateKey: Identifiable {
 extension PrivateKey: Equatable {
 
     public static func ==(lhs: PrivateKey, rhs: PrivateKey) -> Bool {
-        return lhs.name == rhs.name && lhs.keyBytes == rhs.keyBytes
+        return lhs.keyBytes == rhs.keyBytes
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(keyBytes)
     }
     public var keyString: String {
         return keyBytes.map({String($0)}).joined(separator: " ")

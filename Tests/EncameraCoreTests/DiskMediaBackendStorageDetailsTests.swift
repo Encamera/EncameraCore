@@ -7,8 +7,7 @@ import XCTest
 /// screen shows" is pinned down.
 final class DiskMediaBackendStorageDetailsTests: XCTestCase {
 
-    private let albumKey = PrivateKey(name: "album",
-                                      keyBytes: Array(repeating: 0x51, count: 32),
+    private let albumKey = PrivateKey(keyBytes: Array(repeating: 0x51, count: 32),
                                       creationDate: Date(timeIntervalSince1970: 0))
 
     private func makeBackend() async -> (DiskMediaBackend, DataStorageModel) {
@@ -158,11 +157,9 @@ final class DiskMediaBackendStorageDetailsTests: XCTestCase {
 /// file resolves it, not assumed to be the album's.
 final class DiskMediaBackendLoadMetadataTests: XCTestCase {
 
-    private let albumKey = PrivateKey(name: "album",
-                                      keyBytes: Array(repeating: 0x51, count: 32),
+    private let albumKey = PrivateKey(keyBytes: Array(repeating: 0x51, count: 32),
                                       creationDate: Date(timeIntervalSince1970: 0))
-    private let otherKey = PrivateKey(name: "other",
-                                      keyBytes: Array(repeating: 0x62, count: 32),
+    private let otherKey = PrivateKey(keyBytes: Array(repeating: 0x62, count: 32),
                                       creationDate: Date(timeIntervalSince1970: 0))
 
     private static func infoMetadata() -> EncryptedFileMetadata {

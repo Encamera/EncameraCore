@@ -25,11 +25,9 @@ import UIKit
 
 final class PreviewKeyInheritanceTests: XCTestCase {
 
-    private let albumKey = PrivateKey(name: AppConstants.defaultKeyName,
-                                      keyBytes: Array(repeating: 0xB2, count: 32),
+    private let albumKey = PrivateKey(keyBytes: Array(repeating: 0xB2, count: 32),
                                       creationDate: Date(timeIntervalSince1970: 2_000))
-    private let mediaKey = PrivateKey(name: AppConstants.defaultKeyName,
-                                      keyBytes: Array(repeating: 0xA1, count: 32),
+    private let mediaKey = PrivateKey(keyBytes: Array(repeating: 0xA1, count: 32),
                                       creationDate: Date(timeIntervalSince1970: 1_000))
 
     private var album: Album!

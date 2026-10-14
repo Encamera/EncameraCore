@@ -748,7 +748,7 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
                                      title: "Encryption key available",
                                      section: .appConfig,
                                      outcome: .pass,
-                                     summary: "Key '\(key.name)' (\(key.keyBytes.count) bytes)",
+                                     summary: "Key \(key.keychainLabel) (\(key.keyBytes.count) bytes)",
                                      detail: "")
     }
 

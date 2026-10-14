@@ -9,19 +9,15 @@ import Foundation
 
 public enum URLType: Equatable {
     
-    private static var keyDataQueryParam = "data"
     private static var featureToggleQueryParam = "feature"
     
     case media(encryptedMedia: EncryptedMedia)
-    case key(key: PrivateKey)
     case featureToggle(feature: Feature)
     case cameraFromWidget
     case pendingImport  // Deep link from Share Extension to trigger import flow
 
     public init?(url: URL) {
-        if let key = URLType.extractKey(url: url) {
-            self = .key(key: key)
-        } else if let media = URLType.extractMediaSource(url: url) {
+        if let media = URLType.extractMediaSource(url: url) {
             self = .media(encryptedMedia: media)
         } else if let feature = URLType.extractFeatureToggle(url: url) {
             self = .featureToggle(feature: feature)
@@ -41,8 +37,6 @@ public enum URLType: Equatable {
                 return nil
             }
             return source
-        case .key(let key):
-            return keyURL(key: key)
         case .featureToggle(feature: let feature):
             return featureToggleURL(feature: feature)
         case .cameraFromWidget:
@@ -72,36 +66,6 @@ public enum URLType: Equatable {
         components.host = "featureToggle"
         components.queryItems = [URLQueryItem(name: URLType.featureToggleQueryParam, value: feature.rawValue)]
         return components.url
-    }
-    
-    private func keyURL(key: PrivateKey) -> URL? {
-        guard let keyString = key.base64String else {
-            return nil
-        }
-        var components = URLComponents()
-        components.scheme = AppConstants.deeplinkSchema
-        components.host = "key"
-        components.queryItems = [URLQueryItem(name: URLType.keyDataQueryParam, value: keyString)]
-        
-        
-        return components.url
-    }
-    
-    
-    private static func extractKey(url: URL) -> PrivateKey? {
-        guard url.absoluteString.starts(with: "\(AppConstants.deeplinkSchema)") else {
-            return nil
-        }
-        
-        let urlParams = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        guard let keyParam = urlParams?.queryItems?.first(where: {$0.name == URLType.keyDataQueryParam})?.value,
-              let extractedKey = try? PrivateKey(base64String: keyParam)
-            else {
-            return nil
-        }
-        
-        return extractedKey
-        
     }
     
     private static func extractMediaSource(url: URL) -> EncryptedMedia? {

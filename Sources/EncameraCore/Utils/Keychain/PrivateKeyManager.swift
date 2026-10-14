@@ -39,7 +39,7 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Creating keys
 
-    @discardableResult func generateKeyUsingRandomWords(name: String, synchronizable: Bool) throws -> PrivateKey {
+    @discardableResult func generateKeyUsingRandomWords(synchronizable: Bool) throws -> PrivateKey {
 
         guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
               let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
@@ -54,22 +54,21 @@ final class PrivateKeyManager: DebugPrintable {
 
         let selectedWords = (0..<10).compactMap { _ in words.randomElement()?.lowercased() }
 
-        return try generateKeyFromPasswordComponentsAndSave(selectedWords, name: name, synchronizable: synchronizable)
+        return try generateKeyFromPasswordComponentsAndSave(selectedWords, synchronizable: synchronizable)
     }
 
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase, synchronizable: Bool) throws -> PrivateKey {
 
-        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, name: AppConstants.defaultKeyName, synchronizable: synchronizable)
+        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, synchronizable: synchronizable)
     }
 
     /// Derives a key from passphrase components without writing anything to the
     /// keychain. Words 1-4 are the salt, the rest the password input to pwHash.
-    func deriveKey(from components: [String], name: String) throws -> PrivateKey {
+    func deriveKey(from components: [String]) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
 
-        try validateKeyName(name: name)
         let splitIndex = 4
         let saltComponents = components.prefix(splitIndex)
         let saltString = saltComponents.joined(separator: "-")
@@ -90,11 +89,11 @@ final class PrivateKeyManager: DebugPrintable {
             throw KeyManagerError.keyDerivationFailed
         }
 
-        return PrivateKey(name: name, keyBytes: keyBytes, creationDate: Date())
+        return PrivateKey(keyBytes: keyBytes, creationDate: Date())
     }
 
-    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], name: String, synchronizable: Bool) throws -> PrivateKey {
-        let key = try deriveKey(from: components, name: name)
+    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], synchronizable: Bool) throws -> PrivateKey {
+        let key = try deriveKey(from: components)
         let fullPassword = components.joined(separator: "-")
         let syncValue = Self.syncValue(synchronizable)
 
@@ -141,12 +140,6 @@ final class PrivateKeyManager: DebugPrintable {
 
         return key
 
-    }
-
-    func validateKeyName(name: String) throws {
-        guard name.count > KeychainConstants.minKeyLength else {
-            throw KeyManagerError.keyNameError
-        }
     }
 
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
@@ -247,14 +240,7 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Looking up keys
 
-    func keyWith(name: String) -> PrivateKey? {
-
-        let keys = try? storedKeys()
-        return keys?.first(where: {$0.name == name})
-    }
-
-    /// Identity lookup. Names are display metadata and may repeat across keys;
-    /// the fingerprint is what uniquely identifies a key.
+    /// Identity lookup: the fingerprint is what uniquely identifies a key.
     func keyWith(fingerprint: String) -> PrivateKey? {
         let keys = try? storedKeys()
         return keys?.first(where: { $0.keychainLabel == fingerprint })
@@ -304,9 +290,7 @@ final class PrivateKeyManager: DebugPrintable {
         }
         let activeFingerprint: String?
         if let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String {
-            activeFingerprint = PrivateKey.isFingerprintLabel(pointer)
-                ? pointer
-                : keys.first(where: { $0.name == pointer })?.keychainLabel
+            activeFingerprint = PrivateKey.isFingerprintLabel(pointer) ? pointer : keys.first?.keychainLabel
         } else {
             activeFingerprint = currentKey?.keychainLabel
         }
@@ -341,66 +325,38 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Active key
 
-    func setActiveKey(_ name: KeyName?) throws {
-
-        guard let name = name else {
-            currentKey = nil
-            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
-            return
-        }
-        guard let key = try? getKey(by: name) else {
-            throw KeyManagerError.notFound
-        }
-        try setActiveKey(key)
+    func clearActiveKey() {
+        currentKey = nil
+        UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
     }
 
-    /// Pins the current key by fingerprint. Display names are no longer unique,
-    /// so a name is not enough to identify which key is current.
+    /// Pins the current key by fingerprint.
     func setActiveKey(_ key: PrivateKey) throws {
         currentKey = key
         UserDefaultUtils.set(key.keychainLabel, forKey: UserDefaultKey.currentKey)
     }
 
     func getActiveKey() throws -> PrivateKey {
-        guard let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String else {
-            guard let firstStoredKey = try storedKeys().first else {
+        let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String
+        if let activeKeyRef, PrivateKey.isFingerprintLabel(activeKeyRef) {
+            guard let key = keyWith(fingerprint: activeKeyRef) else {
                 throw KeyManagerError.notFound
             }
-            try setActiveKey(firstStoredKey)
-            return firstStoredKey
-        }
-        if PrivateKey.isFingerprintLabel(activeKeyRef), let key = keyWith(fingerprint: activeKeyRef) {
             return key
         }
-        let key = try getKey(by: activeKeyRef)
-        try setActiveKey(key)
-        return key
+        // No pointer, or one from a build that addressed keys by name. Names
+        // were not unique and resolved to the oldest stored key, so pin that
+        // one by fingerprint.
+        guard let oldestStoredKey = try storedKeys().first else {
+            throw KeyManagerError.notFound
+        }
+        try setActiveKey(oldestStoredKey)
+        return oldestStoredKey
     }
 
-    /// Re-pins the resolved active key by its own identity. Deliberately NOT
-    /// `setActiveKey(keyObject.name)`: a name round-trip goes back through
-    /// `getKey(by:)` -> `keyWith(name:)` -> `storedKeys().first(where:)`, and
-    /// `storedKeys()` sorts ascending by creation date, so the name lookup
-    /// resolves to the OLDEST key carrying that name. Once a library holds
-    /// several keys all named `encamera_default_key`, that runs on
-    /// every unlock and silently demotes whatever was pinned, such as a
-    /// returning user's freshly imported key. `testActiveKeyPointerSurvivesRepeatedAuthentication` pins this.
     func getActiveKeyAndSet() throws {
         let keyObject = try getActiveKey()
         try setActiveKey(keyObject)
-    }
-
-    func getKey(by keyName: KeyName) throws -> PrivateKey {
-
-
-
-        // Scans the library rather than querying by label: the label now carries
-        // the fingerprint, not the name. Ambiguous by nature once two keys share
-        // a display name — returns the first in `storedKeys()` order.
-        guard let key = keyWith(name: keyName) else {
-            throw KeyManagerError.notFound
-        }
-        return key
     }
 
     // MARK: - Migration
@@ -462,9 +418,9 @@ final class PrivateKeyManager: DebugPrintable {
             }
         }
 
-        // Re-pin an existing name-based pointer onto the fingerprint. Guarded on
-        // a pointer already being set: getActiveKey() promotes the first stored
-        // key when there is none, and migration must never choose a current key.
+        // Re-pin an existing name-based pointer onto a fingerprint. Guarded on
+        // a pointer already being set: migration must never choose a current
+        // key when there is none.
         if relabelled > 0,
            let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
            !PrivateKey.isFingerprintLabel(pointer) {
@@ -491,9 +447,9 @@ final class PrivateKeyManager: DebugPrintable {
                 let originalSyncStatus = try isKeyItemSynced(fingerprint: key.keychainLabel)
 
                 try saveKeyPreservingSync(key: key, syncStatus: originalSyncStatus)
-                printDebug("Successfully processed key: \(key.name)")
+                printDebug("Successfully processed key: \(key.keychainLabel)")
             } catch {
-                printDebug("Failed to migrate key \(key.name): \(error)")
+                printDebug("Failed to migrate key \(key.keychainLabel): \(error)")
                 throw error
             }
         }
@@ -550,8 +506,8 @@ final class PrivateKeyManager: DebugPrintable {
 
         try syncFlipper.setSynchronizable(synchronizable,
                                           forItemMatching: query,
-                                          description: "key \(key.keychainLabel) ('\(key.name)')")
-        printDebug("Key updated: \(key.name), iCloud: \(synchronizable)")
+                                          description: "key \(key.keychainLabel)")
+        printDebug("Key updated: \(key.keychainLabel), iCloud: \(synchronizable)")
     }
 
     /// The sync state the stored key items are observably in, independent of
@@ -606,33 +562,20 @@ final class PrivateKeyManager: DebugPrintable {
     }
 
     /// Locates the stored item for `key`, preferring fingerprint identity and
-    /// falling back to the legacy name label so that installs which have not yet
-    /// run `migrateKeyLabelsToFingerprintsIfNeeded()` still update in place
+    /// falling back to a pre-migration item holding the same key bytes, so
+    /// that installs which have not yet run
+    /// `migrateKeyLabelsToFingerprintsIfNeeded()` still update in place
     /// instead of gaining a duplicate.
+    ///
+    /// Matching on the bytes rather than the old label matters: every
+    /// pre-migration item was labelled `encamera_default_key`, so a label match
+    /// would update another key's item in place and destroy the material every
+    /// file encrypted with it depends on.
     func existingKeyItemQuery(for key: PrivateKey) -> [String: Any]? {
         if keyItemExists(fingerprint: key.keychainLabel) {
             return try? keyIdentityQuery(forFingerprint: key.keychainLabel)
         }
-        guard var legacy = legacyKeyItemQuery(forName: key.name) else { return nil }
-        var probe = legacy
-        probe[kSecMatchLimit as String] = kSecMatchLimitOne
-        probe[kSecReturnData as String] = true
-        var item: CFTypeRef?
-        guard keychainWrapper.secItemCopyMatching(probe as CFDictionary, &item) == errSecSuccess else {
-            return nil
-        }
-        // A name match alone is not identity. Every production key is called
-        // `encamera_default_key`, so importing a second key phrase on an
-        // install that has not yet been relabelled would otherwise update the
-        // existing item in place and destroy the material every already-encrypted
-        // file depends on. Only reuse the legacy item when its bytes
-        // really are this key's.
-        guard let data = item as? Data,
-              Self.storedKeyBytes(from: data) == key.keyBytes else {
-            return nil
-        }
-        legacy.removeValue(forKey: kSecMatchLimit as String)
-        return legacy
+        return legacyKeyItemQuery(forKeyBytes: key.keyBytes)
     }
 }
 
@@ -672,13 +615,36 @@ private extension PrivateKeyManager {
         ]
     }
 
-    /// Targets a pre-migration item, which is still labelled with its display
-    /// name rather than a fingerprint.
-    func legacyKeyItemQuery(forName name: KeyName) -> [String: Any]? {
-        guard let nameData = name.data(using: .utf8) else { return nil }
+    /// Targets the pre-migration item holding `keyBytes`. Those items are
+    /// still labelled with a display name rather than a fingerprint.
+    func legacyKeyItemQuery(forKeyBytes keyBytes: KeyBytes) -> [String: Any]? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecReturnData as String: true,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        var item: CFTypeRef?
+        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let items = item as? [[String: Any]] else {
+            return nil
+        }
+        let match = items.first { attributes in
+            guard let labelData = attributes[kSecAttrLabel as String] as? Data,
+                  let label = String(data: labelData, encoding: .utf8),
+                  !PrivateKey.isFingerprintLabel(label),
+                  let data = attributes[kSecValueData as String] as? Data else {
+                return false
+            }
+            return Self.storedKeyBytes(from: data) == keyBytes
+        }
+        guard let labelData = match?[kSecAttrLabel as String] as? Data else {
+            return nil
+        }
         return [
             kSecClass as String: kSecClassKey,
-            kSecAttrLabel as String: nameData,
+            kSecAttrLabel as String: labelData,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
     }
@@ -688,7 +654,7 @@ private extension PrivateKeyManager {
     /// bytes that `migrateLegacyKeysIfNeeded()` still upgrades. Mirrors the
     /// same fallback in `PrivateKey.init(keychainItem:)`.
     static func storedKeyBytes(from data: Data) -> KeyBytes {
-        if let decoded = try? PrivateKey(name: AppConstants.defaultKeyName, keyData: data, creationDate: Date()) {
+        if let decoded = try? PrivateKey(keyData: data, creationDate: Date()) {
             return decoded.keyBytes
         }
         return Array(data)
@@ -767,7 +733,9 @@ private extension PrivateKeyManager {
 
     /// Whether a `kSecClassKey` item is one of Encamera's own keys, by
     /// `kSecAttrApplicationTag`, which `PrivateKey.keychainIdentityAttributes`
-    /// writes as `"\(KeychainConstants.applicationTag).\(name)"`. The tag can't
+    /// writes as `KeychainConstants.keyApplicationTag`. Older builds wrote
+    /// `"\(KeychainConstants.applicationTag).<key name>"`, so match on the
+    /// prefix. The tag can't
     /// be matched server-side by prefix, so callers enumerate and filter. A
     /// foreign key item written by anything else sharing the access group is
     /// not ours to judge or move.

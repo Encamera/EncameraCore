@@ -7,7 +7,7 @@ public class DemoPrivateKey {
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: Int.random(in: 1..<12), day: Int.random(in: 1..<28), hour: Int.random(in: 1..<11), minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)
         print("date", date!)
-        return PrivateKey(name: name, keyBytes: hash, creationDate: date!)
+        return PrivateKey(keyBytes: hash, creationDate: date!)
     }
 
     public static func dummyKey() -> PrivateKey {
@@ -15,6 +15,6 @@ public class DemoPrivateKey {
         let dateComponents = DateComponents(timeZone: TimeZone(identifier: "Europe/Berlin"), year: 2022, month: 2, day: 9, hour: 5, minute: 0, second: 0)
         let date = Calendar(identifier: .gregorian).date(from: dateComponents)
 
-        return PrivateKey(name: "test", keyBytes: hash, creationDate: date ?? Date())
+        return PrivateKey(keyBytes: hash, creationDate: date ?? Date())
     }
 }

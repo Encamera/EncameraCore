@@ -26,7 +26,7 @@ final class AlbumManagerNameValidationTests: XCTestCase {
 
     private func album(named name: String) -> Album {
         Album(name: name, storageOption: .local, creationDate: Date(),
-              key: PrivateKey(name: "k", keyBytes: [], creationDate: Date()))
+              key: PrivateKey(keyBytes: [], creationDate: Date()))
     }
 
     private func assertForbidden(_ expression: @autoclosure () throws -> Any,

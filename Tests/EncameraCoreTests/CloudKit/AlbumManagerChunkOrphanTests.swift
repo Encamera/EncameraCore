@@ -4,7 +4,7 @@ import Sodium
 
 final class AlbumManagerChunkOrphanTests: XCTestCase {
 
-    private let testKey = PrivateKey(name: "test", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let testKey = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
 
     private func makeCloudKitAlbum() -> Album {
         Album(name: "ChunkOrphanAlbum", storageOption: .cloudKit, creationDate: Date(), key: testKey,

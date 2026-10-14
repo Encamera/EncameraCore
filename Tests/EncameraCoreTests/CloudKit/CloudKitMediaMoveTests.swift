@@ -18,8 +18,7 @@ final class CloudKitMediaMoveTests: XCTestCase {
     private func randomKey() -> [UInt8] { (0..<32).map { _ in UInt8.random(in: 0...255) } }
 
     private func makeAlbum(storage: StorageType = .local) -> Album {
-        let key = PrivateKey(name: "key-\(UUID().uuidString.prefix(8))",
-                             keyBytes: randomKey(), creationDate: Date())
+        let key = PrivateKey(keyBytes: randomKey(), creationDate: Date())
         return Album(name: "move-\(UUID().uuidString)", storageOption: storage,
                      creationDate: Date(), key: key,
                      albumID: storage == .cloudKit ? UUID().uuidString : nil)
@@ -144,10 +143,8 @@ final class CloudKitMediaMoveTests: XCTestCase {
         // carry the source file's proven fingerprint, not the destination key's.
         let sourceKey = randomKey()
         let destKey = randomKey()
-        let sourcePriv = PrivateKey(name: "srckey-\(UUID().uuidString.prefix(4))",
-                                    keyBytes: sourceKey, creationDate: Date())
-        let destPriv = PrivateKey(name: "dstkey-\(UUID().uuidString.prefix(4))",
-                                  keyBytes: destKey, creationDate: Date())
+        let sourcePriv = PrivateKey(keyBytes: sourceKey, creationDate: Date())
+        let destPriv = PrivateKey(keyBytes: destKey, creationDate: Date())
         let source = Album(name: "src-\(UUID().uuidString)", storageOption: .local,
                            creationDate: Date(), key: sourcePriv)
         let dest = Album(name: "dst-\(UUID().uuidString)", storageOption: .cloudKit,

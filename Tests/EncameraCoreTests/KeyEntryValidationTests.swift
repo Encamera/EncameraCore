@@ -6,8 +6,7 @@ import XCTest
 final class KeyEntryValidationTests: XCTestCase {
 
     /// The device's own key, present before entry in the additive test.
-    private let deviceKey = PrivateKey(name: AppConstants.defaultKeyName,
-                                       keyBytes: Array(repeating: 0x42, count: 32),
+    private let deviceKey = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32),
                                        creationDate: Date(timeIntervalSince1970: 0))
 
     private let correctPhrase = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"]
@@ -16,7 +15,7 @@ final class KeyEntryValidationTests: XCTestCase {
     /// The fingerprint (full hex) a phrase derives to under the given manager —
     /// the same derivation `acceptKey` uses, so a match is by construction.
     private func fingerprint(of phrase: [String], manager: KeyManager) throws -> String {
-        try manager.deriveKey(from: phrase, name: AppConstants.defaultKeyName).keychainLabel
+        try manager.deriveKey(from: phrase).keychainLabel
     }
 
     // MARK: - Tests

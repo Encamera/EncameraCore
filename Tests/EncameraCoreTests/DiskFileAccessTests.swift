@@ -43,8 +43,8 @@ final class FakeICloudAlbumManager: DemoAlbumManager {
 
 final class DiskFileAccessTests: XCTestCase {
 
-    private let keyA = PrivateKey(name: "keyA", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
-    private let keyB = PrivateKey(name: "keyB", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyA = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyB = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
     private let plaintext = Data((0..<30000).map { UInt8($0 % 251) })
 
     private var tempDirectory: URL!
@@ -108,7 +108,7 @@ final class DiskFileAccessTests: XCTestCase {
     }
 
     func testMissingKeyReportedInsteadOfGenericDecryptError() async throws {
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyB
         let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
@@ -200,7 +200,7 @@ final class DiskFileAccessTests: XCTestCase {
     /// with a generic error, which is how a CloudKit second device ended up
     /// showing the generic failure glyph for every locked item on the rig.
     func testPreviewNeedingAnAbsentKeyReportsMissingKeyNotAGenericFailure() async throws {
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyB
         let diskAccess = await makeDiskAccess(albumKey: keyB, keyManager: keyManager)
@@ -411,7 +411,7 @@ final class DiskFileAccessTests: XCTestCase {
         keyManager.currentKey = keyB
         let diskAccess = await makeICloudDiskAccess(keyManager: keyManager)
 
-        let foreign = PrivateKey(name: "foreign", keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let foreign = PrivateKey(keyBytes: Array(repeating: 0x5A, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         var media: [EncryptedMedia] = []
         for _ in 0..<8 {
             media.append(try await encryptFixture(with: foreign, id: UUID().uuidString))
@@ -436,7 +436,7 @@ final class DiskFileAccessTests: XCTestCase {
         keyManager.currentKey = keyB
         let diskAccess = await makeICloudDiskAccess(keyManager: keyManager)
 
-        let foreign = PrivateKey(name: "foreign", keyBytes: Array(repeating: 0x5B, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let foreign = PrivateKey(keyBytes: Array(repeating: 0x5B, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let first = try await encryptFixture(with: foreign, id: UUID().uuidString)
         let second = try await encryptFixture(with: foreign, id: UUID().uuidString)
 
@@ -510,8 +510,8 @@ final class DiskFileAccessTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: savedURL) }
 
         var attempts: [String] = []
-        let result = await KeyDiscovery.discoverKey(for: savedURL, keyManager: keyManager, onAttempt: { attempts.append($0.name) })
-        XCTAssertEqual(attempts, ["keyA"], "A born-stamped file must resolve with a single test-decrypt, no sweep")
+        let result = await KeyDiscovery.discoverKey(for: savedURL, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
+        XCTAssertEqual(attempts, [keyA.keychainLabel], "A born-stamped file must resolve with a single test-decrypt, no sweep")
         XCTAssertEqual(result?.key, keyA)
         XCTAssertEqual(result?.stampMatched, true)
     }

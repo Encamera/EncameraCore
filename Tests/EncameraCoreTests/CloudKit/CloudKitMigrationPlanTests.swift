@@ -67,7 +67,7 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         Album(name: name,
               storageOption: storage,
               creationDate: Date(timeIntervalSinceReferenceDate: 700_000_000),
-              key: PrivateKey(name: "key-\(name)", keyBytes: randomKey(),
+              key: PrivateKey(keyBytes: randomKey(),
                               creationDate: Date(timeIntervalSinceReferenceDate: 700_000_000)))
     }
 
@@ -173,13 +173,26 @@ final class CloudKitMigrationPlanTests: XCTestCase {
 
     // MARK: - Last failure
 
+    /// A missing-key failure stays parked until a key the device did not hold
+    /// at the failure arrives, judged by fingerprint.
+    func testMissingKeyFailureUnblocksOnlyForANewFingerprint() {
+        let failure = MigrationLastFailure(category: .missingKey, date: Date(),
+                                           heldKeyFingerprints: ["aa", "bb"])
+        XCTAssertTrue(failure.blocksAutomaticResume(now: Date(), isAccountAvailable: true,
+                                                    heldKeyFingerprints: ["aa", "bb"]))
+        XCTAssertTrue(failure.blocksAutomaticResume(now: Date(), isAccountAvailable: true,
+                                                    heldKeyFingerprints: ["aa"]))
+        XCTAssertFalse(failure.blocksAutomaticResume(now: Date(), isAccountAvailable: true,
+                                                     heldKeyFingerprints: ["aa", "bb", "cc"]))
+    }
+
     /// The failure a run ends on is written to the checkpoint, survives
     /// encode/decode and a re-plan, and is cleared by a run the user starts.
     @MainActor
     func testLastFailureRoundTripsAndClearsOnUserResume() async throws {
         let failure = MigrationLastFailure(category: .missingKey,
                                            date: Date(timeIntervalSinceReferenceDate: 760_000_000),
-                                           heldKeyNames: ["a", "b"])
+                                           heldKeyFingerprints: ["a", "b"])
         var plan = makePlan(items: [makeItem()])
         plan.lastFailure = failure
         let key = randomKey()

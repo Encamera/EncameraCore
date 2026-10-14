@@ -3,7 +3,6 @@
 "DefaultAlbumName" = "我的相簿";
 "Could not delete keychain items." = "無法刪除鑰匙圈項目。";
 "Not authenticated for this operation." = "未經授權執行此操作。";
-"Key name is invalid, must be more than two characters" = "金鑰名稱無效，必須超過兩個字元";
 "Key not found." = "找不到金鑰。";
 "Error coding keychain data." = "編碼鑰匙圈資料時發生錯誤。";
 "A key with this name already exists." = "已經存在同名的鑰匙。";
@@ -141,7 +140,6 @@
 "Backup Keys" = "備份金鑰";
 "Keys" = "金鑰";
 "Key Management" = "金鑰管理";
-"Key Name: %@" = "金鑰名稱：%@";
 "Creation Date: %@" = "建立日期：%@";
 "Save Key" = "儲存金鑰";
 "Confirm adding key" = "確認新增金鑰";

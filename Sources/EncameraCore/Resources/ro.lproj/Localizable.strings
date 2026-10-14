@@ -3,7 +3,6 @@
 "DefaultAlbumName" = "Albumul meu";
 "Could not delete keychain items." = "Nu s-au putut șterge elementele din portchei.";
 "Not authenticated for this operation." = "Nu sunteți autentificat pentru această operațiune.";
-"Key name is invalid, must be more than two characters" = "Numele cheii este invalid, trebuie să aibă mai mult de două caractere";
 "Key not found." = "Cheia nu a fost găsită.";
 "Error coding keychain data." = "Eroare la codificarea datelor din keychain.";
 "A key with this name already exists." = "O cheie cu acest nume există deja.";
@@ -144,7 +143,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "Backup Keys" = "Chei de rezervă";
 "Keys" = "Chei";
 "Key Management" = "Gestionare chei";
-"Key Name: %@" = "Nume cheie: %@";
 "Creation Date: %@" = "Data creării: %@";
 "Save Key" = "Salvează cheia";
 "Confirm adding key" = "Confirmă adăugarea cheii";

@@ -204,7 +204,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
     /// The privacy guard: the file is named by a hash and holds record names and
     /// integers only.
     func testSidecarContainsNoCleartextAlbumName() async throws {
-        let key = PrivateKey(name: "key", keyBytes: Array(repeating: 3, count: 32), creationDate: Date())
+        let key = PrivateKey(keyBytes: Array(repeating: 3, count: 32), creationDate: Date())
         let album = Album(name: "Beach Trip 2026", storageOption: .cloudKit, creationDate: Date(), key: key,
                           albumID: UUID().uuidString)
         let url = AlbumSizeSidecar.sidecarURL(for: album)

@@ -3,7 +3,6 @@
   "DefaultAlbumName" = "Mon album";
   "Could not delete keychain items." = "Impossible de supprimer les éléments du trousseau.";
   "Not authenticated for this operation." = "Non authentifié pour cette opération.";
-  "Key name is invalid, must be more than two characters" = "Le nom de la clé est invalide, il doit comporter plus de deux caractères.";
   "Key not found." = "Clé non trouvée.";
   "Error coding keychain data." = "Erreur lors du codage des données du trousseau.";
   "A key with this name already exists." = "Une clé portant ce nom existe déjà.";
@@ -143,7 +142,6 @@
   "Backup Keys" = "Sauvegarder les clés";
   "Keys" = "Clés";
   "Key Management" = "Gestion des clés";
-  "Key Name: %@" = "Nom de la clé : %@";
   "Creation Date: %@" = "Date de création : %@";
   "Save Key" = "Enregistrer la clé";
   "Confirm adding key" = "Confirmer l'ajout de la clé";

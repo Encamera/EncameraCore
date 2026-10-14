@@ -21,8 +21,7 @@ final class CloudKitMigrationRenameTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
-        let key = PrivateKey(name: "rename-\(UUID().uuidString.prefix(6))",
-                             keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
                              creationDate: Date())
         let keyManager = DemoKeyManager(keys: [key])
         keyManager.currentKey = key

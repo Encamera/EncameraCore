@@ -17,8 +17,7 @@ import UIKit
 final class CloudKitStorageDetailsTests: XCTestCase {
 
     private func makeAlbum() -> Album {
-        let key = PrivateKey(name: "test-key",
-                             keyBytes: Array(repeating: UInt8(9), count: 32),
+        let key = PrivateKey(keyBytes: Array(repeating: UInt8(9), count: 32),
                              creationDate: Date())
         return Album(name: "Storage-\(UUID().uuidString)",
                      storageOption: .cloudKit,

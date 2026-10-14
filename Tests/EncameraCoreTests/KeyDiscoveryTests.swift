@@ -4,8 +4,8 @@ import XCTest
 final class KeyDiscoveryTests: XCTestCase {
 
     private var tempDirectory: URL!
-    private let keyA = PrivateKey(name: "keyA", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
-    private let keyB = PrivateKey(name: "keyB", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyA = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private let keyB = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 0))
 
     /// Multi-block plaintext so the first block is a full 20480-byte block.
     private let plaintext = Data((0..<50000).map { UInt8($0 % 251) })
@@ -168,12 +168,12 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager: KeyManager
     ) async -> (result: KeyDiscoveryResult?, attempts: [String]) {
         var attempts: [String] = []
-        let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.name) })
+        let result = await KeyDiscovery.discoverKey(for: url, keyManager: keyManager, onAttempt: { attempts.append($0.keychainLabel) })
         return (result, attempts)
     }
 
     func testStampMatchWinsFirst() async throws {
-        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let keyC = PrivateKey(keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: keyB)
         KeyStampSlot.writeStamp(keyB.stampPrefix, url: url)
 
@@ -181,7 +181,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, ["keyB"], "A stamped file must resolve with exactly one test-decrypt attempt")
+        XCTAssertEqual(attempts, [keyB.keychainLabel], "A stamped file must resolve with exactly one test-decrypt attempt")
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, true)
     }
@@ -194,7 +194,7 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, ["keyA", "keyB"], "Stale stamp candidate rejected by pull, then the sweep finds the real key")
+        XCTAssertEqual(attempts, [keyA.keychainLabel, keyB.keychainLabel], "Stale stamp candidate rejected by pull, then the sweep finds the real key")
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, false)
     }
@@ -207,20 +207,20 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, ["keyA", "keyB"])
+        XCTAssertEqual(attempts, [keyA.keychainLabel, keyB.keychainLabel])
         XCTAssertEqual(result?.key, keyB)
         XCTAssertEqual(result?.stampMatched, false)
     }
 
     func testCurrentKeyBeforeRemainingKeys() async throws {
-        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let keyC = PrivateKey(keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: keyB)
 
         let keyManager = DemoKeyManager(keys: [keyA, keyB, keyC])
         keyManager.currentKey = keyC
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, ["keyC", "keyA", "keyB"], "No hints: current key first, then remaining stored keys in order")
+        XCTAssertEqual(attempts, [keyC.keychainLabel, keyA.keychainLabel, keyB.keychainLabel], "No hints: current key first, then remaining stored keys in order")
         XCTAssertEqual(result?.key, keyB)
     }
 
@@ -230,8 +230,8 @@ final class KeyDiscoveryTests: XCTestCase {
         // (~58k candidates — the 4-byte prefix birthday-bounds at ~2^16).
         let collidingBytes1 = KeyDiscoveryTests.bytes(fromHex: "e1b33d369bf555406f9956543d5b0ae0581a6501cfc70d33c3ff0b64346a1b61")
         let collidingBytes2 = KeyDiscoveryTests.bytes(fromHex: "d0213432d6b5707cd28d27ae4dac8a94c6c18e6c626bcfda3c16be3cf35cb683")
-        let collider1 = PrivateKey(name: "collider1", keyBytes: collidingBytes1, creationDate: Date(timeIntervalSince1970: 0))
-        let collider2 = PrivateKey(name: "collider2", keyBytes: collidingBytes2, creationDate: Date(timeIntervalSince1970: 0))
+        let collider1 = PrivateKey(keyBytes: collidingBytes1, creationDate: Date(timeIntervalSince1970: 0))
+        let collider2 = PrivateKey(keyBytes: collidingBytes2, creationDate: Date(timeIntervalSince1970: 0))
         XCTAssertEqual(collider1.stampPrefix, collider2.stampPrefix, "Fixture keys must share a stamp prefix")
         XCTAssertNotEqual(collider1.keyBytes, collider2.keyBytes)
 
@@ -242,13 +242,13 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = nil
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts, ["collider1", "collider2"], "Both stamp matches tried in stored-key order")
+        XCTAssertEqual(attempts, [collider1.keychainLabel, collider2.keychainLabel], "Both stamp matches tried in stored-key order")
         XCTAssertEqual(result?.key, collider2)
         XCTAssertEqual(result?.stampMatched, true)
     }
 
     func testNilWhenNoKeyDecrypts() async throws {
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: unstoredKey)
 
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
@@ -285,8 +285,8 @@ final class KeyDiscoveryTests: XCTestCase {
     /// sweeps it, so media encrypted under it opens with no user interaction.
     /// Both keys carry the same display name, exactly as in production.
     func testMediaFromRetainedKeyStillDiscoverable() async throws {
-        let retained = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
-        let imported = PrivateKey(name: "encamera_default_key", keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 1))
+        let retained = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let imported = PrivateKey(keyBytes: Array(repeating: 0x24, count: 32), creationDate: Date(timeIntervalSince1970: 1))
         let url = try await encryptV2Fixture(with: retained, name: "retained-key-media")
 
         let keyManager = DemoKeyManager(keys: [imported, retained])
@@ -307,7 +307,7 @@ final class KeyDiscoveryTests: XCTestCase {
         let keyManager = DemoKeyManager(keys: [keyA, keyB])
         keyManager.currentKey = keyA
 
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let foreignURL = try await encryptV2Fixture(with: unstoredKey, name: "foreign")
         let foreignOutcome = await KeyDiscovery.discoverKeyOutcome(for: foreignURL, keyManager: keyManager)
         XCTAssertEqual(foreignOutcome, .noKnownKey(requiredStampPrefix: nil))
@@ -393,7 +393,7 @@ final class KeyDiscoveryTests: XCTestCase {
     /// The required fingerprint comes from the stamp slot when the file carries
     /// one, so the UI can name the key the user has to go find.
     func testRequiredFingerprintReportedFromStamp() async throws {
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: unstoredKey, name: "stamped-foreign")
         KeyStampSlot.writeStamp(unstoredKey.stampPrefix, url: url)
 
@@ -413,7 +413,7 @@ final class KeyDiscoveryTests: XCTestCase {
     /// An unstamped foreign file yields no fingerprint. The required key is
     /// genuinely unknown and must not be invented.
     func testUnstampedForeignMediaReportsNoFingerprint() async throws {
-        let unstoredKey = PrivateKey(name: "unstored", keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let unstoredKey = PrivateKey(keyBytes: Array(repeating: 0x99, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: unstoredKey, name: "unstamped-foreign")
         XCTAssertNil(KeyStampSlot.readStamp(url: url), "the fixture must carry no stamp")
 
@@ -484,7 +484,7 @@ final class KeyDiscoveryTests: XCTestCase {
     /// query the key manager itself — that equivalence is the whole basis for
     /// hoisting the keychain read out of the per-image loop.
     func testInjectedStoredKeysSnapshotMatchesSelfQuery() async throws {
-        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let keyC = PrivateKey(keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: keyB, name: "snapshot-equiv")
         let keyManager = DemoKeyManager(keys: [keyA, keyB, keyC])
         keyManager.currentKey = keyA
@@ -516,7 +516,7 @@ final class KeyDiscoveryTests: XCTestCase {
     }
 
     func testXattrHintOrderedBeforeCurrentKey() async throws {
-        let keyC = PrivateKey(name: "keyC", keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let keyC = PrivateKey(keyBytes: Array(repeating: 0x77, count: 32), creationDate: Date(timeIntervalSince1970: 0))
         let url = try await encryptV2Fixture(with: keyC, name: "xattr-order")
         try ExtendedAttributesUtil.setKeyUUID(keyB.uuid, for: url)
 
@@ -524,8 +524,8 @@ final class KeyDiscoveryTests: XCTestCase {
         keyManager.currentKey = keyA
 
         let (result, attempts) = await discoverRecordingAttempts(url: url, keyManager: keyManager)
-        XCTAssertEqual(attempts.first, "keyB", "the xattr-named key must be tried first, ahead of the current key")
-        XCTAssertEqual(attempts, ["keyB", "keyA", "keyC"])
+        XCTAssertEqual(attempts.first, keyB.keychainLabel, "the xattr-named key must be tried first, ahead of the current key")
+        XCTAssertEqual(attempts, [keyB.keychainLabel, keyA.keychainLabel, keyC.keychainLabel])
         XCTAssertEqual(result?.key, keyC)
     }
 

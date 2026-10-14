@@ -36,7 +36,7 @@ final class CloudKitFoundationsTests: XCTestCase {
 
     private func makeKeyedHandler(keyBytes: [UInt8]) -> SyncedStoreEncryptionHandler {
         let keyManager = DemoKeyManager()
-        keyManager.currentKey = PrivateKey(name: "test", keyBytes: keyBytes, creationDate: Date())
+        keyManager.currentKey = PrivateKey(keyBytes: keyBytes, creationDate: Date())
         return SyncedStoreEncryptionHandler(keyManager: keyManager)
     }
 

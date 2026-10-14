@@ -39,7 +39,6 @@
 "FooterView.MediaDetails" = "Mediedetaljer";
 "Notification.InactiveUserReminder.Body" = "Glem ikke at sikre flere billeder ved at tilføje dem til dit album. Importér nu!";
 "EmptyAlbumTakeAPictureHeading" = "Opret et nyt minde";
-"Key name is invalid, must be more than two characters" = "Nøglenavnet er ugyldigt, det skal være mere end to tegn";
 "AuthenticationMethod.SecurityLevel.password" = "Mest sikre mulighed";
 "Delete Album question" = "Slet album?";
 "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Jeg forstår";
@@ -169,7 +168,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "Roadmap" = "Køreplan & funktionsanmodninger";
 "Support privacy-focused development." = "Støt privatlivsfokuseret udvikling.";
 "CannotClearTitle" = "Kan ikke rydde";
-"Key Name: %@" = "Nøgle navn: %@";
 "ViewInFiles" = "Vis i Filer-appen";
 "TelegramGroupJoinTitle" = "Deltag i Telegram-gruppen";
 "DoYouRememberYourPin" = "Kan du huske din adgangskode?";
