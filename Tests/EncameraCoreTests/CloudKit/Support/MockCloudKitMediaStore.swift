@@ -147,6 +147,9 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// something else (a delete) land *during* an upload rather than guessing with a
     /// sleep.
     var onUploadStarted: (@Sendable () async -> Void)?
+    /// Fractions each upload reports, `uploadStepNanos` apart, before it succeeds.
+    var uploadProgressSteps: [Double] = []
+    var uploadStepNanos: UInt64 = 20_000_000
 
     func upload(_ item: CloudKitMediaUpload,
                 progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
@@ -165,6 +168,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
             throw CloudKitMediaStoreError.partial(
                 failed: [item.recordName: CKErrorFactory.error(.referenceViolation)]
             )
+        }
+        for fraction in uploadProgressSteps {
+            try await Task.sleep(nanoseconds: uploadStepNanos)
+            progress(fraction)
         }
         locked { _liveRecords[item.recordName] = item }
         if reflectUploadsInMetadata {

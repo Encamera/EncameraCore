@@ -433,23 +433,39 @@ public struct MigrationPlan: Codable, Sendable {
     /// An item whose size is unknown (`0`, e.g. a CloudKit record the size sidecar
     /// has not seen) is weighted as the average known item, so it still moves the
     /// ring. With no sizes at all every item weighs the same.
-    public var fractionComplete: Double {
+    public var fractionComplete: Double { fractionComplete(inFlight: [:]) }
+
+    /// `fractionComplete` with partial credit for items part-way through their
+    /// transfer: `inFlight` maps an item index to how far its transfer has got,
+    /// 0...1, where 1 is the credit `verified` earns. Only an item still pending or
+    /// transferring takes it, so a report that arrives after the item moved on
+    /// never counts twice.
+    public func fractionComplete(inFlight: [Int: Double]) -> Double {
         guard !items.isEmpty else { return 1 }
         let known = items.lazy.map(\.sizeBytes).filter { $0 > 0 }
         let knownCount = known.count
         let fallbackWeight = knownCount > 0 ? Double(known.reduce(0, +)) / Double(knownCount) : 1
         var done = 0.0
         var total = 0.0
-        for item in items {
+        for (index, item) in items.enumerated() {
             let weight = item.sizeBytes > 0 ? Double(item.sizeBytes) : fallbackWeight
             total += weight
             switch item.state {
             case .sourceDeleted, .skipped: done += weight
             case .verified, .removalPending: done += weight * (1 - Self.sourceRemovalShare)
-            default: break
+            case .pending, .uploading, .uploaded:
+                let transferred = min(max(inFlight[index] ?? 0, 0), 1)
+                done += weight * (1 - Self.sourceRemovalShare) * transferred
+            case .failed: break
             }
         }
         return total > 0 ? min(done / total, 1) : 1
+    }
+
+    /// The share of an item's transfer that downloading its iCloud Drive original
+    /// accounts for, before the upload. Nothing downloads for any other source.
+    public var downloadShare: Double {
+        direction == .toCloudKit && source.storage == .icloud ? 0.5 : 0
     }
 
     public var verifiedCount: Int {

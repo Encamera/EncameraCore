@@ -215,21 +215,63 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// empty plan reads as complete, so it is published as 0% instead of a full ring.
     private func publishProgress(_ plan: MigrationPlan, currentItemName: String? = nil) {
         var snapshot = MigrationProgress(plan: plan, currentItemName: currentItemName, phase: currentPhase)
+        snapshot.fractionComplete = plan.fractionComplete(inFlight: transferProgress)
         if plan.items.isEmpty, currentPhase != nil { snapshot.fractionComplete = 0 }
+        lastPublishedPlan = plan
+        lastPublishedAt = Date()
         snapshot.acceptsCancel = acceptsCancel
         progress = snapshot
         logProgressIfChanged(snapshot)
+    }
+
+    /// How far each in-flight item's transfer has got, 0...1, keyed by item index:
+    /// the iCloud Drive download and then the upload of a move to CloudKit, the
+    /// download of a move back. Folded into every published fraction so the ring
+    /// moves while a large item transfers, not only when it verifies. Cleared at
+    /// the start of every run.
+    private var transferProgress: [Int: Double] = [:]
+    /// The plan the last snapshot was built from, which a transfer report is
+    /// published against.
+    private var lastPublishedPlan: MigrationPlan?
+    private var lastPublishedAt: Date?
+
+    /// Smallest change in the overall fraction, and longest wait, before a
+    /// transfer report is published. Uploads report many times a second.
+    static let transferPublishStep = 0.005
+    static let transferPublishInterval: TimeInterval = 0.1
+
+    /// Records how far an item's transfer has got and republishes when the ring
+    /// would visibly move. An item's transfer never moves backwards — a retried
+    /// upload starts its own fraction over — and a report for an item no longer
+    /// transferring is dropped.
+    func noteTransferProgress(item index: Int, fraction: Double) {
+        guard let plan = lastPublishedPlan, plan.items.indices.contains(index) else { return }
+        switch plan.items[index].state {
+        case .pending, .uploading, .uploaded: break
+        default: return
+        }
+        let clamped = min(max(fraction, 0), 1)
+        guard clamped > transferProgress[index] ?? 0 else { return }
+        let before = progress.fractionComplete
+        transferProgress[index] = clamped
+        let after = plan.fractionComplete(inFlight: transferProgress)
+        let waited = lastPublishedAt.map { Date().timeIntervalSince($0) >= Self.transferPublishInterval } ?? true
+        guard after - before >= Self.transferPublishStep || waited else { return }
+        publishProgress(plan, currentItemName: progress.currentItemName)
     }
 
     /// The last snapshot `logProgressIfChanged` wrote, so the log carries one line
     /// per meaningful change rather than one per publish.
     private var lastLoggedProgress: MigrationProgress?
 
-    /// Logs a progress snapshot when anything but the materializer's percentage
-    /// ticks (published as the item name) changed since the last line.
+    /// Logs a progress snapshot when anything but the fraction or the
+    /// materializer's percentage ticks (published as the item name) changed since
+    /// the last line.
     private func logProgressIfChanged(_ snapshot: MigrationProgress) {
         if snapshot.phase == .materializing, lastLoggedProgress?.phase == .materializing { return }
-        guard snapshot != lastLoggedProgress else { return }
+        var withoutFraction = snapshot
+        withoutFraction.fractionComplete = lastLoggedProgress?.fractionComplete ?? snapshot.fractionComplete
+        guard withoutFraction != lastLoggedProgress else { return }
         lastLoggedProgress = snapshot
         printDebug("progress \(snapshot)")
     }
@@ -561,6 +603,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // snapshot, or the ring opens already part- or fully-drawn.
         currentPhase = nil
         lastLoggedProgress = nil
+        transferProgress = [:]
+        lastPublishedPlan = nil
+        lastPublishedAt = nil
         progress = .idle
         printDebug("claim source=\(source.id) destination=\(destination?.id ?? "<resolved by plan>")")
         defer { printDebug("run ended state=\(state) \(progress)") }
@@ -836,6 +881,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             noteMissingKey: { [weak self] in self?.failedForMissingKey = true },
             setPhase: { [weak self] phase, plan, itemName in
                 self?.setPhase(phase, plan: plan, currentItemName: itemName)
+            },
+            reportTransferProgress: { [weak self] index, fraction in
+                Task { @MainActor in self?.noteTransferProgress(item: index, fraction: fraction) }
             }
         )
     }
@@ -1611,6 +1659,11 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             inAlbumDirectory: sourceModel.baseURL,
             onProgress: { [weak self] fraction in
                 guard let self, self.currentPhase == .materializing else { return }
+                // The batch reports one fraction for all its files, so each item
+                // in it is credited the same share of its download.
+                for i in indices where fraction * snapshot.downloadShare > self.transferProgress[i] ?? 0 {
+                    self.transferProgress[i] = fraction * snapshot.downloadShare
+                }
                 self.publishProgress(snapshot,
                                      currentItemName: "\(Int(fraction * 100))%")
             })

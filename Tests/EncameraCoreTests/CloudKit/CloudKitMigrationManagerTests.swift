@@ -1579,6 +1579,50 @@ extension CloudKitMigrationManagerTests {
         XCTAssertEqual(snapshots.last?.fractionComplete ?? 0, 1, accuracy: 0.0001)
     }
 
+    /// The ring follows an upload while it runs instead of jumping when the item
+    /// verifies.
+    func testTheRingMovesWhileAnItemUploadsToCloudKit() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        store.uploadProgressSteps = [0.25, 0.5, 0.75]
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        var snapshots: [MigrationProgress] = []
+        let subscription = manager.$progress.sink { snapshots.append($0) }
+        defer { subscription.cancel() }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        let live = snapshots.filter { $0.phase != nil }
+        let beforeFirstVerified = live.filter { $0.verifiedCount == 0 }.map(\.fractionComplete)
+        XCTAssertGreaterThanOrEqual(Set(beforeFirstVerified.filter { $0 > 0 }).count, 2,
+                                    "the first item's upload moves the ring before it verifies: \(beforeFirstVerified)")
+        let fractions = live.map(\.fractionComplete)
+        XCTAssertEqual(fractions, fractions.sorted(), "the ring never moves backwards")
+        XCTAssertEqual(manager.progress.fractionComplete, 1, accuracy: 0.0001)
+    }
+
+    func testTheRingMovesWhileAnItemDownloadsToThisDevice() async throws {
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        fixture.store.fetchBlobProgressSteps = [0.25, 0.5, 0.75]
+        var snapshots: [MigrationProgress] = []
+        let subscription = fixture.manager.$progress.sink { snapshots.append($0) }
+        defer { subscription.cancel() }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        let live = snapshots.filter { $0.phase != nil }
+        let beforeFirstVerified = live.filter { $0.verifiedCount == 0 }.map(\.fractionComplete)
+        XCTAssertGreaterThanOrEqual(Set(beforeFirstVerified.filter { $0 > 0 }).count, 2,
+                                    "the first item's download moves the ring before it verifies: \(beforeFirstVerified)")
+        let fractions = live.map(\.fractionComplete)
+        XCTAssertEqual(fractions, fractions.sorted(), "the ring never moves backwards")
+    }
+
     func testANewRunOnTheSameManagerDoesNotStartFromTheLastRunsProgress() async throws {
         let fixture = try makeToLocalFixture(count: 2)
         defer { cleanup(fixture) }

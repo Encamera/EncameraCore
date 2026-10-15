@@ -301,6 +301,37 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         XCTAssertEqual(previous, 1, accuracy: 0.0001)
     }
 
+    func testAnItemInFlightEarnsItsShareOfTheTransfer() {
+        let plan = makePlan(items: [
+            makeItem(size: 100, state: .uploading),
+            makeItem(size: 300, state: .pending),
+        ])
+        let transferShare = 1 - MigrationPlan.sourceRemovalShare
+        XCTAssertEqual(plan.fractionComplete(inFlight: [0: 0.5, 1: 0.25]),
+                       (100 * 0.5 + 300 * 0.25) * transferShare / 400, accuracy: 0.0001)
+        XCTAssertEqual(plan.fractionComplete(inFlight: [0: 1]), 100 * transferShare / 400, accuracy: 0.0001,
+                       "a finished transfer earns what verifying does")
+    }
+
+    func testInFlightCreditIsIgnoredOnceAnItemHasMovedOn() {
+        let plan = makePlan(items: [
+            makeItem(size: 100, state: .verified),
+            makeItem(size: 100, state: .failed),
+            makeItem(size: 100, state: .sourceDeleted),
+        ])
+        XCTAssertEqual(plan.fractionComplete(inFlight: [0: 0.3, 1: 0.9, 2: 0.5]), plan.fractionComplete, accuracy: 0.0001)
+    }
+
+    func testOnlyAnICloudDriveMoveToCloudKitDownloadsBeforeUploading() {
+        let fromICloudDrive = makeItemPlan(source: MigrationEndpoint(albumName: "Src", storage: .icloud),
+                                           destination: MigrationEndpoint(albumName: "Dst", storage: .cloudKit))
+        let fromLocal = makeItemPlan(source: MigrationEndpoint(albumName: "Src", storage: .local),
+                                     destination: MigrationEndpoint(albumName: "Dst", storage: .cloudKit))
+        XCTAssertEqual(fromICloudDrive.downloadShare, 0.5)
+        XCTAssertEqual(fromLocal.downloadShare, 0)
+        XCTAssertEqual(makeItemPlan().downloadShare, 0, "a move back to this device has no iCloud Drive step")
+    }
+
     func testItemsWithUnknownSizeStillAdvanceTheFraction() {
         let plan = makePlan(items: [
             makeItem(size: 0, state: .sourceDeleted),

@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import Combine
 import CloudKit
 
 // MARK: - Context
@@ -35,6 +36,8 @@ struct MigrationRunContext {
     /// Records that an item failed because its key is not on this device.
     let noteMissingKey: () -> Void
     let setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void
+    /// Reports how far an item's transfer has got, 0...1, from any queue.
+    let reportTransferProgress: @Sendable (_ index: Int, _ fraction: Double) -> Void
 }
 
 // MARK: - Step
@@ -194,6 +197,11 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             var uploadFileURL = proven.uploadURL
             var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
             var reencryptScratch: URL?
+            // The item's transfer after its download: a re-encrypt, when there is
+            // one, takes `reencryptShare` of it and the upload the rest.
+            let report = context.reportTransferProgress
+            let transferStart = plan.downloadShare
+            let reencryptShare = 0.4
             defer { if let reencryptScratch { MigrationReencryptScratch.release(reencryptScratch) } }
             if SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL) {
                 let header = try SeekableEncryptedHeader.read(fromFileAt: encURL).header
@@ -206,7 +214,9 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 // output does not decrypt back to the original's plaintext.
                 let reencrypted = try await Self.reencryptToSeekable(sourceENC2: encURL,
                                                                      mediaID: item.mediaID,
-                                                                     keyBytes: proven.key.keyBytes)
+                                                                     keyBytes: proven.key.keyBytes) { fraction in
+                    report(index, transferStart + (1 - transferStart) * reencryptShare * fraction)
+                }
                 reencryptScratch = reencrypted.scratchDirectory
                 uploadFileURL = reencrypted.url
                 chunkGeometry = (reencrypted.header.chunkCount, Int64(reencrypted.header.plaintextLength))
@@ -230,8 +240,12 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                                              encryptedThumbURL: thumbURL,
                                              existingChunks: reencryptScratch == nil ? .resumeByProbe : .overwrite)
             context.setPhase(.uploading, plan, item.mediaID)
+            let uploadStart = transferStart + (1 - transferStart) * (reencryptScratch == nil ? 0 : reencryptShare)
             do {
-                try await Self.uploadWithRetry(upload, coordinator: context.coordinator, plan: plan, itemName: item.mediaID, setPhase: context.setPhase)
+                try await Self.uploadWithRetry(upload, coordinator: context.coordinator, plan: plan, itemName: item.mediaID,
+                                               setPhase: context.setPhase) { fraction in
+                    report(index, uploadStart + (1 - uploadStart) * fraction)
+                }
             } catch let error as CloudKitMediaStoreError {
                 // A record with this stable name is already on the server (e.g. a prior
                 // run whose checkpoint was lost re-uploaded it): the bytes are there, so
@@ -363,11 +377,12 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                                         coordinator: CloudKitSyncCoordinator,
                                         plan: MigrationPlan,
                                         itemName: String,
-                                        setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void) async throws {
+                                        setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void,
+                                        progress: @escaping @Sendable (Double) -> Void) async throws {
         var attempt = 0
         while true {
             do {
-                _ = try await coordinator.upload(upload, progress: { _ in })
+                _ = try await coordinator.upload(upload, progress: progress)
                 return
             } catch let error as CloudKitMediaStoreError {
                 guard case .retry(let after) = CloudKitMigrationManager.unwrapPartial(error) else { throw error }
@@ -438,9 +453,12 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
     /// crash is removed by the next `TempFileAccess.cleanupTemporaryFiles()`. A
     /// streaming ENC2-read -> ENC3-write pipe would keep the plaintext off disk
     /// altogether.
+    /// `progress` runs 0...1 over the decrypt and the encrypt, half each; the
+    /// verify pass after them reports nothing.
     static func reencryptToSeekable(sourceENC2: URL,
                                     mediaID: String,
-                                    keyBytes: [UInt8]) async throws
+                                    keyBytes: [UInt8],
+                                    progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws
         -> (url: URL, header: SeekableEncryptedHeader, scratchDirectory: URL) {
         let scratchDir = try MigrationReencryptScratch.makeDirectory()
         do {
@@ -449,7 +467,9 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
 
             let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
             let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
+            let decryptProgress = handler.progress.sink { progress($0 * 0.5) }
             _ = try await handler.decryptToURL()
+            decryptProgress.cancel()
 
             let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
             let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
@@ -459,7 +479,9 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             // multi-GB encrypt must never run on the main thread.
             let header = try await Task.detached(priority: .userInitiated) {
                 try SeekableEncryptedWriter(keyBytes: keyBytes)
-                    .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON)
+                    .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON) { fraction in
+                        progress(0.5 + fraction * 0.5)
+                    }
             }.value
             try afterReencryptWriteForTesting?(destination)
 
@@ -523,8 +545,11 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
             } else {
                 let cachedURL: URL
                 do {
+                    let report = context.reportTransferProgress
                     cachedURL = try await context.coordinator.ensureBlobLocal(recordName: item.recordName,
-                                                                              albumID: context.cloudKitAlbumID) { _ in }
+                                                                              albumID: context.cloudKitAlbumID) { fraction in
+                        report(index, fraction)
+                    }
                 } catch CloudKitMediaStoreError.notFound {
                     // The record is gone from CloudKit, so there is nothing to move.
                     printDebug("item SKIPPED recordName=\(item.recordName) — record not found in CloudKit")
