@@ -253,7 +253,9 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     // MARK: - Keys
 
     @discardableResult public func generateKeyUsingRandomWords() throws -> PrivateKey {
-        try privateKeyManager.generateKeyUsingRandomWords(synchronizable: synchronizableForWrites)
+        let key = try privateKeyManager.generateKeyUsingRandomWords(synchronizable: synchronizableForWrites)
+        MintedKeys.record(key)
+        return key
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {

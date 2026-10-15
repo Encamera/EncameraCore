@@ -71,6 +71,10 @@ public enum UserDefaultKey {
     /// the deferral is stored; whether an upgrade is needed is derived from
     /// whether any `.icloud` album still exists.
     case cloudKitUpgradeDeferredAt
+    /// Fingerprints (`PrivateKey.keyFingerprint`) of the keys generated on this
+    /// device, so `MultiDeviceStateRecorder` can publish where each was minted
+    /// once the account exists.
+    case keysMintedOnThisDevice
 
     var rawValue: String {
         switch self {
@@ -155,7 +159,9 @@ public enum UserDefaultKey {
              // it would make every other device on the account wipe its settings at
              // its next launch.
              .pendingDefaultsWipe,
-             .cloudKitUpgradeDeferredAt:
+             .cloudKitUpgradeDeferredAt,
+             // "Minted here" is only true of this device.
+             .keysMintedOnThisDevice:
             return false
         }
     }

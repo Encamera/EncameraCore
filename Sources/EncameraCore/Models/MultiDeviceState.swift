@@ -51,6 +51,11 @@ public struct MultiDeviceState: Codable, Equatable {
     /// Lowercase fingerprint hex (`PrivateKey.keyFingerprint`). Never key bytes.
     public var keyFingerprints: [String]
 
+    /// Fingerprint → `deviceID` of the device that generated the key. Only
+    /// keys in `keyFingerprints` appear, and only once their minting device
+    /// has published them; an imported key never names its importer.
+    public var keyOrigins: [String: String]
+
     /// True when the roster or fingerprint list carries evidence that this
     /// account has been set up before — the concrete replacement for the
     /// retired `hasUsedEncamera` boolean.
@@ -76,10 +81,12 @@ public struct MultiDeviceState: Codable, Equatable {
 
     public init(
         devices: [DeviceRecord] = [],
-        keyFingerprints: [String] = []
+        keyFingerprints: [String] = [],
+        keyOrigins: [String: String] = [:]
     ) {
         self.devices = devices
         self.keyFingerprints = keyFingerprints
+        self.keyOrigins = keyOrigins
     }
 
     /// Combines a record already in the keychain with one a device wants to
@@ -90,6 +97,8 @@ public struct MultiDeviceState: Codable, Equatable {
     ///   both.
     /// - `keyFingerprints` is an order-preserving union, most-recent-first, then
     ///   capped at `maxKeyFingerprints`.
+    /// - `keyOrigins` is a union where the existing origin wins, since a key is
+    ///   minted once; origins of fingerprints that fell off the cap are dropped.
     /// - the roster is then capped at `maxDevices`, evicting the entries with
     ///   the oldest `lastSeen` so the synced item stays bounded.
     ///
@@ -132,9 +141,15 @@ public struct MultiDeviceState: Codable, Equatable {
             fingerprints = Array(fingerprints.prefix(maxKeyFingerprints))
         }
 
+        let keptFingerprints = Set(fingerprints)
+        let origins = incoming.keyOrigins
+            .merging(existing?.keyOrigins ?? [:]) { _, existingOrigin in existingOrigin }
+            .filter { keptFingerprints.contains($0.key) }
+
         return MultiDeviceState(
             devices: devices,
-            keyFingerprints: fingerprints
+            keyFingerprints: fingerprints,
+            keyOrigins: origins
         )
     }
 }
