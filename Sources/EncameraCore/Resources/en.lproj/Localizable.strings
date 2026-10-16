@@ -735,8 +735,6 @@
 "Settings.CloudKitUpgradeRow" = "Upgrade iCloud albums";
 "Settings.ICloudBackupAndSync.EnableTitle" = "Turn on iCloud Backup & Sync?";
 "Settings.ICloudBackupAndSync.EnableSimpleWarning" = "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.";
-"Settings.ICloudBackupAndSync.EnableConflictWarning" = "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.";
-"Settings.ICloudBackupAndSync.EnableConflictWarningMultiple" = "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.";
 "Settings.ICloudBackupAndSync.EnableDrawerTitle" = "Turn on iCloud sync?";
 "Settings.ICloudBackupAndSync.EnableDrawerSubtitle" = "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.";
 "Settings.ICloudBackupAndSync.EnableDrawerConfirm" = "Turn On";
@@ -1145,11 +1143,6 @@
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm" = "I've saved my key";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Later" = "I'll do it later";
-"EncameraDrawerFactory.CredentialConflictDrawer.Title" = "Another account found";
-"EncameraDrawerFactory.CredentialConflictDrawer.Message" = "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?";
-"EncameraDrawerFactory.CredentialConflictDrawer.KeepLocal" = "Keep this device's account";
-"EncameraDrawerFactory.CredentialConflictDrawer.UseSynced" = "Use the other device's account";
-"EncameraDrawerFactory.CredentialConflictDrawer.UseSyncedWarning" = "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.";
 "EncameraDrawerFactory.KeyBackupDrawer.Title" = "Back up your Encryption Key";
 "EncameraDrawerFactory.KeyBackupDrawer.Explanation" = "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.";
 "EncameraDrawerFactory.KeyBackupDrawer.Warning" = "You will not be able to view your media without this key.";

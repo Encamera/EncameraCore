@@ -144,11 +144,6 @@ public protocol KeyManager {
     func credentialSnapshot() -> KeychainCredentialSnapshot
     func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func setiCloudKeychainSyncEnabled(enabled: Bool) throws
-    /// A different key already known to the iCloud account, or `nil` when this
-    /// device's keys are the only ones the account knows about. Advisory: read
-    /// from the last-writer-merges `MultiDeviceState` record, so it may be used
-    /// to word a warning but never to decide anything destructive.
-    func multiDeviceKeyConflict() -> MultiDeviceKeyConflict?
     func clearPassword() throws
     func dumpAllKeychainEntries() -> [KeychainDumpEntry]
     func getAuthenticationConfiguration() -> AuthenticationConfiguration?

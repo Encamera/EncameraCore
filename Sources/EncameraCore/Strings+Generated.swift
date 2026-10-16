@@ -1643,18 +1643,6 @@ public enum L10n {
       /// Continue without your key?
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.ContinueWithoutKeyDrawer.Title", fallback: "Continue without your key?")
     }
-    public enum CredentialConflictDrawer {
-      /// Keep this device's account
-      public static let keepLocal = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.KeepLocal", fallback: "Keep this device's account")
-      /// This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?
-      public static let message = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.Message", fallback: "This device has its own Encamera account, and a different account synced in from another device via iCloud. Which one do you want to use on this device?")
-      /// Another account found
-      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.Title", fallback: "Another account found")
-      /// Use the other device's account
-      public static let useSynced = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.UseSynced", fallback: "Use the other device's account")
-      /// You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.
-      public static let useSyncedWarning = L10n.tr("Localizable", "EncameraDrawerFactory.CredentialConflictDrawer.UseSyncedWarning", fallback: "You'll unlock with the other device's passcode. Photos taken on this device before switching may require switching back to view.")
-    }
     public enum DisableICloudBackupAndSyncDrawer {
       /// Turn Off
       public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Confirm", fallback: "Turn Off")
@@ -3086,14 +3074,6 @@ public enum L10n {
       /// Turning off in %d
       public static func disablingIn(_ p1: Int) -> String {
         return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.DisablingIn", p1, fallback: "Turning off in %d")
-      }
-      /// Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.
-      public static func enableConflictWarning(_ p1: Any, _ p2: Any) -> String {
-        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableConflictWarning", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds a different key. This device uses key %1$@, and your iCloud account already has key %2$@. Encamera keeps both keys — neither one is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other key stays available so its photos can still be opened.")
-      }
-      /// Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.
-      public static func enableConflictWarningMultiple(_ p1: Any, _ p2: Any) -> String {
-        return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableConflictWarningMultiple", String(describing: p1), String(describing: p2), fallback: "Your iCloud Keychain already holds other keys. This device uses key %1$@, and your iCloud account already has these keys: %2$@. Encamera keeps every one of them — none is deleted or overwritten — and %1$@ stays the key this device uses for new photos. The other keys stay available so their photos can still be opened.")
       }
       /// Turn On
       public static let enableDrawerConfirm = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerConfirm", fallback: "Turn On")

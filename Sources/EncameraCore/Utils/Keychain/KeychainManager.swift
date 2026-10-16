@@ -11,24 +11,7 @@ import Combine
 import Security
 import UIKit
 
-public class KeychainManager: ObservableObject, @preconcurrency KeyManager, DebugPrintable {
-
-    /// Which credential set this device uses when a local (this device) and a
-    /// synced (another device) copy of the same item coexist with different
-    /// values — the aftermath of onboarding on a second device before iCloud
-    /// Keychain delivered the first device's credentials.
-    public enum CredentialConflictResolution: String {
-        case preferLocal
-        case preferSynced
-
-        /// The resolution this device has chosen, or nil when none is set.
-        static var stored: CredentialConflictResolution? {
-            guard let raw = UserDefaultUtils.string(forKey: .credentialConflictResolution) else {
-                return nil
-            }
-            return CredentialConflictResolution(rawValue: raw)
-        }
-    }
+public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     // MARK: - Public Properties
 
@@ -48,17 +31,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     public var backupFlagState: KeychainBackupFlagState {
         backupStatusManager.getBackupFlagState()
-    }
-
-    /// Full payload of the backup status item, including which device flipped
-    /// the switch and when. Nil when the item is absent or undecodable;
-    /// metadata fields are nil for legacy boolean payloads.
-    public var backupStatus: KeychainBackupStatus? {
-        backupStatusManager.getBackupStatus()
-    }
-
-    public var conflictResolution: CredentialConflictResolution? {
-        CredentialConflictResolution.stored
     }
 
     public var isSyncEnabled: Bool {
@@ -194,51 +166,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         return keychainWrapper.secItemAdd(add as CFDictionary, nil) == errSecSuccess
     }
 
-    // MARK: - Credential Conflicts
-
-    public func setConflictResolution(_ resolution: CredentialConflictResolution?) {
-        printDebug("setConflictResolution(\(resolution?.rawValue ?? "nil")) — was \(conflictResolution?.rawValue ?? "nil")")
-        if let resolution {
-            UserDefaultUtils.set(resolution.rawValue, forKey: .credentialConflictResolution)
-        } else {
-            UserDefaultUtils.removeObject(forKey: .credentialConflictResolution)
-        }
-    }
-
-    /// Reported by `detectCredentialConflicts()` when the stored keys disagree.
-    public static let keyConflictIdentifier = "key"
-
-    /// Returns the accounts (or `keyConflictIdentifier`) whose local and synced
-    /// keychain items coexist with differing values. Empty when there is no
-    /// conflict. Never deletes or modifies anything.
-    public func detectCredentialConflicts() -> [String] {
-        var conflicts: [String] = []
-
-        let accounts = [
-            KeychainConstants.account,
-            KeychainConstants.passPhraseKeyItem,
-            KeychainConstants.passcodeTypeKeyItem
-        ]
-        for account in accounts {
-            let local = genericPasswordData(account: account, synchronizable: false)
-            let synced = genericPasswordData(account: account, synchronizable: true)
-            printDebug("conflict check '\(account)': local=\(local != nil ? "\(local!.count) bytes" : "absent"), synced=\(synced != nil ? "\(synced!.count) bytes" : "absent"), equal=\(local == synced)")
-            if let local, let synced, local != synced {
-                conflicts.append(account)
-            }
-        }
-
-        let keyVariants = (try? storedKeys()) ?? []
-        let distinctKeyBytes = Set(keyVariants.map { $0.keyBytes }).count
-        printDebug("conflict check keys: \(keyVariants.count) variant(s), \(distinctKeyBytes) distinct keyBytes")
-        if keyVariants.count > 1, distinctKeyBytes > 1 {
-            conflicts.append(Self.keyConflictIdentifier)
-        }
-
-        printDebug("detectCredentialConflicts result: \(conflicts.isEmpty ? "none" : conflicts.joined(separator: ", "))")
-        return conflicts
-    }
-
     // MARK: - Erase
 
     public func clearKeychainData(scope: KeyDeletionScope) {
@@ -252,13 +179,13 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     // MARK: - Keys
 
     @discardableResult public func generateKeyUsingRandomWords() throws -> PrivateKey {
-        let key = try privateKeyManager.generateKeyUsingRandomWords(synchronizable: synchronizableForWrites)
+        let key = try privateKeyManager.generateKeyUsingRandomWords(synchronizable: isSyncEnabled)
         MintedKeys.record(key)
         return key
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
-        try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: synchronizableForWrites)
+        try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: isSyncEnabled)
     }
 
     /// Re-derives the default key from an already-present passphrase item.
@@ -288,15 +215,15 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     }
 
     @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey {
-        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, synchronizable: synchronizableForWrites)
+        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, synchronizable: isSyncEnabled)
     }
 
     public func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        try privateKeyManager.retrieveKeyPassphrase(conflictResolution: conflictResolution)
+        try privateKeyManager.retrieveKeyPassphrase()
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
-        try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizableForWrites)
+        try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: isSyncEnabled)
     }
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
@@ -355,15 +282,15 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     }
 
     public func setPassword(_ password: String, type: PasscodeType) throws {
-        try passwordManager.setPassword(password, type: type, synchronizable: synchronizableForWrites)
+        try passwordManager.setPassword(password, type: type, synchronizable: isSyncEnabled)
     }
 
     public func setOrUpdatePassword(_ password: String, type: PasscodeType) throws {
-        try passwordManager.setOrUpdatePassword(password, type: type, synchronizable: synchronizableForWrites)
+        try passwordManager.setOrUpdatePassword(password, type: type, synchronizable: isSyncEnabled)
     }
 
     public func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws {
-        try passwordManager.changePassword(newPassword: newPassword, existingPassword: existingPassword, type: type, synchronizable: synchronizableForWrites)
+        try passwordManager.changePassword(newPassword: newPassword, existingPassword: existingPassword, type: type, synchronizable: isSyncEnabled)
     }
 
     public func getPasswordHash() throws -> Data {
@@ -371,7 +298,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     }
 
     public func setPasswordHash(hash: Data) throws {
-        try passwordManager.setPasswordHash(hash: hash, synchronizable: synchronizableForWrites)
+        try passwordManager.setPasswordHash(hash: hash, synchronizable: isSyncEnabled)
     }
 
     public func checkPassword(_ password: String) throws -> Bool {
@@ -390,20 +317,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     public func overwriteMultiDeviceState(_ state: MultiDeviceState) throws {
         try multiDeviceManager.overwriteState(state)
-    }
-
-    /// See `KeyManager.multiDeviceKeyConflict`.
-    public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
-        let localFingerprints = Set(((try? storedKeys()) ?? []).map(\.keyFingerprint))
-        let accountFingerprints = getMultiDeviceState()?.keyFingerprints ?? []
-        let remoteOnly = accountFingerprints.filter { !localFingerprints.contains($0) }
-        guard !remoteOnly.isEmpty else {
-            return nil
-        }
-        return MultiDeviceKeyConflict(
-            localFingerprint: (try? getActiveKey())?.keyFingerprint,
-            remoteFingerprints: remoteOnly
-        )
     }
 
     // MARK: - iCloud Sync
@@ -425,11 +338,8 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         printDebug("backupKeychainToiCloud(\(enabled)) — state before flip:")
         logCredentialVariantState(context: "before flip")
 
-        let skipsDivergentPair: (String) -> Bool = { account in
-            enabled && self.hasDivergentCredentialPair(account: account)
-        }
-        let failures = privateKeyManager.setKeysSynchronizable(enabled, skipping: skipsDivergentPair)
-            + passwordManager.setPasswordSynchronizable(enabled, skipping: skipsDivergentPair)
+        let failures = privateKeyManager.setKeysSynchronizable(enabled)
+            + passwordManager.setPasswordSynchronizable(enabled)
 
         printDebug("backupKeychainToiCloud(\(enabled)) — state after flip:")
         logCredentialVariantState(context: "after flip")
@@ -509,8 +419,8 @@ private extension KeychainManager {
     // MARK: - Keychain Reads
 
     /// Fetches one specific variant (local or synced) of a generic-password
-    /// item. All other reads in this class match either synchronizableAny or
-    /// the flag-driven value, which can't distinguish coexisting variants.
+    /// item. All other reads in this class match `kSecAttrSynchronizableAny`,
+    /// which can't distinguish coexisting variants.
     func genericPasswordData(account: String, synchronizable: Bool) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -524,31 +434,6 @@ private extension KeychainManager {
             return nil
         }
         return item as? Data
-    }
-
-    // MARK: - Credential Conflicts
-
-    /// True when a local and a synced copy of this generic-password account both
-    /// exist and hold different bytes — a genuine credential conflict rather
-    /// than the ordinary redundant duplicate a second device accumulates.
-    func hasDivergentCredentialPair(account: String) -> Bool {
-        guard let local = genericPasswordData(account: account, synchronizable: false),
-              let synced = genericPasswordData(account: account, synchronizable: true) else {
-            return false
-        }
-        return local != synced
-    }
-
-    /// Whether writes go to the iCloud keychain. Pinned like reads while a
-    /// conflict resolution is active, so updates land on the credential set the
-    /// user chose.
-    var synchronizableForWrites: Bool {
-        switch conflictResolution {
-        case .preferLocal: return false
-        case .preferSynced: return true
-        case nil: break
-        }
-        return self.isSyncEnabled
     }
 }
 

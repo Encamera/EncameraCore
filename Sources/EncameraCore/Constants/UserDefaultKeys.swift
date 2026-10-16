@@ -48,7 +48,6 @@ public enum UserDefaultKey {
     case passphraseMigration
     case passwordHashMigration
     case completedMigration
-    case credentialConflictResolution
     case biometricsConfirmedOnThisDevice
     /// The one-launch upgrade-seeding window for `biometricsConfirmedOnThisDevice`
     /// has been evaluated, whether or not it seeded. Without this marker the
@@ -144,9 +143,6 @@ public enum UserDefaultKey {
              .passphraseMigration,
              .passwordHashMigration,
              .completedMigration,
-             // Which of two conflicting credential sets this device uses is
-             // inherently device-specific — it must never sync.
-             .credentialConflictResolution,
              // Biometric consent is per-device: the enrolled face/finger is
              // this device's hardware. The account-wide intent lives in the
              // always-synced AuthenticationConfiguration; this flag is the

@@ -144,23 +144,12 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Passphrase
 
-    func retrieveKeyPassphrase(conflictResolution: KeychainManager.CredentialConflictResolution?) throws -> KeyPassphrase {
-        var additionalQuery: [String: Any] = [
+    func retrieveKeyPassphrase() throws -> KeyPassphrase {
+        let additionalQuery: [String: Any] = [
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
-        // While a conflict resolution is active, pin the read to the chosen
-        // credential set — with both a local and a synced passphrase present,
-        // the default synchronizableAny match is nondeterministic.
-        switch conflictResolution {
-        case .preferLocal:
-            additionalQuery[kSecAttrSynchronizable as String] = kCFBooleanFalse!
-        case .preferSynced:
-            additionalQuery[kSecAttrSynchronizable as String] = kCFBooleanTrue!
-        case nil:
-            break
-        }
         let query: [String: Any] = queryForPassphrase(additionalQuery: additionalQuery)
 
         var item: CFTypeRef?
@@ -408,8 +397,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// Moves every Encamera key item and the passphrase item on or off the
     /// iCloud keychain. Each item is flipped independently, so one failure
     /// can't leave the items after it unflipped; returns a line per failure.
-    /// The passphrase is left unflipped when `shouldSkip` returns true for it.
-    func setKeysSynchronizable(_ synchronizable: Bool, skipping shouldSkip: (String) -> Bool) -> [String] {
+    func setKeysSynchronizable(_ synchronizable: Bool) -> [String] {
         var failures: [String] = []
 
         do {
@@ -432,7 +420,7 @@ final class PrivateKeyManager: DebugPrintable {
 
         failures += syncFlipper.setSynchronizable(synchronizable, genericCredentials: [
             (KeychainConstants.passPhraseKeyItem, "key passphrase")
-        ], skipping: shouldSkip)
+        ])
         return failures
     }
 

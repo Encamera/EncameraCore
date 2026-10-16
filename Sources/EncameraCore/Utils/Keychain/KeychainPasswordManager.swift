@@ -33,44 +33,26 @@ struct KeychainPasswordManager: DebugPrintable {
 
     private let sodium = Sodium()
 
-    /// The value for `kSecAttrSynchronizable` in READ queries.
+    /// The value for `kSecAttrSynchronizable` in read queries: always "either".
     ///
-    /// A chosen conflict resolution still pins reads to one credential set, so
-    /// that two genuinely different coexisting credentials don't make lookups
-    /// nondeterministic — that pin is a decision the user made.
-    ///
-    /// Absent one it is always "either". It used to fall back to narrowing by
-    /// the backup flag — synced items when backup was on, local ones when off —
-    /// which meant any disagreement between the flag and an item made that item
-    /// invisible to the app. Not a theoretical state: build 1087 wrote the flag
-    /// and then failed to move the items, and the on-device rig reproduced the
-    /// consequence directly — the flag read ON, `encamera_default_key` existed
-    /// only as a local copy, and the app could not load its own key ("Error
-    /// during initial key setup: notFound") even though `storedKeys()`, which
-    /// always queried both, could see it perfectly well.
-    ///
-    /// Reading both makes the app find its key whatever state a previous
-    /// version left behind. Ambiguity is bounded: `setSynchronizable` collapses
-    /// an item to a single copy whenever backup is toggled.
+    /// Narrowing by the backup flag would hide any item whose sync state
+    /// disagrees with the flag, such as a key left local-only by a flip that
+    /// failed partway. The cost: when a local and a synced copy of one item
+    /// coexist with different values, which copy a read returns is undefined.
     private var syncQueryValueForReads: CFTypeRef {
-        switch KeychainManager.CredentialConflictResolution.stored {
-        case .preferLocal: return kCFBooleanFalse!
-        case .preferSynced: return kCFBooleanTrue!
-        case nil: return kSecAttrSynchronizableAny
-        }
+        return kSecAttrSynchronizableAny
     }
 
     /// Moves the password hash and the legacy passcode-type item on or off the
     /// iCloud keychain. Each item is flipped independently; returns a line per
     /// failure. The `AuthenticationConfiguration` is always synchronizable and
-    /// is never flipped. Accounts for which `shouldSkip` returns true are left
-    /// unflipped.
-    func setPasswordSynchronizable(_ synchronizable: Bool, skipping shouldSkip: (String) -> Bool) -> [String] {
+    /// is never flipped.
+    func setPasswordSynchronizable(_ synchronizable: Bool) -> [String] {
         KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
             .setSynchronizable(synchronizable, genericCredentials: [
                 (KeychainConstants.passcodeTypeKeyItem, "passcode type"),
                 (KeychainConstants.account, "password hash"),
-            ], skipping: shouldSkip)
+            ])
     }
 
     func passwordExists() -> Bool {

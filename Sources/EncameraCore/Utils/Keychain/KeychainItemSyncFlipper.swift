@@ -66,18 +66,11 @@ struct KeychainItemSyncFlipper: DebugPrintable {
     }
 
     /// Flips each generic-password item in `credentials` independently,
-    /// returning a failure line per item that could not be flipped. Accounts
-    /// for which `shouldSkip` returns true are left unflipped — used to leave
-    /// a local and synced pair with differing values to `conflictResolution`.
+    /// returning a failure line per item that could not be flipped.
     func setSynchronizable(_ enabled: Bool,
-                           genericCredentials credentials: [(account: String, description: String)],
-                           skipping shouldSkip: (String) -> Bool) -> [String] {
+                           genericCredentials credentials: [(account: String, description: String)]) -> [String] {
         var failures: [String] = []
         for credential in credentials {
-            if shouldSkip(credential.account) {
-                printDebug("flip: \(credential.description) left unflipped — local and synced copies differ, leaving the choice to conflictResolution")
-                continue
-            }
             do {
                 try setSynchronizable(enabled, forItemMatching: [
                     kSecClass as String: kSecClassGenericPassword,

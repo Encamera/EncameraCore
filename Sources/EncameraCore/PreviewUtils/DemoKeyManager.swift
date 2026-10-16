@@ -135,13 +135,6 @@ public class DemoKeyManager: KeyManager {
 
     /// Set to make the next flip fail, so callers' error handling is testable.
     public var backupError: KeyManagerError?
-
-    /// Set to stage a conflict for the confirmation copy.
-    public var stagedKeyConflict: MultiDeviceKeyConflict?
-
-    public func multiDeviceKeyConflict() -> MultiDeviceKeyConflict? {
-        stagedKeyConflict
-    }
     @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey {
         return DemoPrivateKey.dummyKey()
     }
