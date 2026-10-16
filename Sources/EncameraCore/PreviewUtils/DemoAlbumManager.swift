@@ -89,6 +89,15 @@ public class DemoAlbumManager: AlbumManaging {
         self.currentAlbum = demoAlbums.first
     }
 
+    /// A manager showing exactly these albums and locked placeholders, for previews
+    /// of grids that mix readable albums with albums whose key is not on the device.
+    public convenience init(albums: [Album], lockedAlbums: [LockedAlbumPlaceholder]) {
+        self.init()
+        self.demoAlbums = albums
+        self.lockedAlbums = lockedAlbums
+        self.currentAlbum = albums.first
+    }
+
     public func delete(album: Album) {
     }
     public func moveAlbum(album: Album, toStorage: StorageType, onProgress: @escaping @Sendable (AlbumMoveProgress) -> Void) async throws -> Album {
