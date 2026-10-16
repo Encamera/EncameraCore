@@ -14,6 +14,9 @@ enum KeychainConstants {
     static let keyApplicationTag = "\(applicationTag).\(AppConstants.legacyDefaultKeyName)"
     static let account = "encamera"
     static let passPhraseKeyItem = "encamera_key_passphrase"
+    /// Service shared by the per-key passphrase items, whose account is the
+    /// key's fingerprint.
+    static let passPhraseService = "com.encamera.keyPassphrase"
     static let passcodeTypeKeyItem = "encamera_passcode_type"
     static let backupStatusKeyItem = "com.encamera.backupStatus"
     static let authenticationConfiguration = "com.encamera.authenticationConfiguration"

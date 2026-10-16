@@ -16,6 +16,7 @@ public enum KeyManagerError: ErrorDescribable {
     case keyExists
     case invalidPassword
     case invalidInput
+    case invalidPassphraseData
     case keyDerivationFailed
     case dictionaryLoadError
     case dictionaryTooSmall
@@ -39,6 +40,8 @@ public enum KeyManagerError: ErrorDescribable {
             return L10n.invalidPassword
         case .invalidInput:
             return "Invalid input"
+        case .invalidPassphraseData:
+            return "Invalid passphrase data"
         case .keyDerivationFailed:
             return "Key derivation failed"
         case .dictionaryLoadError:
@@ -134,7 +137,7 @@ public protocol KeyManager {
     @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
     @discardableResult func restoreDefaultKeyFromPassphraseIfNeeded() throws -> Bool
-    func retrieveKeyPassphrase() throws -> KeyPassphrase
+    func retrieveKeyPassphrases() throws -> [KeyPassphrase]
     func checkPassword(_ password: String) throws -> Bool
     func setPassword(_ password: String, type: PasscodeType) throws
     func setOrUpdatePassword(_ password: String, type: PasscodeType) throws

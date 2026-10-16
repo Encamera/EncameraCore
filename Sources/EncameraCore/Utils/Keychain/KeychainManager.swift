@@ -47,11 +47,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             // written synchronizable and would make this check unconditionally true.
             let credentialAccounts = [
                 KeychainConstants.account,
-                KeychainConstants.passPhraseKeyItem,
                 KeychainConstants.passcodeTypeKeyItem
             ]
             if let matched = credentialAccounts.first(where: { genericPasswordData(account: $0, synchronizable: true) != nil }) {
                 printDebug("isSyncEnabled: flag notSet, but synchronizable '\(matched)' item exists → true")
+                return true
+            }
+            if privateKeyManager.passphraseItemExists(synchronizable: true) {
+                printDebug("isSyncEnabled: flag notSet, but a synchronizable passphrase item exists → true")
                 return true
             }
             printDebug("isSyncEnabled: flag notSet and no synchronizable credential items → false (writes will be local-only)")
@@ -126,7 +129,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     public func logCredentialVariantState(context: String) {
         let accounts = [
             KeychainConstants.account,
-            KeychainConstants.passPhraseKeyItem,
             KeychainConstants.passcodeTypeKeyItem,
             KeychainConstants.backupStatusKeyItem
         ]
@@ -135,6 +137,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             let synced = genericPasswordData(account: account, synchronizable: true) != nil
             printDebug("variant state (\(context)) '\(account)': local=\(local), synced=\(synced)")
         }
+        let passphraseLocal = privateKeyManager.passphraseItemExists(synchronizable: false)
+        let passphraseSynced = privateKeyManager.passphraseItemExists(synchronizable: true)
+        printDebug("variant state (\(context)) passphrases: local=\(passphraseLocal), synced=\(passphraseSynced)")
         let keys = (try? storedKeys()) ?? []
         if keys.isEmpty {
             printDebug("variant state (\(context)) keys: none")
@@ -202,7 +207,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
             printDebug("restore: skipping — a key is already present")
             return false
         }
-        guard let passphrase = try? retrieveKeyPassphrase() else {
+        guard let passphrase = try? retrieveKeyPassphrases().first else {
             printDebug("restore: skipping — passphrase item not retrievable")
             return false
         }
@@ -218,8 +223,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, synchronizable: isSyncEnabled)
     }
 
-    public func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        try privateKeyManager.retrieveKeyPassphrase()
+    public func retrieveKeyPassphrases() throws -> [KeyPassphrase] {
+        try privateKeyManager.retrieveKeyPassphrases()
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {

@@ -16,6 +16,12 @@ struct KeychainItemSyncFlipper: DebugPrintable {
     /// Leaves exactly one copy of the matched item behind, carrying the data
     /// that was in use, marked `synchronizable == enabled`.
     ///
+    /// A query carrying `kSecMatchLimitAll` selects any number of distinct
+    /// items instead; each is flipped independently, so one failure can't
+    /// leave the items after it unflipped, and the failures are thrown together
+    /// at the end. `isIncluded` narrows those items beyond what a query can
+    /// express, such as a prefix on an attribute.
+    ///
     /// It cannot be done with a single `SecItemUpdate`. Once a device holds
     /// both a local and an iCloud-delivered copy of an item — the normal state
     /// of any second device — an update that would collapse the two onto one
@@ -35,7 +41,13 @@ struct KeychainItemSyncFlipper: DebugPrintable {
     /// That is precisely what turning key backup off means.
     func setSynchronizable(_ enabled: Bool,
                            forItemMatching baseQuery: [String: Any],
+                           including isIncluded: ([String: Any]) -> Bool = { _ in true },
                            description: String) throws {
+        if (baseQuery[kSecMatchLimit as String] as? String) == (kSecMatchLimitAll as String) {
+            try setSynchronizableForEachItem(enabled, matching: baseQuery, including: isIncluded)
+            return
+        }
+
         let copies = try readCopies(matching: baseQuery)
         guard !copies.isEmpty else {
             return
@@ -86,6 +98,50 @@ struct KeychainItemSyncFlipper: DebugPrintable {
 }
 
 private extension KeychainItemSyncFlipper {
+
+    /// Flips each item `query` matches by its own identity. The attributes that
+    /// identify an item depend on its class: a key by label, application tag
+    /// and application label; anything else by service and account.
+    func setSynchronizableForEachItem(_ enabled: Bool,
+                                      matching query: [String: Any],
+                                      including isIncluded: ([String: Any]) -> Bool) throws {
+        var readQuery = query
+        readQuery[kSecReturnAttributes as String] = true
+        readQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
+        var result: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(readQuery as CFDictionary, &result)
+        if status == errSecItemNotFound {
+            return
+        }
+        try KeychainManager.checkStatus(status: status)
+
+        let isKey = (query[kSecClass as String] as? String) == (kSecClassKey as String)
+        let identityAttributes = isKey
+            ? [kSecAttrLabel, kSecAttrApplicationTag, kSecAttrApplicationLabel]
+            : [kSecAttrService, kSecAttrAccount]
+
+        var failures: [String] = []
+        for attributes in (result as? [[String: Any]] ?? []) where isIncluded(attributes) {
+            var identity: [String: Any] = [kSecClass as String: query[kSecClass as String] as Any]
+            for attribute in identityAttributes {
+                if let value = attributes[attribute as String] {
+                    identity[attribute as String] = value
+                }
+            }
+            let description = isKey
+                ? "key \((attributes[kSecAttrLabel as String] as? Data).flatMap { String(data: $0, encoding: .utf8) } ?? "<unlabelled>")"
+                : (attributes[kSecAttrAccount as String] as? String ?? "<unknown>")
+            do {
+                try setSynchronizable(enabled, forItemMatching: identity, description: description)
+            } catch {
+                printDebug("flip: \(description) FAILED:", error)
+                failures.append("\(description): \(error)")
+            }
+        }
+        if !failures.isEmpty {
+            throw KeyManagerError.unhandledError(failures.joined(separator: "; "))
+        }
+    }
 
     /// Every copy of the matched item, local and synchronizable, with data and
     /// attributes. Empty when there is none.

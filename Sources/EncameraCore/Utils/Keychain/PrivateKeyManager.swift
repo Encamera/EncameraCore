@@ -66,9 +66,8 @@ final class PrivateKeyManager: DebugPrintable {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
-        let key = try PrivateKey(passphrase: KeyPassphrase(words: components))
-        let fullPassword = components.joined(separator: "-")
-        let syncValue = Self.syncValue(synchronizable)
+        let passphrase = KeyPassphrase(words: components)
+        let key = try PrivateKey(passphrase: passphrase)
 
         do {
             try save(key: key, setNewKeyToCurrent: true, synchronizable: synchronizable)
@@ -77,42 +76,40 @@ final class PrivateKeyManager: DebugPrintable {
             throw error
         }
 
-        let passphraseData = fullPassword.data(using: .utf8)!
-        let passphraseQuery = queryForPassphrase(additionalQuery: [:])
-
-        var withOptions: [String: Any] = passphraseQuery
-        withOptions[kSecReturnData as String] = true
-
-        var item: CFTypeRef?
-        let queryResult = keychainWrapper.secItemCopyMatching(withOptions as CFDictionary, &item)
-
-        switch queryResult {
-        case errSecSuccess:
-            let updateQuery: [String: Any] = [
-                kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValue,
-            ]
-            let updateStatus = keychainWrapper.secItemUpdate(passphraseQuery as CFDictionary, updateQuery as CFDictionary)
-
-            if updateStatus != errSecItemNotFound {
-                try KeychainManager.checkStatus(status: updateStatus)
-            }
-        case errSecItemNotFound:
-            let addQuery = queryForPassphrase(additionalQuery: [
-                kSecValueData as String: passphraseData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncValue
-            ])
-            let addStatus = keychainWrapper.secItemAdd(addQuery as CFDictionary, nil)
-            try KeychainManager.checkStatus(status: addStatus)
-        default:
-            try KeychainManager.checkStatus(status: queryResult)
-        }
-
+        try savePassphrase(passphrase, for: key, synchronizable: synchronizable)
 
         return key
 
+    }
+
+    /// Stores `passphrase` as the item for `key`'s fingerprint, in the sync
+    /// scope `synchronizable` names. An existing item in the other scope is
+    /// moved by `KeychainItemSyncFlipper` first, so the write never leaves a
+    /// local and a synced copy side by side.
+    private func savePassphrase(_ passphrase: KeyPassphrase, for key: PrivateKey, synchronizable: Bool) throws {
+        guard let passphraseData = passphrase.joinedStringData else {
+            throw KeyManagerError.invalidInput
+        }
+        let itemQuery = queryForPassphrase(fingerprint: key.keyFingerprint)
+
+        try syncFlipper.setSynchronizable(synchronizable,
+                                          forItemMatching: itemQuery,
+                                          description: "passphrase \(key.keyFingerprint)")
+
+        var scopedQuery = itemQuery
+        scopedQuery[kSecAttrSynchronizable as String] = Self.syncValue(synchronizable)
+        let attributes: [String: Any] = [
+            kSecValueData as String: passphraseData,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
+        ]
+
+        let updateStatus = keychainWrapper.secItemUpdate(scopedQuery as CFDictionary, attributes as CFDictionary)
+        guard updateStatus == errSecItemNotFound else {
+            try KeychainManager.checkStatus(status: updateStatus)
+            return
+        }
+        let addQuery = scopedQuery.merging(attributes) { $1 }
+        try KeychainManager.checkStatus(status: keychainWrapper.secItemAdd(addQuery as CFDictionary, nil))
     }
 
     func save(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
@@ -144,13 +141,14 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Passphrase
 
-    func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        let additionalQuery: [String: Any] = [
+    func retrieveKeyPassphrases() throws -> [KeyPassphrase] {
+        let passPhraseQuery: [String: Any] = [
             kSecReturnData as String: true,
             kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitAll,
         ]
-        let query: [String: Any] = queryForPassphrase(additionalQuery: additionalQuery)
+
+        let query: [String: Any] = queryForPassphrase(additionalQuery: passPhraseQuery)
 
         var item: CFTypeRef?
         let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
@@ -158,17 +156,15 @@ final class PrivateKeyManager: DebugPrintable {
             throw KeyManagerError.notFound
         }
 
-        guard let result = item as? [String: Any],
-              let data = result[kSecValueData as String] as? Data,
-              let passphrase = String(data: data, encoding: .utf8) else {
+        guard let keychainItems = item as? [[String: Any]] else {
             throw KeyManagerError.dataError
         }
 
-        let words = passphrase.components(separatedBy: "-")
+        let passphrases = keychainItems.compactMap { keychainItem -> KeyPassphrase? in
+            return KeyPassphrase(keychainValue: keychainItem)
+        }
 
-        let keyPassphrase = KeyPassphrase(words: words)
-
-        return keyPassphrase
+        return passphrases
     }
 
     func keyPassphraseExists() -> Bool {
@@ -188,7 +184,16 @@ final class PrivateKeyManager: DebugPrintable {
         return true
     }
 
-    /// Deletes the passphrase item. `syncMatch` is the `kSecAttrSynchronizable`
+    /// True when any passphrase item exists in the given sync scope.
+    func passphraseItemExists(synchronizable: Bool) -> Bool {
+        let query = queryForPassphrase(additionalQuery: [
+            kSecAttrSynchronizable as String: Self.syncValue(synchronizable),
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ])
+        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    /// Deletes every passphrase item. `syncMatch` is the `kSecAttrSynchronizable`
     /// predicate, so the caller decides whether synced copies go too.
     func deletePassphrase(syncMatch: Any) {
         let passphraseQuery = queryForPassphrase(additionalQuery: [
@@ -394,33 +399,35 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - iCloud sync
 
-    /// Moves every Encamera key item and the passphrase item on or off the
-    /// iCloud keychain. Each item is flipped independently, so one failure
-    /// can't leave the items after it unflipped; returns a line per failure.
+    /// Moves every Encamera key item and every passphrase item on or off the
+    /// iCloud keychain. Each item is flipped independently; returns a line per
+    /// failure.
+    ///
+    /// Key items are narrowed by application tag rather than by query: a
+    /// foreign `kSecClassKey` item written by something else sharing the access
+    /// group must not be moved on and off iCloud by our toggle.
     func setKeysSynchronizable(_ synchronizable: Bool) -> [String] {
         var failures: [String] = []
-
         do {
-            for identity in try encameraKeyIdentities() {
-                let label = (identity[kSecAttrLabel as String] as? Data)
-                    .flatMap { String(data: $0, encoding: .utf8) } ?? "<unlabelled>"
-                do {
-                    try syncFlipper.setSynchronizable(synchronizable,
-                                                      forItemMatching: identity,
-                                                      description: "key \(label)")
-                } catch {
-                    printDebug("flip: key '\(label)' FAILED:", error)
-                    failures.append("key \(label): \(error)")
-                }
-            }
+            try syncFlipper.setSynchronizable(synchronizable,
+                                              forItemMatching: [
+                                                kSecClass as String: kSecClassKey,
+                                                kSecMatchLimit as String: kSecMatchLimitAll
+                                              ],
+                                              including: Self.isEncameraKeyItem,
+                                              description: "keys")
         } catch {
-            printDebug("flip: could not enumerate key items:", error)
-            failures.append("keyItems: \(error)")
+            failures.append("keys: \(error)")
         }
-
-        failures += syncFlipper.setSynchronizable(synchronizable, genericCredentials: [
-            (KeychainConstants.passPhraseKeyItem, "key passphrase")
-        ])
+        do {
+            try syncFlipper.setSynchronizable(synchronizable,
+                                              forItemMatching: queryForPassphrase(additionalQuery: [
+                                                kSecMatchLimit as String: kSecMatchLimitAll
+                                              ]),
+                                              description: "passphrases")
+        } catch {
+            failures.append("passphrases: \(error)")
+        }
         return failures
     }
 
@@ -511,6 +518,18 @@ final class PrivateKeyManager: DebugPrintable {
         }
         return legacyKeyItemQuery(forKeyBytes: key.keyBytes)
     }
+
+    /// Targets the passphrase item for one key. The service groups every
+    /// passphrase so they can be enumerated together; the account is the key's
+    /// fingerprint, which makes each item unique and names its key in a
+    /// keychain dump. Carries no sync attribute, so callers pick the scope.
+    func queryForPassphrase(fingerprint: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainConstants.passPhraseService,
+            kSecAttrAccount as String: fingerprint,
+        ]
+    }
 }
 
 private extension PrivateKeyManager {
@@ -518,10 +537,11 @@ private extension PrivateKeyManager {
         synchronizable ? kCFBooleanTrue! : kCFBooleanFalse!
     }
 
+    /// Targets every passphrase item, in either sync scope.
     func queryForPassphrase(additionalQuery: [String: Any]? = nil) -> [String: Any] {
         let baseQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passPhraseKeyItem,
+            kSecAttrService as String: KeychainConstants.passPhraseService,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
 
@@ -542,9 +562,9 @@ private extension PrivateKeyManager {
             kSecClass as String: kSecClassKey,
             kSecAttrLabel as String: labelData,
             kSecAttrApplicationLabel as String: labelData,
-            // Existence probes must use Any, never syncQueryValueForReads: with
-            // the backup flag disabled, a synced item would be invisible and
-            // save() would SecItemAdd over an item that already exists.
+            // Existence probes must use Any, never a value derived from the
+            // backup flag: with the flag disabled, a synced item would be
+            // invisible and save() would SecItemAdd over an item that already exists.
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
     }
@@ -618,60 +638,13 @@ private extension PrivateKeyManager {
         return keys
     }
 
-    /// A base query per distinct Encamera key item the app can see, synced
-    /// copies included and deduplicated — one identity normally has both a
-    /// local and an iCloud-delivered copy.
-    func encameraKeyIdentities() throws -> [[String: Any]] {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound {
-            return []
-        }
-        try KeychainManager.checkStatus(status: status)
-        guard let items = item as? [[String: Any]] else {
-            return []
-        }
-
-        var identities: [[String: Any]] = []
-        var seen: [Data] = []
-        for attributes in items where Self.isEncameraKeyItem(attributes) {
-            guard let tagData = attributes[kSecAttrApplicationTag as String] as? Data,
-                  let label = attributes[kSecAttrLabel as String] as? Data else { continue }
-            if seen.contains(label) { continue }
-            seen.append(label)
-
-            // The full identity, not just the label: for `kSecClassKey` the
-            // primary key is applicationLabel/applicationTag/keyType/…, so a
-            // query on `kSecAttrLabel` alone can match a key that is not this
-            // one, and an add built from it would write an item the app can no
-            // longer recognize as its own.
-            var identity: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrLabel as String: label,
-                kSecAttrApplicationTag as String: tagData
-            ]
-            if let applicationLabel = attributes[kSecAttrApplicationLabel as String] {
-                identity[kSecAttrApplicationLabel as String] = applicationLabel
-            }
-            identities.append(identity)
-        }
-        return identities
-    }
-
     /// Whether a `kSecClassKey` item is one of Encamera's own keys, by
     /// `kSecAttrApplicationTag`, which `PrivateKey.keychainIdentityAttributes`
     /// writes as `KeychainConstants.keyApplicationTag`. Older builds wrote
     /// `"\(KeychainConstants.applicationTag).<key name>"`, so match on the
-    /// prefix. The tag can't
-    /// be matched server-side by prefix, so callers enumerate and filter. A
-    /// foreign key item written by anything else sharing the access group is
-    /// not ours to judge or move.
+    /// prefix. A keychain query cannot match a prefix, so callers enumerate
+    /// and filter. A foreign key item written by anything else sharing the
+    /// access group is not ours to judge or move.
     static func isEncameraKeyItem(_ attributes: [String: Any]) -> Bool {
         guard let tagData = attributes[kSecAttrApplicationTag as String] as? Data,
               let tag = String(data: tagData, encoding: .utf8) else {
