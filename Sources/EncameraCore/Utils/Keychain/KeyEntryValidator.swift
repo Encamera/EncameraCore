@@ -128,8 +128,10 @@ public struct KeyEntryValidator {
 
         let candidate: PrivateKey
         do {
-            candidate = try keyManager.deriveKey(from: phraseComponents)
+            candidate = try PrivateKey(passphrase: KeyPassphrase(words: phraseComponents))
         } catch let error as KeyManagerError {
+            throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
+        } catch let error as PrivateKeyError {
             throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
         }
 

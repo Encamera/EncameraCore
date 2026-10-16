@@ -99,7 +99,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
     private let passwordManager: KeychainPasswordManager
     private let eraseManager: KeychainEraseManager
     private let backupStatusManager: KeychainBackupStatusManager
-    private var passwordValidator = PasswordValidator()
     private var didLogVariantDetail = false
 
     // MARK: - Init
@@ -262,10 +261,6 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: synchronizableForWrites)
     }
 
-    public func deriveKey(from components: [String]) throws -> PrivateKey {
-        try privateKeyManager.deriveKey(from: components)
-    }
-
     /// Re-derives the default key from an already-present passphrase item.
     /// Exists for the second-device case where iCloud Keychain has delivered the
     /// password/passphrase items but the key item hasn't arrived (or was written
@@ -286,7 +281,7 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
         }
 
         printDebug("restore: password present, default key absent, passphrase has \(passphrase.words.count) words — deriving key")
-        let key = try deriveKey(from: passphrase.words)
+        let key = try PrivateKey(passphrase: passphrase)
         try save(key: key, setNewKeyToCurrent: true)
         printDebug("restore: default key re-derived and saved as current (isSyncEnabled=\(isSyncEnabled))")
         return true
@@ -461,98 +456,9 @@ public class KeychainManager: ObservableObject, @preconcurrency KeyManager, Debu
 
     // MARK: - Migrations
 
-    public func migrateLegacyBackupStatusIfNeeded() {
-        backupStatusManager.migrateLegacyBackupStatusIfNeeded()
-    }
-
     @discardableResult
     public func migrateKeyLabelsToFingerprintsIfNeeded() throws -> Int {
         try privateKeyManager.migrateKeyLabelsToFingerprintsIfNeeded()
-    }
-
-    public func migrateLegacyKeysIfNeeded() throws {
-        try privateKeyManager.migrateLegacyKeysIfNeeded()
-    }
-
-    // MARK: - Debugging
-
-    public func dumpAllKeychainItems() {
-        printDebug("--- Dumping All Keychain Items Accessible by App ---")
-
-        let itemClasses: [CFString] = [
-            kSecClassGenericPassword,
-            kSecClassKey
-        ]
-
-        for itemClass in itemClasses {
-            let query: [String: Any] = [
-                kSecClass as String: itemClass,
-                kSecMatchLimit as String: kSecMatchLimitAll,
-                kSecReturnAttributes as String: true,
-                kSecReturnData as String: true,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-            ]
-
-            var items: CFTypeRef?
-            let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &items)
-
-            printDebug("\n--- Querying Class: \(itemClass) ---")
-
-            if status == errSecSuccess {
-                guard let foundItems = items as? [[String: Any]] else {
-                    printDebug("  Result found, but failed to cast to [[String: Any]] for class \(itemClass).")
-                    continue
-                }
-
-                if foundItems.isEmpty {
-                    printDebug("  No items found for this class.")
-                } else {
-                    printDebug("  Found \(foundItems.count) item(s):")
-                    for (index, item) in foundItems.enumerated() {
-                        printDebug("    --- Item \(index + 1) ---")
-                        for (key, value) in item {
-                            var printableValue: String = "<Non-printable or complex value>"
-                            if let dataValue = value as? Data {
-                                if let stringValue = String(data: dataValue, encoding: .utf8) {
-                                    printableValue = "'\(stringValue)' (String, \(dataValue.count) bytes)"
-                                } else {
-                                    printableValue = "<Data: \(dataValue.count) bytes>"
-                                }
-                            } else if let dateValue = value as? Date {
-                                printableValue = "\(dateValue) (Date)"
-                            } else if let boolValue = value as? Bool {
-                                printableValue = "\(boolValue) (Bool)"
-                            } else if let numberValue = value as? NSNumber {
-                                printableValue = "\(numberValue) (Number - Bool: \(numberValue.boolValue))"
-                            } else if let stringValue = value as? String {
-                                printableValue = "'\(stringValue)' (String)"
-                            } else {
-                                printableValue = "\(value) (Type: \(type(of: value)))"
-                            }
-
-                            if key == (kSecAttrSynchronizable as String) {
-                                var syncStatusDesc = "Unknown/Not Present"
-                                if let boolValue = value as? Bool {
-                                    syncStatusDesc = boolValue ? "Enabled (Bool: true)" : "Disabled (Bool: false)"
-                                } else if let numberValue = value as? NSNumber {
-                                     syncStatusDesc = numberValue.boolValue ? "Enabled (Number: \(numberValue))" : "Disabled (Number: \(numberValue))"
-                                 } else if value is NSNull {
-                                      syncStatusDesc = "Disabled (NSNull)"
-                                 }
-                                 printDebug("      \(key): \(syncStatusDesc)")
-                            } else {
-                                printDebug("      \(key): \(printableValue)")
-                            }
-                        }
-                    }
-                }
-            } else if status == errSecItemNotFound {
-                printDebug("  No items found for this class (errSecItemNotFound).")
-            } else {
-                printDebug("  Error querying class \(itemClass): OSStatus \(status)")
-            }
-        }
-        printDebug("--- End Keychain Dump ---")
     }
 }
 
@@ -643,14 +549,6 @@ private extension KeychainManager {
         case nil: break
         }
         return self.isSyncEnabled
-    }
-}
-
-// Helper extension for Bool to Data conversion (if not already present)
-extension Bool {
-    var data: Data {
-        var intValue = self ? 1 : 0
-        return Data(bytes: &intValue, count: MemoryLayout<Int>.size)
     }
 }
 

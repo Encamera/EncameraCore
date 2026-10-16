@@ -15,7 +15,7 @@ final class KeyEntryValidationTests: XCTestCase {
     /// The fingerprint (full hex) a phrase derives to under the given manager —
     /// the same derivation `acceptKey` uses, so a match is by construction.
     private func fingerprint(of phrase: [String], manager: KeyManager) throws -> String {
-        try manager.deriveKey(from: phrase).keyFingerprint
+        try PrivateKey(passphrase: KeyPassphrase(words: phrase)).keyFingerprint
     }
 
     // MARK: - Tests

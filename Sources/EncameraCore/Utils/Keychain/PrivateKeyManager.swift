@@ -62,38 +62,11 @@ final class PrivateKeyManager: DebugPrintable {
         return try generateKeyFromPasswordComponentsAndSave(passphrase.words, synchronizable: synchronizable)
     }
 
-    /// Derives a key from passphrase components without writing anything to the
-    /// keychain. Words 1-4 are the salt, the rest the password input to pwHash.
-    func deriveKey(from components: [String]) throws -> PrivateKey {
+    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], synchronizable: Bool) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
-
-        let splitIndex = 4
-        let saltComponents = components.prefix(splitIndex)
-        let saltString = saltComponents.joined(separator: "-")
-        let passwordComponents = components.dropFirst(splitIndex)
-        let password = passwordComponents.joined(separator: "-")
-
-        let saltBytes = Array(saltString.bytes.prefix(Sodium().pwHash.SaltBytes))
-        if saltBytes.count < Sodium().pwHash.SaltBytes {
-            throw KeyManagerError.invalidSalt
-        }
-
-        let keyLength = Sodium().secretStream.xchacha20poly1305.KeyBytes
-        guard let keyBytes = sodium.pwHash.hash(outputLength: keyLength,
-                                                passwd: password.bytes,
-                                                salt: saltBytes,
-                                                opsLimit: sodium.pwHash.OpsLimitInteractive,
-                                                memLimit: sodium.pwHash.MemLimitInteractive) else {
-            throw KeyManagerError.keyDerivationFailed
-        }
-
-        return PrivateKey(keyBytes: keyBytes, creationDate: Date())
-    }
-
-    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], synchronizable: Bool) throws -> PrivateKey {
-        let key = try deriveKey(from: components)
+        let key = try PrivateKey(passphrase: KeyPassphrase(words: components))
         let fullPassword = components.joined(separator: "-")
         let syncValue = Self.syncValue(synchronizable)
 
@@ -430,33 +403,6 @@ final class PrivateKeyManager: DebugPrintable {
         return relabelled
     }
 
-    func migrateLegacyKeysIfNeeded() throws {
-        try migrateKeyLabelsToFingerprintsIfNeeded()
-
-        let keys = try storedKeys()
-
-        guard !keys.isEmpty else {
-            printDebug("No keys found, skipping migration")
-            return
-        }
-
-        printDebug("Starting migration for \(keys.count) keys")
-
-        for key in keys {
-            do {
-                let originalSyncStatus = try isKeyItemSynced(fingerprint: key.keyFingerprint)
-
-                try saveKeyPreservingSync(key: key, syncStatus: originalSyncStatus)
-                printDebug("Successfully processed key: \(key.keyFingerprint)")
-            } catch {
-                printDebug("Failed to migrate key \(key.keyFingerprint): \(error)")
-                throw error
-            }
-        }
-
-        printDebug("Migration completed for \(keys.count) keys")
-    }
-
     // MARK: - iCloud sync
 
     /// Moves every Encamera key item and the passphrase item on or off the
@@ -650,9 +596,8 @@ private extension PrivateKeyManager {
     }
 
     /// Key material out of a stored `kSecValueData`, in either shipped
-    /// encoding: the current JSON `KeyCore` blob, or the pre-migration raw
-    /// bytes that `migrateLegacyKeysIfNeeded()` still upgrades. Mirrors the
-    /// same fallback in `PrivateKey.init(keychainItem:)`.
+    /// encoding: the current JSON `KeyCore` blob, or the legacy raw bytes.
+    /// Mirrors the same fallback in `PrivateKey.init(keychainItem:)`.
     static func storedKeyBytes(from data: Data) -> KeyBytes {
         if let decoded = try? PrivateKey(keyData: data, creationDate: Date()) {
             return decoded.keyBytes
@@ -745,61 +690,5 @@ private extension PrivateKeyManager {
             return false
         }
         return tag.hasPrefix(KeychainConstants.applicationTag)
-    }
-
-    func saveKeyPreservingSync(key: PrivateKey, syncStatus: Bool) throws {
-        var query = key.keychainQueryDictForKeychain
-        query[kSecAttrSynchronizable as String] = syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!
-
-        if let baseQuery = existingKeyItemQuery(for: key) {
-            // Key exists, update it. Creation date is deliberately left alone —
-            // storedKeys() sorts by it.
-            var updateQuery: [String: Any] = [
-                kSecValueData as String: key.keyData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked,
-                kSecAttrSynchronizable as String: syncStatus ? kCFBooleanTrue! : kCFBooleanFalse!,
-            ]
-            updateQuery.merge(key.keychainIdentityAttributes) { current, _ in current }
-            let updateStatus = keychainWrapper.secItemUpdate(baseQuery as CFDictionary, updateQuery as CFDictionary)
-            try KeychainManager.checkStatus(status: updateStatus)
-        } else {
-            let addStatus = keychainWrapper.secItemAdd(query as CFDictionary, nil)
-            try KeychainManager.checkStatus(status: addStatus)
-        }
-    }
-
-    func isKeyItemSynced(fingerprint: String) throws -> Bool {
-        var query = try keyIdentityQuery(forFingerprint: fingerprint)
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        query[kSecReturnAttributes as String] = true
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-
-        guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                return false
-            } else {
-                throw KeyManagerError.unhandledError("Error checking sync status: \(status)")
-            }
-        }
-
-        guard let attributes = item as? [String: Any] else {
-            return false
-        }
-
-        let syncAttribute = attributes[kSecAttrSynchronizable as String]
-
-        if let isSyncedBool = syncAttribute as? Bool {
-            return isSyncedBool
-        } else if let isSyncedNum = syncAttribute as? NSNumber {
-            return isSyncedNum.boolValue
-        }
-
-        return false
-    }
-
-    func updateKeyQuery(forFingerprint fingerprint: String) throws -> CFDictionary {
-        return try keyIdentityQuery(forFingerprint: fingerprint) as CFDictionary
     }
 }

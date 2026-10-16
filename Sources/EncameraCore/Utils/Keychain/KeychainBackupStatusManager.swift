@@ -89,50 +89,6 @@ struct KeychainBackupStatusManager: DebugPrintable {
         try KeychainManager.checkStatus(status: status)
     }
 
-    /// One-time migration of the backup status item's payload from the legacy
-    /// raw boolean to the structured `KeychainBackupStatus` JSON. Preserves
-    /// `enabled`; the flipping device was never recorded in the legacy format,
-    /// so the metadata stays nil rather than claiming this device flipped it.
-    /// Only writes when the legacy format is actually present.
-    func migrateLegacyBackupStatusIfNeeded() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data else {
-            return
-        }
-        // Already JSON — nothing to migrate.
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if (try? decoder.decode(KeychainBackupStatus.self, from: data)) != nil {
-            return
-        }
-        guard let legacyEnabled = data.boolValue else {
-            printDebug("migrateLegacyBackupStatus: item present but not legacy bool or JSON — leaving as-is")
-            return
-        }
-
-        let migrated = KeychainBackupStatus(enabled: legacyEnabled, deviceID: nil, deviceName: nil, timestamp: nil)
-        guard let payload = try? Self.encodeBackupStatus(migrated) else { return }
-
-        let updateQuery: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.backupStatusKeyItem,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-        let newAttributes: [String: Any] = [
-            kSecValueData as String: payload
-        ]
-        let status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
-        printDebug("migrateLegacyBackupStatus: rewrote legacy bool (enabled=\(legacyEnabled)) as JSON — status \(status) (\(determineOSStatus(status: status)))")
-    }
-
     static func decodeBackupStatus(from data: Data) -> KeychainBackupStatus? {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

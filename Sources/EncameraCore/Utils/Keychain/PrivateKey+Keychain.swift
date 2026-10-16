@@ -27,15 +27,6 @@ extension PrivateKey {
         ]
     }
 
-    var keychainQueryDictForUpdate: [String: Any] {
-        var query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecAttrCreationDate as String: creationDate,
-        ]
-        query.merge(keychainIdentityAttributes) { current, _ in current }
-        return query
-    }
-
     var keychainQueryDictForKeychain: [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassKey,

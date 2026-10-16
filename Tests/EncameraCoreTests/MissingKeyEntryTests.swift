@@ -36,7 +36,7 @@ final class MissingKeyEntryTests: XCTestCase {
     private func makeScenario(stamped: Bool = true) async throws -> (manager: DemoKeyManager, foreignKey: PrivateKey, mediaURL: URL) {
         let manager = DemoKeyManager(keys: [deviceKey])
         manager.currentKey = deviceKey
-        let foreignKey = try manager.deriveKey(from: foreignPhrase)
+        let foreignKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
         let url = try await encryptFixture(with: foreignKey, name: "foreign-media")
         if stamped {
             KeyStampSlot.writeStamp(foreignKey.stampPrefix, url: url)
@@ -230,7 +230,7 @@ final class MissingKeyEntryTests: XCTestCase {
     /// for key X, but this media needs key X".
     func testRejectionAfterAStampMatchDoesNotNameTheSameKeyTwice() async throws {
         let scenario = try await makeScenario()
-        let wrongKey = try scenario.manager.deriveKey(from: wrongPhrase)
+        let wrongKey = try PrivateKey(passphrase: KeyPassphrase(words: wrongPhrase))
 
         do {
             _ = try await MissingKeyEntry(keyManager: scenario.manager)

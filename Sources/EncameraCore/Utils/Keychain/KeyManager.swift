@@ -10,19 +10,15 @@ import Sodium
 import Combine
 
 public enum KeyManagerError: ErrorDescribable {
-    case deleteKeychainItemsFailed
     case unhandledError(String)
-    case notAuthenticatedError
     case notFound
     case dataError
     case keyExists
     case invalidPassword
     case invalidInput
-    case invalidSalt
     case keyDerivationFailed
     case dictionaryLoadError
     case dictionaryTooSmall
-    case typeError
     case keyUpdateFailed
     case keyDeletionFailed
     /// `backupKeychainToiCloud` could not put every credential item into the
@@ -31,12 +27,8 @@ public enum KeyManagerError: ErrorDescribable {
     case syncFlipFailed(attempted: Bool, actual: Bool, details: String)
     public var displayDescription: String {
         switch self {
-        case .deleteKeychainItemsFailed:
-            return L10n.couldNotDeleteKeychainItems
         case .unhandledError(let error):
             return "Unhandled error: \(error)"
-        case .notAuthenticatedError:
-            return L10n.notAuthenticatedForThisOperation
         case .notFound:
             return L10n.keyNotFound
         case .dataError:
@@ -47,16 +39,12 @@ public enum KeyManagerError: ErrorDescribable {
             return L10n.invalidPassword
         case .invalidInput:
             return "Invalid input"
-        case .invalidSalt:
-            return "Invalid salt"
         case .keyDerivationFailed:
             return "Key derivation failed"
         case .dictionaryLoadError:
             return "Could not load dictionary"
         case .dictionaryTooSmall:
             return "Dictionary too small"
-        case .typeError:
-            return "Type error"
         case .keyUpdateFailed:
             return "Key update failed"
         case .keyDeletionFailed:
@@ -72,18 +60,14 @@ public enum KeyManagerError: ErrorDescribable {
 extension KeyManagerError: Equatable {
     public static func ==(lhs: KeyManagerError, rhs: KeyManagerError) -> Bool {
         switch (lhs, rhs) {
-        case (.deleteKeychainItemsFailed, .deleteKeychainItemsFailed),
-             (.notAuthenticatedError, .notAuthenticatedError),
-             (.notFound, .notFound),
+        case (.notFound, .notFound),
              (.dataError, .dataError),
              (.keyExists, .keyExists),
              (.invalidPassword, .invalidPassword),
              (.invalidInput, .invalidInput),
-             (.invalidSalt, .invalidSalt),
              (.keyDerivationFailed, .keyDerivationFailed),
              (.dictionaryLoadError, .dictionaryLoadError),
              (.dictionaryTooSmall, .dictionaryTooSmall),
-             (.typeError, .typeError),
              (.keyUpdateFailed, .keyUpdateFailed),
              (.keyDeletionFailed, .keyDeletionFailed):
             return true
@@ -146,10 +130,6 @@ public protocol KeyManager {
     func getPasswordHash() throws -> Data
     func setPasswordHash(hash: Data) throws
     func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws
-    /// Derives the key a phrase encodes without writing anything to the keychain.
-    /// Lets a caller inspect a candidate key's fingerprint before deciding to
-    /// keep it — the fingerprint gate on additive key entry.
-    func deriveKey(from components: [String]) throws -> PrivateKey
     func generateKeyUsingRandomWords() throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey

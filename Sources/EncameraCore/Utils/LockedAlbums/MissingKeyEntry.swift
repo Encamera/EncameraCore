@@ -118,8 +118,10 @@ public struct MissingKeyEntry {
 
         let candidate: PrivateKey
         do {
-            candidate = try keyManager.deriveKey(from: phraseComponents)
+            candidate = try PrivateKey(passphrase: KeyPassphrase(words: phraseComponents))
         } catch let error as KeyManagerError {
+            throw MissingKeyEntryError.invalidPhrase(error.displayDescription)
+        } catch let error as PrivateKeyError {
             throw MissingKeyEntryError.invalidPhrase(error.displayDescription)
         }
 

@@ -189,20 +189,6 @@ public class DemoKeyManager: KeyManager {
         }
     }
 
-    /// Deterministic stand-in for Argon2 derivation: distinct phrases yield
-    /// distinct keys and the same phrase always yields the same key, which is
-    /// all a fingerprint-gating test needs, without the pwHash cost.
-    public func deriveKey(from components: [String]) throws -> PrivateKey {
-        guard !components.isEmpty else {
-            throw KeyManagerError.invalidInput
-        }
-        let material = Array(components.joined(separator: "-").utf8)
-        guard let bytes = Sodium().genericHash.hash(message: material, outputLength: 32) else {
-            throw KeyManagerError.keyDerivationFailed
-        }
-        return PrivateKey(keyBytes: bytes, creationDate: Date(timeIntervalSince1970: 0))
-    }
-
     public func update(key: PrivateKey) throws {
 
     }

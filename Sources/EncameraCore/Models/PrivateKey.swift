@@ -8,8 +8,21 @@
 import Foundation
 import Sodium
 
-enum ImageKeyEncodingError: Error {
+public enum PrivateKeyError: ErrorDescribable {
+    case keyPassphraseDerivationError
     case invalidKeychainItemData
+    case invalidSalt
+
+    public var displayDescription: String {
+        switch self {
+        case .keyPassphraseDerivationError:
+            return "Key derivation failed"
+        case .invalidKeychainItemData:
+            return "Invalid keychain item data"
+        case .invalidSalt:
+            return "Invalid salt"
+        }
+    }
 }
 
 public typealias KeyBytes = Array<UInt8>
@@ -85,7 +98,7 @@ public struct PrivateKey: Hashable {
         guard
             let keyData = keychainItem[kSecValueData as String] as? Data,
             let creationDate = keychainItem[kSecAttrCreationDate as String] as? Date else {
-            throw ImageKeyEncodingError.invalidKeychainItemData
+            throw PrivateKeyError.invalidKeychainItemData
         }
         do {
             try self.init(keyData: keyData, creationDate: creationDate)
@@ -98,6 +111,33 @@ public struct PrivateKey: Hashable {
         if let synced = keychainItem[kSecAttrSynchronizable as String] as? Bool, synced == true {
             self.savedToiCloud = true
         }
+    }
+
+    /// Derives the key a passphrase encodes without touching the keychain.
+    /// Words 1-4 are the salt, the rest the password input to pwHash.
+    public init(passphrase: KeyPassphrase) throws {
+        let components = passphrase.words
+        let sodium = Sodium()
+        let splitIndex = 4
+        let saltComponents = components.prefix(splitIndex)
+        let saltString = saltComponents.joined(separator: "-")
+        let passwordComponents = components.dropFirst(splitIndex)
+        let password = passwordComponents.joined(separator: "-")
+
+        let saltBytes = Array(saltString.bytes.prefix(Sodium().pwHash.SaltBytes))
+        if saltBytes.count < sodium.pwHash.SaltBytes {
+            throw PrivateKeyError.invalidSalt
+        }
+
+        let keyLength = sodium.secretStream.xchacha20poly1305.KeyBytes
+        guard let keyBytes = sodium.pwHash.hash(outputLength: keyLength,
+                                                passwd: password.bytes,
+                                                salt: saltBytes,
+                                                opsLimit: sodium.pwHash.OpsLimitInteractive,
+                                                memLimit: sodium.pwHash.MemLimitInteractive) else {
+            throw KeyManagerError.keyDerivationFailed
+        }
+        self.init(keyBytes: keyBytes, creationDate: Date())
     }
 }
 
