@@ -326,77 +326,6 @@ final class PrivateKeyManager: DebugPrintable {
         try setActiveKey(keyObject)
     }
 
-    // MARK: - Migration
-
-    /// Relabels name-addressed key items to fingerprint-addressed ones, in
-    /// place. Idempotent — items already carrying a fingerprint label are left
-    /// untouched, so it is safe to run on every launch.
-    ///
-    /// Uses `SecItemUpdate` exclusively and never `SecItemDelete`: deleting a
-    /// synchronizable item tombstones it account-wide and the deletion
-    /// propagates to every other device. Each item is targeted in its
-    /// own sync scope so a local and a synced copy of the same key are
-    /// relabelled independently rather than one clobbering the other.
-    @discardableResult
-    func migrateKeyLabelsToFingerprintsIfNeeded() throws -> Int {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassKey,
-            kSecReturnData as String: true,
-            kSecReturnAttributes as String: true,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        if status == errSecItemNotFound { return 0 }
-        try KeychainManager.checkStatus(status: status)
-        guard let items = item as? [[String: Any]] else { return 0 }
-
-        var relabelled = 0
-        for keychainItem in items {
-            guard let labelData = keychainItem[kSecAttrLabel as String] as? Data,
-                  let existingLabel = String(data: labelData, encoding: .utf8) else {
-                continue
-            }
-            guard !PrivateKey.isFingerprintLabel(existingLabel) else {
-                continue
-            }
-            guard let key = try? PrivateKey(keychainItem: keychainItem) else {
-                printDebug("migrateKeyLabels: skipping undecodable item labelled \(existingLabel)")
-                continue
-            }
-
-            let isSynced = (keychainItem[kSecAttrSynchronizable as String] as? Bool) ?? false
-            let targetQuery: [String: Any] = [
-                kSecClass as String: kSecClassKey,
-                kSecAttrLabel as String: labelData,
-                kSecAttrSynchronizable as String: isSynced ? kCFBooleanTrue! : kCFBooleanFalse!
-            ]
-            let updateStatus = keychainWrapper.secItemUpdate(
-                targetQuery as CFDictionary,
-                key.keychainIdentityAttributes as CFDictionary
-            )
-            if updateStatus == errSecSuccess {
-                relabelled += 1
-                printDebug("migrateKeyLabels: relabelled \(existingLabel) -> \(key.keyFingerprint) (synced=\(isSynced))")
-            } else {
-                printDebug("migrateKeyLabels: FAILED to relabel \(existingLabel) — status \(updateStatus) (\(determineOSStatus(status: updateStatus)))")
-            }
-        }
-
-        // Re-pin an existing name-based pointer onto a fingerprint. Guarded on
-        // a pointer already being set: migration must never choose a current
-        // key when there is none.
-        if relabelled > 0,
-           let pointer = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
-           !PrivateKey.isFingerprintLabel(pointer) {
-            _ = try? getActiveKey()
-        }
-        printDebug("migrateKeyLabels: relabelled \(relabelled) of \(items.count) key items")
-        return relabelled
-    }
-
     // MARK: - iCloud sync
 
     /// Moves every Encamera key item and every passphrase item on or off the
@@ -505,7 +434,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// Locates the stored item for `key`, preferring fingerprint identity and
     /// falling back to a pre-migration item holding the same key bytes, so
     /// that installs which have not yet run
-    /// `migrateKeyLabelsToFingerprintsIfNeeded()` still update in place
+    /// `KeychainMigrationManager.migrateKeyLabelsToFingerprintsIfNeeded()` still update in place
     /// instead of gaining a duplicate.
     ///
     /// Matching on the bytes rather than the old label matters: every

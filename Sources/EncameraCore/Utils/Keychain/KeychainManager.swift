@@ -74,6 +74,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     private let passwordManager: KeychainPasswordManager
     private let eraseManager: KeychainEraseManager
     private let backupStatusManager: KeychainBackupStatusManager
+    private let migrationManager: KeychainMigrationManager
     private var didLogVariantDetail = false
 
     // MARK: - Init
@@ -85,6 +86,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.privateKeyManager = PrivateKeyManager(keychainWrapper: keychainWrapper)
         self.passwordManager = KeychainPasswordManager(keychainWrapper: keychainWrapper)
         self.backupStatusManager = KeychainBackupStatusManager(keychainWrapper: keychainWrapper)
+        self.migrationManager = KeychainMigrationManager(keychainWrapper: keychainWrapper,
+                                                         privateKeyManager: privateKeyManager)
         self.eraseManager = KeychainEraseManager(keychainWrapper: keychainWrapper,
                                                  privateKeyManager: privateKeyManager,
                                                  multiDeviceManager: multiDeviceManager,
@@ -373,7 +376,14 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     @discardableResult
     public func migrateKeyLabelsToFingerprintsIfNeeded() throws -> Int {
-        try privateKeyManager.migrateKeyLabelsToFingerprintsIfNeeded()
+        try migrationManager.migrateKeyLabelsToFingerprintsIfNeeded().migrated
+    }
+
+    /// Runs the keychain migrations from 2.x item formats to 3.x ones.
+    /// Idempotent; safe to call on every launch.
+    @discardableResult
+    public func migrateFromV2ToV3IfNeeded() -> KeychainMigrationReport {
+        migrationManager.migrateFromV2ToV3IfNeeded()
     }
 }
 
