@@ -2232,6 +2232,36 @@ public enum L10n {
     /// Key Phrase Display Screen
     public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Recovery Key")
   }
+  public enum KeyPhrasePicker {
+    /// In Use
+    public static let currentKey = L10n.tr("Localizable", "KeyPhrasePicker.CurrentKey", fallback: "In Use")
+    /// Plural format key: "%#@item_count@"
+    public static func itemCount(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "KeyPhrasePicker.ItemCount", p1, fallback: "Plural format key: \"%#@item_count@\"")
+    }
+    /// Key for %@
+    public static func keyForAlbum(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "KeyPhrasePicker.KeyForAlbum", String(describing: p1), fallback: "Key for %@")
+    }
+    /// Plural format key: "%#@album_count@"
+    public static func keyForAlbums(_ p1: Int) -> String {
+      return L10n.tr("Localizable", "KeyPhrasePicker.KeyForAlbums", p1, fallback: "Plural format key: \"%#@album_count@\"")
+    }
+    /// Key with No Albums
+    public static let keyWithNoAlbums = L10n.tr("Localizable", "KeyPhrasePicker.KeyWithNoAlbums", fallback: "Key with No Albums")
+    /// Made on %@
+    public static func originDevice(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "KeyPhrasePicker.OriginDevice", String(describing: p1), fallback: "Made on %@")
+    }
+    /// Made on another device
+    public static let originOtherDevice = L10n.tr("Localizable", "KeyPhrasePicker.OriginOtherDevice", fallback: "Made on another device")
+    /// Made on this device
+    public static let originThisDevice = L10n.tr("Localizable", "KeyPhrasePicker.OriginThisDevice", fallback: "Made on this device")
+    /// Each key opens the photos it encrypted. Back up every key you still need.
+    public static let subtitle = L10n.tr("Localizable", "KeyPhrasePicker.Subtitle", fallback: "Each key opens the photos it encrypted. Back up every key you still need.")
+    /// ./Encamera/Settings/KeyPhrasePickerDrawer.swift - Drawer listing the keys whose recovery phrase can be backed up
+    public static let title = L10n.tr("Localizable", "KeyPhrasePicker.Title", fallback: "Which key do you want to back up?")
+  }
   public enum Lightbox {
     /// ./Encamera/Lightbox/LightboxController.swift - Edit Mode
     public static let edit = L10n.tr("Localizable", "Lightbox.Edit", fallback: "Edit")
@@ -2615,6 +2645,10 @@ public enum L10n {
   public enum PasswordManager {
     /// Encamera
     public static let credentialTitle = L10n.tr("Localizable", "PasswordManager.CredentialTitle", fallback: "Encamera")
+    /// Encamera (%@)
+    public static func credentialTitleWithFingerprint(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "PasswordManager.CredentialTitleWithFingerprint", String(describing: p1), fallback: "Encamera (%@)")
+    }
     /// ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager
     public static let credentialUserName = L10n.tr("Localizable", "PasswordManager.CredentialUserName", fallback: "Encamera Recovery Key")
     /// Encamera Recovery Key (%@)
