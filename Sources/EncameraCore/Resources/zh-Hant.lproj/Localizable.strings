@@ -369,7 +369,6 @@ Encamera！";
 
 請務必保存這個金鑰，以防您遺失裝置。";
 "NotificationListTitle" = "通知";
-"ImSure" = "我確定";
 "PostPurchaseView.ThanksForYourPurchase" = "感謝您的購買！";
 "PostPurchaseView.Subtext1" = "您是Encamera的早期支持者之一，我們非常感謝您的支持！";
 "PostPurchaseView.Subtext2" = "同時，如果您能在App Store上幫我們寫個評價，我們將非常感激";
@@ -635,9 +634,7 @@ Encamera！";
 "ShareExtension.OpenEncamera" = "打開Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "這將從您的相片圖庫中刪除 %@ 張相片。";
 "CompletedImportHistory.EmptyState" = "沒有已完成的匯入";
-"ImportKeyPhrase.RestartRequired.Title" = "需要重新啟動";
 "ICloudError.DownloadTimeout" = "iCloud 下載逾時。請檢查您的網路連線並重試。";
-"ImportKeyPhrase.RestartRequired.Message" = "更改金鑰後，應用程式將會重新啟動。";
 "SettingsView.SectionHeader.General" = "一般";
 "FeatureFlagToast.Disabled" = "已停用";
 

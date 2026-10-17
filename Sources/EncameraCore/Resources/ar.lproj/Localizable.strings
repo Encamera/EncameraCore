@@ -421,7 +421,6 @@
 "Key not found." = "المفتاح غير موجود.";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "مطلوب الوصول إلى مكتبة الصور";
 "FaceIDOnlyAlert.Cancel" = "إلغاء";
-"ImSure" = "أنا متأكد";
 "UnlimitedStorageFeatureRowTitle" = "تخزين غير محدود للصور ومقاطع الفيديو";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "حذف";
 "Invalid Password" = "كلمة المرور غير صحيحة";
@@ -623,9 +622,7 @@
 "ShareExtension.OpenEncamera" = "افتح إنكاميرا";
 "CompletedImportHistory.DeleteConfirmMessage" = "سيؤدي هذا إلى حذف %@ صورة من مكتبة الصور الخاصة بك.";
 "CompletedImportHistory.EmptyState" = "لا توجد عمليات استيراد مكتملة";
-"ImportKeyPhrase.RestartRequired.Title" = "مطلوب إعادة التشغيل";
 "ICloudError.DownloadTimeout" = "انتهت مهلة تنزيل iCloud. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
-"ImportKeyPhrase.RestartRequired.Message" = "بعد تغيير مفتاحك، سيُعاد تشغيل التطبيق.";
 "SettingsView.SectionHeader.General" = "عام";
 "FeatureFlagToast.Disabled" = "معطل";
 

@@ -372,7 +372,6 @@ Această frază este folosită pentru a genera cheia de criptare care criptează
 
 Este important să salvezi această cheie în caz că îți pierzi dispozitivul.";
 "NotificationListTitle" = "Notificări";
-"ImSure" = "Sunt sigur";
 "PostPurchaseView.ThanksForYourPurchase" = "Mulțumim pentru achiziție!";
 "PostPurchaseView.Subtext1" = "Ești unul dintre susținătorii timpurii ai Encamera și îți mulțumim pentru sprijin!";
 "PostPurchaseView.Subtext2" = "Între timp, am aprecia foarte mult dacă ne-ai putea ajuta cu o recenzie în App Store";
@@ -638,9 +637,7 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "ShareExtension.OpenEncamera" = "Deschide Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Aceasta va șterge %@ fotografie(i) din Biblioteca foto.";
 "CompletedImportHistory.EmptyState" = "Nicio importare finalizată";
-"ImportKeyPhrase.RestartRequired.Title" = "Este necesară repornirea";
 "ICloudError.DownloadTimeout" = "Descărcarea de pe iCloud a expirat. Vă rugăm să verificați conexiunea la internet și să încercați din nou.";
-"ImportKeyPhrase.RestartRequired.Message" = "După schimbarea cheii, aplicația va reporni.";
 "SettingsView.SectionHeader.General" = "GENERAL";
 "FeatureFlagToast.Disabled" = "dezactivat";
 

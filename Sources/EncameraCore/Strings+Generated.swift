@@ -319,8 +319,6 @@ public enum L10n {
   public static let importKeyPhrase = L10n.tr("Localizable", "ImportKeyPhrase", fallback: "Import Recovery Key")
   /// Import the selected images to your currently active key album
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
-  /// I'm Sure
-  public static let imSure = L10n.tr("Localizable", "ImSure", fallback: "I'm Sure")
   /// Wrong PIN Code. Please try again.
   public static let incorrectPinCode = L10n.tr("Localizable", "IncorrectPinCode", fallback: "Wrong PIN Code. Please try again.")
   /// Add Encamera to your lock screen to quickly take pictures
@@ -454,10 +452,6 @@ public enum L10n {
   public static let openSystemSettings = L10n.tr("Localizable", "OpenSystemSettings", fallback: "Go to Settings")
   /// Or
   public static let or = L10n.tr("Localizable", "Or", fallback: "Or")
-  /// Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.
-  public static let overwriteAreYouSure = L10n.tr("Localizable", "OverwriteAreYouSure", fallback: "Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.")
-  /// Overwrite Recovery Key?
-  public static let overwriteKeyPhrase = L10n.tr("Localizable", "OverwriteKeyPhrase", fallback: "Overwrite Recovery Key?")
   /// Password
   public static let password = L10n.tr("Localizable", "Password", fallback: "Password")
   /// Password incorrect
@@ -2144,22 +2138,6 @@ public enum L10n {
     /// Tap to download
     public static let tapToDownload = L10n.tr("Localizable", "ICloudStatus.TapToDownload", fallback: "Tap to download")
   }
-  public enum ImportKeyPhrase {
-    public enum Confirm {
-      /// Replace
-      public static let action = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Action", fallback: "Replace")
-      /// This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.
-      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Message", fallback: "This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.")
-      /// Replace Recovery Key?
-      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.Confirm.Title", fallback: "Replace Recovery Key?")
-    }
-    public enum RestartRequired {
-      /// After changing your key, the app will restart.
-      public static let message = L10n.tr("Localizable", "ImportKeyPhrase.RestartRequired.Message", fallback: "After changing your key, the app will restart.")
-      /// Restart Required
-      public static let title = L10n.tr("Localizable", "ImportKeyPhrase.RestartRequired.Title", fallback: "Restart Required")
-    }
-  }
   public enum ImportTaskDetailsView {
     /// Clear All
     public static let clearAll = L10n.tr("Localizable", "ImportTaskDetailsView.ClearAll", fallback: "Clear All")
@@ -3056,8 +3034,6 @@ public enum L10n {
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
     /// iCloud Backup & Sync
     public static let iCloudBackupAndSync = L10n.tr("Localizable", "Settings.ICloudBackupAndSync", fallback: "iCloud Backup & Sync")
-    /// Import Recovery Key
-    public static let importKeyPhrase = L10n.tr("Localizable", "Settings.ImportKeyPhrase", fallback: "Import Recovery Key")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
     /// Purchases restored!

@@ -437,7 +437,6 @@
 "Key not found." = "キーが見つかりません。";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "写真ライブラリへのアクセスが必要です";
 "FaceIDOnlyAlert.Cancel" = "キャンセル";
-"ImSure" = "確認しました";
 "UnlimitedStorageFeatureRowTitle" = "写真と動画の無制限ストレージ";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "削除";
 "Invalid Password" = "無効なパスワード";
@@ -638,9 +637,7 @@
 "ShareExtension.OpenEncamera" = "Encameraを開く";
 "CompletedImportHistory.DeleteConfirmMessage" = "これにより、フォトライブラリから%@枚の写真が削除されます。";
 "CompletedImportHistory.EmptyState" = "完了したインポートはありません";
-"ImportKeyPhrase.RestartRequired.Title" = "再起動が必要です";
 "ICloudError.DownloadTimeout" = "iCloudのダウンロードがタイムアウトしました。インターネット接続を確認して、もう一度お試しください。";
-"ImportKeyPhrase.RestartRequired.Message" = "キーを変更した後、アプリが再起動します。";
 "SettingsView.SectionHeader.General" = "一般";
 "FeatureFlagToast.Disabled" = "無効";
 

@@ -688,15 +688,7 @@
 "EnterKeyPhraseDescription" = "Enter the recovery key you want to import. Separate each word with a space.";
 "NotificationListTitle" = "Notifications";
 "Import" = "Import";
-"OverwriteKeyPhrase" = "Overwrite Recovery Key?";
-"OverwriteAreYouSure" = "Are you sure you want to overwrite your current recovery key? You will not be able to access any media encrypted with the current recovery key.";
-"ImSure" = "I'm Sure";
-"ImportKeyPhrase.Confirm.Title" = "Replace Recovery Key?";
-"ImportKeyPhrase.Confirm.Message" = "This recovery key will become the one Encamera uses for new media. Your current recovery key is kept, so everything already encrypted with it stays readable.";
-"ImportKeyPhrase.Confirm.Action" = "Replace";
 "ErrorImportingKeyPhrase" = "Error importing recovery key";
-"ImportKeyPhrase.RestartRequired.Title" = "Restart Required";
-"ImportKeyPhrase.RestartRequired.Message" = "After changing your key, the app will restart.";
 "PostPurchaseView.ThanksForYourPurchase" = "Thanks for your purchase!";
 "PostPurchaseView.Subtext1" = "You are one of the early supporters of Encamera and we thank you for the support!";
 "PostPurchaseView.Subtext2" = "In the meantime, we would highly appreciate if you could help us with a Review on the App Store";
@@ -727,7 +719,6 @@
 "Settings.CopiedToClipboard" = "Copied to clipboard";
 "Settings.Contact" = "Contact Support";
 "Settings.BackupKeyPhrase" = "Backup Recovery Key";
-"Settings.ImportKeyPhrase" = "Import Recovery Key";
 "Settings.DefaultStorageOption" = "Default Storage Option";
 "Settings.BackupKeyToiCloud" = "Sync Key to iCloud";
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";

@@ -287,7 +287,6 @@
 "OK" = "확인";
 "Set Password" = "비밀번호 설정";
 "Delete All Associated Data?" = "모든 관련 데이터를 삭제하시겠습니까?";
-"ImSure" = "확실합니다";
 "AlbumDetailView.PhotoAccessAlertTitle" = "가져온 후 삭제하시겠습니까?";
 "Notification.InactiveUserReminder.Body" = "앨범에 추가하여 더 많은 이미지를 확보하는 것을 잊지 마세요. 지금 가져오기!";
 "SelectAnOption" = "옵션 선택";
@@ -641,9 +640,7 @@
 "ShareExtension.OpenEncamera" = "Encamera 열기";
 "CompletedImportHistory.DeleteConfirmMessage" = "이 작업은 %@장의 사진을 사진 보관함에서 삭제합니다.";
 "CompletedImportHistory.EmptyState" = "완료된 가져오기 없음";
-"ImportKeyPhrase.RestartRequired.Title" = "재시작 필요";
 "ICloudError.DownloadTimeout" = "iCloud 다운로드 시간이 초과되었습니다. 인터넷 연결을 확인하고 다시 시도하세요.";
-"ImportKeyPhrase.RestartRequired.Message" = "키를 변경한 후 앱이 재시작됩니다.";
 "SettingsView.SectionHeader.General" = "일반";
 "FeatureFlagToast.Disabled" = "비활성화됨";
 

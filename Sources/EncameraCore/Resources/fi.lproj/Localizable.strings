@@ -270,7 +270,6 @@
 "Key length: %@" = "Avaimen pituus: %@";
 "LoginMethodDescription" = "Valitse, miten haluat käyttää yksityisiä albumejasi.";
 "PurchaseView.BenefitModel.UnlimitedAlbums" = "Rajattomasti albumeita muistoillesi";
-"ImSure" = "Olen varma";
 "SaveToiCloudDrive" = "Tallenna iCloud Driveen";
 "GetPremium" = "Hanki Premium";
 "AuthenticationView.TooManyAttempts" = "Liian monta yritystä";
@@ -637,9 +636,7 @@ Sovellus sulkeutuu, kun poisto on valmis.";
 "ShareExtension.OpenEncamera" = "Avaa Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Tämä poistaa %@ valokuvaa kuvakirjastostasi.";
 "CompletedImportHistory.EmptyState" = "Ei valmiita tuonteja";
-"ImportKeyPhrase.RestartRequired.Title" = "Uudelleenkäynnistys vaaditaan";
 "ICloudError.DownloadTimeout" = "iCloud-lataus aikakatkaistiin. Tarkista internet-yhteytesi ja yritä uudelleen.";
-"ImportKeyPhrase.RestartRequired.Message" = "Avainmuutoksen jälkeen sovellus käynnistyy uudelleen.";
 "SettingsView.SectionHeader.General" = "YLEINEN";
 "FeatureFlagToast.Disabled" = "poistettu käytöstä";
 

@@ -382,9 +382,6 @@
   "EnterKeyPhrase" = "Saisir la phrase clé";
   "EnterKeyPhraseDescription" = "Entrez la phrase clé que vous souhaitez importer. Séparez chaque mot par un espace.";
   "NotificationListTitle" = "Notifications";
-  "OverwriteKeyPhrase" = "Écraser la phrase clé ?";
-  "OverwriteAreYouSure" = "Êtes-vous sûr de vouloir écraser votre phrase clé actuelle ? Vous ne pourrez plus accéder aux médias chiffrés avec la phrase clé actuelle.";
-  "ImSure" = "Je suis sûr";
   "ErrorImportingKeyPhrase" = "Erreur lors de l'importation de la phrase clé";
   "PostPurchaseView.ThanksForYourPurchase" = "Merci pour votre achat !";
   "PostPurchaseView.Subtext1" = "Vous faites partie des premiers soutiens d’Encamera et nous vous remercions pour votre soutien !";
@@ -414,7 +411,6 @@
   "Settings.Version" = "Version";
   "Settings.Contact" = "Contacter le support";
   "Settings.BackupKeyPhrase" = "Sauvegarder la phrase clé";
-  "Settings.ImportKeyPhrase" = "Importer la phrase clé";
   "Settings.DefaultStorageOption" = "Option de stockage par défaut";
   "Settings.BackupKeyToiCloud" = "Synchroniser la clé avec iCloud";
   "Settings.BackupKeyToiCloudDescription" = "Si activé, votre clé sera automatiquement sauvegardée dans votre trousseau iCloud. Si vous perdez votre appareil, vous aurez toujours accès aux fichiers stockés sur iCloud si vous choisissez cette option.";
@@ -657,9 +653,7 @@ album";
 "ShareExtension.OpenEncamera" = "Ouvrir Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Cela supprimera %@ photo(s) de votre photothèque.";
 "CompletedImportHistory.EmptyState" = "Aucune importation terminée";
-"ImportKeyPhrase.RestartRequired.Title" = "Redémarrage requis";
 "ICloudError.DownloadTimeout" = "Le téléchargement iCloud a expiré. Veuillez vérifier votre connexion Internet et réessayer.";
-"ImportKeyPhrase.RestartRequired.Message" = "Après avoir changé votre clé, l'application va redémarrer.";
 "SettingsView.SectionHeader.General" = "GÉNÉRAL";
 "FeatureFlagToast.Disabled" = "désactivé";
 

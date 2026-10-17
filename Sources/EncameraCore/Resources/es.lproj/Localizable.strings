@@ -418,7 +418,6 @@
 "LetsGiveYourAlbumAName" = "Demosle un nombre a tu\nálbum";
 "SetPinCodeSubtitle" = "Este pin se utilizará para iniciar sesión de manera segura en tu aplicación. ¡Asegúrate de recordarlo!";
 "Use PIN instead" = "Usar PIN en su lugar";
-"ImSure" = "Estoy seguro";
 "RepeatPinCode" = "Repetir Código PIN";
 "EmptyAlbumImportPhotosSubtitle" = "Importar fotos de tu carrete";
 "PurchaseProduct" = "Compra";
@@ -771,9 +770,7 @@
 "ShareExtension.OpenEncamera" = "Abrir Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Esto eliminará %@ foto(s) de tu Biblioteca de Fotos.";
 "CompletedImportHistory.EmptyState" = "No hay importaciones completadas";
-"ImportKeyPhrase.RestartRequired.Title" = "Reinicio requerido";
 "ICloudError.DownloadTimeout" = "La descarga de iCloud excedió el tiempo de espera. Por favor, verifica tu conexión a internet e inténtalo de nuevo.";
-"ImportKeyPhrase.RestartRequired.Message" = "Después de cambiar tu clave, la aplicación se reiniciará.";
 "SettingsView.SectionHeader.General" = "GENERAL";
 "FeatureFlagToast.Disabled" = "desactivado";
 

@@ -352,7 +352,6 @@
 "ThanksForPurchasingLifetime" = "感谢您购买终身许可证！";
 "ThanksForPurchasingLifetimeSubtitle" = "你太棒了，很快就会解锁新的福利。";
 "NotificationListTitle" = "通知";
-"ImSure" = "我确定";
 "PostPurchaseView.ThanksForYourPurchase" = "感谢您的购买！";
 "PostPurchaseView.Subtext1" = "您是Encamera的早期支持者之一，我们感谢您的支持！";
 "PostPurchaseView.Subtext2" = "同时，如果您能在应用商店为我们写个评论，我们将非常感激";
@@ -618,9 +617,7 @@
 "ShareExtension.OpenEncamera" = "打开Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "这将从您的照片库中删除%@张照片。";
 "CompletedImportHistory.EmptyState" = "没有已完成的导入";
-"ImportKeyPhrase.RestartRequired.Title" = "需要重启";
 "ICloudError.DownloadTimeout" = "iCloud下载超时。请检查您的网络连接并重试。";
-"ImportKeyPhrase.RestartRequired.Message" = "更改密钥后，应用将会重启。";
 "SettingsView.SectionHeader.General" = "常规";
 "FeatureFlagToast.Disabled" = "已禁用";
 

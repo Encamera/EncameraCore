@@ -421,7 +421,6 @@ Encamera!";
 "Key not found." = "Nøgle ikke fundet.";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Adgang til fotobibliotek påkrævet";
 "FaceIDOnlyAlert.Cancel" = "Annuller";
-"ImSure" = "Jeg er sikker";
 "UnlimitedStorageFeatureRowTitle" = "Ubegrænset lagerplads til fotos og videoer";
 "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Slet";
 "Invalid Password" = "Ugyldigt kodeord";
@@ -625,9 +624,7 @@ Encamera!";
 "ShareExtension.OpenEncamera" = "Åbn Encamera";
 "CompletedImportHistory.DeleteConfirmMessage" = "Dette vil slette %@ foto(er) fra dit fotobibliotek.";
 "CompletedImportHistory.EmptyState" = "Ingen fuldførte importer";
-"ImportKeyPhrase.RestartRequired.Title" = "Genstart påkrævet";
 "ICloudError.DownloadTimeout" = "iCloud-downloadet fik timeout. Tjek venligst din internetforbindelse og prøv igen.";
-"ImportKeyPhrase.RestartRequired.Message" = "Efter du har ændret din nøgle, vil appen genstarte.";
 "SettingsView.SectionHeader.General" = "GENERELT";
 "FeatureFlagToast.Disabled" = "deaktiveret";
 
