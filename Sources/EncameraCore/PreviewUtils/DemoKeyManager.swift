@@ -109,9 +109,6 @@ public class DemoKeyManager: KeyManager {
     public func createBackupDocument() throws -> String {
         return ""
     }
-    public func retrieveKeyPassphrase() throws -> KeyPassphrase {
-        return KeyPassphrase(words: ["your", "cool", "cat"])
-    }
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }

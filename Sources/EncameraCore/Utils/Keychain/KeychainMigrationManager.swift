@@ -1,8 +1,8 @@
 //
-//  File.swift
+//  KeychainMigrationManager.swift
 //  EncameraCore
 //
-//  Created by Alexander Freas on 14.10.26.
+//  Moves 2.x keychain item formats to the 3.x layout on every launch.
 //
 
 import Foundation

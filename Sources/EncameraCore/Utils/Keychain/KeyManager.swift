@@ -68,6 +68,7 @@ extension KeyManagerError: Equatable {
              (.keyExists, .keyExists),
              (.invalidPassword, .invalidPassword),
              (.invalidInput, .invalidInput),
+             (.invalidPassphraseData, .invalidPassphraseData),
              (.keyDerivationFailed, .keyDerivationFailed),
              (.dictionaryLoadError, .dictionaryLoadError),
              (.dictionaryTooSmall, .dictionaryTooSmall),

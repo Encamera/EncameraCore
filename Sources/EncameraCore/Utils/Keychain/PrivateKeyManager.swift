@@ -88,7 +88,7 @@ final class PrivateKeyManager: DebugPrintable {
     /// local and a synced copy side by side.
     private func savePassphrase(_ passphrase: KeyPassphrase, for key: PrivateKey, synchronizable: Bool) throws {
         guard let passphraseData = passphrase.joinedStringData else {
-            throw KeyManagerError.invalidInput
+            throw KeyManagerError.invalidPassphraseData
         }
         let itemQuery = queryForPassphrase(fingerprint: key.keyFingerprint)
 
