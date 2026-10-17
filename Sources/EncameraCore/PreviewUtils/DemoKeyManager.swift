@@ -136,6 +136,8 @@ public class DemoKeyManager: KeyManager {
         }
         isSyncEnabled = enabled
     }
+    public func startKeychainSyncMonitor() { }
+    public func stopKeychainSyncMonitor() { }
 
     /// Set to make the next flip fail, so callers' error handling is testable.
     public var backupError: KeyManagerError?

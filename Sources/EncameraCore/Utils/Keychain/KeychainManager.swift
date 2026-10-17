@@ -75,7 +75,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     private let eraseManager: KeychainEraseManager
     private let backupStatusManager: KeychainBackupStatusManager
     private let migrationManager: KeychainMigrationManager
+    private let keychainSyncManager: KeychainSyncManager
     private var didLogVariantDetail = false
+    private var isKeychainSyncMonitorRunning = false
 
     // MARK: - Init
 
@@ -88,6 +90,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.backupStatusManager = KeychainBackupStatusManager(keychainWrapper: keychainWrapper)
         self.migrationManager = KeychainMigrationManager(keychainWrapper: keychainWrapper,
                                                          privateKeyManager: privateKeyManager)
+        self.keychainSyncManager = KeychainSyncManager(privateKeyManager: privateKeyManager,
+                                                       passwordManager: passwordManager,
+                                                       backupStatusManager: backupStatusManager)
         self.eraseManager = KeychainEraseManager(keychainWrapper: keychainWrapper,
                                                  privateKeyManager: privateKeyManager,
                                                  multiDeviceManager: multiDeviceManager,
@@ -370,6 +375,31 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
 
         try backupStatusManager.writeBackupFlag(enabled: enabled)
+    }
+
+    /// Starts the passive adoption of the account's credentials: a periodic
+    /// check of the backup flag plus one on every return to the foreground.
+    /// See `KeychainSyncManager`.
+    public func startKeychainSyncMonitor() {
+        guard !isKeychainSyncMonitorRunning else { return }
+        isKeychainSyncMonitorRunning = true
+        Task { await keychainSyncManager.startMonitoring() }
+        NotificationUtils.didBecomeActivePublisher
+            .sink { [weak self] _ in
+                guard let self else { return }
+                Task { await self.keychainSyncManager.syncKeychainItems() }
+            }.store(in: &cancellables)
+    }
+
+    public func stopKeychainSyncMonitor() {
+        isKeychainSyncMonitorRunning = false
+        Task { await keychainSyncManager.stopMonitoring() }
+    }
+
+    /// One adoption pass, now. What the monitor runs on each tick.
+    @discardableResult
+    public func runKeychainSyncPass() async -> KeychainSyncPassOutcome {
+        await keychainSyncManager.syncKeychainItems()
     }
 
     // MARK: - Migrations

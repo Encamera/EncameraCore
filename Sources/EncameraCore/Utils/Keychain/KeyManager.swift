@@ -147,6 +147,12 @@ public protocol KeyManager {
     func credentialSnapshot() -> KeychainCredentialSnapshot
     func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func setiCloudKeychainSyncEnabled(enabled: Bool) throws
+    /// Starts watching the always-synced backup flag and adopting the
+    /// account's credentials when another device turns backup on. The toggle
+    /// above only flips the items on the device it is tapped on; this is the
+    /// other side. See `KeychainSyncManager`.
+    func startKeychainSyncMonitor()
+    func stopKeychainSyncMonitor()
     func clearPassword() throws
     func dumpAllKeychainEntries() -> [KeychainDumpEntry]
     func getAuthenticationConfiguration() -> AuthenticationConfiguration?

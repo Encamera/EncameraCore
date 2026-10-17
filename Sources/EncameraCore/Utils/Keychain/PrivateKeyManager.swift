@@ -360,6 +360,34 @@ final class PrivateKeyManager: DebugPrintable {
         return failures
     }
 
+    /// Adopts the account's copy of every key and passphrase on a device that
+    /// learned backup is on from another device's flag. Keys are unique by
+    /// fingerprint, so a key with a synced copy is already the account's and
+    /// only loses its redundant local copy; a local-only key is moved up and
+    /// reaches the other devices. See `KeychainItemSyncFlipper.adoptSyncedCopy`.
+    func adoptSyncedKeys() -> [String] {
+        var failures: [String] = []
+        do {
+            try syncFlipper.adoptSyncedCopy(forItemMatching: [
+                                                kSecClass as String: kSecClassKey,
+                                                kSecMatchLimit as String: kSecMatchLimitAll
+                                            ],
+                                            including: Self.isEncameraKeyItem,
+                                            description: "keys")
+        } catch {
+            failures.append("keys: \(error)")
+        }
+        do {
+            try syncFlipper.adoptSyncedCopy(forItemMatching: queryForPassphrase(additionalQuery: [
+                                                kSecMatchLimit as String: kSecMatchLimitAll
+                                            ]),
+                                            description: "passphrases")
+        } catch {
+            failures.append("passphrases: \(error)")
+        }
+        return failures
+    }
+
     /// Moves a single key on or off the iCloud keychain. Routed through
     /// `KeychainItemSyncFlipper` like every other flip — a one-shot
     /// `SecItemUpdate` cannot flip a key that has both a local and an

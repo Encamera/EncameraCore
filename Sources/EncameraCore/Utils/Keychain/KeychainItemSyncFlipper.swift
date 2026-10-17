@@ -44,11 +44,13 @@ struct KeychainItemSyncFlipper: DebugPrintable {
                            including isIncluded: ([String: Any]) -> Bool = { _ in true },
                            description: String) throws {
         if (baseQuery[kSecMatchLimit as String] as? String) == (kSecMatchLimitAll as String) {
-            try setSynchronizableForEachItem(enabled, matching: baseQuery, including: isIncluded)
+            try forEachItem(matching: baseQuery, including: isIncluded, verb: "flip") { identity, description in
+                try setSynchronizable(enabled, forItemMatching: identity, description: description)
+            }
             return
         }
 
-        let copies = try readCopies(matching: baseQuery)
+        let copies = try readLocalAndSyncedCopies(matching: baseQuery)
         guard !copies.isEmpty else {
             return
         }
@@ -95,16 +97,69 @@ struct KeychainItemSyncFlipper: DebugPrintable {
         }
         return failures
     }
+
+    /// Adopts the account's copy of an item on a device that did not flip the
+    /// backup flag itself. Nothing is ever written to the synced scope from
+    /// here, so nothing propagates back to the account:
+    ///
+    /// - A synced copy exists: the local copies are deleted. Whatever hash or
+    ///   key the account holds is what this device uses from now on.
+    /// - Only a local copy exists: it is moved up through `setSynchronizable`,
+    ///   which is the ordinary single-copy flip. This is how a device that
+    ///   never enabled backup gets its own keys onto the account.
+    /// - Nothing exists: no-op.
+    func adoptSyncedCopy(forItemMatching baseQuery: [String: Any],
+                         including isIncluded: ([String: Any]) -> Bool = { _ in true },
+                         description: String) throws {
+        if (baseQuery[kSecMatchLimit as String] as? String) == (kSecMatchLimitAll as String) {
+            try forEachItem(matching: baseQuery, including: isIncluded, verb: "adopt") { identity, description in
+                try adoptSyncedCopy(forItemMatching: identity, description: description)
+            }
+            return
+        }
+
+        let copies = try readLocalAndSyncedCopies(matching: baseQuery)
+        let hasSyncedCopy = copies.contains { boolTypedSyncFlag(of: $0) }
+        let hasLocalCopy = copies.contains { !boolTypedSyncFlag(of: $0) }
+
+        if hasSyncedCopy && hasLocalCopy {
+            try deleteCopies(matching: baseQuery, synchronizable: false)
+            printDebug("Adopted synced \(description); local copy deleted")
+        } else if hasLocalCopy {
+            try setSynchronizable(true, forItemMatching: baseQuery, description: description)
+        }
+    }
+
+    /// `adoptSyncedCopy` for each generic-password item in `credentials`,
+    /// returning a failure line per item that could not be adopted.
+    func adoptSyncedCopies(genericCredentials credentials: [(account: String, description: String)]) -> [String] {
+        var failures: [String] = []
+        for credential in credentials {
+            do {
+                try adoptSyncedCopy(forItemMatching: [
+                    kSecClass as String: kSecClassGenericPassword,
+                    kSecAttrAccount as String: credential.account
+                ], description: credential.description)
+            } catch {
+                printDebug("adopt: \(credential.description) FAILED:", error)
+                failures.append("\(credential.description): \(error)")
+            }
+        }
+        return failures
+    }
 }
 
 private extension KeychainItemSyncFlipper {
 
-    /// Flips each item `query` matches by its own identity. The attributes that
-    /// identify an item depend on its class: a key by label, application tag
-    /// and application label; anything else by service and account.
-    func setSynchronizableForEachItem(_ enabled: Bool,
-                                      matching query: [String: Any],
-                                      including isIncluded: ([String: Any]) -> Bool) throws {
+    /// Runs `operation` on each item `query` matches, addressed by its own
+    /// identity. The attributes that identify an item depend on its class: a
+    /// key by label, application tag and application label; anything else by
+    /// service and account. Each item is handled independently; the failures
+    /// are collected and thrown together once every item has been visited.
+    func forEachItem(matching query: [String: Any],
+                     including isIncluded: ([String: Any]) -> Bool,
+                     verb: String,
+                     _ operation: (_ identity: [String: Any], _ description: String) throws -> Void) throws {
         var readQuery = query
         readQuery[kSecReturnAttributes as String] = true
         readQuery[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
@@ -132,9 +187,9 @@ private extension KeychainItemSyncFlipper {
                 ? "key \((attributes[kSecAttrLabel as String] as? Data).flatMap { String(data: $0, encoding: .utf8) } ?? "<unlabelled>")"
                 : (attributes[kSecAttrAccount as String] as? String ?? "<unknown>")
             do {
-                try setSynchronizable(enabled, forItemMatching: identity, description: description)
+                try operation(identity, description)
             } catch {
-                printDebug("flip: \(description) FAILED:", error)
+                printDebug("\(verb): \(description) FAILED:", error)
                 failures.append("\(description): \(error)")
             }
         }
@@ -145,7 +200,7 @@ private extension KeychainItemSyncFlipper {
 
     /// Every copy of the matched item, local and synchronizable, with data and
     /// attributes. Empty when there is none.
-    func readCopies(matching baseQuery: [String: Any]) throws -> [[String: Any]] {
+    func readLocalAndSyncedCopies(matching baseQuery: [String: Any]) throws -> [[String: Any]] {
         var readQuery = baseQuery
         readQuery[kSecReturnData as String] = true
         readQuery[kSecReturnAttributes as String] = true

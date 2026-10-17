@@ -55,6 +55,18 @@ struct KeychainPasswordManager: DebugPrintable {
             ])
     }
 
+    /// Adopts the account's password hash and passcode type on a device that
+    /// learned backup is on from another device's flag: a synced copy wins and
+    /// the local one is deleted, a local-only copy is moved up. See
+    /// `KeychainItemSyncFlipper.adoptSyncedCopy`.
+    func adoptSyncedPassword() -> [String] {
+        KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
+            .adoptSyncedCopies(genericCredentials: [
+                (KeychainConstants.passcodeTypeKeyItem, "passcode type"),
+                (KeychainConstants.account, "password hash"),
+            ])
+    }
+
     func passwordExists() -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
