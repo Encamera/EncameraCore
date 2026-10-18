@@ -274,7 +274,10 @@ public actor ExistingDataProbe {
     private func markerState() -> MultiDeviceState? {
         if let stubbed = ExistingDataProbeTestHooks.stubbedMarker {
             guard stubbed else { return MultiDeviceState() }
-            let devices = (ExistingDataProbeTestHooks.stubbedDeviceNames ?? []).enumerated().map {
+            // The roster is the marker's evidence, so a stubbed marker always has at
+            // least one device. An unnamed one is filtered out of every UI copy.
+            let names = ExistingDataProbeTestHooks.stubbedDeviceNames ?? [""]
+            let devices = names.enumerated().map {
                 MultiDeviceState.DeviceRecord(deviceID: "stub-device-\($0.offset)", name: $0.element, lastSeen: Date())
             }
             return MultiDeviceState(devices: devices)
