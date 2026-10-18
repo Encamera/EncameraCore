@@ -16,6 +16,10 @@ import UIKit
 /// Owned by `KeychainManager`, which forwards the `KeyManager` key calls here.
 /// Writes take the sync value from the caller because whether a write is
 /// synchronizable is decided by the backup flag, which `KeychainManager` owns.
+///
+/// The writes that put a key in the library are `fileprivate`: they are only
+/// reachable through `KeyMintingManager` below, which publishes every new key
+/// to the synced multi-device state as part of the same call.
 final class PrivateKeyManager: DebugPrintable {
 
     private(set) var currentKey: PrivateKey? {
@@ -39,7 +43,7 @@ final class PrivateKeyManager: DebugPrintable {
 
     // MARK: - Creating keys
 
-    @discardableResult func generateKeyUsingRandomWords(synchronizable: Bool) throws -> PrivateKey {
+    @discardableResult fileprivate func generateKeyUsingRandomWords(synchronizable: Bool) throws -> PrivateKey {
 
         guard let dictionaryPath = Bundle.main.path(forResource: "dictionary", ofType: "txt"),
               let dictionaryContent = try? String(contentsOfFile: dictionaryPath) else {
@@ -57,12 +61,7 @@ final class PrivateKeyManager: DebugPrintable {
         return try generateKeyFromPasswordComponentsAndSave(selectedWords, synchronizable: synchronizable)
     }
 
-    @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase, synchronizable: Bool) throws -> PrivateKey {
-
-        return try generateKeyFromPasswordComponentsAndSave(passphrase.words, synchronizable: synchronizable)
-    }
-
-    @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String], synchronizable: Bool) throws -> PrivateKey {
+    @discardableResult fileprivate func generateKeyFromPasswordComponentsAndSave(_ components: [String], synchronizable: Bool) throws -> PrivateKey {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
@@ -112,7 +111,7 @@ final class PrivateKeyManager: DebugPrintable {
         try KeychainManager.checkStatus(status: keychainWrapper.secItemAdd(addQuery as CFDictionary, nil))
     }
 
-    func save(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
+    fileprivate func save(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
         let syncValue = Self.syncValue(synchronizable)
         var query = key.keychainQueryDictForKeychain
         query[kSecAttrSynchronizable as String] = syncValue
@@ -608,5 +607,90 @@ private extension PrivateKeyManager {
             return false
         }
         return tag.hasPrefix(KeychainConstants.applicationTag)
+    }
+}
+
+// MARK: - Minting and adding keys
+
+/// The one way a key enters this device's library by the user's own action:
+/// minted here from random words, or added from a passphrase the user typed.
+/// Each write also publishes the key to the synced `MultiDeviceState`, so the
+/// other devices and the key picker learn about it at once rather than on the
+/// next launch sweep (`MultiDeviceStateRecorder`).
+///
+/// `PrivateKeyManager`'s key writes are `fileprivate`, so nothing else in the
+/// module can store a key without this publish. Keys that arrive from the
+/// account, through iCloud Keychain or `KeychainSyncManager`, are not this
+/// device's doing and are left to the launch sweep.
+struct KeyMintingManager: DebugPrintable {
+
+    private let privateKeyManager: PrivateKeyManager
+    private let multiDeviceManager: MultiDeviceManager
+    private let deviceID: () -> String
+    private let deviceName: () -> String
+    private let now: () -> Date
+    private let recordMinted: (PrivateKey) -> Void
+    private let publishesState: () -> Bool
+
+    init(
+        privateKeyManager: PrivateKeyManager,
+        multiDeviceManager: MultiDeviceManager,
+        deviceID: @escaping () -> String = { DeviceIDProvider.deviceID() },
+        deviceName: @escaping () -> String = { DeviceIDProvider.deviceName() },
+        now: @escaping () -> Date = { Date() },
+        recordMinted: @escaping (PrivateKey) -> Void = { MintedKeys.record($0) },
+        publishesState: @escaping () -> Bool = { MultiDeviceStatePolicy.publishesState }
+    ) {
+        self.privateKeyManager = privateKeyManager
+        self.multiDeviceManager = multiDeviceManager
+        self.deviceID = deviceID
+        self.deviceName = deviceName
+        self.now = now
+        self.recordMinted = recordMinted
+        self.publishesState = publishesState
+    }
+
+    /// Generates a key from ten random dictionary words, saves it and its
+    /// passphrase as the current key, and claims this device as its origin.
+    @discardableResult func mint(synchronizable: Bool) throws -> PrivateKey {
+        let key = try privateKeyManager.generateKeyUsingRandomWords(synchronizable: synchronizable)
+        // Recorded before the publish, so the launch sweep can still claim the
+        // origin if the publish fails.
+        recordMinted(key)
+        publish(key, claimOrigin: true)
+        return key
+    }
+
+    /// Derives the key for `words`, saves it and its passphrase as the current
+    /// key. The key was minted somewhere else, so no origin is claimed.
+    @discardableResult func add(words: [String], synchronizable: Bool) throws -> PrivateKey {
+        let key = try privateKeyManager.generateKeyFromPasswordComponentsAndSave(words, synchronizable: synchronizable)
+        publish(key, claimOrigin: false)
+        return key
+    }
+
+    /// Saves an already-derived key, with no passphrase item. No origin is
+    /// claimed: the callers hold keys entered for another device's media or
+    /// re-derived from a synced passphrase.
+    func add(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
+        try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizable)
+        publish(key, claimOrigin: false)
+    }
+
+    /// Best-effort. The key is already in the keychain when this runs, and the
+    /// launch sweep republishes anything a failed write here left out.
+    private func publish(_ key: PrivateKey, claimOrigin: Bool) {
+        guard publishesState() else { return }
+        let record = MultiDeviceState.DeviceRecord(deviceID: deviceID(), name: deviceName(), lastSeen: now())
+        let fingerprint = key.keyFingerprint
+        do {
+            try multiDeviceManager.setState(MultiDeviceState(
+                devices: [record],
+                keyFingerprints: [fingerprint],
+                keyOrigins: claimOrigin ? [fingerprint: record.deviceID] : [:]
+            ))
+        } catch {
+            printDebug("could not publish key \(fingerprint) to the multi-device state: \(error)")
+        }
     }
 }

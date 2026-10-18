@@ -83,7 +83,7 @@ struct KeychainEraseManager {
 
             multiDeviceManager.deleteState()
 
-            try? passwordManager.clearPassword(synchronizable: false)
+            try? passwordManager.clearPassword()
         }
 
         privateKeyManager.clearActiveKey()

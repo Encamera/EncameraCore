@@ -140,7 +140,7 @@ final class KeychainMigrationManager: DebugPrintable {
         var config = passwordManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
         config.addAuthenticationType(.passcode(chosen.type))
         do {
-            try passwordManager.setAuthenticationConfiguration(config: config, synchronizable: chosen.isSynced)
+            try passwordManager.setAuthenticationConfiguration(config: config, synchronizableIfCreated: chosen.isSynced)
         } catch {
             result.recordFailedWrite(reason: KeychainMigrationReport.reason(for: error))
             printDebug("migrateLegacyPasscodeType: FAILED to write configuration, leaving legacy item:", error)

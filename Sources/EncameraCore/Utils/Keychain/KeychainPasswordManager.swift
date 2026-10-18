@@ -104,7 +104,7 @@ struct KeychainPasswordManager: DebugPrintable {
         return true
     }
 
-    func clearPassword(synchronizable: Bool) throws {
+    func clearPassword() throws {
         let passwordQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -129,7 +129,9 @@ struct KeychainPasswordManager: DebugPrintable {
 
         if var config = getAuthenticationConfiguration(), let type = config.passcodeType {
             config.removeAuthenticationType(.passcode(type))
-            try setAuthenticationConfiguration(config: config, synchronizable: synchronizable)
+            // The configuration was just read, so this updates it in place and
+            // keeps its existing sync scope.
+            try setAuthenticationConfiguration(config: config, synchronizableIfCreated: false)
         }
     }
     
@@ -302,10 +304,10 @@ struct KeychainPasswordManager: DebugPrintable {
 
     /// Writes the configuration. An existing copy is updated in place in
     /// whichever sync scope it is in, so a write never leaves a local and a
-    /// synced copy side by side; `synchronizable` decides the scope only when
+    /// synced copy side by side; `synchronizableIfCreated` decides the scope only when
     /// the item is created. Moving an existing item between scopes is
     /// `setAuthenticationConfigurationSynchronizable`'s job.
-    func setAuthenticationConfiguration(config: AuthenticationConfiguration, synchronizable: Bool) throws {
+    func setAuthenticationConfiguration(config: AuthenticationConfiguration, synchronizableIfCreated: Bool) throws {
 
         guard let encoded = try? JSONEncoder().encode(config) else {
             printDebug("setAuthenticationConfiguration: Could not encode authentication configuration")
@@ -327,7 +329,7 @@ struct KeychainPasswordManager: DebugPrintable {
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
                 kSecValueData as String: encoded,
-                kSecAttrSynchronizable as String: Self.syncValue(synchronizable),
+                kSecAttrSynchronizable as String: Self.syncValue(synchronizableIfCreated),
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
             ]
             status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
@@ -335,7 +337,7 @@ struct KeychainPasswordManager: DebugPrintable {
 
         try KeychainManager.checkStatus(status: status)
 
-        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully (synchronizable=\(synchronizable))")
+        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully (synchronizableIfCreated=\(synchronizableIfCreated))")
     }
 }
 
@@ -370,7 +372,7 @@ private extension KeychainPasswordManager {
     func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType, synchronizable: Bool) throws {
         var config = getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
         config.addAuthenticationType(.passcode(passcodeType))
-        try setAuthenticationConfiguration(config: config, synchronizable: synchronizable)
+        try setAuthenticationConfiguration(config: config, synchronizableIfCreated: synchronizable)
     }
 
     /// The sync scope of the stored password hash, so a configuration created

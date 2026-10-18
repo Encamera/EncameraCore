@@ -74,6 +74,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     private var cancellables = Set<AnyCancellable>()
     private let multiDeviceManager: MultiDeviceManager
     private let privateKeyManager: PrivateKeyManager
+    private let keyMintingManager: KeyMintingManager
     private let passwordManager: KeychainPasswordManager
     private let eraseManager: KeychainEraseManager
     private let backupStatusManager: KeychainBackupStatusManager
@@ -89,6 +90,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.keychainWrapper = keychainWrapper
         self.multiDeviceManager = MultiDeviceManager(keychainWrapper: keychainWrapper)
         self.privateKeyManager = PrivateKeyManager(keychainWrapper: keychainWrapper)
+        self.keyMintingManager = KeyMintingManager(privateKeyManager: privateKeyManager,
+                                                   multiDeviceManager: multiDeviceManager)
         self.passwordManager = KeychainPasswordManager(keychainWrapper: keychainWrapper)
         self.backupStatusManager = KeychainBackupStatusManager(keychainWrapper: keychainWrapper)
         self.migrationManager = KeychainMigrationManager(keychainWrapper: keychainWrapper,
@@ -196,14 +199,15 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     // MARK: - Keys
 
+    // Every write that adds a key goes through `keyMintingManager`, which
+    // publishes it to the synced multi-device state in the same call.
+
     @discardableResult public func generateKeyUsingRandomWords() throws -> PrivateKey {
-        let key = try privateKeyManager.generateKeyUsingRandomWords(synchronizable: isSyncEnabled)
-        MintedKeys.record(key)
-        return key
+        try keyMintingManager.mint(synchronizable: isSyncEnabled)
     }
 
     @discardableResult public func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey {
-        try privateKeyManager.saveKeyWithPassphrase(passphrase: passphrase, synchronizable: isSyncEnabled)
+        try keyMintingManager.add(words: passphrase.words, synchronizable: isSyncEnabled)
     }
 
     /// Re-derives the default key from an already-present passphrase item.
@@ -233,7 +237,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     @discardableResult public func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey {
-        try privateKeyManager.generateKeyFromPasswordComponentsAndSave(components, synchronizable: isSyncEnabled)
+        try keyMintingManager.add(words: components, synchronizable: isSyncEnabled)
     }
 
     public func retrieveKeyPassphrases() throws -> [KeyPassphrase] {
@@ -241,7 +245,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
-        try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: isSyncEnabled)
+        try keyMintingManager.add(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: isSyncEnabled)
     }
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {
@@ -288,7 +292,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
-        try passwordManager.setAuthenticationConfiguration(config: config, synchronizable: isSyncEnabled)
+        try passwordManager.setAuthenticationConfiguration(config: config, synchronizableIfCreated: isSyncEnabled)
     }
 
     public func passwordExists() -> Bool {
@@ -296,7 +300,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func clearPassword() throws {
-        try passwordManager.clearPassword(synchronizable: isSyncEnabled)
+        try passwordManager.clearPassword()
     }
 
     public func setPassword(_ password: String, type: PasscodeType) throws {
