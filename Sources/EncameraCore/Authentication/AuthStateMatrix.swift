@@ -3,19 +3,20 @@
 //  EncameraCore
 //
 //  The three pieces of credential state that decide what a launch can do are
-//  stored in three keychain items with three different sync policies:
+//  stored in three keychain items that all honour the iCloud Backup & Sync
+//  toggle:
 //
 //  * `AuthenticationConfiguration` (`com.encamera.authenticationConfiguration`)
-//    is written with a hardcoded `kSecAttrSynchronizable: true` — it ALWAYS
-//    syncs, regardless of the iCloud Backup & Sync toggle.
-//  * the password hash (`encamera`) honours the toggle, so it syncs only when
-//    key backup is on.
+//    is flipped in the same pass as the password hash.
+//  * the password hash (`encamera`) syncs only when key backup is on.
 //  * the key items honour the toggle too.
 //
-//  Three independent presence bits with different sync policies means all
-//  eight combinations are reachable in the field, including combinations that
-//  no single device ever wrote. This file enumerates them and pins the
-//  intended, non-lockout resolution for each. `Documentation/multi-device-state-matrix.md`
+//  They are still three independent items that arrive independently, and a
+//  device that wrote them before the configuration followed the toggle may
+//  hold a synced configuration over a local-only hash. So all eight presence
+//  combinations are reachable in the field, including combinations that no
+//  single device ever wrote. This file enumerates them and pins the intended,
+//  non-lockout resolution for each. `Documentation/multi-device-state-matrix.md`
 //  holds the human-readable version of the same table.
 //
 
@@ -27,7 +28,7 @@ public enum AuthStateMatrix {
 
     /// One of the eight reachable credential states.
     public struct Cell: Hashable, CustomStringConvertible {
-        /// An `AuthenticationConfiguration` exists (always-synced item).
+        /// An `AuthenticationConfiguration` exists on this device (sync follows the backup toggle).
         public let configPresent: Bool
         /// A password hash exists on this device (sync follows the backup toggle).
         public let hashPresent: Bool

@@ -145,7 +145,7 @@ public enum UserDefaultKey {
              .completedMigration,
              // Biometric consent is per-device: the enrolled face/finger is
              // this device's hardware. The account-wide intent lives in the
-             // always-synced AuthenticationConfiguration; this flag is the
+             // synced AuthenticationConfiguration; this flag is the
              // confirmation that the user opted in ON THIS DEVICE.
              .biometricsConfirmedOnThisDevice,
              .biometricsSeedWindowClosed,

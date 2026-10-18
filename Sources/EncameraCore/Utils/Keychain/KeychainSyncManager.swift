@@ -29,8 +29,8 @@ public enum KeychainSyncSkipReason: Equatable {
 /// The Settings toggle only flips the items on the device it is tapped on. On
 /// every other device the flag arrives, `isSyncEnabled` starts answering
 /// `true`, and new writes follow it — but the keys, passphrases, password hash
-/// and passcode type that already existed there stay local and never reach
-/// the account. This actor is the passive counterpart: it watches the
+/// and authentication configuration that already existed there stay local and
+/// never reach the account. This actor is the passive counterpart: it watches the
 /// always-synced backup flag and, when it changes to enabled, adopts the
 /// account's copy of every credential. A synced copy wins and the local copy
 /// is deleted; a local-only item is moved up so the other devices receive it.

@@ -326,11 +326,11 @@ public class DeviceAuthManager: AuthManager {
             BiometricsDeviceConfirmation.setConfirmed(value)
             // Turning biometrics off is a device-specific setting: it clears
             // only the local consent above. Stripping .biometrics from the
-            // always-synced configuration would disable unlock on every other
+            // synced configuration would disable unlock on every other
             // device that confirmed it for itself.
             guard value else { return }
             var configuration = keyManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
-            // .biometrics goes into the always-synced configuration only when
+            // .biometrics goes into the synced configuration only when
             // it is the only way to auth into the app — a fresh device has to
             // know there is no pin to ask for. With a pin present, biometrics
             // is a per-device convenience and stays out of account state.

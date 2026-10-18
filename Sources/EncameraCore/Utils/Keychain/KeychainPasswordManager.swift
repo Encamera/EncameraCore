@@ -13,6 +13,8 @@ import Security
 /// Owned by `KeychainManager`, which forwards the `KeyManager` password calls
 /// here. Writes take the sync value from the caller because whether a write is
 /// synchronizable is decided by the backup flag, which `KeychainManager` owns.
+/// That covers the `AuthenticationConfiguration` too: it moves on and off the
+/// iCloud keychain together with the password hash it describes.
 struct KeychainPasswordManager: DebugPrintable {
 
     let keychainWrapper: KeychainWrapperProtocol
@@ -27,7 +29,7 @@ struct KeychainPasswordManager: DebugPrintable {
         }
 
         let defaultPasscodeType = PasscodeType.pinCode(length: AppConstants.defaultPinCodeLength)
-        try? savePasscodeTypeToKeychain(defaultPasscodeType)
+        try? savePasscodeTypeToKeychain(defaultPasscodeType, synchronizable: storedPasswordIsSynchronizable())
         return defaultPasscodeType
     }
 
@@ -45,9 +47,7 @@ struct KeychainPasswordManager: DebugPrintable {
 
     /// Moves the password hash on or off the iCloud keychain, together with the
     /// legacy passcode-type item on a device that still has one. Each item is
-    /// flipped independently; returns a line per failure. The
-    /// `AuthenticationConfiguration` is always synchronizable and is never
-    /// flipped.
+    /// flipped independently; returns a line per failure.
     func setPasswordSynchronizable(_ synchronizable: Bool) -> [String] {
         KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
             .setSynchronizable(synchronizable, genericCredentials: [
@@ -56,15 +56,28 @@ struct KeychainPasswordManager: DebugPrintable {
             ])
     }
 
-    /// Adopts the account's password hash and passcode type on a device that
-    /// learned backup is on from another device's flag: a synced copy wins and
-    /// the local one is deleted, a local-only copy is moved up. See
+    /// Moves the `AuthenticationConfiguration` on or off the iCloud keychain.
+    /// Flipped in the same pass as the password hash, so the passcode type and
+    /// the hash it describes always share a sync scope. Returns a line per
+    /// failure.
+    func setAuthenticationConfigurationSynchronizable(_ synchronizable: Bool) -> [String] {
+        KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
+            .setSynchronizable(synchronizable, genericCredentials: [
+                (KeychainConstants.authenticationConfiguration, "authentication configuration"),
+            ])
+    }
+
+    /// Adopts the account's password hash, legacy passcode-type item and
+    /// authentication configuration on a device that learned backup is on from
+    /// another device's flag: a synced copy wins and the local one is deleted,
+    /// a local-only copy is moved up. See
     /// `KeychainItemSyncFlipper.adoptSyncedCopy`.
     func adoptSyncedPassword() -> [String] {
         KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
             .adoptSyncedCopies(genericCredentials: [
                 (KeychainConstants.passcodeTypeKeyItem, "passcode type"),
                 (KeychainConstants.account, "password hash"),
+                (KeychainConstants.authenticationConfiguration, "authentication configuration"),
             ])
     }
 
@@ -91,7 +104,7 @@ struct KeychainPasswordManager: DebugPrintable {
         return true
     }
 
-    func clearPassword() throws {
+    func clearPassword(synchronizable: Bool) throws {
         let passwordQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.account,
@@ -116,14 +129,14 @@ struct KeychainPasswordManager: DebugPrintable {
 
         if var config = getAuthenticationConfiguration(), let type = config.passcodeType {
             config.removeAuthenticationType(.passcode(type))
-            try setAuthenticationConfiguration(config: config)
+            try setAuthenticationConfiguration(config: config, synchronizable: synchronizable)
         }
     }
     
     func setPassword(_ password: String, type: PasscodeType, synchronizable: Bool) throws {
         let hashed = try hashFrom(password: password)
         try setPasswordHash(hash: hashed, synchronizable: synchronizable)
-        try savePasscodeTypeToKeychain(type)
+        try savePasscodeTypeToKeychain(type, synchronizable: synchronizable)
     }
 
     func setOrUpdatePassword(_ password: String, type: PasscodeType, synchronizable: Bool) throws {
@@ -148,7 +161,7 @@ struct KeychainPasswordManager: DebugPrintable {
             try setPassword(password, type: type, synchronizable: synchronizable)
         } else {
             try KeychainManager.checkStatus(status: status)
-            try savePasscodeTypeToKeychain(type)
+            try savePasscodeTypeToKeychain(type, synchronizable: synchronizable)
         }
     }
 
@@ -287,7 +300,12 @@ struct KeychainPasswordManager: DebugPrintable {
         return config
     }
 
-    func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
+    /// Writes the configuration. An existing copy is updated in place in
+    /// whichever sync scope it is in, so a write never leaves a local and a
+    /// synced copy side by side; `synchronizable` decides the scope only when
+    /// the item is created. Moving an existing item between scopes is
+    /// `setAuthenticationConfigurationSynchronizable`'s job.
+    func setAuthenticationConfiguration(config: AuthenticationConfiguration, synchronizable: Bool) throws {
 
         guard let encoded = try? JSONEncoder().encode(config) else {
             printDebug("setAuthenticationConfiguration: Could not encode authentication configuration")
@@ -299,27 +317,25 @@ struct KeychainPasswordManager: DebugPrintable {
             kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
         ]
-
-        // NOTE: kSecAttrSynchronizable is ALWAYS true for this item
-        let attributes: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
-            kSecValueData as String: encoded,
-            kSecAttrSynchronizable as String: kCFBooleanTrue!,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        let newAttributes: [String: Any] = [
+            kSecValueData as String: encoded
         ]
+        var status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
 
-        var status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
-        if status == errSecDuplicateItem {
-            let newAttributes: [String: Any] = [
-                kSecValueData as String: encoded
+        if status == errSecItemNotFound {
+            let attributes: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: KeychainConstants.authenticationConfiguration,
+                kSecValueData as String: encoded,
+                kSecAttrSynchronizable as String: Self.syncValue(synchronizable),
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
             ]
-            status = keychainWrapper.secItemUpdate(updateQuery as CFDictionary, newAttributes as CFDictionary)
+            status = keychainWrapper.secItemAdd(attributes as CFDictionary, nil)
         }
 
         try KeychainManager.checkStatus(status: status)
 
-        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully")
+        printDebug("setAuthenticationConfiguration: Authentication configuration set successfully (synchronizable=\(synchronizable))")
     }
 }
 
@@ -351,9 +367,29 @@ private extension KeychainPasswordManager {
     
     /// Persists the passcode type into the `AuthenticationConfiguration`, the
     /// only place it is stored; the rest of the configuration is kept as is.
-    func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
+    func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType, synchronizable: Bool) throws {
         var config = getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
         config.addAuthenticationType(.passcode(passcodeType))
-        try setAuthenticationConfiguration(config: config)
+        try setAuthenticationConfiguration(config: config, synchronizable: synchronizable)
+    }
+
+    /// The sync scope of the stored password hash, so a configuration created
+    /// to describe it lands in the same scope. False when no hash is readable.
+    func storedPasswordIsSynchronizable() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.account,
+            kSecReturnAttributes as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+        var item: CFTypeRef?
+        guard keychainWrapper.secItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let attributes = item as? [String: Any] else {
+            return false
+        }
+        let value = attributes[kSecAttrSynchronizable as String]
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        return false
     }
 }

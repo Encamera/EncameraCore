@@ -49,10 +49,11 @@ public struct AuthenticationConfiguration: Codable, Equatable {
     /// Drops individual entries this build cannot represent instead of failing
     /// the whole configuration.
     ///
-    /// This item ALWAYS syncs, so a device running a newer build can put a
-    /// passcode type (or an authentication type) in here that an older build
-    /// has never heard of. With the synthesised decoder one such entry threw,
-    /// `getAuthenticationConfiguration()` returned nil, and the device behaved
+    /// This item syncs whenever Backup & Sync is on, so a device running a
+    /// newer build can put a passcode type (or an authentication type) in here
+    /// that an older build has never heard of. With the synthesised decoder one
+    /// such entry threw, `getAuthenticationConfiguration()` returned nil, and
+    /// the device behaved
     /// as if no authentication had ever been configured. Skipping the unknown
     /// entry keeps the rest — notably the biometrics flag — readable.
     ///

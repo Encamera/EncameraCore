@@ -28,9 +28,9 @@ public final class CredentialRestoreCoordinator: ObservableObject, DebugPrintabl
         /// deletion propagates here, so this is the expected aftermath, not an
         /// error. The user needs an explanation and a recovery entrypoint.
         case keyMissing
-        /// Key material is present but no password hash is — the always-synced
-        /// `AuthenticationConfiguration` can claim a passcode is set while the
-        /// hash that would verify it never synced. The unlock screen would be
+        /// Key material is present but no password hash is — an
+        /// `AuthenticationConfiguration` that arrived here can claim a passcode
+        /// is set while the hash that would verify it never synced. The unlock screen would be
         /// unsatisfiable, so the user sets a new passcode instead. The existing
         /// key is preserved; see `AuthStateMatrix`.
         case passcodeSetup

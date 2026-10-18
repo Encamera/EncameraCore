@@ -45,6 +45,9 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
             // The backup-flag account itself is excluded: that item is always
             // written synchronizable and would make this check unconditionally true.
+            // So is the authentication configuration: installs that wrote it
+            // before it followed the toggle hold a synced copy regardless of
+            // whether their password ever synced.
             let credentialAccounts = [
                 KeychainConstants.account,
                 KeychainConstants.passcodeTypeKeyItem
@@ -139,6 +142,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         let accounts = [
             KeychainConstants.account,
             KeychainConstants.passcodeTypeKeyItem,
+            KeychainConstants.authenticationConfiguration,
             KeychainConstants.backupStatusKeyItem
         ]
         for account in accounts {
@@ -284,7 +288,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func setAuthenticationConfiguration(config: AuthenticationConfiguration) throws {
-        try passwordManager.setAuthenticationConfiguration(config: config)
+        try passwordManager.setAuthenticationConfiguration(config: config, synchronizable: isSyncEnabled)
     }
 
     public func passwordExists() -> Bool {
@@ -292,7 +296,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func clearPassword() throws {
-        try passwordManager.clearPassword()
+        try passwordManager.clearPassword(synchronizable: isSyncEnabled)
     }
 
     public func setPassword(_ password: String, type: PasscodeType) throws {
@@ -354,6 +358,7 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
         let failures = privateKeyManager.setKeysSynchronizable(enabled)
             + passwordManager.setPasswordSynchronizable(enabled)
+            + passwordManager.setAuthenticationConfigurationSynchronizable(enabled)
 
         printDebug("backupKeychainToiCloud(\(enabled)) — state after flip:")
         logCredentialVariantState(context: "after flip")

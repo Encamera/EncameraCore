@@ -32,9 +32,11 @@ final class KeychainMigrationManager: DebugPrintable {
     /// builds store the type nowhere else and, finding it gone, write a default
     /// 4-digit type back as a synced item, so deleting it would hand every 2.x
     /// device on the account the wrong keypad. The synced copy is dead weight
-    /// to this build, which reads only the configuration. The configuration is
-    /// written and read back before anything is deleted; a failed write leaves
-    /// the legacy item for the next launch.
+    /// to this build, which reads only the configuration. A configuration
+    /// created here takes the sync scope of the legacy copy it is built from,
+    /// so a synced type stays synced. The configuration is written and read
+    /// back before anything is deleted; a failed write leaves the legacy item
+    /// for the next launch.
     ///
     /// - No legacy item: nothing to do.
     /// - No password hash: the item is stale; the local copy is deleted without
@@ -130,7 +132,7 @@ final class KeychainMigrationManager: DebugPrintable {
     }
 
     /// Adds the type to the existing configuration, leaving its other entries
-    /// alone, and reads it back.
+    /// alone, in the sync scope of the copy it came from, and reads it back.
     /// Returns false, with the failure recorded, when the configuration cannot
     /// be trusted to hold the type.
     private func writePasscodeTypeIntoConfiguration(_ chosen: LegacyPasscodeTypeCopy,
@@ -138,7 +140,7 @@ final class KeychainMigrationManager: DebugPrintable {
         var config = passwordManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
         config.addAuthenticationType(.passcode(chosen.type))
         do {
-            try passwordManager.setAuthenticationConfiguration(config: config)
+            try passwordManager.setAuthenticationConfiguration(config: config, synchronizable: chosen.isSynced)
         } catch {
             result.recordFailedWrite(reason: KeychainMigrationReport.reason(for: error))
             printDebug("migrateLegacyPasscodeType: FAILED to write configuration, leaving legacy item:", error)

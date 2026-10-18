@@ -62,10 +62,11 @@ struct KeychainEraseManager {
 
         privateKeyManager.deletePassphrase(syncMatch: syncMatch)
 
-        // The backup status flag and the authentication configuration are both
-        // hardcoded-synchronizable account state. Only an account-wide erase may
-        // remove them; deleting them on a device-local reset would tell every
-        // other device that backup was never enabled and that no passcode is set.
+        // The backup status flag is hardcoded-synchronizable account state, and
+        // a synced authentication configuration describes a synced password.
+        // Only an account-wide erase may remove them; deleting them on a
+        // device-local reset would tell every other device that backup was
+        // never enabled and that no passcode is set.
         switch scope {
         case .deviceLocal:
             try? clearLocalPasswordItems()
@@ -82,7 +83,7 @@ struct KeychainEraseManager {
 
             multiDeviceManager.deleteState()
 
-            try? passwordManager.clearPassword()
+            try? passwordManager.clearPassword(synchronizable: false)
         }
 
         privateKeyManager.clearActiveKey()
@@ -127,12 +128,16 @@ struct KeychainEraseManager {
 
 private extension KeychainEraseManager {
 
-    /// Removes only this device's non-synchronizable password hash and legacy
-    /// passcode-type items. Unlike `clearPassword()` it does not rewrite the
-    /// always-synced `AuthenticationConfiguration`, because that write would
-    /// propagate to every device on the account.
+    /// Removes only this device's non-synchronizable password hash, legacy
+    /// passcode-type item and authentication configuration. Unlike
+    /// `clearPassword()` it never touches a synced configuration, because that
+    /// write would propagate to every device on the account.
     func clearLocalPasswordItems() throws {
-        let accounts = [KeychainConstants.account, KeychainConstants.passcodeTypeKeyItem]
+        let accounts = [
+            KeychainConstants.account,
+            KeychainConstants.passcodeTypeKeyItem,
+            KeychainConstants.authenticationConfiguration
+        ]
         for account in accounts {
             let query: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
