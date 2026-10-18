@@ -1334,7 +1334,7 @@ public enum L10n {
       return L10n.tr("Localizable", "CloudKitMigration.BannerCounts", String(describing: p1), String(describing: p2), fallback: "%@ copied to iCloud, %@ still to copy")
     }
     /// ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud
-    public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "Everything is still on this device. Resume to finish moving the album to iCloud, or cancel the move.")
+    public static let bannerMessage = L10n.tr("Localizable", "CloudKitMigration.BannerMessage", fallback: "Everything is still on this device. Tap to continue or cancel.")
     /// Cancel Move
     public static let cancelMove = L10n.tr("Localizable", "CloudKitMigration.CancelMove", fallback: "Cancel Move")
     /// The move couldn't be cancelled. Nothing was lost. Check your connection and try again, or resume the move.
@@ -1361,8 +1361,8 @@ public enum L10n {
     public static let failedTitle = L10n.tr("Localizable", "CloudKitMigration.FailedTitle", fallback: "The move to iCloud didn't finish")
     /// The move to this device didn't finish
     public static let failedToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.FailedToLocalTitle", fallback: "The move to this device didn't finish")
-    /// Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.
-    public static let finishingICloudCleanupMessage = L10n.tr("Localizable", "CloudKitMigration.FinishingICloudCleanupMessage", fallback: "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.")
+    /// The move hasn't completely finished. Tap to continue or cancel.
+    public static let finishingICloudCleanupMessage = L10n.tr("Localizable", "CloudKitMigration.FinishingICloudCleanupMessage", fallback: "The move hasn't completely finished. Tap to continue or cancel.")
     /// Everything is on this device, but iCloud hasn't confirmed that it removed every item yet, so the move isn't finished. It will try again automatically, or you can resume it now.
     public static let iCloudCleanupPending = L10n.tr("Localizable", "CloudKitMigration.ICloudCleanupPending", fallback: "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet, so the move isn't finished. It will try again automatically, or you can resume it now.")
     /// This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.
@@ -1447,8 +1447,8 @@ public enum L10n {
     public static func partialMoveToLocalCounts(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalCounts", String(describing: p1), String(describing: p2), fallback: "%@ copied to this device, %@ still to copy")
     }
-    /// The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.
-    public static let partialMoveToLocalMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalMessage", fallback: "The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.")
+    /// The album is still in iCloud. Tap to continue or cancel.
+    public static let partialMoveToLocalMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalMessage", fallback: "The album is still in iCloud. Tap to continue or cancel.")
     /// Move to this device not finished
     public static let partialMoveToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalTitle", fallback: "Move to this device not finished")
     /// Move to iCloud not finished
@@ -1652,6 +1652,18 @@ public enum L10n {
       public static let viewTheKey = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.ViewTheKey", fallback: "View the Key")
       /// You will not be able to view your media without this key.
       public static let warning = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.Warning", fallback: "You will not be able to view your media without this key.")
+    }
+    public enum PartialMediaMoveDrawer {
+      /// Resume to move the rest of the items to “%@”. Discard stops the move: items already moved stay in “%@”, and the rest stay in this album.
+      public static func body(_ p1: Any, _ p2: Any) -> String {
+        return L10n.tr("Localizable", "EncameraDrawerFactory.PartialMediaMoveDrawer.Body", String(describing: p1), String(describing: p2), fallback: "Resume to move the rest of the items to “%@”. Discard stops the move: items already moved stay in “%@”, and the rest stay in this album.")
+      }
+    }
+    public enum PartialMigrationDrawer {
+      /// Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.
+      public static let toCloudKitBody = L10n.tr("Localizable", "EncameraDrawerFactory.PartialMigrationDrawer.ToCloudKitBody", fallback: "Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.")
+      /// Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.
+      public static let toLocalBody = L10n.tr("Localizable", "EncameraDrawerFactory.PartialMigrationDrawer.ToLocalBody", fallback: "Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.")
     }
     public enum PasscodeSetDrawer {
       /// Your password is ready. You'll need it to unlock your encrypted files.
@@ -2235,8 +2247,8 @@ public enum L10n {
     public static let originOtherDevice = L10n.tr("Localizable", "KeyPhrasePicker.OriginOtherDevice", fallback: "Made on another device")
     /// Made on this device
     public static let originThisDevice = L10n.tr("Localizable", "KeyPhrasePicker.OriginThisDevice", fallback: "Made on this device")
-    /// Each key opens the photos it encrypted. Back up every key you still need.
-    public static let subtitle = L10n.tr("Localizable", "KeyPhrasePicker.Subtitle", fallback: "Each key opens the photos it encrypted. Back up every key you still need.")
+    /// Each key opens the media it encrypted. You may have multiple keys because you used Encamera with multiple devices before turning iCloud Backup & Sync on, and a key was created for each device.
+    public static let subtitle = L10n.tr("Localizable", "KeyPhrasePicker.Subtitle", fallback: "Each key opens the media it encrypted. You may have multiple keys because you used Encamera with multiple devices before turning iCloud Backup & Sync on, and a key was created for each device.")
     /// ./Encamera/Settings/KeyPhrasePickerDrawer.swift - Drawer listing the keys whose recovery phrase can be backed up
     public static let title = L10n.tr("Localizable", "KeyPhrasePicker.Title", fallback: "Which key do you want to back up?")
   }

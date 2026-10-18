@@ -974,14 +974,14 @@
 "CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
-"CloudKitMigration.BannerMessage" = "Everything is still on this device. Resume to finish moving the album to iCloud, or cancel the move.";
+"CloudKitMigration.BannerMessage" = "Everything is still on this device. Tap to continue or cancel.";
 "CloudKitMigration.BannerCounts" = "%@ copied to iCloud, %@ still to copy";
 "CloudKitMigration.CancelMove" = "Cancel Move";
 "CloudKitMigration.CancelMoveFailed" = "The move couldn't be cancelled. Nothing was lost. Check your connection and try again, or resume the move.";
 "CloudKitMigration.PartialMoveToLocalTitle" = "Move to this device not finished";
-"CloudKitMigration.PartialMoveToLocalMessage" = "The album is still in iCloud. Resume to finish moving it to this device, or cancel the move.";
+"CloudKitMigration.PartialMoveToLocalMessage" = "The album is still in iCloud. Tap to continue or cancel.";
 "CloudKitMigration.PartialMoveToLocalCounts" = "%@ copied to this device, %@ still to copy";
-"CloudKitMigration.FinishingICloudCleanupMessage" = "Everything is on this device, but iCloud hasn't confirmed that it removed every item yet. Resume to finish, or cancel the move to keep the album in iCloud.";
+"CloudKitMigration.FinishingICloudCleanupMessage" = "The move hasn't completely finished. Tap to continue or cancel.";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for a cross-plane media move left incomplete */
 "CloudKitMigration.PartialMoveTitle" = "Media Move Incomplete";
@@ -1155,6 +1155,9 @@
 "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Continue" = "Continue upgrading";
 "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Pause" = "Pause Update";
 "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow" = "Not now";
+"EncameraDrawerFactory.PartialMigrationDrawer.ToCloudKitBody" = "Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.";
+"EncameraDrawerFactory.PartialMediaMoveDrawer.Body" = "Resume to move the rest of the items to “%@”. Discard stops the move: items already moved stay in “%@”, and the rest stay in this album.";
+"EncameraDrawerFactory.PartialMigrationDrawer.ToLocalBody" = "Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.";
 
 /* Shown when biometrics is the only way into the app and it cannot run. */
 "BiometricAvailability.GenericName" = "Biometric unlock";
