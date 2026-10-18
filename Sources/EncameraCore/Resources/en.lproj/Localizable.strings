@@ -1610,7 +1610,7 @@
 
 /* ./Encamera/Settings/KeyPhrasePickerDrawer.swift - Drawer listing the keys whose recovery phrase can be backed up */
 "KeyPhrasePicker.Title" = "Which key do you want to back up?";
-"KeyPhrasePicker.Subtitle" = "Each key opens the photos it encrypted. Back up every key you still need.";
+"KeyPhrasePicker.Subtitle" = "Each key opens the media it encrypted. You may have multiple keys because you used Encamera with multiple devices before turning iCloud Backup & Sync on, and a key was created for each device.";
 "KeyPhrasePicker.KeyForAlbum" = "Key for %@";
 "KeyPhrasePicker.KeyWithNoAlbums" = "Key with No Albums";
 "KeyPhrasePicker.CurrentKey" = "In Use";
