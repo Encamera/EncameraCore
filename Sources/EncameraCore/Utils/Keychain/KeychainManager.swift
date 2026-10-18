@@ -89,7 +89,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.passwordManager = KeychainPasswordManager(keychainWrapper: keychainWrapper)
         self.backupStatusManager = KeychainBackupStatusManager(keychainWrapper: keychainWrapper)
         self.migrationManager = KeychainMigrationManager(keychainWrapper: keychainWrapper,
-                                                         privateKeyManager: privateKeyManager)
+                                                         privateKeyManager: privateKeyManager,
+                                                         passwordManager: passwordManager)
         self.keychainSyncManager = KeychainSyncManager(privateKeyManager: privateKeyManager,
                                                        passwordManager: passwordManager,
                                                        backupStatusManager: backupStatusManager)

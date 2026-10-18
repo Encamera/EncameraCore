@@ -22,7 +22,7 @@ struct KeychainPasswordManager: DebugPrintable {
             return .none
         }
 
-        if let storedPasscodeType = try? retrievePasscodeTypeFromKeychain(), passwordExists() {
+        if let storedPasscodeType = getAuthenticationConfiguration()?.passcodeType {
             return storedPasscodeType
         }
 
@@ -43,10 +43,11 @@ struct KeychainPasswordManager: DebugPrintable {
         return kSecAttrSynchronizableAny
     }
 
-    /// Moves the password hash and the legacy passcode-type item on or off the
-    /// iCloud keychain. Each item is flipped independently; returns a line per
-    /// failure. The `AuthenticationConfiguration` is always synchronizable and
-    /// is never flipped.
+    /// Moves the password hash on or off the iCloud keychain, together with the
+    /// legacy passcode-type item on a device that still has one. Each item is
+    /// flipped independently; returns a line per failure. The
+    /// `AuthenticationConfiguration` is always synchronizable and is never
+    /// flipped.
     func setPasswordSynchronizable(_ synchronizable: Bool) -> [String] {
         KeychainItemSyncFlipper(keychainWrapper: keychainWrapper)
             .setSynchronizable(synchronizable, genericCredentials: [
@@ -101,6 +102,8 @@ struct KeychainPasswordManager: DebugPrintable {
             try KeychainManager.checkStatus(status: passwordStatus)
         }
 
+        // The legacy standalone passcode-type item is neither written nor read
+        // any more; this removes it from a device that still carries one.
         let passcodeTypeQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
@@ -346,44 +349,11 @@ private extension KeychainPasswordManager {
         return bytes
     }
     
-    /// Persists the passcode type into the AuthenticationConfiguration. The
-    /// deprecated standalone item (`encamera_passcode_type`) is no longer
-    /// written — it remains only as a read fallback in
-    /// `retrieveLegacyPasscodeTypeFromKeychain`.
+    /// Persists the passcode type into the `AuthenticationConfiguration`, the
+    /// only place it is stored; the rest of the configuration is kept as is.
     func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType) throws {
         var config = getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
         config.addAuthenticationType(.passcode(passcodeType))
         try setAuthenticationConfiguration(config: config)
-    }
-    
-    func retrievePasscodeTypeFromKeychain() throws -> PasscodeType {
-        if let type = getAuthenticationConfiguration()?.passcodeType {
-            return type
-        }
-        return try retrieveLegacyPasscodeTypeFromKeychain()
-    }
-
-    /// Reads the deprecated standalone passcode-type item
-    /// (`encamera_passcode_type`). New writes go into the
-    /// AuthenticationConfiguration; this exists only as a read fallback until
-    /// the type has been written there.
-    func retrieveLegacyPasscodeTypeFromKeychain() throws -> PasscodeType {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
-            kSecReturnData as String: true,
-            kSecAttrSynchronizable as String: syncQueryValueForReads
-        ]
-
-        var item: CFTypeRef?
-        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
-        try KeychainManager.checkStatus(status: status)
-
-        guard let data = item as? Data else {
-            throw KeyManagerError.dataError
-        }
-
-        let decoder = JSONDecoder()
-        return try decoder.decode(PasscodeType.self, from: data)
     }
 }

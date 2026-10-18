@@ -12,10 +12,165 @@ final class KeychainMigrationManager: DebugPrintable {
 
     private let keychainWrapper: KeychainWrapperProtocol
     private let privateKeyManager: PrivateKeyManager
+    private let passwordManager: KeychainPasswordManager
 
-    init(keychainWrapper: KeychainWrapperProtocol, privateKeyManager: PrivateKeyManager) {
+    init(keychainWrapper: KeychainWrapperProtocol,
+         privateKeyManager: PrivateKeyManager,
+         passwordManager: KeychainPasswordManager) {
         self.keychainWrapper = keychainWrapper
         self.privateKeyManager = privateKeyManager
+        self.passwordManager = passwordManager
+    }
+
+    /// Moves the passcode type out of the standalone legacy item
+    /// `KeychainConstants.passcodeTypeKeyItem` into the
+    /// `AuthenticationConfiguration`, then deletes this device's local copy of
+    /// the legacy item.
+    ///
+    /// This is the one step that calls `SecItemDelete`, and it only ever
+    /// deletes the non-synchronizable copy. A synced copy is left in place: 2.x
+    /// builds store the type nowhere else and, finding it gone, write a default
+    /// 4-digit type back as a synced item, so deleting it would hand every 2.x
+    /// device on the account the wrong keypad. The synced copy is dead weight
+    /// to this build, which reads only the configuration. The configuration is
+    /// written and read back before anything is deleted; a failed write leaves
+    /// the legacy item for the next launch.
+    ///
+    /// - No legacy item: nothing to do.
+    /// - No password hash: the item is stale; the local copy is deleted without
+    ///   being written anywhere.
+    /// - The configuration already holds a type: that value is kept and the
+    ///   local copy deleted.
+    /// - Otherwise the legacy copies are decoded (the synced one wins when the
+    ///   two disagree) and the type is added to the existing configuration,
+    ///   leaving its other entries alone. A copy that does not decode is
+    ///   counted as skipped and left in place.
+    @discardableResult
+    func migrateLegacyPasscodeTypeIntoAuthenticationConfiguration() throws -> KeychainMigrationStepResult {
+        let items = try readLegacyPasscodeTypeItems()
+        guard !items.isEmpty else { return KeychainMigrationStepResult() }
+
+        var result = KeychainMigrationStepResult()
+
+        guard passwordManager.passwordExists() else {
+            printDebug("migrateLegacyPasscodeType: no password hash, deleting the stale local legacy item")
+            deleteLocalLegacyPasscodeType(into: &result)
+            return result
+        }
+
+        if let existing = passwordManager.getAuthenticationConfiguration()?.passcodeType {
+            printDebug("migrateLegacyPasscodeType: configuration already holds \(existing.id), deleting the local legacy item")
+            deleteLocalLegacyPasscodeType(into: &result)
+            return result
+        }
+
+        let copies = decodeLegacyPasscodeTypes(from: items, into: &result)
+        guard let chosen = preferredLegacyPasscodeType(among: copies) else { return result }
+
+        guard writePasscodeTypeIntoConfiguration(chosen, into: &result) else { return result }
+
+        if copies.contains(where: { !$0.isSynced }) {
+            deleteLocalLegacyPasscodeType(into: &result)
+        }
+        printDebug("migrateLegacyPasscodeType: moved \(chosen.type.id) into the configuration, removed \(result.migrated) local legacy item(s) of \(items.count) found")
+        return result
+    }
+
+    /// One copy of the legacy passcode-type item, in its sync scope.
+    private struct LegacyPasscodeTypeCopy {
+        let isSynced: Bool
+        let type: PasscodeType
+    }
+
+    /// Every copy of the legacy item, local and synced, with data and
+    /// attributes. Empty when there is none.
+    private func readLegacyPasscodeTypeItems() throws -> [[String: Any]] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
+            kSecReturnData as String: true,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+        ]
+
+        var item: CFTypeRef?
+        let status = keychainWrapper.secItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound { return [] }
+        try KeychainManager.checkStatus(status: status)
+        return item as? [[String: Any]] ?? []
+    }
+
+    /// Decodes each copy's `PasscodeType`. A copy that does not decode is
+    /// counted as skipped and left out.
+    private func decodeLegacyPasscodeTypes(from items: [[String: Any]],
+                                           into result: inout KeychainMigrationStepResult) -> [LegacyPasscodeTypeCopy] {
+        var copies: [LegacyPasscodeTypeCopy] = []
+        for keychainItem in items {
+            let isSynced = (keychainItem[kSecAttrSynchronizable as String] as? Bool) ?? false
+            guard let data = keychainItem[kSecValueData as String] as? Data,
+                  let type = try? JSONDecoder().decode(PasscodeType.self, from: data) else {
+                result.skipped += 1
+                printDebug("migrateLegacyPasscodeType: skipping undecodable item (synced=\(isSynced))")
+                continue
+            }
+            copies.append(LegacyPasscodeTypeCopy(isSynced: isSynced, type: type))
+        }
+        return copies
+    }
+
+    /// The copy whose type the configuration should carry: the synced one when
+    /// there is one, since it is what the account's other devices see.
+    private func preferredLegacyPasscodeType(among copies: [LegacyPasscodeTypeCopy]) -> LegacyPasscodeTypeCopy? {
+        guard let chosen = copies.first(where: \.isSynced) ?? copies.first else { return nil }
+        if copies.contains(where: { $0.type != chosen.type }) {
+            printDebug("migrateLegacyPasscodeType: local and synced copies disagree, using the synced value \(chosen.type.id)")
+        }
+        return chosen
+    }
+
+    /// Adds the type to the existing configuration, leaving its other entries
+    /// alone, and reads it back.
+    /// Returns false, with the failure recorded, when the configuration cannot
+    /// be trusted to hold the type.
+    private func writePasscodeTypeIntoConfiguration(_ chosen: LegacyPasscodeTypeCopy,
+                                                    into result: inout KeychainMigrationStepResult) -> Bool {
+        var config = passwordManager.getAuthenticationConfiguration() ?? AuthenticationConfiguration(enabledTypes: [])
+        config.addAuthenticationType(.passcode(chosen.type))
+        do {
+            try passwordManager.setAuthenticationConfiguration(config: config)
+        } catch {
+            result.recordFailedWrite(reason: KeychainMigrationReport.reason(for: error))
+            printDebug("migrateLegacyPasscodeType: FAILED to write configuration, leaving legacy item:", error)
+            return false
+        }
+        guard passwordManager.getAuthenticationConfiguration()?.passcodeType == chosen.type else {
+            result.recordFailedWrite(reason: "unverifiedConfigurationWrite")
+            printDebug("migrateLegacyPasscodeType: configuration does not read back \(chosen.type.id), leaving legacy item")
+            return false
+        }
+        return true
+    }
+
+    /// Deletes this device's non-synchronizable copy of the legacy
+    /// passcode-type item, counting it as migrated. The synced copy is never
+    /// touched; see `migrateLegacyPasscodeTypeIntoAuthenticationConfiguration`.
+    private func deleteLocalLegacyPasscodeType(into result: inout KeychainMigrationStepResult) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: KeychainConstants.passcodeTypeKeyItem,
+            kSecAttrSynchronizable as String: kCFBooleanFalse!
+        ]
+        let status = keychainWrapper.secItemDelete(query as CFDictionary)
+        switch status {
+        case errSecSuccess:
+            result.migrated += 1
+        case errSecItemNotFound:
+            break
+        default:
+            result.recordFailedWrite(status: status)
+            printDebug("migrateLegacyPasscodeType: FAILED to delete the local legacy item — status \(status) (\(determineOSStatus(status: status)))")
+        }
     }
 
     /// Moves every passphrase stored under the single legacy account
@@ -97,14 +252,16 @@ final class KeychainMigrationManager: DebugPrintable {
     }
 
     /// Runs the keychain migrations a 2.x install needs to read as 3.x: keys
-    /// relabelled to their fingerprints, then passphrases moved onto their
-    /// key's fingerprint. Both are idempotent, so this runs on every launch and
+    /// relabelled to their fingerprints, passphrases moved onto their key's
+    /// fingerprint, and the passcode type moved into the authentication
+    /// configuration. All are idempotent, so this runs on every launch and
     /// retries anything a previous launch could not finish. A step that cannot
     /// run does not stop the next.
     func migrateFromV2ToV3IfNeeded() -> KeychainMigrationReport {
         var report = KeychainMigrationReport()
         report.keyLabels = runStep("key label migration") { try migrateKeyLabelsToFingerprintsIfNeeded() }
         report.passphrases = runStep("passphrase migration") { try migrateLegacyPassphraseToFingerprintedPassphrase() }
+        report.passcodeType = runStep("passcode type migration") { try migrateLegacyPasscodeTypeIntoAuthenticationConfiguration() }
         return report
     }
 
@@ -236,7 +393,11 @@ public struct KeychainMigrationStepResult: Equatable {
     }
 
     mutating func recordFailedWrite(status: OSStatus) {
-        failedWrites[determineOSStatus(status: status), default: 0] += 1
+        recordFailedWrite(reason: determineOSStatus(status: status))
+    }
+
+    mutating func recordFailedWrite(reason: String) {
+        failedWrites[reason, default: 0] += 1
     }
 }
 
@@ -251,11 +412,14 @@ public struct KeychainMigrationReport {
 
     public internal(set) var keyLabels: Outcome = .ran(KeychainMigrationStepResult())
     public internal(set) var passphrases: Outcome = .ran(KeychainMigrationStepResult())
+    public internal(set) var passcodeType: Outcome = .ran(KeychainMigrationStepResult())
 
     public init(keyLabels: Outcome = .ran(KeychainMigrationStepResult()),
-                passphrases: Outcome = .ran(KeychainMigrationStepResult())) {
+                passphrases: Outcome = .ran(KeychainMigrationStepResult()),
+                passcodeType: Outcome = .ran(KeychainMigrationStepResult())) {
         self.keyLabels = keyLabels
         self.passphrases = passphrases
+        self.passcodeType = passcodeType
     }
 
     static func reason(for error: Error) -> String {

@@ -18,16 +18,29 @@ public struct LegacyAuthenticationSettingsMigration {
     }
 
     public static func migrateIfNeeded(keyManager: KeyManager) {
-        guard keyManager.getAuthenticationConfiguration() == nil else {
-            return
-        }
-
         let legacyBiometrics: Bool?
         if let data = UserDefaultUtils.data(forKey: .savedSettings),
            let legacy = try? JSONDecoder().decode(LegacySavedSettings.self, from: data) {
             legacyBiometrics = legacy.useBiometricsForAuth
         } else {
             legacyBiometrics = nil
+        }
+
+        // The keychain migrations run first and may already have written a
+        // configuration holding only the passcode type; the biometrics flag
+        // still has to come across from the legacy blob.
+        if var config = keyManager.getAuthenticationConfiguration() {
+            guard legacyBiometrics == true, !config.isTypeEnabled(.biometrics) else {
+                return
+            }
+            config.addAuthenticationType(.biometrics)
+            do {
+                try keyManager.setAuthenticationConfiguration(config: config)
+                UserDefaultUtils.removeObject(forKey: .savedSettings)
+            } catch {
+                debugPrint("LegacyAuthenticationSettingsMigration: could not add biometrics to configuration: \(error)")
+            }
+            return
         }
 
         let passwordExists = keyManager.passwordExists()
