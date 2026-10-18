@@ -125,7 +125,11 @@ public actor DiskFileAccess: DebugPrintable {
         self.albumManager = albumManager
         let storageModel = albumManager.storageModel(for: album)
         self.directoryModel = storageModel
-        try? self.directoryModel?.initializeDirectories()
+        // A screen can still hold a local album after its move to CloudKit finished,
+        // and re-creating the drained directory would list an empty duplicate album.
+        if storageModel?.isDrainedSourceOfCloudKitMove != true {
+            try? self.directoryModel?.initializeDirectories()
+        }
     }
 
     public func resolveEncryptedMedia(by id: String, type: MediaType) -> EncryptedMedia? {

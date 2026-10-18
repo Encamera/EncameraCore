@@ -70,7 +70,7 @@ public enum MigrationBoundary: Equatable, Sendable {
     case transferred(verified: Int)
     /// The second pass of a whole-album move, before its next source removal.
     /// `removed: 0` is the boundary between the two passes.
-    case removing(removed: Int)
+    case removing(removed: Int, direction: MigrationDirection)
     /// An item has verified at its destination and its source copy is about to be
     /// removed, in an item move, which removes each source copy as its item verifies.
     /// `removed` counts the plan's items whose source copy is already gone.
@@ -1223,7 +1223,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         setPhase(plan.direction == .toCloudKit ? .removingLocalCopy : .removingRemoteCopy, plan: plan)
         var removed = 0
         for index in toRemove where Self.awaitsRemoval(plan.items[index].state) {
-            await Self.boundaryHook?(.removing(removed: removed))
+            await Self.boundaryHook?(.removing(removed: removed, direction: plan.direction))
             removed += 1
             let position = "\(removed)/\(toRemove.count)"
             printDebug("remove \(position) recordName=\(plan.items[index].recordName) verifiedThisRun=\(verifiedThisRun.contains(index))")

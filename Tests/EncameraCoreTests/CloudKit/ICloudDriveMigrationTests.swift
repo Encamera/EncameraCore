@@ -421,7 +421,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         let urls = h.mediaIDs.map { encURL(album: h.album, id: $0) }
         var atRemoval: (materialized: Int, present: Int)?
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard atRemoval == nil, case .removing(removed: 0) = boundary else { return }
+            guard atRemoval == nil, case .removing(removed: 0, _) = boundary else { return }
             atRemoval = (urls.filter(ICloudPlaceholderName.isMaterialized).count,
                          urls.filter(ICloudPlaceholderName.existsInAnyForm).count)
         }

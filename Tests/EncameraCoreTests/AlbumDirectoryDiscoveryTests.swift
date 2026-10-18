@@ -390,4 +390,36 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: twin.id), .none)
         XCTAssertTrue(listedIDs().isSuperset(of: [cloudAlbum.id, twin.id]))
     }
+
+    /// A screen can still hold a local album after its move to CloudKit finished,
+    /// and refresh its gallery. Configuring file access for it must not re-create
+    /// the drained directory, which would list as an empty duplicate album.
+    @MainActor
+    func testConfiguringFileAccessForAMovedLocalAlbumDoesNotRecreateItsDirectory() async throws {
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+                             creationDate: Date())
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "moved-\(UUID().uuidString)", storageOption: .cloudKit,
+                               creationDate: Date(), key: key, albumID: albumID)
+        let movedSource = Album.localTwin(of: cloudAlbum)
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        let sourceURL = LocalStorageModel(album: movedSource).baseURL
+        defer {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            try? FileManager.default.removeItem(at: sourceURL)
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+
+        _ = await DiskFileAccess(for: movedSource, albumManager: albumManager)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: sourceURL.path),
+                       "the drained source directory stays gone")
+        XCTAssertFalse(albumManager.fetchAlbumsFromSources(includingHidden: true).contains { $0.id == movedSource.id })
+
+        try CloudKitAlbumMarker.remove(albumID: albumID)
+        _ = await DiskFileAccess(for: movedSource, albumManager: albumManager)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path),
+                      "with no CloudKit album of its name, a local album's directory is created as before")
+    }
 }

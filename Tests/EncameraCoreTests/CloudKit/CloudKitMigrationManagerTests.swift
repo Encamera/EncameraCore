@@ -1800,7 +1800,7 @@ extension CloudKitMigrationManagerTests {
         let localDirectory = LocalStorageModel(album: fixture.local).baseURL
         let removed = Box(false)
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard !removed.value, case .removing(removed: 0) = boundary else { return }
+            guard !removed.value, case .removing(removed: 0, _) = boundary else { return }
             removed.value = true
             try? FileManager.default.removeItem(at: localDirectory)
         }
@@ -1836,7 +1836,7 @@ extension CloudKitMigrationManagerTests {
         let truncatedURL = fixture.localURL(fixture.ids[0])
         let truncated = Box(false)
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard !truncated.value, case .removing(removed: 0) = boundary else { return }
+            guard !truncated.value, case .removing(removed: 0, _) = boundary else { return }
             truncated.value = true
             try? Data(repeating: 0xAA, count: 3).write(to: truncatedURL)
         }
@@ -2965,7 +2965,7 @@ extension CloudKitMigrationManagerTests {
         let lateID = UUID().uuidString
         let late = Box<String?>(nil)
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard late.value == nil, case .removing(removed: 1) = boundary else { return }
+            guard late.value == nil, case .removing(removed: 1, _) = boundary else { return }
             late.value = store.addServerRecord(albumID: albumID, mediaID: lateID)
         }
 
@@ -2996,7 +2996,7 @@ extension CloudKitMigrationManagerTests {
         let store = fixture.store
         let arrivals = Box<[String]>([])
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard case .removing(removed: 0) = boundary else { return }
+            guard case .removing(removed: 0, _) = boundary else { return }
             arrivals.value.append(store.addServerRecord(albumID: albumID))
         }
 
@@ -3244,7 +3244,7 @@ extension CloudKitMigrationManagerTests {
         let store = fixture.store
         let landed = Box(false)
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard !landed.value, case .removing(removed: 0) = boundary else { return }
+            guard !landed.value, case .removing(removed: 0, _) = boundary else { return }
             landed.value = true
             _ = store.addServerRecord(albumID: albumID, mediaID: capture.mediaID,
                                       sizeBytes: Int64(capture.bytes.count))
@@ -3304,7 +3304,7 @@ extension CloudKitMigrationManagerTests {
         let urls = ids.map { sourceEncURL(album: album, id: $0) }
         let presentAtFirstRemoval = Box<Int?>(nil)
         CloudKitMigrationManager.boundaryHook = { boundary in
-            guard presentAtFirstRemoval.value == nil, case .removing(removed: 0) = boundary else { return }
+            guard presentAtFirstRemoval.value == nil, case .removing(removed: 0, _) = boundary else { return }
             presentAtFirstRemoval.value = urls.filter { FileManager.default.fileExists(atPath: $0.path) }.count
         }
         var phases: [MigrationPhase] = []
@@ -3332,7 +3332,7 @@ extension CloudKitMigrationManagerTests {
         let plan = try await manager.plan(album: album)
         let accepted = Box<Bool?>(nil)
         CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
-            guard accepted.value == nil, case .removing(removed: 0) = boundary else { return }
+            guard accepted.value == nil, case .removing(removed: 0, _) = boundary else { return }
             accepted.value = await MainActor.run { manager?.requestCancel(plan: plan) }
         }
 
@@ -3355,7 +3355,7 @@ extension CloudKitMigrationManagerTests {
         }
         let ids = try await seedLocalAlbum(count: 3, albumManager: albumManager, album: album)
         CloudKitMigrationManager.boundaryHook = { [weak manager] boundary in
-            guard case .removing(removed: 1) = boundary else { return }
+            guard case .removing(removed: 1, _) = boundary else { return }
             await MainActor.run { manager?.pause() }
         }
 

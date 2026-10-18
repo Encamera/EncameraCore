@@ -164,6 +164,21 @@ extension DataStorageModel {
         return CloudKitAlbumMarker.albumID(matching: album) != nil
     }
 
+    /// Whether this local album is the drained source of a finished move to
+    /// CloudKit: its directory is gone and this device holds a CloudKit album with
+    /// its name and key, with no move back to this device running or planned (that
+    /// move's destination is the same local album).
+    var isDrainedSourceOfCloudKitMove: Bool {
+        guard storageType == .local,
+              !FileManager.default.fileExists(atPath: baseURL.path),
+              let albumID = CloudKitAlbumMarker.albumID(matching: album),
+              !CloudKitMigrationManager.isActive(albumID: "\(albumID)_\(StorageType.cloudKit.rawValue)") else {
+            return false
+        }
+        if case .destination(.toLocal, _) = MigrationPlanStore.planRole(forAlbumID: album.id) { return false }
+        return true
+    }
+
     public func initializeDirectories() throws {
         let directories = [
             Self.thumbnailDirectory.path,
