@@ -101,10 +101,14 @@ public class MediaLoaderService: DebugPrintable {
         
         switch result {
         case .phAsset(let asset):
-            let media = try await loadMediaFromAsset(asset, progress: progress)
+            let (media, slowMotion) = try await loadMediaFromAsset(asset, progress: progress)
             var metadata = await metadataExtractor.extractMetadata(from: asset)
             if let originalFilename = media.compactMap(\.originalFilename).first {
                 metadata.originalFilename = originalFilename
+            }
+            if let slowMotion {
+                metadata.video = metadata.video ?? .init(duration: asset.duration)
+                metadata.video?.slowMotion = slowMotion
             }
             return LoadedMediaItem(media: media, metadata: metadata, assetIdentifier: asset.localIdentifier)
             
@@ -219,68 +223,57 @@ public class MediaLoaderService: DebugPrintable {
     
     // MARK: - PHAsset Loading
     
-    private func loadMediaFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> [CleartextMedia] {
+    private func loadMediaFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> (media: [CleartextMedia], slowMotion: SlowMotionRamp?) {
         if asset.mediaSubtypes.contains(.photoLive) {
-            return try await loadLivePhotoFromAsset(asset, progress: progress)
+            return (try await loadLivePhotoFromAsset(asset, progress: progress), nil)
+        } else if asset.mediaType == .video {
+            let (media, slowMotion) = try await loadVideoFromAsset(asset, progress: progress)
+            return ([media], slowMotion)
         } else {
-            return [try await loadRegularMediaFromAsset(asset, progress: progress)]
+            return ([try await loadRegularMediaFromAsset(asset, progress: progress)], nil)
         }
+    }
+
+    private func loadVideoFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> (media: CleartextMedia, slowMotion: SlowMotionRamp?) {
+        let id = UUID().uuidString
+        let destinationURL = URL.tempMediaDirectory.appendingPathComponent(id + ".mov")
+        let slowMotion = try await PhotoKitVideoLoader.load(asset, to: destinationURL, progress: progress)
+        if let slowMotion {
+            printDebug("Kept slow-motion original with \(slowMotion.segments.count) ramp segment(s)")
+        }
+        let media = CleartextMedia(source: destinationURL,
+                                   mediaType: .video,
+                                   id: id,
+                                   originalFilename: MediaMetadataExtractor.primaryResourceFilename(for: asset))
+        return (media, slowMotion)
     }
     
     private func loadRegularMediaFromAsset(_ asset: PHAsset, progress: @escaping @Sendable (Double) -> Void) async throws -> CleartextMedia {
-        let isVideo = asset.mediaType == .video
         let id = UUID().uuidString
         let originalFilename = MediaMetadataExtractor.primaryResourceFilename(for: asset)
         
-        if isVideo {
-            return try await withCheckedThrowingContinuation { continuation in
-                let options = PHVideoRequestOptions()
-                options.isNetworkAccessAllowed = true
-                options.version = .current
-                options.progressHandler = { fraction, _, _, _ in progress(fraction) }
-                
-                PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
-                    guard let urlAsset = avAsset as? AVURLAsset else {
-                        continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
-                        return
-                    }
-                    
-                    let fileName = id + ".mov"
-                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                    
-                    do {
-                        try FileManager.default.copyItem(at: urlAsset.url, to: destinationURL)
-                        let media = CleartextMedia(source: destinationURL, mediaType: .video, id: id, originalFilename: originalFilename)
-                        continuation.resume(returning: media)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+        return try await withCheckedThrowingContinuation { continuation in
+            let options = PHImageRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            options.version = .current
+            options.progressHandler = { fraction, _, _, _ in progress(fraction) }
+            
+            PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                guard let data = data else {
+                    continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
+                    return
                 }
-            }
-        } else {
-            return try await withCheckedThrowingContinuation { continuation in
-                let options = PHImageRequestOptions()
-                options.isNetworkAccessAllowed = true
-                options.deliveryMode = .highQualityFormat
-                options.version = .current
-                options.progressHandler = { fraction, _, _, _ in progress(fraction) }
                 
-                PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
-                    guard let data = data else {
-                        continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
-                        return
-                    }
-                    
-                    let fileName = id + ".jpeg"
-                    let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                    
-                    do {
-                        try data.write(to: destinationURL)
-                        let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id, originalFilename: originalFilename)
-                        continuation.resume(returning: media)
-                    } catch {
-                        continuation.resume(throwing: error)
-                    }
+                let fileName = id + ".jpeg"
+                let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
+                
+                do {
+                    try data.write(to: destinationURL)
+                    let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id, originalFilename: originalFilename)
+                    continuation.resume(returning: media)
+                } catch {
+                    continuation.resume(throwing: error)
                 }
             }
         }

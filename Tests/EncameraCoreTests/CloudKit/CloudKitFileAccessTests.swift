@@ -9,6 +9,7 @@
 
 import XCTest
 import CloudKit
+import AVFoundation
 import UIKit
 @testable import EncameraCore
 
@@ -414,6 +415,37 @@ final class CloudKitFileAccessTests: XCTestCase {
         for type in [MediaType.photo, .video] {
             try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: type))
         }
+    }
+
+    func testSlowMotionVideoPreviewShowsTheSlowedDuration() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("slowmo-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: movieURL, seconds: 2)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+
+        // 0.5–1.5 s slowed 4x: a 2 s clip plays for 5 s.
+        let ramp = SlowMotionRamp(segments: [
+            .init(sourceStart: CMTime(value: 300, timescale: 600),
+                  sourceDuration: CMTime(value: 600, timescale: 600),
+                  targetDuration: CMTime(value: 2400, timescale: 600))
+        ])
+        var metadata = EncryptedFileMetadata()
+        metadata.video = .init(duration: 5, slowMotion: ramp)
+        let id = UUID().uuidString
+        let video = try InteractableMedia(underlyingMedia: [CleartextMedia(source: .url(movieURL), mediaType: .video, id: id)])
+
+        let result = try await access.save(media: video, metadata: metadata, progress: { _ in })
+        let saved = try XCTUnwrap(result)
+        await access.drainUploads()
+
+        let preview = try await access.loadMediaPreview(for: saved)
+        XCTAssertEqual(preview.videoDuration, "00:05")
+
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
+        try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).driveURLForMedia(withID: id, type: .video))
     }
 
     func testLivePhotoThumbnailComesFromThePhotoAndTheVideoNeverRewritesIt() async throws {
@@ -1048,6 +1080,48 @@ final class CloudKitFileAccessTests: XCTestCase {
         let source = try XCTUnwrap(playback?.session.source, "a chunked video record must open for streaming")
         XCTAssertEqual(source.readAhead, StreamingPlaybackPolicy.cloudKit.readAhead)
         XCTAssertEqual(source.readAhead, 1)
+    }
+
+    func testStreamingPlaybackCarriesTheSlowMotionRampFromTheHeader() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let access = await makeAccess(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        let ramp = SlowMotionRamp(segments: [
+            .init(sourceStart: CMTime(value: 300, timescale: 600),
+                  sourceDuration: CMTime(value: 600, timescale: 600),
+                  targetDuration: CMTime(value: 4800, timescale: 600))
+        ])
+        var metadata = EncryptedFileMetadata()
+        metadata.video = .init(duration: 9.5, slowMotion: ramp)
+        _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore, metadata: metadata)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+
+        let playback = try await access.streamingPlayback(for: media)
+
+        XCTAssertEqual(playback?.slowMotion, ramp)
+    }
+
+    func testStreamingPlaybackOfAnOrdinaryVideoHasNoRamp() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let access = await makeAccess(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        var metadata = EncryptedFileMetadata()
+        metadata.video = .init(duration: 5)
+        _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: chunkStore, metadata: metadata)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+
+        let playback = try await access.streamingPlayback(for: media)
+
+        XCTAssertNotNil(playback)
+        XCTAssertNil(playback?.slowMotion)
     }
 
     /// The first chunk is on the device before the player exists. AVFoundation

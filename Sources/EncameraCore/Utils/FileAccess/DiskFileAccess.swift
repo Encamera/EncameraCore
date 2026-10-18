@@ -680,7 +680,9 @@ extension DiskFileAccess {
 
 
 
-    @discardableResult public func createPreview<T: MediaDescribing>(for media: T) async throws -> PreviewModel {
+    /// `slowMotion` is the ramp of a video being saved; a stored video's own
+    /// ramp is read from its metadata. The grid shows the slowed duration.
+    @discardableResult public func createPreview<T: MediaDescribing>(for media: T, slowMotion: SlowMotionRamp? = nil) async throws -> PreviewModel {
         try Task.checkCancellation()
         await Self.previewSemaphore.wait()
         defer { Task { await Self.previewSemaphore.signal() } }
@@ -697,15 +699,14 @@ extension DiskFileAccess {
                 }
                 let thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
                 preview = PreviewModel(thumbnailMedia: thumb)
-                let asset = AVURLAsset(url: url, options: nil)
-                preview.videoDuration = asset.duration.durationText
+                let ramp = try? await loadMetadata(of: encrypted)?.video?.slowMotion
+                preview.videoDuration = await Self.playbackDurationText(of: url, slowMotion: ramp)
             } else {
                 let thumbnail = try await createThumbnail(for: media)
                 preview = PreviewModel(thumbnailMedia: thumbnail)
                 if let decrypted = media as? CleartextMedia, decrypted.mediaType == .video,
                    case .url(let source) = decrypted.source {
-                    let asset = AVURLAsset(url: source, options: nil)
-                    preview.videoDuration = asset.duration.durationText
+                    preview.videoDuration = await Self.playbackDurationText(of: source, slowMotion: slowMotion)
                 }
             }
 
@@ -720,6 +721,11 @@ extension DiskFileAccess {
         }
     }
 
+
+    private static func playbackDurationText(of url: URL, slowMotion: SlowMotionRamp?) async -> String? {
+        guard let duration = try? await AVURLAsset(url: url).load(.duration) else { return nil }
+        return (slowMotion?.playbackDuration(sourceDuration: duration) ?? duration).durationText
+    }
 
     /// The key the media at hand is encrypted with, or nil when it is cleartext — a
     /// capture being encrypted for the first time, which is under the album key by
@@ -1046,7 +1052,7 @@ extension DiskFileAccess {
         }
         
         Self.previewCache.removeObject(forKey: media.id as NSString)
-        try await createPreview(for: media)
+        try await createPreview(for: media, slowMotion: metadata?.video?.slowMotion)
         operationBus.didCreate(encrypted)
         return encrypted
     }

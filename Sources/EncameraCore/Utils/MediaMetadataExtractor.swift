@@ -311,13 +311,14 @@ public struct MediaMetadataExtractor {
             options.version = .current
             
             PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, _ in
-                guard let urlAsset = avAsset as? AVURLAsset else {
+                // A slow-motion asset arrives as an AVComposition, whose duration is the slowed one.
+                guard let avAsset else {
                     continuation.resume(returning: EncryptedFileMetadata.VideoInfo(duration: asset.duration))
                     return
                 }
                 
                 Task {
-                    let info = await self.extractVideoInfo(from: urlAsset)
+                    let info = await self.extractVideoInfo(from: avAsset)
                     continuation.resume(returning: info)
                 }
             }
@@ -329,7 +330,7 @@ public struct MediaMetadataExtractor {
         return await extractVideoInfo(from: asset)
     }
     
-    private func extractVideoInfo(from asset: AVURLAsset) async -> EncryptedFileMetadata.VideoInfo {
+    private func extractVideoInfo(from asset: AVAsset) async -> EncryptedFileMetadata.VideoInfo {
         let duration = (try? await asset.load(.duration)) ?? CMTime.zero
         var info = EncryptedFileMetadata.VideoInfo(duration: CMTimeGetSeconds(duration))
         

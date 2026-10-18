@@ -255,7 +255,8 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
 
-        let item = try XCTUnwrap(playback.makePlayerItem())
+        let madeItem = await playback.makePlayerItem()
+        let item = try XCTUnwrap(madeItem)
 
         XCTAssertEqual(item.preferredForwardBufferDuration,
                        StreamingPlaybackPolicy.cloudKit.preferredForwardBufferDuration)
@@ -271,7 +272,8 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
 
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
 
         XCTAssertFalse(player.automaticallyWaitsToMinimizeStalling)
         XCTAssertFalse(StreamingPlaybackPolicy.cloudKit.automaticallyWaitsToMinimizeStalling)
@@ -279,6 +281,35 @@ final class EncryptedStreamResourceLoaderTests: XCTestCase {
         XCTAssertEqual(asset.url.scheme, EncryptedStreamScheme.scheme, "the player must play a loader-backed item")
         XCTAssertEqual(player.currentItem?.preferredForwardBufferDuration,
                        StreamingPlaybackPolicy.cloudKit.preferredForwardBufferDuration)
+    }
+
+    @MainActor
+    func testSlowMotionPlaybackStreamsASlowedComposition() async throws {
+        let backing = InMemoryChunkedBlobStore()
+        let session = try await makeMovieSession(name: "slowmo", seconds: 2, store: backing, backing: backing)
+        let loader = EncryptedStreamResourceLoader(session: session)
+        // 0.5–1.0 s slowed 4x: a 2 s clip plays for 3.5 s.
+        let ramp = SlowMotionRamp(segments: [
+            .init(sourceStart: CMTime(value: 300, timescale: 600),
+                  sourceDuration: CMTime(value: 300, timescale: 600),
+                  targetDuration: CMTime(value: 1200, timescale: 600))
+        ])
+        let playback = StreamingPlayback(loader: loader, session: session, slowMotion: ramp)
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
+        let item = try XCTUnwrap(player.currentItem)
+
+        XCTAssertTrue(item.asset is AVComposition, "a slow-motion stream should play through a composition")
+        let duration = try await item.asset.load(.duration)
+        XCTAssertEqual(duration.seconds, 3.5, accuracy: 0.1)
+
+        player.play()
+        let advanced = try await waitUntil(.seconds(30)) {
+            item.status == .readyToPlay && CMTimeGetSeconds(player.currentTime()) > 0.5
+        }
+        XCTAssertTrue(advanced, "status=\(item.status.rawValue) time=\(CMTimeGetSeconds(player.currentTime())) "
+                      + "error=\(item.error.map { "\($0)" } ?? "none")")
+        withExtendedLifetime(loader) {}
     }
 
     private func makeMovieSession(name: String,

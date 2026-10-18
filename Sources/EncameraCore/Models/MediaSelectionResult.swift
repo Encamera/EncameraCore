@@ -60,20 +60,11 @@ public enum MediaSelectionResult {
             }
         } else if asset.mediaType == .video {
             provider.registerFileRepresentation(forTypeIdentifier: UTType.movie.identifier, visibility: .all) { completion in
-                let options = PHVideoRequestOptions()
-                options.isNetworkAccessAllowed = true
-                options.version = .current
-                
-                PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
-                    guard let urlAsset = avAsset as? AVURLAsset else {
-                        completion(nil, false, BackgroundImportError.fromPhotoKitInfo(info))
-                        return
-                    }
-                    
-                    let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString + ".mov")
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + ".mov")
+                Task {
                     do {
-                        try FileManager.default.copyItem(at: urlAsset.url, to: tempURL)
+                        _ = try await PhotoKitVideoLoader.load(asset, to: tempURL, keepingSlowMotion: false)
                         completion(tempURL, true, nil)
                     } catch {
                         completion(nil, false, error)

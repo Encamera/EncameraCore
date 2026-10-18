@@ -68,9 +68,9 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
         var overallProgress: Double = 0.0
         let progressLock = NSLock()
 
-        for media in targetMedia {
+        for target in targetMedia {
             do {
-                let media = try await self.fileAccess.loadMediaToURLs(media: media) { status in
+                let media = try await self.fileAccess.loadMediaToURLs(media: target) { status in
                     self.printDebug("Status: \(status), overallstatus: \(overallProgress), totalMedia: \(totalMediaToLoad)")
                     progressLock.lock()
                     defer { progressLock.unlock() }
@@ -90,13 +90,35 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
 
                     progress(.downloading(progress: overallProgress))
                 }
-                self.preparedMediaURLs.append(contentsOf: media)
+                let slowMotion = try? await fileAccess.loadMetadata(for: target)?.video?.slowMotion
+                for url in media {
+                    preparedMediaURLs.append(await Self.shareableURL(for: url, slowMotion: slowMotion))
+                }
             } catch {
                 print("Error loading media: \(error)")
             }
         }
 
         progress(.loaded)
+    }
+
+    /// A slow-motion video is shared slowed, under its own filename. A video
+    /// without a ramp, or one that fails to render, is shared as it is.
+    static func shareableURL(for decrypted: URL, slowMotion: SlowMotionRamp?) async -> URL {
+        guard let slowMotion else { return decrypted }
+        let directory = decrypted.deletingLastPathComponent()
+            .appendingPathComponent("slow-motion-\(UUID().uuidString)", isDirectory: true)
+        let destination = directory
+            .appendingPathComponent(decrypted.deletingPathExtension().lastPathComponent)
+            .appendingPathExtension("mov")
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try await SlowMotionComposer.render(decrypted, ramp: slowMotion, to: destination)
+            return destination
+        } catch {
+            debugPrint("Sharing slow-motion video at normal speed, render failed: \(error)")
+            return decrypted
+        }
     }
 
     @MainActor

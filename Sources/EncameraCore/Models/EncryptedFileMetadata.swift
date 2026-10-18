@@ -321,7 +321,7 @@ extension EncryptedFileMetadata {
     
     /// Video-specific properties
     public struct VideoInfo: Codable, Equatable, Sendable {
-        /// Duration in seconds
+        /// Playback duration in seconds — for slow motion, the slowed length.
         public var duration: TimeInterval
         /// Frames per second
         public var frameRate: Double?
@@ -333,14 +333,17 @@ extension EncryptedFileMetadata {
         public var hasAudio: Bool?
         /// Audio codec
         public var audioCodec: String?
-        
+        /// Set when the stored file is a slow-motion original that plays slowed.
+        public var slowMotion: SlowMotionRamp?
+
         public init(
             duration: TimeInterval,
             frameRate: Double? = nil,
             bitRate: Int? = nil,
             codec: String? = nil,
             hasAudio: Bool? = nil,
-            audioCodec: String? = nil
+            audioCodec: String? = nil,
+            slowMotion: SlowMotionRamp? = nil
         ) {
             self.duration = duration
             self.frameRate = frameRate
@@ -348,6 +351,7 @@ extension EncryptedFileMetadata {
             self.codec = codec
             self.hasAudio = hasAudio
             self.audioCodec = audioCodec
+            self.slowMotion = slowMotion
         }
     }
     

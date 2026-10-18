@@ -257,7 +257,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
         if writesPreview {
             do {
-                _ = try await previewAccess.createPreview(for: item)
+                _ = try await previewAccess.createPreview(for: item, slowMotion: metadata?.video?.slowMotion)
             } catch {
                 printDebug("saveSingle preview FAILED mediaID=\(item.id) mediaType=\(item.mediaType) raw=\(error)")
             }
@@ -407,8 +407,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                       probe: FirstBlockProbe(seekableHeader: header, chunk0: Array(chunk0)))
         let session = ChunkedStreamSession.open(source: source, header: header, keyBytes: key.keyBytes)
         let loader = EncryptedStreamResourceLoader(session: session)
-        printDebug("streamingPlayback ok recordName=\(recordName) chunks=\(header.chunkCount) bytes=\(header.plaintextLength)")
-        return StreamingPlayback(loader: loader, session: session, policy: policy)
+        let slowMotion = header.openMetadata(keyBytes: key.keyBytes)
+            .flatMap { try? SeekableEncryptedFormat.decodeMetadata($0) }?
+            .video?.slowMotion
+        printDebug("streamingPlayback ok recordName=\(recordName) chunks=\(header.chunkCount) bytes=\(header.plaintextLength) slowMotion=\(slowMotion != nil)")
+        return StreamingPlayback(loader: loader, session: session, policy: policy, slowMotion: slowMotion)
     }
 
     /// The key that opens one component's ciphertext, proven against the local copy

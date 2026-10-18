@@ -36,6 +36,8 @@ public enum ImportSkipReason: String, Sendable, CaseIterable {
             self = .assetNoLongerShared
         case BackgroundImportError.assetDownloadFailed:
             self = .assetDownloadFailed
+        case BackgroundImportError.videoExportFailed:
+            self = .transcodeFailed
         case let transcoderError as MediaTranscoderError:
             switch transcoderError {
             case .unsupportedType:

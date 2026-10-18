@@ -28,6 +28,8 @@ public enum BackgroundImportError: Error, Equatable {
     /// enabled on every request, so this is a genuinely distinct condition from
     /// `assetUnavailable` and deserves its own reason.
     case assetDownloadFailed
+    /// An edited video could not be rendered to a file.
+    case videoExportFailed
     /// Every item in a batch import failed, so the task is finalized as failed
     /// rather than completed-with-failures.
     case allImportsFailed(failureCount: Int)

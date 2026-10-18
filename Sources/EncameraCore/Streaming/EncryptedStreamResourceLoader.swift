@@ -111,6 +111,8 @@ public struct StreamingPlayback {
     public let loader: EncryptedStreamResourceLoader
     public let session: ChunkedStreamSession
     public let policy: StreamingPlaybackPolicy
+    /// Set for a slow-motion original: items play it slowed by this ramp.
+    public let slowMotion: SlowMotionRamp?
     /// Lives here rather than on the player so that whoever retains the
     /// playback for the presentation's lifetime retains the supervisor with it.
     private let retained = Retained()
@@ -124,19 +126,27 @@ public struct StreamingPlayback {
 
     public init(loader: EncryptedStreamResourceLoader,
                 session: ChunkedStreamSession,
-                policy: StreamingPlaybackPolicy = .cloudKit) {
+                policy: StreamingPlaybackPolicy = .cloudKit,
+                slowMotion: SlowMotionRamp? = nil) {
         self.loader = loader
         self.session = session
         self.policy = policy
+        self.slowMotion = slowMotion
     }
 
-    /// A fresh item over the loader, buffering as `policy` says.
-    public func makePlayerItem() -> AVPlayerItem? {
-        Self.makeItem(loader: loader, policy: policy)
+    /// A fresh item over the loader, slowed by `slowMotion` when set, buffering
+    /// as `policy` says.
+    public func makePlayerItem() async -> AVPlayerItem? {
+        await Self.makeItem(loader: loader, policy: policy, slowMotion: slowMotion)
     }
 
-    private static func makeItem(loader: EncryptedStreamResourceLoader, policy: StreamingPlaybackPolicy) -> AVPlayerItem? {
-        guard let item = loader.makePlayerItem() else { return nil }
+    private static func makeItem(loader: EncryptedStreamResourceLoader,
+                                 policy: StreamingPlaybackPolicy,
+                                 slowMotion: SlowMotionRamp?) async -> AVPlayerItem? {
+        guard let streamed = loader.makePlayerItem() else { return nil }
+        let item = slowMotion == nil
+            ? streamed
+            : await SlowMotionComposer.playerItem(for: streamed.asset, ramp: slowMotion)
         item.preferredForwardBufferDuration = policy.preferredForwardBufferDuration
         return item
     }
@@ -144,14 +154,14 @@ public struct StreamingPlayback {
     /// A player over a fresh item, configured by `policy`, with a supervisor
     /// watching it for as long as this playback is retained. `nil` only when
     /// the session's record name cannot form a URL.
-    public func makePlayer() -> AVPlayer? {
-        makePlayer(starvedAfter: StreamingPlaybackSupervisor.defaultStarvedAfter, hasOpenDataRequest: nil)
+    public func makePlayer() async -> AVPlayer? {
+        await makePlayer(starvedAfter: StreamingPlaybackSupervisor.defaultStarvedAfter, hasOpenDataRequest: nil)
     }
 
     /// `hasOpenDataRequest` stands in for the loader's own report; tests use
     /// it to drive the starved-player check without a starving store.
-    func makePlayer(starvedAfter: TimeInterval, hasOpenDataRequest: (() -> Bool)?) -> AVPlayer? {
-        guard let item = makePlayerItem() else { return nil }
+    func makePlayer(starvedAfter: TimeInterval, hasOpenDataRequest: (() -> Bool)?) async -> AVPlayer? {
+        guard let item = await makePlayerItem() else { return nil }
         let player = AVPlayer(playerItem: item)
         player.automaticallyWaitsToMinimizeStalling = policy.automaticallyWaitsToMinimizeStalling
         // The closures capture the loader and policy, not `self`: a closure
@@ -159,6 +169,7 @@ public struct StreamingPlayback {
         // which holds the closure.
         let loader = loader
         let policy = policy
+        let slowMotion = slowMotion
         retained.supervisor = policy.automaticallyWaitsToMinimizeStalling
             ? nil
             : StreamingPlaybackSupervisor(player: player,
@@ -166,7 +177,7 @@ public struct StreamingPlayback {
                                           policy: policy,
                                           starvedAfter: starvedAfter,
                                           hasOpenDataRequest: hasOpenDataRequest ?? { [weak loader] in loader?.hasOpenDataRequest ?? false },
-                                          makeItem: { Self.makeItem(loader: loader, policy: policy) })
+                                          makeItem: { await Self.makeItem(loader: loader, policy: policy, slowMotion: slowMotion) })
         return player
     }
 }
@@ -227,7 +238,7 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
     private let policy: StreamingPlaybackPolicy
     private let starvedAfter: TimeInterval
     private let hasOpenDataRequest: () -> Bool
-    private let makeItem: () -> AVPlayerItem?
+    private let makeItem: () async -> AVPlayerItem?
     private var playerObservations: [NSKeyValueObservation] = []
     private var itemObservations: [NSKeyValueObservation] = []
     private var itemNotificationObservers: [NSObjectProtocol] = []
@@ -249,6 +260,8 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
     private var pendingRebuildResume: CMTime?
     /// Set around the supervisor's own seek into a rebuilt item.
     private var seekInProgress = false
+    /// Set while a replacement item is being built.
+    private var rebuildInFlight = false
     private var starvationTimer: Timer?
     /// The last moment the loader was seen with a data request open, or the
     /// playhead was seen to move, while the current stall has been pending.
@@ -267,7 +280,7 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
          policy: StreamingPlaybackPolicy,
          starvedAfter: TimeInterval = StreamingPlaybackSupervisor.defaultStarvedAfter,
          hasOpenDataRequest: @escaping () -> Bool,
-         makeItem: @escaping () -> AVPlayerItem?) {
+         makeItem: @escaping () async -> AVPlayerItem?) {
         self.player = player
         self.item = item
         self.policy = policy
@@ -452,22 +465,28 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
     }
 
     private func rebuild(reason: String) {
-        guard let player, let current = item, !appInactive else { return }
+        guard player != nil, let current = item, !appInactive, !rebuildInFlight else { return }
         let at = current.currentTime()
         let seconds = CMTimeGetSeconds(at)
         guard rebuildCount < Self.maxRebuilds else {
             printDebug("playback rebuild exhausted n=\(rebuildCount) at=\(seconds)s reason=\(reason)")
             return
         }
-        guard let fresh = makeItem() else { return }
-        rebuildCount += 1
-        if reason == "starved" { starvedRebuildCount += 1 }
-        printDebug("playback rebuild n=\(rebuildCount) at=\(seconds)s reason=\(reason)")
-        resumePending = false
-        pendingRebuildResume = seconds.isFinite && seconds > 0 ? at : .zero
-        watch(fresh)
-        player.replaceCurrentItem(with: fresh)
-        player.automaticallyWaitsToMinimizeStalling = policy.automaticallyWaitsToMinimizeStalling
+        rebuildInFlight = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let fresh = await makeItem()
+            rebuildInFlight = false
+            guard let fresh, let player else { return }
+            rebuildCount += 1
+            if reason == "starved" { starvedRebuildCount += 1 }
+            printDebug("playback rebuild n=\(rebuildCount) at=\(seconds)s reason=\(reason)")
+            resumePending = false
+            pendingRebuildResume = seconds.isFinite && seconds > 0 ? at : .zero
+            watch(fresh)
+            player.replaceCurrentItem(with: fresh)
+            player.automaticallyWaitsToMinimizeStalling = policy.automaticallyWaitsToMinimizeStalling
+        }
     }
 
     private func resumeRebuilt(at time: CMTime) {

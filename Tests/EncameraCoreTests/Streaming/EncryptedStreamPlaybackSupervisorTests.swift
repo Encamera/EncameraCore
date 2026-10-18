@@ -177,7 +177,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
 
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
         let item = try XCTUnwrap(player.currentItem)
         player.play()
 
@@ -222,12 +223,13 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
 
         weak var weakPlayer: AVPlayer?
         weak var weakItem: AVPlayerItem?
-        try autoreleasepool {
-            let player = try XCTUnwrap(playback.makePlayer())
+        try await { () async throws in
+            let madePlayer = await playback.makePlayer()
+            let player = try XCTUnwrap(madePlayer)
             weakPlayer = player
             weakItem = player.currentItem
             XCTAssertNotNil(playback.supervisor)
-        }
+        }()
         let released = try await waitUntil(.seconds(5)) { weakPlayer == nil && weakItem == nil }
 
         XCTAssertTrue(released, "the supervisor is a second owner of the player: "
@@ -242,15 +244,16 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let (session, _, _) = try await makeSession(bytes: 2_000, chunkSize: 1_000)
         weak var weakSupervisor: StreamingPlaybackSupervisor?
         weak var weakLoader: EncryptedStreamResourceLoader?
-        try autoreleasepool {
+        try await { () async throws in
             let loader = EncryptedStreamResourceLoader(session: session)
             let playback = StreamingPlayback(loader: loader, session: session)
-            let player = try XCTUnwrap(playback.makePlayer())
+            let madePlayer = await playback.makePlayer()
+            let player = try XCTUnwrap(madePlayer)
             weakSupervisor = playback.supervisor
             weakLoader = loader
             XCTAssertNotNil(weakSupervisor)
             withExtendedLifetime(player) {}
-        }
+        }()
         let released = try await waitUntil(.seconds(5)) { weakSupervisor == nil && weakLoader == nil }
         XCTAssertTrue(released, "dropping the playback leaked: "
                       + "supervisor=\(weakSupervisor == nil ? "released" : "alive") "
@@ -266,7 +269,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let session = try await makeMovieSession(name: "rebuild", seconds: 2, store: store, backing: backing)
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         let firstItem = try XCTUnwrap(player.currentItem)
         player.play()
@@ -289,13 +293,47 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
     }
 
     @MainActor
+    func testARebuiltSlowMotionItemIsStillSlowed() async throws {
+        let backing = InMemoryChunkedBlobStore()
+        let store = FlakyFirstChunkStore(backing: backing, failures: 1)
+        let session = try await makeMovieSession(name: "rebuild-slowmo", seconds: 2, store: store, backing: backing)
+        let loader = EncryptedStreamResourceLoader(session: session)
+        let ramp = SlowMotionRamp(segments: [
+            .init(sourceStart: CMTime(value: 300, timescale: 600),
+                  sourceDuration: CMTime(value: 300, timescale: 600),
+                  targetDuration: CMTime(value: 1200, timescale: 600))
+        ])
+        let playback = StreamingPlayback(loader: loader, session: session, slowMotion: ramp)
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
+        let supervisor = try XCTUnwrap(playback.supervisor)
+        let firstItem = try XCTUnwrap(player.currentItem)
+        player.play()
+
+        let recovered = try await waitUntil(.seconds(60)) {
+            supervisor.rebuildCount >= 1
+                && player.currentItem !== firstItem
+                && player.timeControlStatus == .playing
+                && CMTimeGetSeconds(player.currentTime()) > 0.2
+        }
+        XCTAssertTrue(recovered, "rebuilds=\(supervisor.rebuildCount) \(describe(player))")
+        let rebuilt = try XCTUnwrap(player.currentItem)
+        XCTAssertTrue(rebuilt.asset is AVComposition, "the rebuilt item must keep the slow motion")
+        let duration = try await rebuilt.asset.load(.duration)
+        XCTAssertEqual(duration.seconds, 3.5, accuracy: 0.1)
+        withExtendedLifetime(loader) {}
+        withExtendedLifetime(player) {}
+    }
+
+    @MainActor
     func testRebuildsStopAtTheBoundAndLeaveTheFailureVisible() async throws {
         let backing = InMemoryChunkedBlobStore()
         let store = FlakyFirstChunkStore(backing: backing, failures: StreamingPlaybackSupervisor.maxRebuilds + 1)
         let session = try await makeMovieSession(name: "exhausted", seconds: 2, store: store, backing: backing)
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         player.play()
 
@@ -324,7 +362,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let session = try await makeMovieSession(name: "inactive", seconds: 8, store: store, backing: backing)
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         let item = try XCTUnwrap(player.currentItem)
         player.play()
@@ -353,7 +392,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let session = try await makeMovieSession(name: "reactivated", seconds: 4, store: store, backing: backing)
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
-        let player = try XCTUnwrap(playback.makePlayer())
+        let madePlayer = await playback.makePlayer()
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         let item = try XCTUnwrap(player.currentItem)
 
@@ -381,7 +421,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
         let starvedAfter: TimeInterval = 0.5
-        let player = try XCTUnwrap(playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { false }))
+        let madePlayer = await playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { false })
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         let item = try XCTUnwrap(player.currentItem)
 
@@ -415,7 +456,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
         let starvedAfter: TimeInterval = 0.5
-        let player = try XCTUnwrap(playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { true }))
+        let madePlayer = await playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { true })
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         let item = try XCTUnwrap(player.currentItem)
         try await playUntilStalled(player, item)
@@ -445,7 +487,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let loader = EncryptedStreamResourceLoader(session: session)
         let playback = StreamingPlayback(loader: loader, session: session)
         let starvedAfter: TimeInterval = 0.3
-        let player = try XCTUnwrap(playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { false }))
+        let madePlayer = await playback.makePlayer(starvedAfter: starvedAfter, hasOpenDataRequest: { false })
+        let player = try XCTUnwrap(madePlayer)
         let supervisor = try XCTUnwrap(playback.supervisor)
         player.play()
 
