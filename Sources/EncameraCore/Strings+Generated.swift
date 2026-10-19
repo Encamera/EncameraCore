@@ -1291,6 +1291,8 @@ public enum L10n {
     public static let chooseAlbum = L10n.tr("Localizable", "CameraCapture.ChooseAlbum", fallback: "Choose Album")
     /// Delete
     public static let deleteCapture = L10n.tr("Localizable", "CameraCapture.DeleteCapture", fallback: "Delete")
+    /// Microphone access denied, tap to open Settings
+    public static let microphoneAccessDenied = L10n.tr("Localizable", "CameraCapture.MicrophoneAccessDenied", fallback: "Microphone access denied, tap to open Settings")
     /// Open Albums
     public static let openAlbums = L10n.tr("Localizable", "CameraCapture.OpenAlbums", fallback: "Open Albums")
     /// Encamera couldn't save this photo. Try saving it again, or delete it.

@@ -19,5 +19,6 @@ protocol CameraConfigurationServicable {
     func set(rotationAngle: CGFloat) async
     func flipCameraDevice() async
     func configureForMode(targetMode: CameraMode, videoQuality: VideoQualityOption?, force: Bool) async
+    func attachAudioInputIfAuthorized() async
     func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async
 }

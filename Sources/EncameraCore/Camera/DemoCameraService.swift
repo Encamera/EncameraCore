@@ -80,4 +80,8 @@ class DemoCameraService: CameraConfigurationServicable {
 
     }
 
+    func attachAudioInputIfAuthorized() async {
+
+    }
+
 }

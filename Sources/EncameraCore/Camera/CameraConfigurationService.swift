@@ -361,6 +361,38 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         await configureForMode(targetMode: model.cameraMode, force: true)
     }
 
+    /// Adds the microphone to the session so videos and Live Photos record
+    /// sound. Does nothing until the user has granted microphone access, and
+    /// nothing once an audio input is attached; never prompts on its own.
+    public func attachAudioInputIfAuthorized() async {
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
+            printDebug("Not attaching audio input, microphone access is not authorized")
+            return
+        }
+        let hasAudioInput = session.inputs.contains {
+            ($0 as? AVCaptureDeviceInput)?.device.hasMediaType(.audio) == true
+        }
+        guard !hasAudioInput else { return }
+        guard let audioDevice = AVCaptureDevice.default(for: .audio),
+              let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice) else {
+            printDebug("Could not create audio input")
+            return
+        }
+
+        session.beginConfiguration()
+        if session.canAddInput(audioDeviceInput) {
+            session.addInput(audioDeviceInput)
+        }
+        // Live Photo support is re-evaluated when the session's inputs change,
+        // so the photo output is reconfigured inside the same transaction.
+        if session.outputs.contains(photoOutput) {
+            configurePhotoOutput()
+        }
+        session.commitConfiguration()
+        zoomService.applyTarget()
+        printDebug("Attached audio input")
+    }
+
     /// Reconfigures outputs and preset for `targetMode` as one transaction.
     /// A no-op when the mode is already active (unless `force`d, e.g. after a
     /// camera flip, where the outputs must be reconfigured for the new device).
@@ -696,18 +728,6 @@ private extension CameraConfigurationService {
 
     }
 
-    private func setupAudioCaptureDevice() throws {
-
-        guard let audioDevice = AVCaptureDevice.default(for: .audio),
-              let audioDeviceInput = try? AVCaptureDeviceInput(device: audioDevice)else {
-            return
-        }
-
-        if session.canAddInput(audioDeviceInput) {
-            session.addInput(audioDeviceInput)
-        }
-    }
-
     private func initialSessionConfiguration() async {
         guard model.setupResult == .authorized else {
             return
@@ -719,8 +739,10 @@ private extension CameraConfigurationService {
             }
             // There is an unhandled case here, where if the video input
             // cannot be added to the session, it fails but does nothing
+            // The audio input is attached later, by attachAudioInputIfAuthorized():
+            // creating it is what raises the system microphone prompt, which
+            // must wait until the user picks video or Live Photos.
             try setupVideoCaptureDevice()
-            try setupAudioCaptureDevice()
             try addPhotoOutputToSession()
         } catch {
             printDebug(error)

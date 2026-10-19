@@ -1637,6 +1637,7 @@
 "CameraCapture.VideoSaveFailedMessage" = "Encamera couldn't save this video. The recording is still on this device, unencrypted, until you save it again or delete it.";
 "CameraCapture.TryAgain" = "Try Again";
 "CameraCapture.DeleteCapture" = "Delete";
+"CameraCapture.MicrophoneAccessDenied" = "Microphone access denied, tap to open Settings";
 
 /* The save-recovery-key flow */
 "RecoveryKey.Intro.Title" = "Save your recovery key";

@@ -57,6 +57,10 @@ public class CameraPermissionsService: ObservableObject {
         }
     }
 
+    public var microphoneAuthorizationStatus: AVAuthorizationStatus {
+        AVCaptureDevice.authorizationStatus(for: .audio)
+    }
+
     public func requestMicrophonePermission() async throws {
         let status = AVCaptureDevice.authorizationStatus(for: .audio)
 
