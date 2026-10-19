@@ -1146,8 +1146,8 @@
 "EncameraDrawerFactory.ContinueWithoutKeyDrawer.Title" = "Continue without your key?";
 "EncameraDrawerFactory.ContinueWithoutKeyDrawer.Body" = "Your existing encrypted files won't be accessible on this device until you import your encryption key.";
 "EncameraDrawerFactory.PasscodeSetDrawer.Title" = "You're all set";
-"EncameraDrawerFactory.PasscodeSetDrawer.PinBody" = "Your PIN is ready. You'll need it to unlock your encrypted files.";
-"EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody" = "Your password is ready. You'll need it to unlock your encrypted files.";
+"EncameraDrawerFactory.PasscodeSetDrawer.PinBody" = "You've set your PIN successfully. Remember it, you'll need it to unlock the app.";
+"EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody" = "You've set your password successfully. Remember it, you'll need it to unlock the app.";
 "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Title" = "We recommend using Wi‑Fi";
 "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Body" = "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
 "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title" = "How the upgrade works";

@@ -1672,10 +1672,10 @@ public enum L10n {
       public static let toLocalBody = L10n.tr("Localizable", "EncameraDrawerFactory.PartialMigrationDrawer.ToLocalBody", fallback: "Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.")
     }
     public enum PasscodeSetDrawer {
-      /// Your password is ready. You'll need it to unlock your encrypted files.
-      public static let passwordBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody", fallback: "Your password is ready. You'll need it to unlock your encrypted files.")
-      /// Your PIN is ready. You'll need it to unlock your encrypted files.
-      public static let pinBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PinBody", fallback: "Your PIN is ready. You'll need it to unlock your encrypted files.")
+      /// You've set your password successfully. Remember it, you'll need it to unlock the app.
+      public static let passwordBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody", fallback: "You've set your password successfully. Remember it, you'll need it to unlock the app.")
+      /// You've set your PIN successfully. Remember it, you'll need it to unlock the app.
+      public static let pinBody = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.PinBody", fallback: "You've set your PIN successfully. Remember it, you'll need it to unlock the app.")
       /// You're all set
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.PasscodeSetDrawer.Title", fallback: "You're all set")
     }
