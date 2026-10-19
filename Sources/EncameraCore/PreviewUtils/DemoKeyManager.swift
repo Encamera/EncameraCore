@@ -3,8 +3,10 @@ import Combine
 import Sodium
 
 public class DemoKeyManager: KeyManager {
+    public var keyPassphrases: [KeyPassphrase] = [KeyPassphrase(words: ["your", "cool", "cat"]), KeyPassphrase(words: ["your", "bad", "dog"])]
+
     public func retrieveKeyPassphrases() throws -> [KeyPassphrase] {
-        return [KeyPassphrase(words: ["your", "cool", "cat"]), KeyPassphrase(words: ["your", "bad", "dog"])]
+        return keyPassphrases
     }
     
     public var authenticationConfiguration: AuthenticationConfiguration? = AuthenticationConfiguration(enabledTypes: [.passcode(.password)])

@@ -625,14 +625,10 @@ Encamera!";
 "CompletedImportHistory.DeleteConfirmMessage" = "Dette vil slette %@ foto(er) fra dit fotobibliotek.";
 "CompletedImportHistory.EmptyState" = "Ingen fuldførte importer";
 "ICloudError.DownloadTimeout" = "iCloud-downloadet fik timeout. Tjek venligst din internetforbindelse og prøv igen.";
-"SettingsView.SectionHeader.General" = "GENERELT";
 "FeatureFlagToast.Disabled" = "deaktiveret";
 
 "FeatureFlagToast.Enabled" = "aktiveret";
 "FeatureFlagToast.Message" = "Funktionen '%@' er nu %@";
-"SettingsView.SectionHeader.AppSettings" = "APP-INDSTILLINGER";
-"SettingsView.SectionHeader.GetHelp" = "FÅ HJÆLP";
-"SettingsView.SectionHeader.WhatsNew" = "NYHEDER";
 "UnreadNotificationsIndicator" = "Ny";
 "AlbumGrid.EmptyState.Title" = "Opret dit første album";
 "AlbumGrid.EmptyState.Subtitle" = "Alt, hvad du tilføjer til et album, krypteres på din enhed. Opret et for at komme i gang.";

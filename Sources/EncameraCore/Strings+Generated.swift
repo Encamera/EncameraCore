@@ -3141,16 +3141,24 @@ public enum L10n {
     /// ./Encamera/Settings/SettingsView.swift
     public static let unknownError = L10n.tr("Localizable", "SettingsView.UnknownError", fallback: "Unknown error")
     public enum SectionHeader {
-      /// APP SETTINGS
-      public static let appSettings = L10n.tr("Localizable", "SettingsView.SectionHeader.AppSettings", fallback: "APP SETTINGS")
-      /// GENERAL
-      public static let general = L10n.tr("Localizable", "SettingsView.SectionHeader.General", fallback: "GENERAL")
-      /// GET HELP
-      public static let getHelp = L10n.tr("Localizable", "SettingsView.SectionHeader.GetHelp", fallback: "GET HELP")
+      /// ABOUT
+      public static let about = L10n.tr("Localizable", "SettingsView.SectionHeader.About", fallback: "ABOUT")
+      /// APPEARANCE
+      public static let appearance = L10n.tr("Localizable", "SettingsView.SectionHeader.Appearance", fallback: "APPEARANCE")
+      /// CAMERA & PLAYBACK
+      public static let cameraAndPlayback = L10n.tr("Localizable", "SettingsView.SectionHeader.CameraAndPlayback", fallback: "CAMERA & PLAYBACK")
+      /// DANGER ZONE
+      public static let dangerZone = L10n.tr("Localizable", "SettingsView.SectionHeader.DangerZone", fallback: "DANGER ZONE")
+      /// DEBUG
+      public static let debug = L10n.tr("Localizable", "SettingsView.SectionHeader.Debug", fallback: "DEBUG")
+      /// HELP & FEEDBACK
+      public static let helpAndFeedback = L10n.tr("Localizable", "SettingsView.SectionHeader.HelpAndFeedback", fallback: "HELP & FEEDBACK")
       /// PREMIUM
       public static let premiumPlan = L10n.tr("Localizable", "SettingsView.SectionHeader.PremiumPlan", fallback: "PREMIUM")
-      /// WHAT'S NEW
-      public static let whatsNew = L10n.tr("Localizable", "SettingsView.SectionHeader.WhatsNew", fallback: "WHAT'S NEW")
+      /// SECURITY & PRIVACY
+      public static let securityAndPrivacy = L10n.tr("Localizable", "SettingsView.SectionHeader.SecurityAndPrivacy", fallback: "SECURITY & PRIVACY")
+      /// STORAGE
+      public static let storage = L10n.tr("Localizable", "SettingsView.SectionHeader.Storage", fallback: "STORAGE")
     }
   }
   public enum ShareExtension {
@@ -3242,8 +3250,8 @@ public enum L10n {
     public static let reclaimable = L10n.tr("Localizable", "StorageInsights.Reclaimable", fallback: "Clearable")
     /// Try again
     public static let retry = L10n.tr("Localizable", "StorageInsights.Retry", fallback: "Try again")
-    /// Storage
-    public static let settingsRow = L10n.tr("Localizable", "StorageInsights.SettingsRow", fallback: "Storage")
+    /// Encamera Storage
+    public static let settingsRow = L10n.tr("Localizable", "StorageInsights.SettingsRow", fallback: "Encamera Storage")
     /// Previews
     public static let thumbnails = L10n.tr("Localizable", "StorageInsights.Thumbnails", fallback: "Previews")
     /// ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen

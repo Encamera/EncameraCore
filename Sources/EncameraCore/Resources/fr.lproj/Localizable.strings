@@ -654,14 +654,10 @@ album";
 "CompletedImportHistory.DeleteConfirmMessage" = "Cela supprimera %@ photo(s) de votre photothèque.";
 "CompletedImportHistory.EmptyState" = "Aucune importation terminée";
 "ICloudError.DownloadTimeout" = "Le téléchargement iCloud a expiré. Veuillez vérifier votre connexion Internet et réessayer.";
-"SettingsView.SectionHeader.General" = "GÉNÉRAL";
 "FeatureFlagToast.Disabled" = "désactivé";
 
 "FeatureFlagToast.Enabled" = "activé";
 "FeatureFlagToast.Message" = "La fonctionnalité '%@' est maintenant %@";
-"SettingsView.SectionHeader.AppSettings" = "PARAMÈTRES DE L'APPLICATION";
-"SettingsView.SectionHeader.GetHelp" = "OBTENIR DE L'AIDE";
-"SettingsView.SectionHeader.WhatsNew" = "NOUVEAUTÉS";
 "UnreadNotificationsIndicator" = "Nouveau";
 "AlbumGrid.EmptyState.Title" = "Créez votre premier album";
 "AlbumGrid.EmptyState.Subtitle" = "Tout ce que vous ajoutez à un album est chiffré sur votre appareil. Créez-en un pour commencer.";

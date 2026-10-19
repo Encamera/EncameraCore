@@ -638,14 +638,10 @@
 "CompletedImportHistory.DeleteConfirmMessage" = "これにより、フォトライブラリから%@枚の写真が削除されます。";
 "CompletedImportHistory.EmptyState" = "完了したインポートはありません";
 "ICloudError.DownloadTimeout" = "iCloudのダウンロードがタイムアウトしました。インターネット接続を確認して、もう一度お試しください。";
-"SettingsView.SectionHeader.General" = "一般";
 "FeatureFlagToast.Disabled" = "無効";
 
 "FeatureFlagToast.Enabled" = "有効";
 "FeatureFlagToast.Message" = "機能「%@」が現在%@になりました";
-"SettingsView.SectionHeader.AppSettings" = "アプリ設定";
-"SettingsView.SectionHeader.GetHelp" = "ヘルプを取得";
-"SettingsView.SectionHeader.WhatsNew" = "新着情報";
 "UnreadNotificationsIndicator" = "新着";
 "AlbumGrid.EmptyState.Title" = "最初のアルバムを作成";
 "AlbumGrid.EmptyState.Subtitle" = "アルバムに追加したものはすべてデバイス上で暗号化されます。まずはアルバムを作成しましょう。";

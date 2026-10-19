@@ -641,14 +641,10 @@
 "CompletedImportHistory.DeleteConfirmMessage" = "이 작업은 %@장의 사진을 사진 보관함에서 삭제합니다.";
 "CompletedImportHistory.EmptyState" = "완료된 가져오기 없음";
 "ICloudError.DownloadTimeout" = "iCloud 다운로드 시간이 초과되었습니다. 인터넷 연결을 확인하고 다시 시도하세요.";
-"SettingsView.SectionHeader.General" = "일반";
 "FeatureFlagToast.Disabled" = "비활성화됨";
 
 "FeatureFlagToast.Enabled" = "활성화됨";
 "FeatureFlagToast.Message" = "기능 '%@'이(가) 이제 %@입니다";
-"SettingsView.SectionHeader.AppSettings" = "앱 설정";
-"SettingsView.SectionHeader.GetHelp" = "도움 받기";
-"SettingsView.SectionHeader.WhatsNew" = "새로운 소식";
 "UnreadNotificationsIndicator" = "새 항목";
 "AlbumGrid.EmptyState.Title" = "첫 번째 앨범 만들기";
 "AlbumGrid.EmptyState.Subtitle" = "앨범에 추가한 모든 항목은 기기에서 암호화됩니다. 앨범을 만들어 시작하세요.";

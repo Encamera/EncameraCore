@@ -638,14 +638,10 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "CompletedImportHistory.DeleteConfirmMessage" = "Aceasta va șterge %@ fotografie(i) din Biblioteca foto.";
 "CompletedImportHistory.EmptyState" = "Nicio importare finalizată";
 "ICloudError.DownloadTimeout" = "Descărcarea de pe iCloud a expirat. Vă rugăm să verificați conexiunea la internet și să încercați din nou.";
-"SettingsView.SectionHeader.General" = "GENERAL";
 "FeatureFlagToast.Disabled" = "dezactivat";
 
 "FeatureFlagToast.Enabled" = "activat";
 "FeatureFlagToast.Message" = "Funcția „%@” este acum %@";
-"SettingsView.SectionHeader.AppSettings" = "SETĂRI APLICAȚIE";
-"SettingsView.SectionHeader.GetHelp" = "OBȚINE AJUTOR";
-"SettingsView.SectionHeader.WhatsNew" = "NOUTĂȚI";
 "UnreadNotificationsIndicator" = "Nou";
 "AlbumGrid.EmptyState.Title" = "Creează primul tău album";
 "AlbumGrid.EmptyState.Subtitle" = "Tot ce adaugi într-un album este criptat pe dispozitivul tău. Creează unul pentru a începe.";

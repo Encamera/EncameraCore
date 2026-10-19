@@ -1175,15 +1175,19 @@
 /* ./Encamera/Settings/SettingsView.swift */
 "SettingsView.UnknownError" = "Unknown error";
 "SettingsView.SectionHeader.PremiumPlan" = "PREMIUM";
-"SettingsView.SectionHeader.GetHelp" = "GET HELP";
-"SettingsView.SectionHeader.WhatsNew" = "WHAT'S NEW";
+"SettingsView.SectionHeader.SecurityAndPrivacy" = "SECURITY & PRIVACY";
+"SettingsView.SectionHeader.Storage" = "STORAGE";
+"SettingsView.SectionHeader.CameraAndPlayback" = "CAMERA & PLAYBACK";
+"SettingsView.SectionHeader.Appearance" = "APPEARANCE";
+"SettingsView.SectionHeader.HelpAndFeedback" = "HELP & FEEDBACK";
+"SettingsView.SectionHeader.About" = "ABOUT";
+"SettingsView.SectionHeader.DangerZone" = "DANGER ZONE";
+"SettingsView.SectionHeader.Debug" = "DEBUG";
 "UnreadNotificationsIndicator" = "New";
 "AlbumGrid.EmptyState.Title" = "Create your first album";
 "AlbumGrid.EmptyState.Subtitle" = "Everything you add to an album is encrypted on your device. Create one to get started.";
 "AlbumGridItem.StoredInICloud" = "Stored in iCloud";
 "AlbumGridItem.StoredOnDevice" = "Stored on this device";
-"SettingsView.SectionHeader.AppSettings" = "APP SETTINGS";
-"SettingsView.SectionHeader.General" = "GENERAL";
 
 /* ./Encamera/MainHomeView/MainHomeView.swift */
 "MainHomeView.TabBar.Camera" = "Camera";
@@ -1466,7 +1470,7 @@
 
 /* ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen */
 "StorageInsights.Title" = "Storage";
-"StorageInsights.SettingsRow" = "Storage";
+"StorageInsights.SettingsRow" = "Encamera Storage";
 "StorageInsights.FeatureTitle" = "Storage Insights";
 "StorageInsights.FeatureDescription" = "Show a Settings screen breaking down how much space Encamera's media takes on this device and in iCloud, with an action that frees the re-downloadable cache";
 "StorageInsights.OnThisDevice" = "On this device";

@@ -772,14 +772,10 @@
 "CompletedImportHistory.DeleteConfirmMessage" = "Dies wird %@ Foto(s) aus Ihrer Fotomediathek löschen.";
 "CompletedImportHistory.EmptyState" = "Keine abgeschlossenen Importe";
 "ICloudError.DownloadTimeout" = "iCloud-Download hat zu lange gedauert. Bitte überprüfe deine Internetverbindung und versuche es erneut.";
-"SettingsView.SectionHeader.General" = "ALLGEMEIN";
 "FeatureFlagToast.Disabled" = "deaktiviert";
 
 "FeatureFlagToast.Enabled" = "aktiviert";
 "FeatureFlagToast.Message" = "Funktion '%@' ist jetzt %@";
-"SettingsView.SectionHeader.AppSettings" = "APP-EINSTELLUNGEN";
-"SettingsView.SectionHeader.GetHelp" = "HILFE ERHALTEN";
-"SettingsView.SectionHeader.WhatsNew" = "NEUIGKEITEN";
 "UnreadNotificationsIndicator" = "Neu";
 "AlbumGrid.EmptyState.Title" = "Erstelle dein erstes Album";
 "AlbumGrid.EmptyState.Subtitle" = "Alles, was du einem Album hinzufügst, wird auf deinem Gerät verschlüsselt. Erstelle eins, um loszulegen.";
