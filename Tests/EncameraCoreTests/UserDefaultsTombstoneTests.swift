@@ -45,6 +45,18 @@ final class UserDefaultsTombstoneTests: XCTestCase {
         XCTAssertTrue(UserDefaultUtils.bool(forKey: .pendingCloudDataWipe), "the cloud-wipe retry still needs its marker")
     }
 
+    func testCheckTombstoneAndWipeClearsTheTombstone() {
+        UserDefaultUtils.removeAll(setTombstone: true)
+
+        UserDefaultUtils.checkTombstoneAndWipe()
+        XCTAssertFalse(UserDefaultUtils.bool(forKey: .pendingDefaultsWipe))
+
+        groupDefaults.set("afterFirstLaunch", forKey: "ordinarySetting")
+        UserDefaultUtils.checkTombstoneAndWipe()
+        XCTAssertEqual(groupDefaults.string(forKey: "ordinarySetting"), "afterFirstLaunch",
+                       "the wipe runs once: a later launch keeps what the user set since")
+    }
+
     func testNoTombstoneLeavesEverythingAlone() {
         groupDefaults.removeObject(forKey: UserDefaultKey.pendingDefaultsWipe.rawValue)
         groupDefaults.set("kept", forKey: "ordinarySetting")
