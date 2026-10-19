@@ -57,7 +57,6 @@
 "OpenSettings" = "Open Settings";
 "FinishImportingMedia" = "Finish Importing Media";
 "TakeYourFirstPicture" = "TAKE YOUR FIRST PICTURE";
-"MediaSavedToAlbum" = "MEDIA SAVED TO ALBUM";
 "NoAlbum" = "No Album";
 "NoAlbumSelected" = "No Album Selected. You must select an album to save photos to.";
 "OpenSystemSettings" = "Go to Settings";
@@ -1130,6 +1129,9 @@
 "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Body" = "Your media is encrypted and only you can access it. Save your recovery key to make sure you can recover it on a new device.";
 "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Save" = "Save recovery key";
 "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Later" = "Maybe later";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Title" = "Only in Encamera";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body" = "This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.GotIt" = "Got it";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Title" = "Have you saved your recovery key?";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm" = "I've saved my key";

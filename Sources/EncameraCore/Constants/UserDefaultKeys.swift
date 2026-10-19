@@ -38,6 +38,9 @@ public enum UserDefaultKey {
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
     case recoveryKeyPromptState
+    /// Where the user is with the "Only in Encamera" drawer that follows the
+    /// first-ever capture. See `FirstCaptureExplainerUtil`.
+    case firstCaptureExplainerState
     case promotionalBannerInteractions
     case dismissedBanners
     case showPaywallOnAppear
@@ -131,6 +134,7 @@ public enum UserDefaultKey {
              .passcodeType,
              .keyBackupPromptLastShown,
              .recoveryKeyPromptState,
+             .firstCaptureExplainerState,
              .promotionalBannerInteractions,
              .dismissedBanners,
              .showPaywallOnAppear,

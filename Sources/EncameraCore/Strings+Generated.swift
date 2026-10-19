@@ -370,8 +370,6 @@ public enum L10n {
   public static let loginMethodDescription = L10n.tr("Localizable", "LoginMethodDescription", fallback: "Choose how you want to access your private albums.")
   /// Make sure you remember your pin code!
   public static let makeSureYouRememberYourPin = L10n.tr("Localizable", "MakeSureYouRememberYourPin", fallback: "Make sure you remember your pin code!")
-  /// MEDIA SAVED TO ALBUM
-  public static let mediaSavedToAlbum = L10n.tr("Localizable", "MediaSavedToAlbum", fallback: "MEDIA SAVED TO ALBUM")
   /// ./Encamera/CameraView/CameraView.swift
   public static let missingCameraAccess = L10n.tr("Localizable", "Missing camera access", fallback: "Missing camera access")
   /// ./Encamera/AuthenticationView/AuthenticationView.swift
@@ -1642,6 +1640,14 @@ public enum L10n {
       public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Confirm", fallback: "Turn Off")
       /// Turn off iCloud sync?
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Title", fallback: "Turn off iCloud sync?")
+    }
+    public enum FirstCaptureExplainerDrawer {
+      /// This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.
+      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body", fallback: "This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.")
+      /// Got it
+      public static let gotIt = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.GotIt", fallback: "Got it")
+      /// Only in Encamera
+      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Title", fallback: "Only in Encamera")
     }
     public enum KeyBackupDrawer {
       /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.
