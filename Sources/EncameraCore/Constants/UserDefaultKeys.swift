@@ -38,6 +38,8 @@ public enum UserDefaultKey {
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
     case recoveryKeyPromptState
+    /// Album visits since the first item was added. See `KeyBackupUIUtil`.
+    case recoveryKeyPromptVisitCount
     /// Where the user is with the "Only in Encamera" drawer that follows the
     /// first-ever capture. See `FirstCaptureExplainerUtil`.
     case firstCaptureExplainerState
@@ -134,6 +136,7 @@ public enum UserDefaultKey {
              .passcodeType,
              .keyBackupPromptLastShown,
              .recoveryKeyPromptState,
+             .recoveryKeyPromptVisitCount,
              .firstCaptureExplainerState,
              .promotionalBannerInteractions,
              .dismissedBanners,
