@@ -725,7 +725,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PaywallView.LifetimeLimitedSubtext" = "Plătește o dată, folosește pentru totdeauna";
 "AlbumDetailView.SortFilter.FilterByType" = "Filtrează după tip";
 "PaywallView.BackToPlans" = "Înapoi la planuri";
-"AlbumDetailView.SortFilter.ResetFilters" = "Resetează filtrele";
 "PaywallView.SelectPlan" = "Alege planul potrivit pentru tine";
 "PaywallView.UnlimitedAnnualSubtext" = "Facturat anual";
 "PaywallView.LifetimeLimitedDescription" = "Plată unică pentru stocare nelimitată plus actualizări doar pentru un an";
@@ -738,7 +737,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "Settings.PurchasesRestoreFailed" = "Nu s-au putut restaura achizițiile";
 "Settings.PurchasesRestoreFailedMessage" = "Nu s-au putut restaura achizițiile tale. Te rugăm să încerci din nou sau să contactezi suportul.";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "Data adăugării: cele mai vechi primele";
-"AlbumDetailView.SortFilter.Videos" = "Videoclipuri";
 "PaywallView.CheckBenefits" = "Verifică beneficiile";
 "PaywallView.TermsOfService" = "Termeni de utilizare";
 "AlbumDetailView.SortFilter.LivePhotos" = "Fotografii live";
@@ -765,7 +763,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PaywallView.Benefit.ChangeAppIconDescription" = "Fă ca Encamera să arate ca o aplicație normală";
 "PaywallView.LifetimeUnlimitedDescription" = "Alegerea supremă pentru utilizatorii care cer protecție completă care durează pentru totdeauna";
 "PaywallView.Benefit.HiddenAlbumsDescription" = "Păstrează amintirile private departe de priviri";
-"AlbumDetailView.SortFilter.Photos" = "Fotografii";
 "Settings.ClearDismissedBanners" = "Resetează bannerele";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "Data adăugată: cele mai noi primele";
 "PaywallView.Benefit.HiddenAlbums" = "Albume ascunse";

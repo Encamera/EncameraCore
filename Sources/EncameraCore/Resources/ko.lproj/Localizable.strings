@@ -728,7 +728,6 @@
 "PaywallView.LifetimeLimitedSubtext" = "한 번 결제하고 평생 사용하세요";
 "AlbumDetailView.SortFilter.FilterByType" = "유형별로 필터링";
 "PaywallView.BackToPlans" = "플랜으로 돌아가기";
-"AlbumDetailView.SortFilter.ResetFilters" = "필터 초기화";
 "PaywallView.SelectPlan" = "나에게 맞는 플랜 선택하기";
 "PaywallView.UnlimitedAnnualSubtext" = "연간 청구";
 "PaywallView.LifetimeLimitedDescription" = "무제한 저장 공간과 1년간 업데이트를 위한 일회성 결제";
@@ -741,7 +740,6 @@
 "Settings.PurchasesRestoreFailed" = "구매 복원 실패";
 "Settings.PurchasesRestoreFailedMessage" = "구매 내역을 복원할 수 없습니다. 다시 시도하시거나 고객 지원팀에 문의해 주세요.";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "추가된 날짜: 오래된 순";
-"AlbumDetailView.SortFilter.Videos" = "동영상";
 "PaywallView.CheckBenefits" = "혜택 확인";
 "PaywallView.TermsOfService" = "서비스 약관";
 "AlbumDetailView.SortFilter.LivePhotos" = "라이브 포토";
@@ -768,7 +766,6 @@
 "PaywallView.Benefit.ChangeAppIconDescription" = "Encamera를 일반 앱처럼 보이게 하세요";
 "PaywallView.LifetimeUnlimitedDescription" = "영구적인 완벽한 보호를 원하는 사용자들을 위한 궁극의 선택";
 "PaywallView.Benefit.HiddenAlbumsDescription" = "개인적인 추억을 남의 시선에서 안전하게 보관하세요";
-"AlbumDetailView.SortFilter.Photos" = "사진";
 "Settings.ClearDismissedBanners" = "배너 초기화";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "추가된 날짜: 최신순";
 "PaywallView.Benefit.HiddenAlbums" = "숨겨진 앨범";

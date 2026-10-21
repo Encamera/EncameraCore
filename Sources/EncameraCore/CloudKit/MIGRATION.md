@@ -45,7 +45,7 @@ The engine and its checkpoint live in `EncameraCore` (this directory). Everythin
 | `Encamera/AlbumManagement/CloudKitMigrationBackgroundTask.swift` | The `com.encamera.cloudkit-migration` background processing task — best-effort extra progress while the app is backgrounded. |
 | `Encamera/AlbumManagement/MigrationStatusOverlay.swift` | The blocking, non-dismissible status view over the album grid, with phase, counts, ETA and Cancel. |
 | `Encamera/AlbumManagement/PartialMigrationBanner.swift` | The persistent banner on an album whose move was stopped part-way, with Resume. |
-| `Encamera/AlbumManagement/AlbumDetailView.swift` | The screen that starts every kind of move, binds the launcher, and decides when the overlay and banner are shown. |
+| `Encamera/AlbumManagement/AlbumDetailView/StorageMove/AlbumStorageMoveController.swift` | The album screen's storage moves: starts every kind of move, binds the launcher, and decides when the overlay and banner are shown. |
 
 Supporting pieces used by the move but owned elsewhere: `AlbumManager.finalizeMigrationToCloudKit` and `AlbumManager.finalizeMigrationToLocal` (the album flips), and `Album.cloudKitTwin(of:albumID:)` / `Album.localTwin(of:)` / `Album.removeDrainedSourceDirectory`.
 
@@ -211,7 +211,7 @@ The launcher registers a `MigrationTask` with `direction: .toLocal`, so the pill
 
 **The overlay** (`MigrationStatusOverlay`) is shown when three things are true at once: the feature is enabled, the engine's active set contains this album, and there is a progress snapshot carrying a phase. Any one alone is wrong — the active set is true during the pre-run planning window when there's nothing to show, and a snapshot could outlive a run that already ended.
 
-**The floating pill** and the overlay are mutually exclusive (`shouldShowFloatingPill`): one run must never be reported twice on the same screen.
+**The floating pill** and the overlay are mutually exclusive (`AlbumDetailViewModel.bottomStrip` resolves to `.migrationOverlay` ahead of `.progressPill`): one run must never be reported twice on the same screen.
 
 **The registry** is what lets a screen bind to a run it didn't start. The album screen subscribes to the registry's published launchers and re-binds whenever the launcher for its album changes — which is how an auto-resumed migration, started by the resumer before the screen existed, still drives that screen's overlay.
 
@@ -302,7 +302,7 @@ No move re-encrypts. A move into CloudKit uploads the file's ciphertext as it is
 
 ## The launcher and overlay
 
-`CloudKitMigrationLauncher.start(plan:)` registers a `MigrationTask` named for the destination, binds `$progress`/`$state` from the engine, emits the `UITestMigrationProgress` marker, and registers the run under **both** album ids so re-entering either screen finds it. The overlay is bound on the **source** album screen. The floating pill is suppressed while the overlay is up (`shouldShowFloatingPill`).
+`CloudKitMigrationLauncher.start(plan:)` registers a `MigrationTask` named for the destination, binds `$progress`/`$state` from the engine, emits the `UITestMigrationProgress` marker, and registers the run under **both** album ids so re-entering either screen finds it. The overlay is bound on the **source** album screen. The floating pill is suppressed while the overlay is up (`AlbumDetailViewModel.bottomStrip` resolves to `.migrationOverlay` ahead of `.progressPill`).
 
 ---
 

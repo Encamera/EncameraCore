@@ -918,12 +918,6 @@ public enum L10n {
       public static let filterByType = L10n.tr("Localizable", "AlbumDetailView.SortFilter.FilterByType", fallback: "Filter by Type")
       /// Live Photos
       public static let livePhotos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.LivePhotos", fallback: "Live Photos")
-      /// Photos
-      public static let photos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Photos", fallback: "Photos")
-      /// Reset Filters
-      public static let resetFilters = L10n.tr("Localizable", "AlbumDetailView.SortFilter.ResetFilters", fallback: "Reset Filters")
-      /// Videos
-      public static let videos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.Videos", fallback: "Videos")
     }
   }
   public enum AlbumGrid {

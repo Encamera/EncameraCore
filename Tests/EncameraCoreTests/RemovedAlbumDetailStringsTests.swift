@@ -2,9 +2,9 @@
 //  RemovedAlbumDetailStringsTests.swift
 //  EncameraCoreTests
 //
-//  The album screen's photo-access and no-license alerts were removed, and
-//  their copy with them. These keys must stay gone from every language, while
-//  the similarly named keys that are still read must keep resolving.
+//  The album screen has no photo-access or no-license alert and no media-type
+//  filter. These keys must not exist in any language, and the similarly named
+//  keys still in use must resolve.
 //
 
 import XCTest
@@ -24,15 +24,17 @@ final class RemovedAlbumDetailStringsTests: XCTestCase {
         "AlbumDetailView.OpenSettings",
         "AlbumDetailView.NoLicenseDeletionWarningTitle",
         "AlbumDetailView.NoLicenseDeletionWarningMessage",
-        "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton"
+        "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton",
+        "AlbumDetailView.SortFilter.Photos",
+        "AlbumDetailView.SortFilter.Videos",
+        "AlbumDetailView.SortFilter.ResetFilters"
     ]
 
     private static let lookalikeKeys = [
         "OpenSettings",
         "CustomPhotoPicker.PhotoAccessRequired",
-        "AlbumDetailView.SortFilter.Photos",
-        "AlbumDetailView.SortFilter.Videos",
-        "AlbumDetailView.SortFilter.ResetFilters"
+        "AlbumDetailView.SortFilter.DateAddedNewest",
+        "AlbumDetailView.SortFilter.DateAddedOldest"
     ]
 
     /// One bundle per `.lproj` in EncameraCore's resource bundle, so each

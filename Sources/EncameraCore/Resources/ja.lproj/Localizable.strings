@@ -725,7 +725,6 @@
 "PaywallView.LifetimeLimitedSubtext" = "一度支払えば永遠に利用可能";
 "AlbumDetailView.SortFilter.FilterByType" = "タイプで絞り込む";
 "PaywallView.BackToPlans" = "プランに戻る";
-"AlbumDetailView.SortFilter.ResetFilters" = "フィルターをリセット";
 "PaywallView.SelectPlan" = "あなたに合ったプランを選択してください";
 "PaywallView.UnlimitedAnnualSubtext" = "年額請求";
 "PaywallView.LifetimeLimitedDescription" = "1回限りの支払いで無制限のストレージと1年間のアップデート付き";
@@ -738,7 +737,6 @@
 "Settings.PurchasesRestoreFailed" = "購入の復元に失敗しました";
 "Settings.PurchasesRestoreFailedMessage" = "ご購入の復元ができませんでした。再度お試しいただくか、サポートまでご連絡ください。";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "追加日：古い順";
-"AlbumDetailView.SortFilter.Videos" = "動画";
 "PaywallView.CheckBenefits" = "特典を確認";
 "PaywallView.TermsOfService" = "利用規約";
 "AlbumDetailView.SortFilter.LivePhotos" = "ライブフォト";
@@ -765,7 +763,6 @@
 "PaywallView.Benefit.ChangeAppIconDescription" = "Encameraを普通のアプリのように見せる";
 "PaywallView.LifetimeUnlimitedDescription" = "永遠に続く完全な保護を求めるユーザーの究極の選択";
 "PaywallView.Benefit.HiddenAlbumsDescription" = "プライベートな思い出を見えない場所に保管";
-"AlbumDetailView.SortFilter.Photos" = "写真";
 "Settings.ClearDismissedBanners" = "バナーをリセット";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "追加日：新しい順";
 "PaywallView.Benefit.HiddenAlbums" = "非表示アルバム";

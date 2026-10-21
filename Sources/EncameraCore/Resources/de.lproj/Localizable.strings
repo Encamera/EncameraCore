@@ -859,7 +859,6 @@
 "PaywallView.LifetimeLimitedSubtext" = "Einmal zahlen, für immer nutzen";
 "AlbumDetailView.SortFilter.FilterByType" = "Nach Typ filtern";
 "PaywallView.BackToPlans" = "Zurück zu den Tarifen";
-"AlbumDetailView.SortFilter.ResetFilters" = "Filter zurücksetzen";
 "PaywallView.SelectPlan" = "Wählen Sie den passenden Tarif für sich aus";
 "PaywallView.UnlimitedAnnualSubtext" = "Jährlich abgerechnet";
 "PaywallView.LifetimeLimitedDescription" = "Einmalige Zahlung für unbegrenzten Speicherplatz plus Updates nur für ein Jahr";
@@ -872,7 +871,6 @@
 "Settings.PurchasesRestoreFailed" = "Käufe konnten nicht wiederhergestellt werden";
 "Settings.PurchasesRestoreFailedMessage" = "Ihre Käufe konnten nicht wiederhergestellt werden. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "Hinzugefügt am: Älteste zuerst";
-"AlbumDetailView.SortFilter.Videos" = "Videos";
 "PaywallView.CheckBenefits" = "Vorteile prüfen";
 "PaywallView.TermsOfService" = "Nutzungsbedingungen";
 "AlbumDetailView.SortFilter.LivePhotos" = "Live-Fotos";
@@ -899,7 +897,6 @@
 "PaywallView.Benefit.ChangeAppIconDescription" = "Lassen Sie Encamera wie eine normale App aussehen";
 "PaywallView.LifetimeUnlimitedDescription" = "Die ultimative Wahl für Nutzer, die vollständigen und dauerhaften Schutz verlangen";
 "PaywallView.Benefit.HiddenAlbumsDescription" = "Halten Sie private Erinnerungen verborgen";
-"AlbumDetailView.SortFilter.Photos" = "Fotos";
 "Settings.ClearDismissedBanners" = "Banner zurücksetzen";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "Hinzugefügt am: Neueste zuerst";
 "PaywallView.Benefit.HiddenAlbums" = "Versteckte Alben";

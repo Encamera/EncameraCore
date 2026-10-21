@@ -561,10 +561,7 @@
 "AlbumDetailView.SortFilter.DateCapturedNewest" = "Date Captured: Newest First";
 "AlbumDetailView.SortFilter.DateCapturedOldest" = "Date Captured: Oldest First";
 "AlbumDetailView.SortFilter.FilterByType" = "Filter by Type";
-"AlbumDetailView.SortFilter.Photos" = "Photos";
-"AlbumDetailView.SortFilter.Videos" = "Videos";
 "AlbumDetailView.SortFilter.LivePhotos" = "Live Photos";
-"AlbumDetailView.SortFilter.ResetFilters" = "Reset Filters";
 "AlbumDetailView.NoMediaFound" = "No media found";
 "AlbumDetailView.ClearFilters" = "Clear Filters";
 "AlbumDetailView.PremiumCardTitle" = "Store more with Premium";
