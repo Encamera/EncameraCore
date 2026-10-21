@@ -7,7 +7,6 @@
 
 import Foundation
 import ZipArchive
-import UIKit
 
 /// Progress reporting enum for zip export operations
 public enum ZipExportProgress: Equatable {
@@ -51,7 +50,7 @@ public class EncryptedZipExportHelper: DebugPrintable {
     private let fileAccess: FileAccess
     private let media: [InteractableMedia<EncryptedMedia>]
     private let taskManager: BackgroundTaskManager
-    private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var activeBackgroundTask: BackgroundTaskID = .invalid
     private var backgroundTimeExpired: Bool = false
     private var exportTaskId: String?
     
@@ -376,7 +375,7 @@ public class EncryptedZipExportHelper: DebugPrintable {
         endBackgroundTask()
         backgroundTimeExpired = false
         
-        activeBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "ZipExport") { [weak self] in
+        activeBackgroundTask = BackgroundExecution.begin(name: "ZipExport") { [weak self] in
             self?.printDebug("UIBackgroundTask expiration handler called - background time limit reached")
             Task { @MainActor in
                 self?.backgroundTimeExpired = true
@@ -398,7 +397,7 @@ public class EncryptedZipExportHelper: DebugPrintable {
     private func endBackgroundTask() {
         if activeBackgroundTask != .invalid {
             printDebug("Ending UIBackgroundTask with identifier: \(activeBackgroundTask.rawValue)")
-            UIApplication.shared.endBackgroundTask(activeBackgroundTask)
+            BackgroundExecution.end(activeBackgroundTask)
             activeBackgroundTask = .invalid
         }
     }

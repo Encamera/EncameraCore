@@ -18,7 +18,6 @@
 //
 
 import Foundation
-import UIKit
 
 public actor CloudKitUploader: DebugPrintable {
 
@@ -93,14 +92,14 @@ public actor CloudKitUploader: DebugPrintable {
 
     private func runDrain() async {
         let backgroundTask = await MainActor.run {
-            UIApplication.shared.beginBackgroundTask(withName: "CloudKitUploadDrain") { [weak self] in
+            BackgroundExecution.begin(name: "CloudKitUploadDrain") { [weak self] in
                 guard let self else { return }
                 Task { await self.handleBackgroundExpiration() }
             }
         }
         defer {
             if backgroundTask != .invalid {
-                Task { @MainActor in UIApplication.shared.endBackgroundTask(backgroundTask) }
+                Task { @MainActor in BackgroundExecution.end(backgroundTask) }
             }
             drainTask = nil
             scheduleRekickIfNeeded()

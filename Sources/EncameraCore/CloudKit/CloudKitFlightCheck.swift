@@ -21,8 +21,9 @@
 //  got to; `removeTestAlbums` clears leftovers from runs that could not.
 //
 
-import Foundation
 import CloudKit
+import CoreGraphics
+import Foundation
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -830,7 +831,15 @@ public final class CloudKitFlightCheck: DebugPrintable {
         }
         return data
         #else
-        throw FlightCheckError.imageEncodingFailed
+        let size = CGSize(width: 256, height: 256)
+        guard let image = PlatformImage.rendered(size: size, { context in
+                  context.setFillColor(red: 0.19, green: 0.69, blue: 0.78, alpha: 1)
+                  context.fill(CGRect(origin: .zero, size: size))
+              }),
+              let data = image.jpegData(compressionQuality: 0.9) else {
+            throw FlightCheckError.imageEncodingFailed
+        }
+        return data
         #endif
     }
 
@@ -839,7 +848,6 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// that is still transferring a moment after it starts; the solid-colour dummy
     /// photo above compresses to a few kilobytes and is gone instantly.
     static func makeIncompressibleJPEG(pixelsPerSide: Int = 4200) throws -> Data {
-        #if canImport(UIKit)
         let bytesPerRow = pixelsPerSide * 4
         var pixels = [UInt8](repeating: 0, count: bytesPerRow * pixelsPerSide)
         pixels.withUnsafeMutableBytes { buffer in
@@ -858,12 +866,9 @@ public final class CloudKitFlightCheck: DebugPrintable {
                                     decode: nil,
                                     shouldInterpolate: false,
                                     intent: .defaultIntent),
-              let data = UIImage(cgImage: cgImage).jpegData(compressionQuality: 1.0) else {
+              let data = PlatformImage(cgImage: cgImage).jpegData(compressionQuality: 1.0) else {
             throw FlightCheckError.imageEncodingFailed
         }
         return data
-        #else
-        throw FlightCheckError.imageEncodingFailed
-        #endif
     }
 }

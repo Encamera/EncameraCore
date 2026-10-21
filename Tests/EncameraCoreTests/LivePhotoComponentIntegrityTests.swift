@@ -22,7 +22,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 final class LivePhotoComponentIntegrityTests: XCTestCase {
@@ -42,12 +41,7 @@ final class LivePhotoComponentIntegrityTests: XCTestCase {
 
     /// A real 2×2 PNG so the save path's thumbnail generation succeeds.
     private func tinyPNG() -> Data {
-        let size = CGSize(width: 2, height: 2)
-        let image = UIGraphicsImageRenderer(size: size).image { ctx in
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png()
     }
 
     private func makePhoto(id: String) throws -> InteractableMedia<CleartextMedia> {

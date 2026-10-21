@@ -8,7 +8,6 @@
 //
 
 import Combine
-import UIKit
 import XCTest
 @testable import EncameraCore
 
@@ -656,10 +655,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
     // MARK: - Moving an album's cover item to another album
 
     private static func tinyPNG() -> Data {
-        UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { context in
-            UIColor.green.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
-        }.pngData() ?? Data()
+        TestImageData.png()
     }
 
     /// A second CloudKit album on the harness's manager, under the same key.

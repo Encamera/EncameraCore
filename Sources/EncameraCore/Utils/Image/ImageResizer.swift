@@ -1,5 +1,7 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 enum ImageResizingError: Error {
     case cannotRetrieveFromURL
@@ -9,29 +11,39 @@ enum ImageResizingError: Error {
 public struct ImageResizer {
     var targetWidth: CGFloat
 
-    public func resize(at url: URL, quality: CGFloat) -> UIImage? {
-        guard let image = UIImage(contentsOfFile: url.path) else {
+    public func resize(at url: URL, quality: CGFloat) -> PlatformImage? {
+        guard let image = PlatformImage(contentsOfFile: url.path) else {
             return nil
         }
 
         return self.resize(image: image, quality: quality)
     }
 
-    public func resize(image: UIImage, quality: CGFloat) -> UIImage? {
+    public func resize(image: PlatformImage, quality: CGFloat) -> PlatformImage? {
         let originalSize = image.size
         let targetSize = CGSize(width: targetWidth, height: targetWidth * originalSize.height / originalSize.width)
+        #if canImport(UIKit)
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         let resizedImage = renderer.image { (context) in
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
+        #else
+        guard let source = image.cgImage,
+              let resizedImage = PlatformImage.rendered(size: targetSize, { context in
+                  context.interpolationQuality = .high
+                  context.draw(source, in: CGRect(origin: .zero, size: targetSize))
+              }) else {
+            return nil
+        }
+        #endif
         guard let jpegData = resizedImage.jpegData(compressionQuality: quality) else {
             return nil
         }
-        return UIImage(data: jpegData)
+        return PlatformImage(data: jpegData)
     }
 
-    public func resize(data: Data, quality: CGFloat) -> UIImage? {
-        guard let image = UIImage(data: data) else {
+    public func resize(data: Data, quality: CGFloat) -> PlatformImage? {
+        guard let image = PlatformImage(data: data) else {
             return nil
         }
         return resize(image: image, quality: quality)

@@ -90,12 +90,12 @@ public class InteractableMedia<T: MediaDescribing>: Hashable, Identifiable, Equa
         }
     }
 
-    public var uiImage: UIImage? {
+    public var uiImage: PlatformImage? {
         guard let imageData else {
             return nil
         }
 
-        return UIImage(data: imageData)
+        return PlatformImage(data: imageData)
     }
 
     public var photoURL: URL? {

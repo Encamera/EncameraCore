@@ -7,7 +7,6 @@
 //
 
 import XCTest
-import UIKit
 import CloudKit
 import Combine
 @testable import EncameraCore
@@ -25,12 +24,7 @@ final class CloudKitMediaMoveTests: XCTestCase {
     }
 
     private func tinyPNG() -> Data {
-        let size = CGSize(width: 2, height: 2)
-        let image = UIGraphicsImageRenderer(size: size).image { ctx in
-            UIColor.red.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png()
     }
 
     private func makePhoto(id: String = UUID().uuidString) throws -> InteractableMedia<CleartextMedia> {

@@ -6,6 +6,8 @@
 import Foundation
 import AVFoundation
 
+// AVAudioSession exists only on iOS.
+#if os(iOS)
 /// Owns the app's shared `AVAudioSession`, configured at the point audio is
 /// actually needed rather than during launch.
 ///
@@ -62,3 +64,4 @@ public enum AudioSessionManager: DebugPrintable {
                    "otherAudioPlaying=\(session.isOtherAudioPlaying)")
     }
 }
+#endif

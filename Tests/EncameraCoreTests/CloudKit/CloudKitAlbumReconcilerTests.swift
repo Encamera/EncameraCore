@@ -18,6 +18,17 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
     private var markerIDs: [String] = []
     private var cleanups: [() -> Void] = []
 
+    /// `CloudKitAlbumsSync` opens a `CloudKitFileAccess` per album after it
+    /// reconciles, and those reach for a store through `CloudKitStoreProvider`.
+    /// The default is the real CloudKit store, so it is swapped for an empty
+    /// mock to keep these tests offline.
+    override func setUp() {
+        super.setUp()
+        let previous = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in MockCloudKitMediaStore() }
+        cleanups.append { CloudKitStoreProvider.makeStore = previous }
+    }
+
     override func tearDown() {
         for albumID in markerIDs {
             try? CloudKitAlbumMarker.remove(albumID: albumID)

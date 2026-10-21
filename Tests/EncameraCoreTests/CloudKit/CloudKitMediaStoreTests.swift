@@ -25,6 +25,8 @@ final class CloudKitMediaStoreTests: XCTestCase {
                            defaults: UserDefaults) -> CloudKitMediaStore {
         let container = CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: account),
                                           zoneProvisioner: StubZoneProvisioner(),
+                                          zoneLister: StubZoneLister(),
+                                          subscriptionProvisioner: StubSubscriptionProvisioner(),
                                           defaults: defaults)
         return CloudKitMediaStore(container: container, adapter: adapter, defaults: defaults)
     }

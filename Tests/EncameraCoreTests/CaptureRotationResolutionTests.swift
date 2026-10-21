@@ -85,6 +85,7 @@ final class CaptureRotationResolutionTests: XCTestCase {
 
     // MARK: - The device-orientation table it replaced
 
+    #if canImport(UIKit)
     /// The old mapping stays for the no-camera fallback, so its contract is
     /// still worth pinning — including that a flat or unknown device yields no
     /// angle at all rather than a bogus one.
@@ -97,4 +98,5 @@ final class CaptureRotationResolutionTests: XCTestCase {
         XCTAssertNil(UIDeviceOrientation.faceDown.videoRotationAngle)
         XCTAssertNil(UIDeviceOrientation.unknown.videoRotationAngle)
     }
+    #endif
 }

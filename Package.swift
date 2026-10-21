@@ -7,7 +7,8 @@ let package = Package(
     name: "EncameraCore",
     defaultLocalization: "en",
     platforms: [
-        .iOS("17.0")
+        .iOS("17.0"),
+        .macOS("14.0")
     ],
     products: [
         .library(
@@ -31,7 +32,7 @@ let package = Package(
         .testTarget(
             name: "EncameraCoreTests",
             dependencies: ["EncameraCore"],
-            resources: [.copy("Fixtures")]
+            resources: [.copy("Fixtures"), .process("CloudKit/Fixtures")]
         )
     ]
 )

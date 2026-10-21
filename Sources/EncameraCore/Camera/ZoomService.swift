@@ -9,6 +9,8 @@ public enum ZoomLevel: CGFloat {
     case x5 = 5.0
 }
 
+// The multi-camera device types zoom levels are derived from exist only on iOS.
+#if os(iOS)
 public protocol ZoomServiceDelegate: AnyObject {
     func zoomService(_ service: ZoomService, didUpdateZoomLevels levels: [ZoomLevel])
     func zoomService(_ service: ZoomService, didUpdateWideBaseZoomFactor factor: CGFloat)
@@ -203,3 +205,4 @@ public class ZoomService: DebugPrintable {
         candidates.min(by: { abs($0.rawValue - value) < abs($1.rawValue - value) })
     }
 }
+#endif

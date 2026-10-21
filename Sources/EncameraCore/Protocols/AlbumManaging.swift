@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import UIKit
 
 public protocol AlbumManaging {
 

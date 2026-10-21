@@ -11,7 +11,6 @@
 
 import XCTest
 import CloudKit
-import UIKit
 @testable import EncameraCore
 
 final class CloudKitStorageDetailsTests: XCTestCase {

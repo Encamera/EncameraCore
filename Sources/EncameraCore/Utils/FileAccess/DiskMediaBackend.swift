@@ -10,7 +10,6 @@
 //
 
 import Foundation
-import UIKit
 
 public actor DiskMediaBackend: MediaBackend {
 
@@ -173,7 +172,7 @@ public actor DiskMediaBackend: MediaBackend {
     /// already reads the album's cover id itself and resolves it (or the default
     /// first item) through the disk preview pipeline, so we delegate to it. The
     /// `coverImageId` parameter is unused on disk (the cloud backend uses it).
-    public func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage? {
+    public func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? {
         try await fileAccess.loadLeadingThumbnail()
     }
 

@@ -24,7 +24,6 @@
 
 import XCTest
 import AVFoundation
-import UIKit
 @testable import EncameraCore
 
 final class EncryptedStreamResourceLoaderTests: XCTestCase {

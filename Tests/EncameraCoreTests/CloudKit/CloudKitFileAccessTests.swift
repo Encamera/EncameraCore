@@ -10,7 +10,6 @@
 import XCTest
 import CloudKit
 import AVFoundation
-import UIKit
 @testable import EncameraCore
 
 final class CloudKitFileAccessTests: XCTestCase {
@@ -23,13 +22,7 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     private static func tinyPNG() -> Data {
-        let size = CGSize(width: 2, height: 2)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let image = renderer.image { ctx in
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png()
     }
 
     private func makeAlbum(name: String = "Vacation-\(UUID().uuidString)", storage: StorageType = .cloudKit) -> Album {
@@ -885,7 +878,7 @@ final class CloudKitFileAccessTests: XCTestCase {
 
         let preview = try await access.loadMediaPreview(for: saved)
 
-        XCTAssertNotNil(preview.thumbnailMedia.data.flatMap(UIImage.init(data:)))
+        XCTAssertNotNil(preview.thumbnailMedia.data.flatMap(PlatformImage.init(data:)))
         XCTAssertEqual(store.fetchThumbnailCount, 0, "The thumbnail written at save time must be served from disk after the upload")
         try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))

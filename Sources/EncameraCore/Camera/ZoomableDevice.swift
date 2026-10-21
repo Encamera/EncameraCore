@@ -21,6 +21,7 @@ public protocol ZoomableDevice: AnyObject {
     func unlockForConfiguration()
 }
 
+#if os(iOS)
 extension AVCaptureDevice: ZoomableDevice {
     public var zoomConstituentDevices: [ConstituentDeviceInfo] {
         constituentDevices.map { ConstituentDeviceInfo(deviceType: $0.deviceType) }
@@ -42,3 +43,4 @@ extension AVCaptureDevice: ZoomableDevice {
         localizedName
     }
 }
+#endif

@@ -41,7 +41,7 @@ final class RemovedAlbumDetailStringsTests: XCTestCase {
     /// language's table is checked on its own rather than through fallback.
     private func localizationBundles() throws -> [(String, Bundle)] {
         let lprojURLs = try XCTUnwrap(
-            Bundle.module.urls(forResourcesWithExtension: "lproj", subdirectory: nil),
+            Bundle.encameraCoreResources.urls(forResourcesWithExtension: "lproj", subdirectory: nil),
             "EncameraCore's resource bundle has no .lproj directories"
         )
         return try lprojURLs

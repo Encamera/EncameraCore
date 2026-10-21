@@ -3,6 +3,7 @@
 //  EncameraCoreTests
 //
 
+#if os(iOS)
 import XCTest
 import AVFoundation
 @testable import EncameraCore
@@ -49,3 +50,4 @@ final class AudioSessionManagerTests: XCTestCase {
         XCTAssertTrue(AudioSessionManager.deactivate())
     }
 }
+#endif

@@ -8,7 +8,6 @@
 import Foundation
 import BackgroundTasks
 import Combine
-import UIKit
 
 // MARK: - Import Media Source
 
@@ -110,7 +109,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     
     // MARK: - Private Properties
     
-    private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var activeBackgroundTask: BackgroundTaskID = .invalid
     private var cancellables = Set<AnyCancellable>()
     private var currentImportTask: Task<Void, Error>?
     private let mediaLoader: ImportMediaLoading
@@ -960,7 +959,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         printDebug("Starting UIBackgroundTask")
         endBackgroundTask()
         
-        activeBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "MediaImport") {
+        activeBackgroundTask = BackgroundExecution.begin(name: "MediaImport") {
             self.printDebug("UIBackgroundTask expiration handler called - time limit reached")
             self.endBackgroundTask()
         }
@@ -975,7 +974,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     private func endBackgroundTask() {
         if activeBackgroundTask != .invalid {
             printDebug("Ending UIBackgroundTask with identifier: \(activeBackgroundTask.rawValue)")
-            UIApplication.shared.endBackgroundTask(activeBackgroundTask)
+            BackgroundExecution.end(activeBackgroundTask)
             activeBackgroundTask = .invalid
         } else {
             printDebug("No active UIBackgroundTask to end")

@@ -9,7 +9,6 @@ import Foundation
 import Sodium
 import Combine
 import Security
-import UIKit
 
 public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 

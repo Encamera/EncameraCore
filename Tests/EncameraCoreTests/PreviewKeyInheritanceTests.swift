@@ -20,7 +20,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 final class PreviewKeyInheritanceTests: XCTestCase {
@@ -49,12 +48,7 @@ final class PreviewKeyInheritanceTests: XCTestCase {
     private let mediaID = "diverged-media"
 
     private func tinyPNG() -> Data {
-        let size = CGSize(width: 8, height: 8)
-        let image = UIGraphicsImageRenderer(size: size).image { ctx in
-            UIColor.systemPink.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png(width: 8, height: 8)
     }
 
     /// The headline. The album is keyed B; the file inside it is under A — the ordinary

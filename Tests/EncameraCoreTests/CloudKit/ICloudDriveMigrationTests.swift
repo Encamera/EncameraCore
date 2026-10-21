@@ -24,7 +24,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 @MainActor
@@ -65,11 +64,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
     }
 
     private func tinyPNG() -> Data {
-        let size = CGSize(width: 2, height: 2)
-        return UIGraphicsImageRenderer(size: size).image { ctx in
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }.pngData() ?? Data()
+        TestImageData.png()
     }
 
     /// A class, not a struct, so the materializer's callbacks can capture it weakly

@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import UIKit
 
 /// Outcome of the most recent pending import, published so the app can expose it
 /// as an accessibility marker. The import runs detached and its failures are only

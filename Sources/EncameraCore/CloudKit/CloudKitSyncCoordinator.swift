@@ -117,8 +117,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private let sizeSidecar: AlbumSizeSidecar?
     private let bus: FileOperationBus
     /// Chunk records for chunked blobs live here (`EncameraBlobZone`), outside the
-    /// media store's zone; deletes reclaim them through this seam.
-    private let chunkStore: ChunkedBlobStoring
+    /// media store's zone; deletes reclaim them through this seam. Lazy so
+    /// constructing a coordinator never touches the real container unless a
+    /// chunked record is actually fetched or deleted.
+    private let makeChunkStore: () -> ChunkedBlobStoring
+    private lazy var chunkStore: ChunkedBlobStoring = makeChunkStore()
     /// Captures written to this device but not yet in CloudKit. Consulted before
     /// the cache on every read, so a just-taken photo opens immediately.
     private let uploadQueue: CloudKitUploadQueue
@@ -217,7 +220,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         self.bus = bus
         self.uploadQueue = uploadQueue
         self.deleteQueue = deleteQueue
-        self.chunkStore = chunkStore ?? CloudKitChunkedBlobStore()
+        self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore() }
     }
 
     // MARK: - Sync

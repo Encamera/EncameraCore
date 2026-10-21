@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UIKit
 
 /// Enum representing available app icons.
 /// Each case represents an icon option with its display name and asset name.
@@ -66,11 +65,5 @@ public enum AppIcon: String, CaseIterable, Identifiable {
     /// Returns nil for the primary icon (default), or the alternate icon name for others.
     public var iconName: String? {
         self == .primary ? nil : rawValue
-    }
-    
-    /// Whether this is the currently selected app icon.
-    public var isSelected: Bool {
-        let currentIconName = UIApplication.shared.alternateIconName
-        return currentIconName == iconName
     }
 }

@@ -36,7 +36,6 @@
 
 import Foundation
 import AVFoundation
-import UIKit
 import UniformTypeIdentifiers
 
 /// URL scheme that routes an `AVURLAsset` through this loader.
@@ -295,11 +294,11 @@ public final class StreamingPlaybackSupervisor: DebugPrintable {
         watch(item)
         let center = NotificationCenter.default
         appObservers = [
-            center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            center.addObserver(forName: AppLifecycleNotification.willResignActive, object: nil, queue: .main) { [weak self] _ in
                 self?.appInactive = true
                 self?.resumePending = false
             },
-            center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            center.addObserver(forName: AppLifecycleNotification.didBecomeActive, object: nil, queue: .main) { [weak self] _ in
                 self?.appInactive = false
             }
         ]

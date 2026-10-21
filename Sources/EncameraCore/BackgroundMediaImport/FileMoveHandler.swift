@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import UIKit
 
 // MARK: - Move Result
 
@@ -48,7 +47,7 @@ public class FileMoveHandler: DebugPrintable {
     
     // MARK: - Private Properties
     
-    private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var activeBackgroundTask: BackgroundTaskID = .invalid
     private var cancellables = Set<AnyCancellable>()
     private var currentMoveTask: Task<MoveResult, Error>?
     
@@ -313,7 +312,7 @@ public class FileMoveHandler: DebugPrintable {
         printDebug("Starting UIBackgroundTask for move")
         endBackgroundTask()
         
-        activeBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "MediaMove") {
+        activeBackgroundTask = BackgroundExecution.begin(name: "MediaMove") {
             self.printDebug("UIBackgroundTask expiration handler called - time limit reached")
             self.endBackgroundTask()
         }
@@ -328,7 +327,7 @@ public class FileMoveHandler: DebugPrintable {
     private func endBackgroundTask() {
         if activeBackgroundTask != .invalid {
             printDebug("Ending UIBackgroundTask with identifier: \(activeBackgroundTask.rawValue)")
-            UIApplication.shared.endBackgroundTask(activeBackgroundTask)
+            BackgroundExecution.end(activeBackgroundTask)
             activeBackgroundTask = .invalid
         } else {
             printDebug("No active UIBackgroundTask to end")

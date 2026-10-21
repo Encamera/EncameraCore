@@ -42,6 +42,8 @@ final class ChunkedBlobStoreTests: XCTestCase {
                            zoneProvisioner: RecordZoneProvisioning? = nil) -> CloudKitChunkedBlobStore {
         let container = CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: account),
                                           zoneProvisioner: StubZoneProvisioner(),
+                                          zoneLister: StubZoneLister(),
+                                          subscriptionProvisioner: StubSubscriptionProvisioner(),
                                           defaults: defaults)
         return CloudKitChunkedBlobStore(container: container,
                                         adapter: mock,

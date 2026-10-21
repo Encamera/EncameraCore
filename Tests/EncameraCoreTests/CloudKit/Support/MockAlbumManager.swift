@@ -8,7 +8,6 @@
 
 import Foundation
 import Combine
-import UIKit
 @testable import EncameraCore
 
 final class MockAlbumManager: AlbumManaging {

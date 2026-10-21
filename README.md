@@ -35,6 +35,19 @@ dependencies: [
 ]
 ```
 
+## Running the tests
+
+The package builds and tests natively on macOS, with no simulator:
+
+```sh
+cd EncameraCore
+CFFIXED_USER_HOME="$(mktemp -d)" swift test
+```
+
+The tests write albums, indexes and caches to the standard user directories. On iOS those live in the app's sandbox; on a Mac they are your home folder, so `CFFIXED_USER_HOME` points them at a throwaway directory instead.
+
+A few tests need the app's iCloud entitlements or iOS's `AVPlayer`. They are skipped under `swift test` and run in the app-hosted `EncameraCoreTests` bundle of the Encamera Xcode project.
+
 ## About Encamera
 
 Why is Encamera different?

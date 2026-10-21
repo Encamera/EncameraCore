@@ -8,7 +8,6 @@
 import Foundation
 import LocalAuthentication
 import Combine
-import UIKit
 
 public enum AuthManagerError: Error {
     case passwordIncorrect

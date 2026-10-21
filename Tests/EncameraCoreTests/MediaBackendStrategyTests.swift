@@ -10,7 +10,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 // MARK: - Test double
@@ -48,7 +47,7 @@ actor MediaBackendMock: MediaBackend {
     func loadMediaToURLs(media: InteractableMedia<EncryptedMedia>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL] {
         []
     }
-    func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage? { nil }
+    func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? { nil }
 
     // FileWriter
     func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? { nil }

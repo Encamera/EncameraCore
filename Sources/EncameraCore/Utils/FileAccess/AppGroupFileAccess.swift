@@ -5,8 +5,8 @@
 //  Created by Alexander Freas on 11.05.23.
 //
 
+import CoreGraphics
 import Foundation
-import UIKit
 import UniformTypeIdentifiers
 
 /// Manages file access to the shared App Group container for sharing media between
@@ -223,13 +223,13 @@ public class AppGroupFileAccess: DebugPrintable {
     // MARK: - Thumbnail Generation
     
     /// Generates a thumbnail for a cleartext media file
-    public func loadThumbnail(for media: CleartextMedia, targetSize: CGSize = CGSize(width: 200, height: 200)) async throws -> UIImage? {
+    public func loadThumbnail(for media: CleartextMedia, targetSize: CGSize = CGSize(width: 200, height: 200)) async throws -> PlatformImage? {
         guard case .url(let url) = media.source else {
             throw AppGroupFileAccessError.invalidMediaSource
         }
         
         let data = try await ThumbnailUtils.createThumbnailDataFrom(cleartext: media)
-        return UIImage(data: data)
+        return PlatformImage(data: data)
     }
 }
 

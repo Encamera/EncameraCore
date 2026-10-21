@@ -20,7 +20,7 @@ final class AlbumGridItemCountTests: XCTestCase {
     func testCountUsesLocaleGroupingSeparator() {
         // L10n formats with Locale.current, which a test cannot swap, so format
         // the same localized phrase under explicit locales.
-        let format = Bundle.module.localizedString(forKey: "AlbumGridItem.ItemCount", value: nil, table: "Localizable")
+        let format = Bundle.encameraCoreResources.localizedString(forKey: "AlbumGridItem.ItemCount", value: nil, table: "Localizable")
 
         XCTAssertEqual(String(format: format, locale: Locale(identifier: "en_US"), 2435), "2,435 items")
         XCTAssertEqual(String(format: format, locale: Locale(identifier: "de_DE"), 2435), "2.435 items")

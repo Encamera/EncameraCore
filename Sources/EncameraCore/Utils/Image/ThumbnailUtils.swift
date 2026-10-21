@@ -3,7 +3,9 @@
 
 import Foundation
 import AVFoundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 public struct ThumbnailUtils {
     
@@ -13,9 +15,9 @@ public struct ThumbnailUtils {
         return cleartextThumb
     }
     
-    public static func createThumbnailImageFrom(cleartext media: CleartextMedia) async throws -> UIImage? {
+    public static func createThumbnailImageFrom(cleartext media: CleartextMedia) async throws -> PlatformImage? {
         let thumbnailData = try await createThumbnailDataFrom(cleartext: media)
-        return UIImage(data: thumbnailData)
+        return PlatformImage(data: thumbnailData)
     }
 
     public static func createThumbnailDataFrom(cleartext media: CleartextMedia) async throws -> Data {
@@ -57,7 +59,7 @@ public struct ThumbnailUtils {
         return thumbnailData
     }
     
-    public static func generateThumbnailFromVideo(at url: URL) -> UIImage? {
+    public static func generateThumbnailFromVideo(at url: URL) -> PlatformImage? {
         let asset = AVURLAsset(url: url)
         let imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGenerator.appliesPreferredTrackTransform = true
@@ -67,7 +69,7 @@ public struct ThumbnailUtils {
 
         do {
             let imageRef = try imageGenerator.copyCGImage(at: time, actualTime: nil)
-            return UIImage(cgImage: imageRef)
+            return PlatformImage(cgImage: imageRef)
         } catch {
             print("Error generating thumbnail: \(error)")
             return nil

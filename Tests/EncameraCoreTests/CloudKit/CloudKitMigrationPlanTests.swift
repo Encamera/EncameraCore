@@ -9,7 +9,6 @@
 //
 
 import XCTest
-import UIKit
 import CryptoKit
 @testable import EncameraCore
 
@@ -228,10 +227,7 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         try model.initializeDirectories()
         let backend = DiskMediaBackend()
         await backend.configure(for: album, albumManager: albumManager)
-        let png = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { ctx in
-            UIColor.green.setFill()
-            ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
-        }.pngData() ?? Data()
+        let png = TestImageData.png()
         for _ in 0..<2 {
             let media = try InteractableMedia(underlyingMedia: [
                 CleartextMedia(source: .data(png), mediaType: .photo, id: UUID().uuidString)
@@ -652,13 +648,15 @@ final class CloudKitMigrationPlanTests: XCTestCase {
     }
 
     /// The fixture as shipped in the test bundle. The app-hosted Xcode target
-    /// flattens it to the bundle root; other hosts keep the Fixtures folder.
+    /// flattens it to the bundle root; other hosts keep the Fixtures folder, and
+    /// `swift test` processes it into the test target's `Bundle.module`.
     private func bundledFixtureURL(version: Int = MigrationPlan.currentVersion) throws -> URL {
         let name = "migration-plan-v\(version)"
         let testBundle = Bundle(for: Self.self)
         let candidates = [
             testBundle.url(forResource: name, withExtension: "encplan"),
-            testBundle.url(forResource: name, withExtension: "encplan", subdirectory: "Fixtures")
+            testBundle.url(forResource: name, withExtension: "encplan", subdirectory: "Fixtures"),
+            Bundle.module.url(forResource: name, withExtension: "encplan")
         ]
         return try XCTUnwrap(candidates.compactMap { $0 }.first, "Missing fixture \(name).encplan in the test bundle")
     }

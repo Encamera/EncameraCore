@@ -17,7 +17,6 @@
 //
 
 import XCTest
-import UIKit
 import CloudKit
 @testable import EncameraCore
 
@@ -46,12 +45,7 @@ final class CloudKitFingerprintProvenanceTests: XCTestCase {
     // MARK: - Fixtures
 
     private func tinyPNG() -> Data {
-        let size = CGSize(width: 2, height: 2)
-        let image = UIGraphicsImageRenderer(size: size).image { ctx in
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(origin: .zero, size: size))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png()
     }
 
     /// A real ENC2 ciphertext file encrypted with `key`, so proof is a genuine AEAD

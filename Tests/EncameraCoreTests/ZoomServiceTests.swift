@@ -2,6 +2,7 @@ import XCTest
 import AVFoundation
 @testable import EncameraCore
 
+#if os(iOS)
 private final class MockZoomableDevice: ZoomableDevice {
     var zoomConstituentDevices: [ConstituentDeviceInfo] = []
     var virtualDeviceSwitchOverVideoZoomFactors: [NSNumber] = []
@@ -277,3 +278,4 @@ final class ZoomServiceTests: XCTestCase {
         mockDevice.zoomDeviceActiveFormatSecondaryNativeResolutionZoomFactors = []
     }
 }
+#endif

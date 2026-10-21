@@ -23,7 +23,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 final class ICloudDriveLegacyContractTests: XCTestCase {
@@ -72,11 +71,7 @@ final class ICloudDriveLegacyContractTests: XCTestCase {
     }
 
     private func tinyPNG() -> Data {
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { ctx in
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
-        }
-        return image.pngData() ?? Data()
+        TestImageData.png()
     }
 
     private func makePhoto(id: String = UUID().uuidString) throws -> InteractableMedia<CleartextMedia> {

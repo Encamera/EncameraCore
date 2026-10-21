@@ -1,7 +1,10 @@
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import AVFoundation
 
+#if canImport(UIKit)
 extension UIDeviceOrientation {
     /// The rotation angle this device orientation implies for a camera whose
     /// sensor is mounted the usual way. `landscapeLeft` maps to 0° (landscape
@@ -19,6 +22,7 @@ extension UIDeviceOrientation {
         }
     }
 }
+#endif
 
 extension AVCaptureDevice.DiscoverySession {
     var uniqueDevicePositionsCount: Int {

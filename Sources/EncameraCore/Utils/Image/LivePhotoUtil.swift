@@ -29,7 +29,7 @@ public class LivePhotoUtility {
             return subject.eraseToAnyPublisher()
         }
 
-        guard let image = UIImage(data: imageData) else {
+        guard let image = PlatformImage(data: imageData) else {
             let error = NSError(domain: "LivePhotoUtilityError", code: -3, userInfo: [NSLocalizedDescriptionKey: "Failed to create UIImage from image data"])
             sendError(error, to: subject)
             return subject.eraseToAnyPublisher()
@@ -57,37 +57,6 @@ public class LivePhotoUtility {
         }
 
         return subject.eraseToAnyPublisher()
-    }
-
-    public static func shareLivePhoto(from media: InteractableMedia<CleartextMedia>, on viewController: UIViewController) -> AnyPublisher<Void, Error> {
-        return createLivePhoto(from: media)
-            .flatMap { livePhoto -> AnyPublisher<Void, Error> in
-                let subject = PassthroughSubject<Void, Error>()
-                DispatchQueue.main.async {
-                    let activityVC = UIActivityViewController(activityItems: [livePhoto], applicationActivities: nil)
-                    activityVC.completionWithItemsHandler = { _, success, _, error in
-                        if let error = error {
-                            subject.send(completion: .failure(error))
-                        } else if success {
-                            subject.send(())
-                            subject.send(completion: .finished)
-                        } else {
-                            let error = NSError(domain: "LivePhotoUtilityError", code: -4, userInfo: [NSLocalizedDescriptionKey: "Sharing was canceled"])
-                            subject.send(completion: .failure(error))
-                        }
-                    }
-                    
-                    if let popoverController = activityVC.popoverPresentationController {
-                        popoverController.sourceView = viewController.view
-                        popoverController.sourceRect = CGRect(x: viewController.view.bounds.midX, y: viewController.view.bounds.midY, width: 0, height: 0)
-                        popoverController.permittedArrowDirections = []
-                    }
-                    
-                    viewController.present(activityVC, animated: true, completion: nil)
-                }
-                return subject.eraseToAnyPublisher()
-            }
-            .eraseToAnyPublisher()
     }
 
     private static func sendError(_ error: Error, to subject: PassthroughSubject<PHLivePhoto, Error>) {

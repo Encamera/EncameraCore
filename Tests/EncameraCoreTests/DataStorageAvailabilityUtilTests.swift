@@ -35,6 +35,7 @@ final class DataStorageAvailabilityUtilTests: XCTestCase {
     }
 
     func testICloudDriveIsReadableWhenAniCloudAccountIsPresent() throws {
+        try skipUnlessAppHosted("reaching the iCloud Drive container needs the app's iCloud entitlement")
         try XCTSkipIf(FileManager.default.ubiquityIdentityToken == nil,
                       "No iCloud account on this host — readability is account-gated.")
 

@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import LinkPresentation
 import UniformTypeIdentifiers
 
@@ -16,7 +18,7 @@ public enum SharingError: Error {
     case errorSharing(internalError: Error)
 }
 
-public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
+public class ShareMediaUtil: NSObject, DebugPrintable {
 
     let targetMedia: [InteractableMedia<EncryptedMedia>]
     let fileAccess: FileAccess
@@ -29,26 +31,6 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
         super.init()
     }
     
-    /// Configures popover presentation for iPad
-    /// - Parameters:
-    ///   - activityController: The activity view controller to configure
-    ///   - sourceView: The view to use as the anchor for the popover
-    public static func configurePopoverForIPad(
-        activityController: UIActivityViewController,
-        sourceView: UIView
-    ) {
-        if let popoverController = activityController.popoverPresentationController {
-            popoverController.sourceView = sourceView
-            popoverController.sourceRect = CGRect(
-                x: sourceView.bounds.midX,
-                y: sourceView.bounds.midY,
-                width: 0,
-                height: 0
-            )
-            popoverController.permittedArrowDirections = []
-        }
-    }
-
     public func prepareSharingData(progress: @escaping (FileLoadingStatus) -> Void) async throws {
 
         guard let firstMedia = targetMedia.first else {
@@ -120,6 +102,32 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
             return decrypted
         }
     }
+}
+
+// MARK: - Share sheet
+
+#if canImport(UIKit)
+extension ShareMediaUtil: UIActivityItemSource {
+
+    /// Configures popover presentation for iPad
+    /// - Parameters:
+    ///   - activityController: The activity view controller to configure
+    ///   - sourceView: The view to use as the anchor for the popover
+    public static func configurePopoverForIPad(
+        activityController: UIActivityViewController,
+        sourceView: UIView
+    ) {
+        if let popoverController = activityController.popoverPresentationController {
+            popoverController.sourceView = sourceView
+            popoverController.sourceRect = CGRect(
+                x: sourceView.bounds.midX,
+                y: sourceView.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popoverController.permittedArrowDirections = []
+        }
+    }
 
     @MainActor
     public func showShareSheet() async throws {
@@ -182,10 +190,5 @@ public class ShareMediaUtil: NSObject, UIActivityItemSource, DebugPrintable {
 
         return metadata
     }
-
-
-
-
-
 }
-
+#endif

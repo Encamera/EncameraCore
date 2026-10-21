@@ -7,7 +7,6 @@
 import Foundation
 import BackgroundTasks
 import Combine
-import UIKit
 
 public enum ImportSource: String, Codable, CaseIterable {
     case photos = "photos"              // Media from photo library (can delete temp files)

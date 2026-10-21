@@ -10,7 +10,6 @@
 
 import XCTest
 import AVFoundation
-import UIKit
 @testable import EncameraCore
 
 #if targetEnvironment(simulator)
@@ -29,6 +28,7 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("supervisor-tests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        try skipUnlessAppHosted("these timings pin iOS AVPlayer's buffering and stall behaviour, which macOS does not reproduce")
     }
 
     override func tearDownWithError() throws {
@@ -370,7 +370,7 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let started = try await waitUntil { CMTimeGetSeconds(player.currentTime()) > 0.1 }
         XCTAssertTrue(started, "the clip never started: \(describe(player))")
 
-        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.post(name: AppLifecycleNotification.willResignActive, object: nil)
         let ranDry = try await waitUntil { player.timeControlStatus == .paused && item.isPlaybackBufferEmpty }
         XCTAssertTrue(ranDry, "the throttled feed never ran the player dry: \(describe(player))")
         let refilled = try await waitUntil(.seconds(30)) {
@@ -397,8 +397,8 @@ final class EncryptedStreamPlaybackSupervisorTests: XCTestCase {
         let supervisor = try XCTUnwrap(playback.supervisor)
         let item = try XCTUnwrap(player.currentItem)
 
-        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
-        NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.post(name: AppLifecycleNotification.willResignActive, object: nil)
+        NotificationCenter.default.post(name: AppLifecycleNotification.didBecomeActive, object: nil)
         player.play()
 
         let duration = try await item.asset.load(.duration)

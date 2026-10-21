@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import Combine
 import AVFoundation
 
@@ -28,29 +30,31 @@ public struct NotificationUtils {
 
     public static var didBecomeActivePublisher: AnyPublisher<Notification, Never> {
 
-        return publisher(for: UIApplication.didBecomeActiveNotification)
+        return publisher(for: AppLifecycleNotification.didBecomeActive)
     }
 
     public static var willEnterForegroundPublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: UIApplication.willEnterForegroundNotification)
+        return publisher(for: AppLifecycleNotification.willEnterForeground)
     }
 
     public static var didEnterBackgroundPublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: UIApplication.didEnterBackgroundNotification)
+        return publisher(for: AppLifecycleNotification.didEnterBackground)
     }
 
     public static var willResignActivePublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: UIApplication.willResignActiveNotification)
+        return publisher(for: AppLifecycleNotification.willResignActive)
     }
 
 
     public static var didFinishLaunchingPublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: UIApplication.didFinishLaunchingNotification)
+        return publisher(for: AppLifecycleNotification.didFinishLaunching)
     }
 
+    #if canImport(UIKit)
     public static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIDevice.orientationDidChangeNotification)
     }
+    #endif
 
     public static var systemClockDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: .NSSystemClockDidChange)

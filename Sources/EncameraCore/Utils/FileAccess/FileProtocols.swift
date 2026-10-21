@@ -7,7 +7,6 @@
 
 import Foundation
 import Combine
-import UIKit
 
 public enum FileAccessError: Error, ErrorDescribable {
     case missingDirectoryModel
@@ -174,7 +173,7 @@ public protocol FileReader: FileEnumerator {
         progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL]
     /// Backend-level: resolve the album's leading/cover thumbnail by id.
     /// (The permission-gated variant lives on `FileAccess`, the facade.)
-    func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage?
+    func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage?
 }
 
 public protocol FileWriter: FileEnumerator {
@@ -265,7 +264,7 @@ public extension MediaBackend {
 public protocol FileAccess: MediaBackend {
     init()
     init(for album: Album, albumManager: AlbumManaging) async
-    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage?
+    func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> PlatformImage?
     static func deleteThumbnailDirectory() throws
 }
 

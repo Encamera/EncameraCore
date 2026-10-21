@@ -2,7 +2,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 public actor InteractableMediaFileAccess: FileAccess {
     public init() {
@@ -70,7 +72,7 @@ public actor InteractableMediaFileAccess: FileAccess {
     /// Facade-level, permission-gated cover resolution. The backend-level
     /// `loadLeadingThumbnail(coverImageId:)` does the actual fetch; this method
     /// owns the purchase-permission loop, which is not a backend concern.
-    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> UIImage? {
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> PlatformImage? {
         guard let album, let albumManager else { return nil }
         guard let purchasedPermissions else { return nil }
         if albumManager.isAlbumCoverImageDisabled(album: album) {
@@ -95,7 +97,7 @@ public actor InteractableMediaFileAccess: FileAccess {
                 do {
                     let cleartextPreview = try await loadMediaPreview(for: targetMedia)
                     guard let previewData = cleartextPreview.thumbnailMedia.data,
-                          let thumbnail = UIImage(data: previewData) else {
+                          let thumbnail = PlatformImage(data: previewData) else {
                         continue
                     }
                     return thumbnail
@@ -111,7 +113,7 @@ public actor InteractableMediaFileAccess: FileAccess {
 
     /// Backend-level cover resolution (also part of `FileReader`). Delegates
     /// straight through to the configured backend.
-    public func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage? {
+    public func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? {
         try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
     }
 

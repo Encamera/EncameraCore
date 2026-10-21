@@ -7,7 +7,9 @@ import Foundation
 import Sodium
 import Combine
 import Security
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Owns the private key items in the keychain: deriving, saving, looking up,
 /// deleting and migrating keys, the passphrase item they are derived from, and
@@ -214,12 +216,14 @@ final class PrivateKeyManager: DebugPrintable {
 
     @MainActor
     func keyWith(uuid: UUID) -> PrivateKey? {
+        #if canImport(UIKit)
         if UIApplication.shared.applicationState == .background,
            let currentKey = currentKey,
            currentKey.uuid == uuid {
             printDebug("Returning cached key in background for UUID: \(uuid)")
             return currentKey
         }
+        #endif
 
         let keys = try? storedKeys()
         return keys?.first(where: {$0.uuid == uuid})

@@ -24,7 +24,8 @@ final class UserDefaultsKVSTests: XCTestCase {
     /// entitlements, every KVS write is silently discarded and reads return nil.
     /// This test writes a value and reads it back — it passes only when the
     /// entitlement is present in the signed build.
-    func testKVSEntitlementAllowsWriteAndReadBack() {
+    func testKVSEntitlementAllowsWriteAndReadBack() throws {
+        try skipUnlessAppHosted("this probes the app's key-value store entitlement")
         let kvs = NSUbiquitousKeyValueStore.default
         kvs.set("entitlement-probe", forKey: testKey)
         kvs.synchronize()

@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import Combine
 import AVFoundation
 
@@ -591,7 +593,7 @@ extension DiskFileAccess {
         Self.previewCache.setObject(PreviewModelWrapper(result), forKey: cacheKey)
         return result
     }
-    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> UIImage? {
+    public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> PlatformImage? {
         if let album,
            let albumManager = albumManager,
            let coverImageId = albumManager.getAlbumCoverImageId(album: album) {
@@ -599,7 +601,7 @@ extension DiskFileAccess {
                 return nil
             } else if let coverImageURL = directoryModel?.driveURLForMedia(withID: coverImageId, type: .photo),
                       let preview = try? await loadMediaPreview(for: EncryptedMedia(source: .url(coverImageURL), mediaType: .photo, id: coverImageId)),
-                      let previewData = preview.thumbnailMedia.data, let thumbnail = UIImage(data: previewData) {
+                      let previewData = preview.thumbnailMedia.data, let thumbnail = PlatformImage(data: previewData) {
                 return thumbnail
             } else {
                 return try await loadDefaultLeadingThumbnail()
@@ -844,7 +846,7 @@ extension DiskFileAccess {
         return true
     }
 
-    private func loadDefaultLeadingThumbnail() async throws -> UIImage? {
+    private func loadDefaultLeadingThumbnail() async throws -> PlatformImage? {
         let media: [EncryptedMedia] = await enumerateMedia()
         guard let firstMedia = media.first else {
             return nil
@@ -852,7 +854,7 @@ extension DiskFileAccess {
 
         do {
             let cleartextPreview = try await loadMediaPreview(for: firstMedia)
-            guard let previewData = cleartextPreview.thumbnailMedia.data, let thumbnail = UIImage(data: previewData) else {
+            guard let previewData = cleartextPreview.thumbnailMedia.data, let thumbnail = PlatformImage(data: previewData) else {
                 return nil
             }
             return thumbnail

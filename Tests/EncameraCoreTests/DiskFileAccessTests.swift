@@ -459,12 +459,7 @@ final class DiskFileAccessTests: XCTestCase {
 
     /// A tiny real JPEG so `save`'s preview generation succeeds.
     private func makePhotoData() -> Data {
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12))
-        let image = renderer.image { context in
-            UIColor.systemRed.setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 12, height: 12))
-        }
-        return image.jpegData(compressionQuality: 0.9)!
+        TestImageData.jpeg(width: 12, height: 12)
     }
 
     func testSaveStampsNewLocalFile() async throws {

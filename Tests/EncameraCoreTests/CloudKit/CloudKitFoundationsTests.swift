@@ -65,6 +65,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .noAccount),
             zoneProvisioner: CountingZoneProvisioner(),
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: freshDefaults()
         )
 
@@ -79,6 +81,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: CountingZoneProvisioner(),
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: freshDefaults()
         )
         let available = await container.isCloudKitAvailable()
@@ -93,6 +97,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: provisioner,
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: defaults
         )
 
@@ -111,6 +117,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: provisioner,
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: defaults
         )
 
@@ -132,6 +140,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: provisioner,
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: freshDefaults()
         )
 
@@ -145,6 +155,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: provisioner,
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: freshDefaults()
         )
 
@@ -162,6 +174,8 @@ final class CloudKitFoundationsTests: XCTestCase {
         let container = CloudKitContainer(
             accountStatusProvider: StubAccountStatus(status: .available),
             zoneProvisioner: provisioner,
+            zoneLister: StubZoneLister(),
+            subscriptionProvisioner: StubSubscriptionProvisioner(),
             defaults: defaults
         )
 

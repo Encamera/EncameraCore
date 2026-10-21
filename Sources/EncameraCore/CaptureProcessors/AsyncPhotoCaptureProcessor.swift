@@ -16,6 +16,8 @@ public enum PhotoCaptureError: Error {
     case noConnections
 }
 
+// AVCapture's multi-camera, zoom and Live Photo APIs exist only on iOS.
+#if os(iOS)
 public class AsyncPhotoCaptureProcessor: NSObject {
     
     private typealias PhotoCaptureProcessorContinuation = CheckedContinuation<InteractableMedia<CleartextMedia>, Error>
@@ -108,3 +110,4 @@ extension AsyncPhotoCaptureProcessor: AVCapturePhotoCaptureDelegate {
         }
     }
 }
+#endif

@@ -56,7 +56,8 @@ final class StorageTypeTests: XCTestCase {
 
     /// Deprecation applies to *new* data only. Existing iCloud Drive albums must stay
     /// readable, so the two questions are answered by two different functions.
-    func testICloudDriveIsNeverOfferedButStaysReadable() {
+    func testICloudDriveIsNeverOfferedButStaysReadable() throws {
+        try skipUnlessAppHosted("reaching the iCloud Drive container needs the app's iCloud entitlement")
         guard case .unavailable = DataStorageAvailabilityUtil.isStorageTypeOfferedForNewAlbums(type: .icloud) else {
             return XCTFail("iCloud Drive must never be offered as a destination for new albums")
         }

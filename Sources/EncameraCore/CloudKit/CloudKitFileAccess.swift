@@ -20,7 +20,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import Combine
 
 /// Supplies the `CloudKitMediaStoring` implementation. Production returns the real
@@ -793,7 +795,7 @@ extension CloudKitFileAccess {
     /// `FileReader.loadLeadingThumbnail(coverImageId:)`. Resolves the album cover
     /// through the cloud preview-fetch path (the eager thumbnail asset), rather
     /// than reading a local file that a cloud album does not have.
-    public func loadLeadingThumbnail(coverImageId: String?) async throws -> UIImage? {
+    public func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? {
         guard let coverImageId, coverImageId != "none" else { return nil }
         let media = EncryptedMedia(source: .url(cacheURL(id: coverImageId, type: .photo)),
                                    mediaType: .photo,
@@ -804,7 +806,7 @@ extension CloudKitFileAccess {
             printDebug("loadLeadingThumbnail MISS coverImageId=\(coverImageId) — preview carries no thumbnail data")
             return nil
         }
-        guard let image = UIImage(data: data) else {
+        guard let image = PlatformImage(data: data) else {
             printDebug("loadLeadingThumbnail MISS coverImageId=\(coverImageId) — thumbnail data is not decodable as an image, bytes=\(data.count)")
             return nil
         }

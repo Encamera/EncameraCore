@@ -34,7 +34,7 @@ final class DeviceAuthManagerThreadConfinementTests: XCTestCase {
         let handlerInsideInvalidate = expectation(description: "background handler entered invalidate()")
         probe.onFirstInvalidateEntry = { handlerInsideInvalidate.fulfill() }
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+            NotificationCenter.default.post(name: AppLifecycleNotification.didEnterBackground, object: nil)
         }
 
         try await Task.detached {

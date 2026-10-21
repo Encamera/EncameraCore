@@ -40,6 +40,8 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
     private func makeContainer(account: CKAccountStatus = .available) -> CloudKitContainer {
         CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: account),
                           zoneProvisioner: StubZoneProvisioner(),
+                          zoneLister: StubZoneLister(),
+                          subscriptionProvisioner: StubSubscriptionProvisioner(),
                           defaults: defaults)
     }
 

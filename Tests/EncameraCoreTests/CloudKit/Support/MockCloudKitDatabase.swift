@@ -27,6 +27,20 @@ final class StubZoneProvisioner: RecordZoneProvisioning {
     func deleteZone(_ zoneID: CKRecordZone.ID) async throws { deletedZoneIDs.append(zoneID) }
 }
 
+/// Lists no zones. Supplied wherever a test builds a `CloudKitContainer`, so the
+/// container never falls back to the real CloudKit database, which needs the
+/// app's iCloud entitlement and traps in the native `swift test` run.
+struct StubZoneLister: RecordZoneListing {
+    var zoneIDs: [CKRecordZone.ID] = []
+    func existingZoneIDs() async throws -> [CKRecordZone.ID] { zoneIDs }
+}
+
+/// Holds no subscriptions; see `StubZoneLister`.
+struct StubSubscriptionProvisioner: SubscriptionProvisioning {
+    func allSubscriptionIDs() async throws -> [String] { [] }
+    func deleteSubscription(id: String) async throws {}
+}
+
 // MARK: - Mock adapter
 
 final class MockCloudKitDatabase: CloudKitDatabaseAdapter {

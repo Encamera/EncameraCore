@@ -47,6 +47,8 @@ public enum CaptureMode: Int {
     case movie = 1
 }
 
+// AVCapture's multi-camera, zoom and Live Photo APIs exist only on iOS.
+#if os(iOS)
 public actor CameraConfigurationService: CameraConfigurationServicable, DebugPrintable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
@@ -786,3 +788,4 @@ extension CameraConfigurationService: ZoomServiceDelegate {
         }
     }
 }
+#endif

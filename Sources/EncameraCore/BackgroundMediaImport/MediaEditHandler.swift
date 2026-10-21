@@ -5,7 +5,9 @@
 
 import Foundation
 import Combine
+#if canImport(UIKit)
 import UIKit
+#endif
 import AVFoundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -22,7 +24,7 @@ public class MediaEditHandler: DebugPrintable {
 
     // MARK: - Private Properties
 
-    private var activeBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var activeBackgroundTask: BackgroundTaskID = .invalid
     private var cancellables = Set<AnyCancellable>()
     private var currentEditTask: Task<Void, Error>?
     private var exportSession: AVAssetExportSession?
@@ -240,7 +242,7 @@ public class MediaEditHandler: DebugPrintable {
     // MARK: - Rotation
 
     private nonisolated static func rotateImage(at url: URL, byDegrees degrees: Int) throws -> URL {
-        guard let image = UIImage(contentsOfFile: url.path) else {
+        guard let image = PlatformImage(contentsOfFile: url.path) else {
             throw MediaEditError.couldNotLoadImage
         }
 
@@ -286,7 +288,7 @@ public class MediaEditHandler: DebugPrintable {
         return tempURL
     }
 
-    private nonisolated static func heicData(from image: UIImage, compressionQuality: CGFloat) -> Data? {
+    private nonisolated static func heicData(from image: PlatformImage, compressionQuality: CGFloat) -> Data? {
         guard let cgImage = image.cgImage else { return nil }
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
@@ -419,14 +421,14 @@ public class MediaEditHandler: DebugPrintable {
     private func startBackgroundTask() {
         endBackgroundTask()
 
-        activeBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "MediaEdit") {
+        activeBackgroundTask = BackgroundExecution.begin(name: "MediaEdit") {
             self.endBackgroundTask()
         }
     }
 
     private func endBackgroundTask() {
         if activeBackgroundTask != .invalid {
-            UIApplication.shared.endBackgroundTask(activeBackgroundTask)
+            BackgroundExecution.end(activeBackgroundTask)
             activeBackgroundTask = .invalid
         }
     }
@@ -462,10 +464,10 @@ public enum MediaEditError: Error, LocalizedError {
     }
 }
 
-// MARK: - UIImage Rotation Extension
+// MARK: - Image Rotation
 
-private extension UIImage {
-    func rotated(byRadians radians: CGFloat) -> UIImage {
+private extension PlatformImage {
+    func rotated(byRadians radians: CGFloat) -> PlatformImage {
         let newSize: CGSize
         let transform: CGAffineTransform
 
@@ -478,6 +480,7 @@ private extension UIImage {
             newSize = size
         }
 
+        #if canImport(UIKit)
         let format = UIGraphicsImageRendererFormat()
         format.scale = self.scale
         let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
@@ -487,5 +490,18 @@ private extension UIImage {
             cgContext.rotate(by: radians)
             draw(in: CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height))
         }
+        #else
+        // CoreGraphics' y axis points up, so the angle is negated to turn the
+        // image the same way UIKit's y-down rotation does.
+        guard let source = cgImage,
+              let rotated = PlatformImage.rendered(size: newSize, { context in
+                  context.translateBy(x: newSize.width / 2, y: newSize.height / 2)
+                  context.rotate(by: -radians)
+                  context.draw(source, in: CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height))
+              }) else {
+            return self
+        }
+        return rotated
+        #endif
     }
 }

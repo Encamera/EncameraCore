@@ -9,7 +9,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EncameraCore
 
 @MainActor
@@ -69,10 +68,7 @@ final class CloudKitMigrationRenameTests: XCTestCase {
     }
 
     private func tinyPNG() -> Data {
-        UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { ctx in
-            UIColor.green.setFill()
-            ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
-        }.pngData() ?? Data()
+        TestImageData.png()
     }
 
     private func seedPhotos(_ count: Int, into album: Album) async throws -> [String] {
