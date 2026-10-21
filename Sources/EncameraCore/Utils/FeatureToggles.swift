@@ -99,6 +99,8 @@ public enum Feature: String, CaseIterable {
             return true
             #endif
             return BuildEnvironment.isTestFlight ? true : nil
+        case .showDebugLogs:
+            return BuildEnvironment.isTestFlight ? true : nil
         case .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex, .keychainInspector, .userDefaultsInspector:
             #if DEBUG
             return true
@@ -172,6 +174,11 @@ public struct FeatureToggle {
     }
 
     public static func isEnabled(feature: Feature) -> Bool {
+        // TestFlight testers always get the Feature Toggles screen, even if a
+        // stored value says otherwise.
+        if feature == .showFeatureToggles && BuildEnvironment.isTestFlight {
+            return true
+        }
         if let value: Bool = UserDefaultUtils.boolNullable(forKey: .featureToggle(feature: feature)) {
             return value
         } else {
