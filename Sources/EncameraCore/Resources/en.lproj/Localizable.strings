@@ -251,9 +251,6 @@
 "AlbumDetailView.MoveNeedsUpgradeToast" = "Upgrade “%@” to the new iCloud sync first, then move items into it";
 "AlbumDetailView.AlbumHiddenToast" = "Album is now hidden";
 "AlbumDetailView.AlbumUnhiddenToast" = "Album is now visible";
-"AlbumDetailView.PhotoAccessRequired" = "Photo Access Required";
-"AlbumDetailView.PhotoAccessSettings" = "Please grant access to your photo library in Settings to import photos.";
-"AlbumDetailView.OpenSettings" = "Open Settings";
 "AlbumDetailView.LargeImportWarningTitle" = "For Faster Imports";
 "AlbumDetailView.LargeImportWarningMessage" = "Leave the app open and connected to WiFi for best results.";
 "AlbumDetailView.ImportPartialSkipToast" = "Imported %@ of %@ files. %@ skipped (%@).";
@@ -552,13 +549,6 @@
 "AlbumDetailView.AddFirstMediaSubtitle" = "Photos and videos you add here are automatically encrypted";
 "AlbumDetailView.ImportButton" = "Import Media";
 "AlbumDetailView.OpenCamera" = "Open Camera";
-"AlbumDetailView.PhotoAccessAlertTitle" = "Delete After Import?";
-"AlbumDetailView.PhotoAccessAlertMessage" = "Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Delete";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Not Now";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
-"AlbumDetailView.NoLicenseDeletionWarningMessage" = "Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "I Understand";
 "AlbumDetailView.Select" = "Select Media";
 "AlbumDetailView.RenameAlbum" = "Rename Album";
 "AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";

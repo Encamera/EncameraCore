@@ -10,7 +10,6 @@
 "DefaultAlbumName" = "내 앨범";
 "AlbumDetailView.deleteSelectedMedia" = "%@을(를) 삭제하시겠습니까?";
 "Create an unlimited number of keys." = "무제한 키를 생성하세요.";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ 중요 ⚠️";
 "KeyTutorialTitle" = "모든 파일이 암호화되었습니다";
 "Encrypting" = "암호화 중";
 "StorageExplanationHeader" = "내 사진은 어디에 저장되어 있나요?";
@@ -21,7 +20,6 @@
 "Support privacy-focused development." = "개인 정보 보호 중심 개발 지원.";
 "OnboardingPermissionsMicrophoneAccess" = "마이크 접근";
 "Import from files" = "파일에서 가져오기";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "지금은 안 함";
 "EmptyAlbumImportPhotosHeading" = "사진을 보호하세요";
 "Or" = "또는";
 "PinTooShort" = "PIN이 너무 짧습니다. 최소 %@자리여야 합니다.";
@@ -54,7 +52,6 @@
 "SetAPasswordWarning" = "앱에 액세스하기 위해 비밀번호를 설정하세요. 안전한 장소에 보관하세요 \\u2013 나중에 복구할 수 없습니다.";
 "TakeYourFirstPicture" = "첫 사진 찍기";
 "Delete this image?" = "이 이미지를 삭제하시겠습니까?";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "삭제";
 "This will save the media to your library." = "이 미디어가 라이브러리에 저장됩니다.";
 "ThanksForPurchasingLifetime" = "평생 라이선스를 구매해 주셔서 감사합니다!";
 "PinSuccessfullyChanged" = "핀 변경이 완료되었습니다.";
@@ -118,7 +115,6 @@
 "Congratulations!" = "축하합니다!";
 "PurchaseProduct" = "구매";
 "Settings.Contact" = "지원팀에 문의";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "이해했습니다";
 "Share this image?" = "이 이미지를 공유하시겠습니까?";
 "TakeSurveyTitle" = "3개월 무료 이용을 원하시나요?";
 "ShareKeyExplanation" = "암호화 키를 신뢰하는 사람과 공유하세요.\n\n그들과 공유하면 이 키로 암호화된 미디어를 그들이 해독할 수 있게 됩니다.";
@@ -287,7 +283,6 @@
 "OK" = "확인";
 "Set Password" = "비밀번호 설정";
 "Delete All Associated Data?" = "모든 관련 데이터를 삭제하시겠습니까?";
-"AlbumDetailView.PhotoAccessAlertTitle" = "가져온 후 삭제하시겠습니까?";
 "Notification.InactiveUserReminder.Body" = "앨범에 추가하여 더 많은 이미지를 확보하는 것을 잊지 마세요. 지금 가져오기!";
 "SelectAnOption" = "옵션 선택";
 "%@ must be set" = "%@ 설정해야 합니다";
@@ -497,11 +492,9 @@
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "사진 라이브러리에서 삭제하시겠습니까?";
 "AuthenticationView.ForgotPassword" = "비밀번호를 잊으셨나요? 앱 초기화";
 "PhotoPickerWrapper.SwipeToSelect" = "선택하려면 스와이프하세요";
-"AlbumDetailView.PhotoAccessSettings" = "사진을 가져오려면 설정에서 사진 라이브러리에 대한 접근 권한을 허용해 주세요.";
 "TaskDetailCard.GrantAccessMessage" = "가져온 사진을 삭제하려면 설정에서 사진 라이브러리에 대한 전체 접근 권한을 허용해 주세요.";
 "TaskProgressRow.Processing" = "처리 중: %@";
 "TaskDetailCard.Progress" = "진행 상황:";
-"AlbumDetailView.PhotoAccessRequired" = "사진 액세스 필요";
 "PhotoPickerWrapper.FasterImport" = "빠른 가져오기";
 "TaskDetailCard.StatusCompleted" = "완료됨";
 "TaskDetailCard.Pause" = "일시 중지";
@@ -513,7 +506,6 @@
 "PhotoPickerWrapper.GrantAccess" = "접근 권한 부여";
 "AlbumDetailView.MovedToast" = "%@ 항목%@을(를) %@로 이동했습니다";
 "AuthenticationView.TooManyAttempts" = "시도 횟수 초과";
-"AlbumDetailView.OpenSettings" = "설정 열기";
 "TaskDetailCard.EstimatedTime" = "예상 남은 시간: %@";
 "CustomPhotoPicker.Add" = "추가";
 "GlobalImportProgress.ImportingBatches" = "%@ 배치 가져오는 중";

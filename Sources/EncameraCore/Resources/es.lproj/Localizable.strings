@@ -469,11 +469,6 @@
 "NotificationListTitle" = "Notificaciones";
 "MediaSelectionTray.SelectMedia" = "Seleccionar Medios";
 
-"AlbumDetailView.PhotoAccessAlertTitle" = "¿Eliminar después de importar?";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "No ahora";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Entiendo";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Importante ⚠️";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Eliminar";
 "Settings.DefaultStorageOption" = "Opción de Almacenamiento Predeterminada";
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
@@ -626,11 +621,9 @@
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "¿Eliminar de la biblioteca de fotos?";
 "AuthenticationView.ForgotPassword" = "¿Olvidó su contraseña? Restablecer aplicación";
 "PhotoPickerWrapper.SwipeToSelect" = "Deslizar para seleccionar";
-"AlbumDetailView.PhotoAccessSettings" = "Por favor, conceda acceso a su biblioteca de fotos en Configuración para importar fotos.";
 "TaskDetailCard.GrantAccessMessage" = "Por favor, conceda acceso completo a su biblioteca de fotos en Configuración para eliminar fotos importadas.";
 "TaskProgressRow.Processing" = "Procesando: %@";
 "TaskDetailCard.Progress" = "Progreso:";
-"AlbumDetailView.PhotoAccessRequired" = "Acceso a Fotos Requerido";
 "PhotoPickerWrapper.FasterImport" = "Importación Más Rápida";
 "TaskDetailCard.StatusCompleted" = "Completado";
 "TaskDetailCard.Pause" = "Pausa";
@@ -642,7 +635,6 @@
 "PhotoPickerWrapper.GrantAccess" = "Conceder acceso";
 "AlbumDetailView.MovedToast" = "Se movió %@ elemento%@ a %@";
 "AuthenticationView.TooManyAttempts" = "Demasiados intentos";
-"AlbumDetailView.OpenSettings" = "Abrir configuración";
 "TaskDetailCard.EstimatedTime" = "Tiempo estimado restante: %@";
 "CustomPhotoPicker.Add" = "Agregar";
 "GlobalImportProgress.ImportingBatches" = "Importando %@ lotes";

@@ -41,7 +41,6 @@
 "EmptyAlbumTakeAPictureHeading" = "أنشئ ذكرى جديدة";
 "AuthenticationMethod.SecurityLevel.password" = "الخيار الأكثر أمانًا";
 "Delete Album question" = "حذف الألبوم؟";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "أنا أفهم";
 "TelegramGroupJoinButtonText" = "انضم إلى المجموعة";
 "Erase keychain data" = "مسح بيانات سلسلة المفاتيح";
 "FaceIDOnlyAlert.Title" = "مسح رمز PIN/كلمة المرور؟";
@@ -92,7 +91,6 @@
 "TakeSurveyTitle" = "تريد 3 أشهر مجانًا؟";
 "FinishedOnboardingSubtitle" = "لنؤمّن بعض الوسائط";
 "Notification.ImageSecurityReminder.Body" = "يمكنك أيضًا حفظ مقاطع الفيديو في ألبوماتك، وليس الصور فقط. جرّب ذلك الآن واحتفظ ببعضها!";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ هام ⚠️";
 "Notification.PremiumReminder.Body" = "استخدم الرمز 'ENCAMERA20' للحصول على خصم 20٪ على أي خطة. سارع الآن!";
 "Skip for now" = "تخطي الآن";
 "OnboardingCarousel.SubheadingText2" = "ألبوماتك مقفلة بمفتاحك الفريد ومخزنة بأمان على جهازك أو على iCloud.";
@@ -107,7 +105,6 @@
 "TaskProgressRow.Processing" = "جارٍ المعالجة: %@";
 "OnboardingCarousel.HeadingText1" = "ذكرياتك، محمية بالكامل";
 "Select a place to keep media for this key." = "اختر مكانًا للاحتفاظ بالوسائط لهذا المفتاح.";
-"AlbumDetailView.PhotoAccessRequired" = "مطلوب إذن الوصول إلى الصور";
 "CreateFirstAlbum" = "إنشاء الألبوم الأول";
 "AuthenticationMethod.ConfirmDisableFaceID" = "هل تريد فعلاً تعطيل %@؟";
 "Error saving key" = "خطأ في حفظ المفتاح";
@@ -230,7 +227,6 @@
 "AuthenticationMethod.OK" = "حسنًا";
 "PleaseEnterAnAlbumName" = "يرجى إدخال اسم للألبوم";
 "Yes" = "نعم";
-"AlbumDetailView.PhotoAccessAlertTitle" = "حذف بعد الاستيراد؟";
 "Notification.Permission.RemoteError" = "حدث خطأ أثناء طلب أذونات الإشعارات عن بُعد: %@";
 "FeedbackView.Submit" = "إرسال";
 "AuthenticationView.TooManyAttempts" = "محاولات كثيرة جدًا";
@@ -348,7 +344,7 @@
 "AlbumNotFoundAtSourceLocation" = "تعذر العثور على الألبوم في الموقع المصدر. استخدم تطبيق الملفات للتأكد من وجوده.";
 "PurchaseView.UnlockBenefits" = "افتح جميع هذه المزايا:";
 "BackUpKeysHeader" = "انسخ هذه المفاتيح احتياطيًا!";
-"MultipleKeysForMultiplePurposesExplanation" = "يمكنك أن تمتلك عدة مفاتيح لأغراض مختلفة، مثل مفتاح باسم "المستندات" وآخر باسم "شخصي".";
+"MultipleKeysForMultiplePurposesExplanation" = "يمكنك أن تمتلك عدة مفاتيح لأغراض مختلفة، مثل مفتاح باسم \"المستندات\" وآخر باسم \"شخصي\".";
 "Start trial offer" = "ابدأ الفترة التجريبية المجانية";
 "ProtectionLevel.Moderate" = "حماية معتدلة";
 "DeleteImported" = "حذف الصور؟";
@@ -389,11 +385,9 @@
 "TaskDetailCard.GrantAccessMessage" = "يرجى منح إذن الوصول إلى مكتبة الصور في الإعدادات لحذف الصور المستوردة.";
 "ProfileSetup" = "إعداد الملف الشخصي";
 "ImportingPleaseWait" = "جارٍ الاستيراد... يرجى الانتظار";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "ليس الآن";
 "PurchaseView.BenefitModel.HiddenAlbums" = "الألبومات المخفية";
 "CannotClearMessage" = "لا يمكنك إزالة رمز المرور الخاص بك. يجب تفعيل خاصية Face ID للقيام بذلك.";
 "You have an existing password for this device." = "لديك كلمة مرور موجودة بالفعل لهذا الجهاز.";
-"AlbumDetailView.PhotoAccessSettings" = "يرجى منح الإذن للوصول إلى مكتبة الصور الخاصة بك في الإعدادات لاستيراد الصور.";
 "AlbumsTitle" = "الألبومات";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "هل تريد الحذف من مكتبة الصور؟";
 "No iCloud account found on this device." = "لم يتم العثور على حساب iCloud على هذا الجهاز.";
@@ -422,7 +416,6 @@
 "TaskDetailCard.PhotoLibraryAccessRequired" = "مطلوب الوصول إلى مكتبة الصور";
 "FaceIDOnlyAlert.Cancel" = "إلغاء";
 "UnlimitedStorageFeatureRowTitle" = "تخزين غير محدود للصور ومقاطع الفيديو";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "حذف";
 "Invalid Password" = "كلمة المرور غير صحيحة";
 "QuicklyTakePictures" = "التقط الصور والفيديو بسرعة.";
 "SelectAnOption" = "اختر خيارًا";
@@ -447,7 +440,6 @@
 "DeleteAlbumForever" = "هل تريد حذف هذا الألبوم وجميع الوسائط المرتبطة به نهائيًا؟";
 "Subscription" = "الاشتراك";
 "NoCommitmentCancelAnytime" = "بدون التزام، يمكنك الإلغاء في أي وقت";
-"AlbumDetailView.OpenSettings" = "افتح الإعدادات";
 "Scan with Encamera app" = "امسح باستخدام تطبيق إنكاميرا";
 "FinishedSubtitle" = "لننشئ ألبومك الأول";
 "AuthenticationView.ForgotPassword" = "نسيت كلمة المرور؟ أعد ضبط التطبيق";
@@ -661,7 +653,7 @@
 "ZipExportError.ZipCreationFailed" = "فشل في إنشاء الملف المضغوط: %@";
 "ZipExport.EnterPassword" = "أدخل كلمة المرور";
 "AppIcon.Numbers" = "الأرقام";
-"HideImageTutorial.SubheadingText3" = "تحتاج إلى نظرة سريعة؟ اضغط مطولاً على قسم "إخفاء الألبومات" لرؤية قائمة بجميع ألبوماتك المخفية.";
+"HideImageTutorial.SubheadingText3" = "تحتاج إلى نظرة سريعة؟ اضغط مطولاً على قسم \"إخفاء الألبومات\" لرؤية قائمة بجميع ألبوماتك المخفية.";
 "FeatureToggles.AppIconSelectionDescription" = "تفعيل اختيار أيقونة تطبيق مخصصة";
 "CreateAlbumModal.Placeholder" = "ذكرياتك";
 "FeatureToggles.ShowDesignSystemDescription" = "عرض معرض نظام التصميم المخفي";

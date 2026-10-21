@@ -470,11 +470,6 @@
 "NotificationListTitle" = "Benachrichtigungen";
 "MediaSelectionTray.SelectMedia" = "Medien auswählen";
 
-"AlbumDetailView.PhotoAccessAlertTitle" = "Nach dem Import löschen?";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Nicht jetzt";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Ich verstehe";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Wichtig ⚠️";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Löschen";
 
 "Settings.DefaultStorageOption" = "Standard Speicheroption";
 "Yes" = "Ja";
@@ -628,11 +623,9 @@
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Aus Fotobibliothek löschen?";
 "AuthenticationView.ForgotPassword" = "Passwort vergessen? App zurücksetzen";
 "PhotoPickerWrapper.SwipeToSelect" = "Zum Auswählen wischen";
-"AlbumDetailView.PhotoAccessSettings" = "Bitte gewähren Sie in den Einstellungen Zugriff auf Ihre Fotobibliothek, um Fotos zu importieren.";
 "TaskDetailCard.GrantAccessMessage" = "Bitte gewähren Sie in den Einstellungen vollen Zugriff auf Ihre Fotobibliothek, um importierte Fotos zu löschen.";
 "TaskProgressRow.Processing" = "Verarbeitung: %@";
 "TaskDetailCard.Progress" = "Fortschritt:";
-"AlbumDetailView.PhotoAccessRequired" = "Fotozugriff erforderlich";
 "PhotoPickerWrapper.FasterImport" = "Schnellerer Import";
 "TaskDetailCard.StatusCompleted" = "Abgeschlossen";
 "TaskDetailCard.Pause" = "Pause";
@@ -644,7 +637,6 @@
 "PhotoPickerWrapper.GrantAccess" = "Zugriff gewähren";
 "AlbumDetailView.MovedToast" = "%@ Element%@ nach %@ verschoben";
 "AuthenticationView.TooManyAttempts" = "Zu viele Versuche";
-"AlbumDetailView.OpenSettings" = "Einstellungen öffnen";
 "TaskDetailCard.EstimatedTime" = "Geschätzte verbleibende Zeit: %@";
 "CustomPhotoPicker.Add" = "Hinzufügen";
 "GlobalImportProgress.ImportingBatches" = "Importiere %@ Chargen";

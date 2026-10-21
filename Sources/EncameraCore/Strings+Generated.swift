@@ -879,30 +879,10 @@ public enum L10n {
     public static func movePartialToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovePartialToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Moved %@ %@, %@ %@ failed")
     }
-    /// Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.
-    public static let noLicenseDeletionWarningMessage = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningMessage", fallback: "Because you don't have a paid license to Encamera, you will only be able to view 10 items in the app. If you delete items from your photo library, you may not be able to view them without a paid license.")
-    /// I Understand
-    public static let noLicenseDeletionWarningPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton", fallback: "I Understand")
-    /// ⚠️ Important ⚠️
-    public static let noLicenseDeletionWarningTitle = L10n.tr("Localizable", "AlbumDetailView.NoLicenseDeletionWarningTitle", fallback: "⚠️ Important ⚠️")
     /// No media found
     public static let noMediaFound = L10n.tr("Localizable", "AlbumDetailView.NoMediaFound", fallback: "No media found")
     /// Open Camera
     public static let openCamera = L10n.tr("Localizable", "AlbumDetailView.OpenCamera", fallback: "Open Camera")
-    /// Open Settings
-    public static let openSettings = L10n.tr("Localizable", "AlbumDetailView.OpenSettings", fallback: "Open Settings")
-    /// Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.
-    public static let photoAccessAlertMessage = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertMessage", fallback: "Do you want to delete these items from your photo library after importing them? Encamera requires permission to your photo library to do this.")
-    /// Delete
-    public static let photoAccessAlertPrimaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertPrimaryButton", fallback: "Delete")
-    /// Not Now
-    public static let photoAccessAlertSecondaryButton = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertSecondaryButton", fallback: "Not Now")
-    /// Delete After Import?
-    public static let photoAccessAlertTitle = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessAlertTitle", fallback: "Delete After Import?")
-    /// Photo Access Required
-    public static let photoAccessRequired = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessRequired", fallback: "Photo Access Required")
-    /// Please grant access to your photo library in Settings to import photos.
-    public static let photoAccessSettings = L10n.tr("Localizable", "AlbumDetailView.PhotoAccessSettings", fallback: "Please grant access to your photo library in Settings to import photos.")
     /// Premium
     public static let premiumCardBadge = L10n.tr("Localizable", "AlbumDetailView.PremiumCardBadge", fallback: "Premium")
     /// Get unlimited encrypted storage for all your photos and videos

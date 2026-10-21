@@ -134,9 +134,6 @@
   "AlbumDetailView.MoveMedia" = "Déplacer le média";
   "AlbumDetailView.MoveMediaConfirm" = "Déplacer %@ élément%@ vers %@ ?";
   "AlbumDetailView.MovedToast" = "%@ élément%@ déplacé(s) vers %@";
-  "AlbumDetailView.PhotoAccessRequired" = "Accès aux photos requis";
-  "AlbumDetailView.PhotoAccessSettings" = "Veuillez accorder l'accès à votre photothèque dans les Réglages pour importer des photos.";
-  "AlbumDetailView.OpenSettings" = "Ouvrir les Réglages";
   "Created %@" = "Créé le %@";
   "Key length: %@" = "Longueur de la clé : %@";
   "Backup Keys" = "Sauvegarder les clés";
@@ -155,7 +152,7 @@
   ";
   "New Album" = "Nouvel album";
   "AlbumNameInvalid" = "Le nom de l'album doit comporter plus d'un caractère";
-  "MultipleKeysForMultiplePurposesExplanation" = "Vous pouvez avoir plusieurs clés pour différents usages, par exemple une appelée "Documents" et une autre "Personnel".";
+  "MultipleKeysForMultiplePurposesExplanation" = "Vous pouvez avoir plusieurs clés pour différents usages, par exemple une appelée \"Documents\" et une autre \"Personnel\".";
   "Storage Settings" = "Paramètres de stockage";
   "Select a place to keep media for this key." = "Sélectionnez un emplacement pour stocker les médias pour cette clé.";
   "Family Shareable" = "Partageable en famille";
@@ -189,7 +186,7 @@
   "Back to album" = "Retour à l'album";
   "Tap to Upgrade" = "Appuyez pour passer à la version Premium";
   "CoolPicture" = "C'est une super photo !";
-  "WhereToFindYourPictures" = "Vous trouverez toutes vos photos et vidéos regroupées dans les "Albums"";
+  "WhereToFindYourPictures" = "Vous trouverez toutes vos photos et vidéos regroupées dans les \"Albums\"";
   "ViewAlbums" = "Voir les albums";
   "TakeAnotherPhoto" = "Prendre une autre photo";
   "Delete this image?" = "Supprimer cette image ?";
@@ -312,11 +309,6 @@
   Encamera !";
   "FinishedSubtitle" = "Créons votre premier album";
   "CreateFirstAlbum" = "Créer le premier album";
-  "AlbumDetailView.PhotoAccessAlertTitle" = "Supprimer après l'importation ?";
-  "AlbumDetailView.PhotoAccessAlertPrimaryButton" = "Supprimer";
-  "AlbumDetailView.PhotoAccessAlertSecondaryButton" = "Pas maintenant";
-  "AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ Important ⚠️";
-  "AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "Je comprends";
   "AlbumDetailView.Select" = "Sélectionner un média";
   "AlbumDetailView.RenameAlbum" = "Renommer l’album";
   "AlbumDetailView.HideAlbumAlertTitle" = "Masquer cet album ?";

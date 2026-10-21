@@ -41,7 +41,6 @@
 "EmptyAlbumTakeAPictureHeading" = "新しいメモリーを作成";
 "AuthenticationMethod.SecurityLevel.password" = "最も安全なオプション";
 "Delete Album question" = "アルバムを削除しますか？";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "理解しました";
 "TelegramGroupJoinButtonText" = "グループに参加";
 "Erase keychain data" = "キーチェーンデータを消去";
 "FaceIDOnlyAlert.Title" = "PIN/パスワードを消去しますか？";
@@ -92,7 +91,6 @@
 "TakeSurveyTitle" = "3か月無料で利用しますか？";
 "FinishedOnboardingSubtitle" = "メディアを安全に保護しましょう";
 "Notification.ImageSecurityReminder.Body" = "画像だけでなく、動画もアルバムに保存できます。今すぐ試して、いくつか保存しましょう！";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ 重要 ⚠️";
 "Notification.PremiumReminder.Body" = "コード『ENCAMERA20』を使うと、どのプランでも20％割引になります。お早めに！";
 "Skip for now" = "今はスキップ";
 "OnboardingCarousel.SubheadingText2" = "あなたのアルバムはあなた専用のキーでロックされ、デバイスまたはiCloudに安全に保存されています。";
@@ -118,7 +116,6 @@
 "TaskProgressRow.Processing" = "処理中: %@";
 "OnboardingCarousel.HeadingText1" = "あなたの思い出を完全に保護";
 "Select a place to keep media for this key." = "この鍵のメディアを保存する場所を選択してください。";
-"AlbumDetailView.PhotoAccessRequired" = "写真へのアクセスが必要です";
 "CreateFirstAlbum" = "最初のアルバムを作成";
 "" = "";
 "AuthenticationMethod.ConfirmDisableFaceID" = "本当に%@を無効にしますか？";
@@ -244,7 +241,6 @@
 "AuthenticationMethod.OK" = "OK";
 "PleaseEnterAnAlbumName" = "アルバムの名前を入力してください";
 "Yes" = "はい";
-"AlbumDetailView.PhotoAccessAlertTitle" = "インポート後に削除しますか？";
 "Notification.Permission.RemoteError" = "リモート通知の権限リクエスト中にエラーが発生しました: %@";
 "FeedbackView.Submit" = "送信";
 "AuthenticationView.TooManyAttempts" = "試行回数が多すぎます";
@@ -405,11 +401,9 @@
 "TaskDetailCard.GrantAccessMessage" = "インポートした写真を削除するには、設定で写真ライブラリへのアクセスを許可してください。";
 "ProfileSetup" = "プロフィール設定";
 "ImportingPleaseWait" = "インポート中...お待ちください";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "今はしない";
 "PurchaseView.BenefitModel.HiddenAlbums" = "非表示アルバム";
 "CannotClearMessage" = "パスコードを解除できません。これを行うにはFace IDを有効にする必要があります。";
 "You have an existing password for this device." = "このデバイスには既存のパスワードがあります。";
-"AlbumDetailView.PhotoAccessSettings" = "写真をインポートするには、設定で写真ライブラリへのアクセスを許可してください。";
 "AlbumsTitle" = "アルバム";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "フォトライブラリから削除しますか？";
 "No iCloud account found on this device." = "このデバイスでiCloudアカウントが見つかりません。";
@@ -438,7 +432,6 @@
 "TaskDetailCard.PhotoLibraryAccessRequired" = "写真ライブラリへのアクセスが必要です";
 "FaceIDOnlyAlert.Cancel" = "キャンセル";
 "UnlimitedStorageFeatureRowTitle" = "写真と動画の無制限ストレージ";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "削除";
 "Invalid Password" = "無効なパスワード";
 "QuicklyTakePictures" = "素早く写真やビデオを撮影します。";
 "SelectAnOption" = "オプションを選択";
@@ -463,7 +456,6 @@
 "DeleteAlbumForever" = "このアルバムとそれに関連するすべてのメディアを完全に削除しますか？";
 "Subscription" = "サブスクリプション";
 "NoCommitmentCancelAnytime" = "契約の縛りなし、いつでもキャンセル可能";
-"AlbumDetailView.OpenSettings" = "設定を開く";
 "Scan with Encamera app" = "Encameraアプリでスキャン";
 "FinishedSubtitle" = "最初のアルバムを作成しましょう";
 "AuthenticationView.ForgotPassword" = "パスワードをお忘れですか？アプリをリセット";

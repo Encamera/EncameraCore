@@ -132,9 +132,6 @@
 "AlbumDetailView.MoveMedia" = "移動媒體";
 "AlbumDetailView.MoveMediaConfirm" = "將 %@ 個項目移動到 %@？";
 "AlbumDetailView.MovedToast" = "已將 %@ 個項目移動到 %@";
-"AlbumDetailView.PhotoAccessRequired" = "需要照片存取權限";
-"AlbumDetailView.PhotoAccessSettings" = "請在設定中授予對您的照片庫的存取權，以匯入照片。";
-"AlbumDetailView.OpenSettings" = "打開設定";
 "Created %@" = "已建立 %@";
 "Key length: %@" = "金鑰長度：%@";
 "Backup Keys" = "備份金鑰";
@@ -305,11 +302,6 @@
 Encamera！";
 "FinishedSubtitle" = "讓我們來建立你的第一個相簿";
 "CreateFirstAlbum" = "建立第一個相簿";
-"AlbumDetailView.PhotoAccessAlertTitle" = "匯入後刪除？";
-"AlbumDetailView.PhotoAccessAlertPrimaryButton" = "刪除";
-"AlbumDetailView.PhotoAccessAlertSecondaryButton" = "暫不";
-"AlbumDetailView.NoLicenseDeletionWarningTitle" = "⚠️ 重要 ⚠️";
-"AlbumDetailView.NoLicenseDeletionWarningPrimaryButton" = "我知道了";
 "AlbumDetailView.Select" = "選擇媒體";
 "AlbumDetailView.RenameAlbum" = "重新命名相簿";
 "AlbumDetailView.HideAlbumAlertTitle" = "要隱藏這個相簿嗎？";
