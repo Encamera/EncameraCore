@@ -231,7 +231,18 @@ public actor InteractableMediaFileAccess: FileAccess {
     public func reconcileIndex(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
     ) async -> Bool {
-        await backend?.reconcile(onProgress: onProgress) ?? false
+        /* begin fault injection hook */
+        let delayMs = MediaIndexTestHooks.reconcileDelayMs
+        if delayMs > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
+        }
+        /* end fault injection hook */
+        return await backend?.reconcile(onProgress: onProgress) ?? false
+    }
+
+    /// Forwards to the configured backend; `false` before `configure(for:)`.
+    public var indexSyncIsNetworkBound: Bool {
+        get async { await backend?.indexSyncIsNetworkBound ?? false }
     }
 
     /// Produces a page of media from the index. Pure in-memory work: filter and
@@ -349,8 +360,13 @@ public actor InteractableMediaFileAccess: FileAccess {
 
     /// Test-only: injects a backend (e.g. a `MediaBackendMock`) so the facade's
     /// index/paging layer can be exercised without a real disk or CloudKit account.
-    internal func _testSetBackend(_ backend: any MediaBackend) {
+    /// Passing `album` binds it too, so a later `configure(for:)` with the same
+    /// album keeps the injected backend instead of building a real one.
+    internal func _testSetBackend(_ backend: any MediaBackend, album: Album? = nil) {
         self.backend = backend
+        if let album {
+            self.album = album
+        }
     }
 }
 

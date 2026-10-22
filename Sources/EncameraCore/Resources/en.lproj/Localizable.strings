@@ -567,6 +567,7 @@
 "AlbumDetailView.PremiumCardTitle" = "Store more with Premium";
 "AlbumDetailView.PremiumCardSubtitle" = "Get unlimited encrypted storage for all your photos and videos";
 "AlbumDetailView.PremiumCardBadge" = "Premium";
+"AlbumDetailView.CheckingICloud" = "Checking iCloud…";
 
 "LetsGiveYourAlbumAName" = "Let's give your\nalbum a name";
 "AddAlbumModal.RenameAlbumTitle" = "Let's rename your\nalbum";

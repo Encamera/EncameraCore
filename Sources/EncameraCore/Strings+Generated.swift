@@ -757,6 +757,8 @@ public enum L10n {
     public static let captureButton = L10n.tr("Localizable", "AlbumDetailView.CaptureButton", fallback: "Capture")
     /// Take photo
     public static let captureButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.CaptureButtonAccessibilityLabel", fallback: "Take photo")
+    /// Checking iCloud…
+    public static let checkingICloud = L10n.tr("Localizable", "AlbumDetailView.CheckingICloud", fallback: "Checking iCloud…")
     /// Clear Filters
     public static let clearFilters = L10n.tr("Localizable", "AlbumDetailView.ClearFilters", fallback: "Clear Filters")
     /// Confirm Delete

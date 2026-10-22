@@ -30,6 +30,12 @@ public enum MediaIndexTestHooks {
     /// `loadAllPages` is still iterating). Inert when 0.
     public static var pageLoadDelayMs: Int = 0
 
+    /// Artificial delay applied inside `reconcileIndex` before the backend
+    /// reconcile runs, standing in for a CloudKit delta sync on a slow network.
+    /// Lets a UI test assert the grid paints from the cached index while the
+    /// reconcile is still in flight. Inert when 0.
+    public static var reconcileDelayMs: Int = 0
+
     /// When > 0, `GalleryGridViewModel.loadAllPages` schedules a one-shot
     /// asynchronous "interrupt" N ms after it starts: it calls back into
     /// `enumerateMedia`, bumping `enumerateRequestID` and aborting the

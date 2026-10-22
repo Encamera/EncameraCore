@@ -779,6 +779,9 @@ extension CloudKitFileAccess {
         await reconcile()
     }
 
+    /// `MediaBackend.indexSyncIsNetworkBound`. The reconcile is a CloudKit delta sync.
+    public nonisolated var indexSyncIsNetworkBound: Bool { true }
+
     /// `MediaBackend.sourceURL`. CloudKit blobs land under the `id#type` blob-cache
     /// path, not `id.ext`, so source-readers find the file after a lazy download.
     public func sourceURL(id: String, type: MediaType) async -> URL {

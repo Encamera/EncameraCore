@@ -212,6 +212,12 @@ public protocol MediaBackend: FileReader, FileWriter {
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)?
     ) async -> Bool
 
+    /// Whether `reconcile` waits on the network. True for CloudKit, whose
+    /// reconcile is a delta sync that can take minutes on a bad link; false for
+    /// disk, whose reconcile is a local scan. The gallery shows a syncing
+    /// indicator only for network-bound reconciles.
+    var indexSyncIsNetworkBound: Bool { get async }
+
     /// The on-disk URL where a component's ciphertext lives for this backend —
     /// `id.ext` for disk, the `id#type` blob-cache path for CloudKit. Lets the
     /// facade materialize index entries without type-checking the backend.
@@ -272,4 +278,8 @@ extension FileAccess {
     var operationBus: FileOperationBus {
         FileOperationBus.shared
     }
+}
+
+public extension MediaBackend {
+    var indexSyncIsNetworkBound: Bool { false }
 }
