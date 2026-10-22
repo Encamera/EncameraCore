@@ -310,6 +310,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         changeTags[recordName]
     }
 
+    /// Adopts the change tag a thumbnail-only save gave the record. The blob did
+    /// not change, so the cached copy is re-keyed to the new tag rather than left
+    /// to look stale and be downloaded again.
+    public func adoptThumbnailChangeTag(recordName: String, changeTag: String) async {
+        let previousTag = changeTags[recordName]
+        changeTags[recordName] = changeTag
+        await cache.retag(recordName: recordName, from: previousTag, to: changeTag)
+    }
+
     /// The record's `keyFingerprint`, as far as this session has already learned it
     /// from sync, an upload or a fetch-by-id. Never fetches: it is only a hint for
     /// which key to try first, and a miss costs nothing but candidate order.

@@ -66,6 +66,96 @@ final class CloudKitStoreDoubleFidelityTests: XCTestCase {
         return failed.mapValues { CKError.Code(rawValue: ($0 as NSError).code) ?? .internalError }
     }
 
+    // MARK: - A record saved without a thumbnail
+
+    /// `CloudKitMediaStore.fetchAsset` throws `.notFound` when the record has no
+    /// `encThumbnail`, and writes nothing to the destination.
+    private func assertFetchThumbnailThrowsNotFoundAndWritesNothing(_ store: CloudKitMediaStoring,
+                                                                    recordName: String,
+                                                                    file: StaticString = #filePath,
+                                                                    line: UInt = #line) async {
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("fidelity-thumb-\(UUID().uuidString)")
+        addTeardownBlock { try? FileManager.default.removeItem(at: destination) }
+        do {
+            try await store.fetchThumbnail(recordName: recordName, to: destination)
+            XCTFail("fetchThumbnail must throw for a record saved without a thumbnail", file: file, line: line)
+        } catch {
+            guard case CloudKitMediaStoreError.notFound? = error as? CloudKitMediaStoreError else {
+                return XCTFail("Expected .notFound, got \(error)", file: file, line: line)
+            }
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path),
+                       "a missing thumbnail must not be written as an empty file", file: file, line: line)
+    }
+
+    func testInMemoryFetchThumbnailThrowsNotFoundForARecordSavedWithoutOne() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        _ = try await store.upload(try upload(recordName: "r1", albumID: sourceAlbum), progress: { _ in })
+        let saved = try await store.fetchRecordMetadata(recordName: "r1")
+        XCTAssertNotNil(saved, "precondition: the record was saved")
+        XCTAssertFalse(store.hasThumbnail(recordName: "r1"))
+        XCTAssertNil(store.thumbnailData(recordName: "r1"))
+
+        await assertFetchThumbnailThrowsNotFoundAndWritesNothing(store, recordName: "r1")
+    }
+
+    func testMockFetchThumbnailThrowsNotFoundForARecordSavedWithoutOne() async throws {
+        let store = MockCloudKitMediaStore()
+        _ = try await store.upload(try upload(recordName: "r1", albumID: sourceAlbum), progress: { _ in })
+        XCTAssertEqual(store.uploadCarriedThumbnail["r1"], false, "precondition: the upload carried no thumbnail")
+
+        await assertFetchThumbnailThrowsNotFoundAndWritesNothing(store, recordName: "r1")
+    }
+
+    // MARK: - attachThumbnail
+
+    /// `CloudKitMediaStore.attachThumbnail`'s three outcomes, on one double.
+    private func assertAttachThumbnailMatchesTheRealStore(_ store: CloudKitMediaStoring,
+                                                          uploadedTag: String?,
+                                                          file: StaticString = #filePath,
+                                                          line: UInt = #line) async throws {
+        let bytes = Data("encrypted-thumbnail".utf8)
+        let thumbnail = FileManager.default.temporaryDirectory.appendingPathComponent("fidelity-attach-\(UUID().uuidString)")
+        let destination = FileManager.default.temporaryDirectory.appendingPathComponent("fidelity-fetch-\(UUID().uuidString)")
+        try bytes.write(to: thumbnail)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: thumbnail)
+            try? FileManager.default.removeItem(at: destination)
+        }
+
+        let first = try await store.attachThumbnail(recordName: "r1", thumbnailURL: thumbnail)
+        guard case .attached(let changeTag) = first else {
+            return XCTFail("attaching to a thumbnail-less record must save it, got \(first)", file: file, line: line)
+        }
+        XCTAssertNotNil(changeTag, file: file, line: line)
+        XCTAssertNotEqual(changeTag, uploadedTag, "the save changes the record's change tag", file: file, line: line)
+        try await store.fetchThumbnail(recordName: "r1", to: destination)
+        XCTAssertEqual(try Data(contentsOf: destination), bytes, "fetchThumbnail returns the attached bytes",
+                       file: file, line: line)
+
+        let second = try await store.attachThumbnail(recordName: "r1", thumbnailURL: thumbnail)
+        XCTAssertEqual(second, .alreadyPresent, file: file, line: line)
+
+        let unknown = try await store.attachThumbnail(recordName: "no-such-record", thumbnailURL: thumbnail)
+        XCTAssertEqual(unknown, .recordMissing, file: file, line: line)
+    }
+
+    func testDoublesAttachThumbnailMatchTheRealStoresOutcomes() async throws {
+        let inMemory = InMemoryCloudKitMediaStore()
+        let inMemoryRef = try await inMemory.upload(try upload(recordName: "r1", albumID: sourceAlbum), progress: { _ in })
+        XCTAssertFalse(inMemory.hasThumbnail(recordName: "r1"), "precondition: saved without a thumbnail")
+        try await assertAttachThumbnailMatchesTheRealStore(inMemory, uploadedTag: inMemoryRef.recordChangeTag)
+        XCTAssertTrue(inMemory.hasThumbnail(recordName: "r1"))
+        let inMemoryTag = try await inMemory.fetchRecordMetadata(recordName: "r1")?.recordChangeTag
+        XCTAssertNotEqual(inMemoryTag, inMemoryRef.recordChangeTag, "the change feed sees the new tag")
+
+        let mock = MockCloudKitMediaStore()
+        let mockRef = try await mock.upload(try upload(recordName: "r1", albumID: sourceAlbum), progress: { _ in })
+        XCTAssertEqual(mock.uploadCarriedThumbnail["r1"], false, "precondition: saved without a thumbnail")
+        try await assertAttachThumbnailMatchesTheRealStore(mock, uploadedTag: mockRef.recordChangeTag)
+    }
+
     // MARK: - fetchAlbum and query lag
 
     func testMockFetchAlbumFindsAnAlbumTheQueryHasNotIndexed() async throws {

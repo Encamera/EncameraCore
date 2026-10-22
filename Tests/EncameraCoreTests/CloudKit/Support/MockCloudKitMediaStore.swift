@@ -78,6 +78,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         case confirmAlbum(recordName: String)
         case fetchBlob(recordName: String)
         case fetchThumbnail(recordName: String)
+        case attachThumbnail(recordName: String)
         case delete(recordName: String)
         case reassignAlbum(recordNames: [String], toAlbumID: String)
         case saveAlbum(albumID: String)
@@ -123,6 +124,11 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// completes, so asserting on the file afterwards is impossible.
     private var _uploadedBlobBytes: [String: Data] = [:]
     var uploadedBlobBytes: [String: Data] { locked { _uploadedBlobBytes } }
+    /// Whether each upload carried a readable thumbnail, keyed by record name and
+    /// read at upload time, as CloudKit would read the asset. The last upload of a
+    /// record wins. A record never uploaded here has no entry.
+    private var _uploadCarriedThumbnail: [String: Bool] = [:]
+    var uploadCarriedThumbnail: [String: Bool] { locked { _uploadCarriedThumbnail } }
 
     var fetchBlobCount: Int { locked { _fetchBlobCount } }
     var fetchChangesCount: Int { locked { _fetchChangesCount } }
@@ -156,10 +162,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         log(.upload(recordName: item.recordName))
         if let onUploadStarted { await onUploadStarted() }
         let blobBytes = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
+        let carriesThumbnail = item.encryptedThumbURL.map { (try? Data(contentsOf: $0)) != nil } ?? false
         locked {
             _uploadCalls.append(item.mediaID)
             _uploadedItems.append(item)
             _uploadedBlobBytes[item.recordName] = blobBytes
+            _uploadCarriedThumbnail[item.recordName] = carriesThumbnail
         }
         if let error = uploadErrorOnce { uploadErrorOnce = nil; throw error }
         if let error = uploadFailures[item.recordName] { throw error }
@@ -265,13 +273,75 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     }
 
     private(set) var fetchThumbnailCount = 0
-    var fetchThumbnailWritesFile = true
+    /// Setting this (to either value) opts the test out of the thumbnail-less
+    /// record answer below: the fetch then does exactly what the flags say.
+    var fetchThumbnailWritesFile = true {
+        didSet { fetchThumbnailConfiguredExplicitly = true }
+    }
     var fetchThumbnailError: Error?
+    private var fetchThumbnailConfiguredExplicitly = false
+    /// A record this mock saw uploaded without a thumbnail answers `.notFound` and
+    /// writes nothing, as `CloudKitMediaStore.fetchAsset` does when `encThumbnail`
+    /// is absent — unless the test set `fetchThumbnailError` or
+    /// `fetchThumbnailWritesFile` itself. Records never uploaded here (seeded via
+    /// `metadataToReturn` or the change feed) keep the configurable answer. A
+    /// thumbnail `attachThumbnail` saved is returned as written.
     func fetchThumbnail(recordName: String, to destination: URL) async throws {
         log(.fetchThumbnail(recordName: recordName))
         locked { fetchThumbnailCount += 1 }
+        if fetchThumbnailError == nil, let attached = locked({ _attachedThumbnails[recordName] }) {
+            try attached.write(to: destination)
+            return
+        }
+        if fetchThumbnailError == nil, !fetchThumbnailConfiguredExplicitly,
+           locked({ _uploadCarriedThumbnail[recordName] }) == false {
+            throw CloudKitMediaStoreError.notFound
+        }
         if fetchThumbnailWritesFile { try blobContents.write(to: destination) }
         if let fetchThumbnailError { throw fetchThumbnailError }
+    }
+
+    private var _attachedThumbnails: [String: Data] = [:]
+    private var _attachSaveCount = 0
+    /// Thumbnail bytes `attachThumbnail` saved, keyed by record name.
+    var attachedThumbnails: [String: Data] { locked { _attachedThumbnails } }
+    /// When set, every `attachThumbnail` is logged and then throws this, saving
+    /// nothing.
+    var attachThumbnailError: Error?
+
+    /// Same outcomes as `CloudKitMediaStore.attachThumbnail`. A record exists when
+    /// it was uploaded here or seeded through `metadataToReturn`, and already has a
+    /// thumbnail unless it was uploaded without one — the same rule
+    /// `fetchThumbnail` answers by. A save bumps the change tag, as `reassignAlbum`
+    /// does, in `metadataToReturn` and the change set alike.
+    func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
+        log(.attachThumbnail(recordName: recordName))
+        if let attachThumbnailError { throw attachThumbnailError }
+        let bytes = try Data(contentsOf: thumbnailURL)
+        return locked {
+            let seeded = (metadataToReturn + _reflected).contains { $0.recordName == recordName }
+            guard _liveRecords[recordName] != nil || seeded else { return .recordMissing }
+            if _attachedThumbnails[recordName] != nil || _uploadCarriedThumbnail[recordName] != false {
+                return .alreadyPresent
+            }
+            _attachSaveCount += 1
+            let tag = "tag-attach-\(_attachSaveCount)"
+            _attachedThumbnails[recordName] = bytes
+            func retagged(_ old: CloudKitMediaMetadata) -> CloudKitMediaMetadata {
+                CloudKitMediaMetadata(descriptor: old.descriptor, creationDeviceID: old.creationDeviceID,
+                                      schemaVersion: old.schemaVersion, recordChangeTag: tag,
+                                      encHeader: old.encHeader, recordCreationDate: old.recordCreationDate)
+            }
+            metadataToReturn = metadataToReturn.map { $0.recordName == recordName ? retagged($0) : $0 }
+            _reflected = _reflected.map { $0.recordName == recordName ? retagged($0) : $0 }
+            changeSet = CloudKitChangeSet(changed: changeSet.changed.map { $0.recordName == recordName ? retagged($0) : $0 },
+                                          deleted: changeSet.deleted,
+                                          changedAlbums: changeSet.changedAlbums,
+                                          deletedAlbumIDs: changeSet.deletedAlbumIDs,
+                                          token: changeSet.token,
+                                          moreComing: changeSet.moreComing)
+            return .attached(changeTag: tag)
+        }
     }
 
     /// Observation hook invoked on every delete, so a test can record the

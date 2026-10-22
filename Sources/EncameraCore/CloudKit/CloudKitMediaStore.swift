@@ -546,6 +546,61 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         }
     }
 
+    // MARK: - Thumbnail repair
+
+    /// Writes `encThumbnail` onto an existing record. Like `reassignAlbum`, the
+    /// record is fetched with only the key being written, so the
+    /// `.ifServerRecordUnchanged` save sends that key alone and every other field
+    /// on the server — `encBlob`, the chunk fields, the album and key fields — is
+    /// left as it is.
+    ///
+    /// A conflict means another device saved the record in the meantime. It is
+    /// fetched once more: a thumbnail that device attached is kept, otherwise the
+    /// save is retried once.
+    public func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
+        guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
+        let snapshot = Self.snapshotForUpload(thumbnailURL)
+        defer {
+            if let snapshot { try? FileManager.default.removeItem(at: snapshot) }
+        }
+        let maxSaves = 2
+        do {
+            for save in 1...maxSaves {
+                let fetched = try await adapter.fetch(recordIDs: [recordID],
+                                                      desiredKeys: [CloudKitSchema.EncMedia.encThumbnail],
+                                                      perRecordProgress: { _, _ in })
+                guard let record = fetched[recordID] else {
+                    printDebug("attachThumbnail recordMissing recordName=\(recordName)")
+                    return .recordMissing
+                }
+                if let existing = record[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset {
+                    CKDatabaseAdapter.discardSnapshot(at: existing.fileURL)
+                    printDebug("attachThumbnail alreadyPresent recordName=\(recordName)")
+                    return .alreadyPresent
+                }
+                record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: snapshot ?? thumbnailURL)
+                do {
+                    let saved = try await adapter.save(records: [record],
+                                                       savePolicy: .ifServerRecordUnchanged,
+                                                       perRecordProgress: { _, _ in })
+                    let changeTag = (saved.first ?? record).recordChangeTag
+                    printDebug("attachThumbnail attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
+                    return .attached(changeTag: changeTag)
+                } catch {
+                    guard save < maxSaves, case .conflict = mapCKError(error) else { throw error }
+                    printDebug("attachThumbnail conflict recordName=\(recordName) — refetching once")
+                }
+            }
+        } catch {
+            let mapped = mapAndRecord(error)
+            printDebug("attachThumbnail FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+            throw mapped
+        }
+        preconditionFailure("attachThumbnail returns or throws on its last save")
+    }
+
+
     // MARK: - Delete
 
     public func delete(recordName: String) async throws {

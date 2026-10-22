@@ -10,12 +10,14 @@
 import Foundation
 import CloudKit
 
-public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
+public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrintable, @unchecked Sendable {
 
     private struct Stored {
         var metadata: CloudKitMediaMetadata
         var blob: Data
-        var thumbnail: Data
+        /// `nil` when the record carries no `encThumbnail`, as the real store
+        /// leaves the field off a record saved without a preview.
+        var thumbnail: Data?
         var keyFingerprint: String
     }
 
@@ -152,7 +154,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             blob = (try? Data(contentsOf: item.encryptedFileURL)) ?? Data()
         }
 
-        let thumb = item.encryptedThumbURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
+        let thumb = item.encryptedThumbURL.flatMap { try? Data(contentsOf: $0) }
         let tag = "tag-\(item.recordName)"
         // Keyed by recordName so a Live Photo's two components don't collide.
         locked {
@@ -208,7 +210,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                                                      recordChangeTag: "tag-\(recordName)")
                 records[recordName] = Stored(metadata: metadata,
                                              blob: Data(),
-                                             thumbnail: Data(),
+                                             thumbnail: nil,
                                              keyFingerprint: keyFingerprint)
             }
         }
@@ -237,9 +239,58 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
         progress(1.0)
     }
 
+    /// Throws `.notFound` for a record saved without a thumbnail, as
+    /// `CloudKitMediaStore.fetchAsset` does when `encThumbnail` is absent, and
+    /// writes nothing.
     public func fetchThumbnail(recordName: String, to destination: URL) async throws {
-        guard let stored = locked({ records[recordName] }) else { throw CloudKitMediaStoreError.notFound }
-        try stored.thumbnail.write(to: destination)
+        guard let thumbnail = locked({ records[recordName]?.thumbnail }) else {
+            throw CloudKitMediaStoreError.notFound
+        }
+        try thumbnail.write(to: destination)
+    }
+
+    /// Same outcomes as `CloudKitMediaStore.attachThumbnail`: a saved thumbnail
+    /// gives the record a new change tag, an existing one is kept, and an unknown
+    /// record is reported rather than thrown.
+    public func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
+        let bytes = try Data(contentsOf: thumbnailURL)
+        let result: ThumbnailAttachResult = locked {
+            guard var stored = records[recordName] else { return .recordMissing }
+            if stored.thumbnail != nil { return .alreadyPresent }
+            let tag = "attach-\(UUID().uuidString)-\(recordName)"
+            let old = stored.metadata
+            stored.metadata = CloudKitMediaMetadata(descriptor: old.descriptor,
+                                                    creationDeviceID: old.creationDeviceID,
+                                                    schemaVersion: old.schemaVersion,
+                                                    recordChangeTag: tag,
+                                                    encHeader: old.encHeader,
+                                                    recordCreationDate: old.recordCreationDate)
+            stored.thumbnail = bytes
+            records[recordName] = stored
+            return .attached(changeTag: tag)
+        }
+        switch result {
+        case .attached(let tag):
+            persist()
+            printDebug("attachThumbnail attached recordName=\(recordName) changeTag=\(tag ?? "nil")")
+        case .alreadyPresent:
+            printDebug("attachThumbnail alreadyPresent recordName=\(recordName)")
+        case .recordMissing:
+            printDebug("attachThumbnail recordMissing recordName=\(recordName)")
+        }
+        return result
+    }
+
+    /// Whether the record carries an `encThumbnail`. Read-only, so a test can
+    /// inspect the zone without going through `fetchThumbnail`.
+    public func hasThumbnail(recordName: String) -> Bool {
+        thumbnailData(recordName: recordName) != nil
+    }
+
+    /// The record's `encThumbnail` bytes, or `nil` when the record has none or
+    /// does not exist.
+    public func thumbnailData(recordName: String) -> Data? {
+        locked { records[recordName]?.thumbnail }
     }
 
     public func delete(recordName: String) async throws {
@@ -428,7 +479,7 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
             let recordChangeTag: String?
             let encHeader: Data?
             let blob: Data
-            let thumbnail: Data
+            let thumbnail: Data?
             let keyFingerprint: String
             let recordCreationDate: Date?
         }
@@ -482,8 +533,11 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, @unchecked 
                                                          recordChangeTag: record.recordChangeTag,
                                                          encHeader: record.encHeader,
                                                          recordCreationDate: record.recordCreationDate)
+                    // Zones persisted before a missing thumbnail was modelled stored
+                    // it as empty bytes.
+                    let thumbnail = record.thumbnail.flatMap { $0.isEmpty ? nil : $0 }
                     store.records[record.descriptor.recordName] = Stored(metadata: metadata, blob: record.blob,
-                                                              thumbnail: record.thumbnail,
+                                                              thumbnail: thumbnail,
                                                               keyFingerprint: record.keyFingerprint)
                 }
                 for album in albums {

@@ -411,6 +411,12 @@ public protocol CloudKitMediaStoring: Sendable {
     /// Lazy eager-thumb fetch: download the `encThumbnail` asset, copied to `destination`.
     func fetchThumbnail(recordName: String, to destination: URL) async throws
 
+    /// Writes `thumbnailURL` into the `encThumbnail` field of an existing record,
+    /// leaving every other field — `encBlob`, chunk fields, album and key fields —
+    /// untouched. A thumbnail already on the record is never overwritten, and a
+    /// record the server no longer has is reported, not thrown.
+    func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult
+
     /// Removes the record and (atomically) both assets.
     func delete(recordName: String) async throws
 
@@ -522,6 +528,16 @@ public enum CloudKitFingerprintCensus: Sendable, Equatable {
     /// container (see ENC-70). Carries no information in either direction;
     /// callers must treat it as unresolved, never as "no data".
     case indexUnavailable
+}
+
+/// What `attachThumbnail` found and did.
+public enum ThumbnailAttachResult: Sendable, Equatable {
+    /// The thumbnail was saved; `changeTag` is the record's new change tag.
+    case attached(changeTag: String?)
+    /// The record already carries a thumbnail, so nothing was saved.
+    case alreadyPresent
+    /// The server has no such record.
+    case recordMissing
 }
 
 // MARK: - Default implementations

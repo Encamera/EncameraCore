@@ -87,12 +87,18 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     var saveProgressValues: [Double] = []
     var fetchProgressValues: [Double] = []
 
+    /// Runs at the start of every `save`, before any injected error is thrown, so a
+    /// test can change what the server holds while a save is in flight — e.g.
+    /// another device attaching a thumbnail before this save conflicts.
+    var onSave: (([CKRecord]) -> Void)?
+
     func save(records: [CKRecord],
               savePolicy: CKModifyRecordsOperation.RecordSavePolicy,
               perRecordProgress: @escaping (CKRecord.ID, Double) -> Void) async throws -> [CKRecord] {
         saveCount += 1
         lastSavePolicy = savePolicy
         savedRecordBatches.append(records)
+        onSave?(records)
         lastSavedAssetPayloads = [:]
         for record in records {
             for key in record.allKeys() {
@@ -176,11 +182,28 @@ final class MockCloudKitDatabase: CloudKitDatabaseAdapter {
     /// whole records instead makes any omission from a `desiredKeys` list invisible
     /// to the whole suite — the read side of chunked video storage shipped broken
     /// behind exactly that blind spot.
+    ///
+    /// The copy is rebuilt from the record's system fields, so the fields that were
+    /// not requested are absent rather than cleared: a cleared field would count
+    /// as a changed key, and saving the record back would then look like it
+    /// deletes them. Only the requested values are set again.
     private static func projected(_ record: CKRecord, desiredKeys: [CKRecord.FieldKey]?) -> CKRecord {
-        guard let desiredKeys, let copy = record.copy() as? CKRecord else { return record }
-        let requested = Set(desiredKeys)
-        for key in copy.allKeys() where !requested.contains(key) {
-            copy[key] = nil
+        guard let desiredKeys else { return record }
+        let copy = systemFieldsCopy(of: record)
+        for key in desiredKeys {
+            if let value = record[key] { copy[key] = value }
+        }
+        return copy
+    }
+
+    /// A record with `record`'s identity, type, change tag and parent, and no fields.
+    private static func systemFieldsCopy(of record: CKRecord) -> CKRecord {
+        let archiver = NSKeyedArchiver(requiringSecureCoding: true)
+        record.encodeSystemFields(with: archiver)
+        archiver.finishEncoding()
+        guard let unarchiver = try? NSKeyedUnarchiver(forReadingFrom: archiver.encodedData),
+              let copy = CKRecord(coder: unarchiver) else {
+            preconditionFailure("CKRecord system fields failed to round-trip")
         }
         return copy
     }

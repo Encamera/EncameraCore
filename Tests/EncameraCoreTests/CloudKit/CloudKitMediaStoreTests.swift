@@ -1064,4 +1064,87 @@ final class CloudKitMediaStoreTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - attachThumbnail
+
+    /// A server record as another device saved it: full index fields, an
+    /// `encBlob`, and optionally an `encThumbnail`.
+    private func serverRecord(_ recordName: String, withThumbnail: Bool) throws -> CKRecord {
+        let record = CloudKitTestFactory.encMediaRecord(recordName: recordName, albumID: "album-1",
+                                                        keyFingerprint: keyA.keyFingerprint)
+        record[CloudKitSchema.EncMedia.albumRef] = CKRecord.Reference(recordID: CloudKitTestFactory.recordID("album-1"),
+                                                                      action: .deleteSelf)
+        record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: try makeCiphertextFile("blob.enc",
+                                                                                          contents: Data("blob".utf8)))
+        if withThumbnail {
+            record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(
+                fileURL: try makeCiphertextFile("other-device-thumb.enc", contents: Data("theirs".utf8)))
+        }
+        return record
+    }
+
+    func testAttachThumbnailSavesOnlyTheThumbnailKey() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        let record = try serverRecord("media-A", withThumbnail: false)
+        adapter.stubbedFetchRecords[record.recordID] = record
+        let thumbnail = try makeCiphertextFile("thumb.enc", contents: Data("encrypted-thumbnail".utf8))
+
+        let result = try await store.attachThumbnail(recordName: "media-A", thumbnailURL: thumbnail)
+
+        XCTAssertEqual(adapter.lastFetchDesiredKeys, [CloudKitSchema.EncMedia.encThumbnail])
+        XCTAssertEqual(adapter.saveCount, 1)
+        let saved = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertEqual(saved.recordID.recordName, "media-A")
+        XCTAssertEqual(Set(saved.changedKeys()), [CloudKitSchema.EncMedia.encThumbnail],
+                       "only encThumbnail may reach the server; encBlob, chunk, album, key and size fields stay as they are")
+        XCTAssertEqual(adapter.lastSavedAssetPayloads[CloudKitSchema.EncMedia.encThumbnail],
+                       Data("encrypted-thumbnail".utf8))
+        XCTAssertEqual(adapter.lastSavePolicy?.rawValue,
+                       CKModifyRecordsOperation.RecordSavePolicy.ifServerRecordUnchanged.rawValue)
+        XCTAssertEqual(result, .attached(changeTag: saved.recordChangeTag))
+    }
+
+    func testAttachThumbnailLeavesAnExistingThumbnailAlone() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        let record = try serverRecord("media-A", withThumbnail: true)
+        adapter.stubbedFetchRecords[record.recordID] = record
+        let thumbnail = try makeCiphertextFile("thumb.enc", contents: Data("mine".utf8))
+
+        let result = try await store.attachThumbnail(recordName: "media-A", thumbnailURL: thumbnail)
+
+        XCTAssertEqual(result, .alreadyPresent)
+        XCTAssertEqual(adapter.saveCount, 0, "an existing thumbnail is never overwritten")
+    }
+
+    func testAttachThumbnailReportsAMissingRecord() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        let thumbnail = try makeCiphertextFile("thumb.enc", contents: Data("mine".utf8))
+
+        let result = try await store.attachThumbnail(recordName: "ghost", thumbnailURL: thumbnail)
+
+        XCTAssertEqual(result, .recordMissing)
+        XCTAssertEqual(adapter.saveCount, 0)
+    }
+
+    func testAttachThumbnailRefetchesOnceOnConflictAndYieldsToAnotherDevicesThumbnail() async throws {
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        let bare = try serverRecord("media-A", withThumbnail: false)
+        let attachedElsewhere = try serverRecord("media-A", withThumbnail: true)
+        adapter.stubbedFetchRecords[bare.recordID] = bare
+        adapter.saveErrorSequence = [CKErrorFactory.error(.serverRecordChanged)]
+        adapter.onSave = { [unowned adapter] _ in
+            adapter.stubbedFetchRecords[attachedElsewhere.recordID] = attachedElsewhere
+        }
+        let thumbnail = try makeCiphertextFile("thumb.enc", contents: Data("mine".utf8))
+
+        let result = try await store.attachThumbnail(recordName: "media-A", thumbnailURL: thumbnail)
+
+        XCTAssertEqual(result, .alreadyPresent)
+        XCTAssertEqual(adapter.fetchCount, 2, "one fetch, then one refetch after the conflict")
+        XCTAssertEqual(adapter.saveCount, 1, "the other device's thumbnail is kept, not overwritten")
+    }
 }

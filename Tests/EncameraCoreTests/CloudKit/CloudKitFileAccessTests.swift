@@ -1939,6 +1939,545 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(decoded, .cloudKit)
     }
 
+    // MARK: - Records saved without a thumbnail
+    //
+    // Two or three `CloudKitFileAccess` instances on one shared store stand in for
+    // separate devices on the same iCloud account. Previews and the blob cache
+    // live at paths every instance in this process shares, so a "fresh" device is
+    // made by clearing the preview file and evicting the cached blob first.
+
+    private func makeDevice(album: Album,
+                            store: CloudKitMediaStoring,
+                            chunkStore: ChunkedBlobStoring? = nil) async -> CloudKitFileAccess {
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        return await CloudKitFileAccess(album: album, albumManager: albumManager, store: store, chunkStore: chunkStore)
+    }
+
+    /// Removes everything a save into `album` leaves on this simulator.
+    private func removeLocalState(album: Album, mediaID: String) {
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: CloudKitStorageModel.previewURL(forMediaID: mediaID))
+            try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
+            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+            for type in [MediaType.photo, .video] {
+                try? FileManager.default.removeItem(at: self.decryptedCopyURL(id: mediaID, type: type))
+            }
+        }
+    }
+
+    /// The media as the gallery hands it to a device: enumerated from the synced
+    /// index, with each component's source at the blob-cache path.
+    private func galleryMedia(on device: CloudKitFileAccess, id: String,
+                              file: StaticString = #filePath, line: UInt = #line) async throws -> InteractableMedia<EncryptedMedia> {
+        let listed = await device.enumerate()
+        return try XCTUnwrap(listed.first { $0.id == id }, "the device's index lists the media", file: file, line: line)
+    }
+
+    /// A movie larger than the ENC3 threshold: a tiny real movie followed by a
+    /// QuickTime `free` atom, which players skip, so it still decodes.
+    private func writeMovieAboveChunkingThreshold(to url: URL) async throws {
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: url, seconds: 1)
+        let paddingLength = SeekableEncryptedFormat.threshold + 4_096
+        var atom = Data()
+        withUnsafeBytes(of: UInt32(paddingLength).bigEndian) { atom.append(contentsOf: $0) }
+        atom.append(contentsOf: Array("free".utf8))
+        atom.append(Data(count: paddingLength - atom.count))
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
+        try handle.seekToEnd()
+        try handle.write(contentsOf: atom)
+    }
+
+    /// The image a record's `encThumbnail` bytes decrypt to under the album key,
+    /// read the way `DiskFileAccess.loadMediaPreview` reads a preview file.
+    private func decodedThumbnailImage(_ data: Data?, album: Album, id: String) async -> PlatformImage? {
+        guard let data else { return nil }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("thumb-check-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: url) }
+        do {
+            try data.write(to: url)
+            let encrypted = EncryptedMedia(source: .url(url), mediaType: .preview, id: id)
+            let cleartext = try await SecretFileHandler(keyBytes: album.key.keyBytes, source: encrypted).decryptInMemory()
+            return try PreviewModel(source: cleartext).thumbnailMedia.data.flatMap(PlatformImage.init(data:))
+        } catch {
+            return nil
+        }
+    }
+
+    /// Device A after saving `media` whose preview is gone by the time the upload
+    /// drains: the record lands without `encThumbnail`.
+    private struct SavedWithoutThumbnail {
+        let album: Album
+        let store: InMemoryCloudKitMediaStore
+        let chunkStore: InMemoryChunkedBlobStore
+        let deviceA: CloudKitFileAccess
+        let id: String
+        let recordNames: [String]
+    }
+
+    /// Saves `media` on device A, deletes its preview, then drains. Uploads fail
+    /// retryably until the preview is gone, so the attempt that lands is made
+    /// without it — the path `CloudKitUploader.send` takes when the preview file
+    /// is missing — however far the drain `save` kicked off had got.
+    private func saveWithPreviewGoneAtDrain(_ media: InteractableMedia<CleartextMedia>,
+                                            file: StaticString = #filePath,
+                                            line: UInt = #line) async throws -> SavedWithoutThumbnail {
+        let album = makeAlbum()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let store = InMemoryCloudKitMediaStore(chunkStore: chunkStore)
+        let deviceAStore = RecordingCloudKitMediaStore(wrapping: store)
+        let recordNames = media.underlyingMedia.map {
+            CloudKitFileAccess.componentRecordName(mediaID: $0.id, type: $0.mediaType)
+        }
+        deviceAStore.failUploadsRetryably(recordNames: Set(recordNames))
+        removeLocalState(album: album, mediaID: media.id)
+        let deviceA = await makeDevice(album: album, store: deviceAStore, chunkStore: chunkStore)
+
+        _ = try await deviceA.save(media: media, metadata: nil, progress: { _ in })
+        await deviceA.drainUploads()
+        XCTAssertTrue(recordNames.allSatisfy { !store.liveRecordNames.contains($0) },
+                      "precondition: nothing has landed yet", file: file, line: line)
+        let previewURL = thumbnailURL(forMediaID: media.id)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path),
+                      "precondition: the save wrote a preview", file: file, line: line)
+        try FileManager.default.removeItem(at: previewURL)
+        deviceAStore.stopFailingUploads()
+        await deviceA.drainUploads()
+
+        for recordName in recordNames {
+            XCTAssertTrue(store.liveRecordNames.contains(recordName),
+                          "precondition: \(recordName) reached the store", file: file, line: line)
+            XCTAssertFalse(store.hasThumbnail(recordName: recordName),
+                           "precondition: \(recordName) was saved without encThumbnail", file: file, line: line)
+        }
+        return SavedWithoutThumbnail(album: album, store: store, chunkStore: chunkStore, deviceA: deviceA,
+                                     id: media.id, recordNames: recordNames)
+    }
+
+    private func saveVideoWithPreviewGoneAtDrain() async throws -> SavedWithoutThumbnail {
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: movieURL, seconds: 1)
+        addTeardownBlock { try? FileManager.default.removeItem(at: movieURL) }
+        return try await saveWithPreviewGoneAtDrain(try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: UUID().uuidString)
+        ]))
+    }
+
+    /// Another device on the same account: no preview file, no cached blob and no
+    /// decrypted copy of the media. `holder` is the device whose cached copy must
+    /// go first.
+    private func freshDevice(after saved: SavedWithoutThumbnail,
+                             evictingFrom holder: CloudKitFileAccess,
+                             store: CloudKitMediaStoring? = nil,
+                             chunkStore: ChunkedBlobStoring? = nil) async throws -> CloudKitFileAccess {
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: saved.id))
+        for recordName in saved.recordNames {
+            try? FileManager.default.removeItem(at: decryptedCopyURL(id: saved.id, type: MediaRecordName.mediaType(from: recordName)))
+        }
+        try await holder.evictLocalCopy(for: try await galleryMedia(on: holder, id: saved.id))
+        let device = await makeDevice(album: saved.album, store: store ?? saved.store, chunkStore: chunkStore ?? saved.chunkStore)
+        _ = await device.reconcile()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailURL(forMediaID: saved.id).path),
+                       "precondition: the fresh device has no preview")
+        for recordName in saved.recordNames {
+            let mediaType = MediaRecordName.mediaType(from: recordName)
+            let cached = await device.isBlobCached(for: saved.id, type: mediaType)
+            XCTAssertFalse(cached, "precondition: the fresh device has no cached blob for \(recordName)")
+            XCTAssertFalse(FileManager.default.fileExists(atPath: decryptedCopyURL(id: saved.id, type: mediaType).path),
+                           "precondition: the fresh device has no decrypted copy of \(recordName)")
+        }
+        return device
+    }
+
+    /// Where an open decrypts a component to; `DiskFileAccess` reuses a file
+    /// already there instead of decrypting again.
+    private func decryptedCopyURL(id: String, type: MediaType) -> URL {
+        URL.tempMediaDirectory.appendingPathComponent(id).appendingPathExtension(type.decryptedFileExtension)
+    }
+
+    // MARK: Characterization — how a record ends up without a thumbnail
+
+    func testVideoWhosePreviewFailsAtSaveIsUploadedWithoutAThumbnail() async throws {
+        let album = makeAlbum()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let store = InMemoryCloudKitMediaStore(chunkStore: chunkStore)
+        let deviceA = await makeDevice(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        removeLocalState(album: album, mediaID: id)
+        let notAMovie = FileManager.default.temporaryDirectory.appendingPathComponent("undecodable-\(UUID().uuidString).mov")
+        try Data("these bytes are not a movie".utf8).write(to: notAMovie)
+        defer { try? FileManager.default.removeItem(at: notAMovie) }
+
+        _ = try await deviceA.save(media: try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(notAMovie), mediaType: .video, id: id)
+        ]), metadata: nil, progress: { _ in })
+        await deviceA.drainUploads()
+
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: id, type: .video)
+        XCTAssertTrue(store.liveRecordNames.contains(recordName), "the save is uploaded anyway")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailURL(forMediaID: id).path),
+                       "the preview failed at save time, so there is no preview file")
+        XCTAssertFalse(store.hasThumbnail(recordName: recordName),
+                       "a preview that failed at save time leaves the record without encThumbnail")
+    }
+
+    func testPreviewGoneAtDrainIsUploadedWithoutAThumbnail() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        XCTAssertTrue(saved.store.liveRecordNames.contains(recordName), "the upload landed")
+        XCTAssertFalse(saved.store.hasThumbnail(recordName: recordName),
+                       "a preview missing at drain time leaves the record without encThumbnail")
+    }
+
+    func testUploadingDeviceRebuildsAThumbnailTheRecordDoesNotHave() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+
+        let preview = try await saved.deviceA.loadMediaPreview(for: try await galleryMedia(on: saved.deviceA, id: saved.id))
+
+        XCTAssertNotNil(preview.thumbnailMedia.data.flatMap(PlatformImage.init(data:)),
+                        "device A rebuilds a preview from its cached blob, so it looks fine")
+        XCTAssertFalse(saved.store.hasThumbnail(recordName: recordName),
+                       "the rebuilt preview stays on device A; the record still has no encThumbnail")
+    }
+
+    func testSecondDeviceGetsNoThumbnailForARecordSavedWithoutOne() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+
+        do {
+            _ = try await deviceB.loadMediaPreview(for: try await galleryMedia(on: deviceB, id: saved.id))
+            XCTFail("device B has no preview, no cached blob and no encThumbnail to fetch, so it gets no thumbnail")
+        } catch {}
+    }
+
+    // MARK: RED — opening the media repairs the record
+
+    func testOpeningAVideoOnAnotherDeviceRepairsTheRecordThumbnail() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: saved.id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        let hasThumbnail = saved.store.hasThumbnail(recordName: recordName)
+        let image = await decodedThumbnailImage(saved.store.thumbnailData(recordName: recordName),
+                                                album: saved.album, id: saved.id)
+        XCTAssertTrue(hasThumbnail, "opening the video on device B writes encThumbnail onto the record")
+        XCTAssertNotNil(image, "the attached thumbnail decrypts to a decodable image")
+    }
+
+    func testOpeningOnTheUploadingDeviceUploadsItsRebuiltThumbnail() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let media = try await galleryMedia(on: saved.deviceA, id: saved.id)
+        _ = try await saved.deviceA.loadMediaPreview(for: media)
+        let previewURL = thumbnailURL(forMediaID: saved.id)
+        let rebuilt = try XCTUnwrap(try? Data(contentsOf: previewURL), "precondition: device A rebuilt its preview file")
+        XCTAssertFalse(saved.store.hasThumbnail(recordName: recordName), "precondition: the record still has none")
+
+        _ = try await saved.deviceA.loadMedia(media: media, progress: { _ in })
+        await saved.deviceA.awaitThumbnailRepairs()
+
+        let attached = saved.store.thumbnailData(recordName: recordName)
+        XCTAssertEqual(attached, rebuilt, "the record's thumbnail is the preview device A rebuilt")
+    }
+
+    func testThirdDeviceGetsTheRepairedThumbnailWithoutDownloadingTheMedia() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: saved.id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        let deviceCStore = RecordingCloudKitMediaStore(wrapping: saved.store)
+        let deviceC = try await freshDevice(after: saved, evictingFrom: deviceB, store: deviceCStore)
+        let preview = try? await deviceC.loadMediaPreview(for: try await galleryMedia(on: deviceC, id: saved.id))
+
+        let image = preview?.thumbnailMedia.data.flatMap(PlatformImage.init(data:))
+        let thumbnailFetches = deviceCStore.fetchThumbnailCount
+        let blobFetches = deviceCStore.fetchBlobCount
+        XCTAssertNotNil(image, "device C shows the thumbnail device B attached")
+        XCTAssertEqual(thumbnailFetches, 1, "device C fetches encThumbnail once")
+        XCTAssertEqual(blobFetches, 0, "device C does not download the media to show its thumbnail")
+    }
+
+    func testOpeningAPhotoSavedWithoutAThumbnailRepairsIt() async throws {
+        let saved = try await saveWithPreviewGoneAtDrain(try photo(data: Self.tinyPNG()))
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: saved.id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        let hasThumbnail = saved.store.hasThumbnail(recordName: recordName)
+        let image = await decodedThumbnailImage(saved.store.thumbnailData(recordName: recordName),
+                                                album: saved.album, id: saved.id)
+        XCTAssertTrue(hasThumbnail, "opening the photo on device B writes encThumbnail onto the record")
+        XCTAssertNotNil(image, "the attached thumbnail decrypts to a decodable image")
+    }
+
+    func testOpeningALivePhotoRepairsBothComponentRecords() async throws {
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-live-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: movieURL, seconds: 1)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+        let id = UUID().uuidString
+        let live = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id),
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: id),
+        ])
+        XCTAssertEqual(live.mediaType, .livePhoto)
+        let saved = try await saveWithPreviewGoneAtDrain(live)
+        XCTAssertEqual(Set(saved.recordNames), ["\(id)#\(MediaType.photo.rawValue)", "\(id)#\(MediaType.video.rawValue)"])
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        let repaired = saved.recordNames.map { ($0, saved.store.hasThumbnail(recordName: $0)) }
+        for (recordName, hasThumbnail) in repaired {
+            XCTAssertTrue(hasThumbnail, "opening the Live Photo writes encThumbnail onto \(recordName)")
+        }
+    }
+
+    func testStreamingAChunkedVideoRepairsTheRecordThumbnail() async throws {
+        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
+        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
+        try await writeMovieAboveChunkingThreshold(to: movieURL)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+
+        let saved = try await saveWithPreviewGoneAtDrain(try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: UUID().uuidString)
+        ]))
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let record = try await saved.store.fetchRecordMetadata(recordName: recordName)
+        XCTAssertGreaterThan(record?.chunkCount ?? 0, 0, "precondition: the video was saved chunked")
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+
+        let playback = try await deviceB.streamingPlayback(for: try await galleryMedia(on: deviceB, id: saved.id))
+        XCTAssertNotNil(playback, "device B streams the chunked video")
+        await deviceB.awaitThumbnailRepairs()
+
+        let hasThumbnail = saved.store.hasThumbnail(recordName: recordName)
+        let image = await decodedThumbnailImage(saved.store.thumbnailData(recordName: recordName),
+                                                album: saved.album, id: saved.id)
+        XCTAssertTrue(hasThumbnail, "streaming the video on device B writes encThumbnail onto the record")
+        XCTAssertNotNil(image, "the attached thumbnail decrypts to a decodable image")
+    }
+
+    func testRepairedVideoStillOpensFromTheBlobCache() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let deviceBStore = RecordingCloudKitMediaStore(wrapping: saved.store)
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA, store: deviceBStore)
+        let tagBeforeRepair = try await saved.store.fetchRecordMetadata(recordName: recordName)?.recordChangeTag
+        let media = try await galleryMedia(on: deviceB, id: saved.id)
+
+        _ = try await deviceB.loadMedia(media: media, progress: { _ in })
+        XCTAssertEqual(deviceBStore.fetchBlobCount, 1, "precondition: the first open downloads the blob")
+        await deviceB.awaitThumbnailRepairs()
+        _ = await deviceB.reconcile()
+        _ = try await deviceB.loadMedia(media: media, progress: { _ in })
+
+        let hasThumbnail = saved.store.hasThumbnail(recordName: recordName)
+        let tagAfterRepair = try await saved.store.fetchRecordMetadata(recordName: recordName)?.recordChangeTag
+        let blobFetches = deviceBStore.fetchBlobCount
+        XCTAssertTrue(hasThumbnail, "the first open repaired the record")
+        XCTAssertNotEqual(tagAfterRepair, tagBeforeRepair, "the repair's save gave the record a new change tag")
+        XCTAssertEqual(blobFetches, 1, "the cached blob was re-keyed to the new tag, so the second open downloads nothing")
+    }
+
+    // MARK: Regression guards — the repair on open
+
+    /// A photo saved on a device backed by the mock store, with its thumbnail.
+    private func savePhotoWithThumbnail(_ data: Data,
+                                        on access: CloudKitFileAccess,
+                                        album: Album) async throws -> (media: InteractableMedia<EncryptedMedia>, recordName: String) {
+        let cleartext = try photo(data: data)
+        removeLocalState(album: album, mediaID: cleartext.id)
+        _ = try await access.save(media: cleartext, metadata: nil, progress: { _ in })
+        await access.drainUploads()
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: cleartext.id, type: .photo)
+        return (try await galleryMedia(on: access, id: cleartext.id), recordName)
+    }
+
+    private func attachCalls(_ store: MockCloudKitMediaStore, recordName: String) -> Int {
+        store.callOrder.filter { $0 == .attachThumbnail(recordName: recordName) }.count
+    }
+
+    func testOpeningAgainDoesNotCallAttachThumbnailAgain() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let (media, recordName) = try await savePhotoWithThumbnail(Self.tinyPNG(), on: access, album: album)
+        XCTAssertTrue(store.liveRecordNames.contains(recordName), "precondition: the photo was uploaded")
+
+        _ = try await access.loadMedia(media: media, progress: { _ in })
+        await access.awaitThumbnailRepairs()
+        _ = try await access.loadMedia(media: media, progress: { _ in })
+        await access.awaitThumbnailRepairs()
+
+        XCTAssertEqual(attachCalls(store, recordName: recordName), 1,
+                       "the first open checks the record; the second skips it for the rest of the session")
+    }
+
+    func testOpeningAnItemStillQueuedForUploadDoesNotAttach() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let cleartext = try photo(data: Self.tinyPNG())
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: cleartext.id, type: .photo)
+        store.uploadFailures[recordName] = CloudKitMediaStoreError.retry(after: 0)
+        removeLocalState(album: album, mediaID: cleartext.id)
+        _ = try await access.save(media: cleartext, metadata: nil, progress: { _ in })
+        let media = try await galleryMedia(on: access, id: cleartext.id)
+
+        _ = try await access.loadMedia(media: media, progress: { _ in })
+        await access.awaitThumbnailRepairs()
+
+        XCTAssertFalse(store.liveRecordNames.contains(recordName), "precondition: the photo is still queued for upload")
+        XCTAssertEqual(attachCalls(store, recordName: recordName), 0,
+                       "a queued item's upload carries the preview when it drains, so the open attaches nothing")
+    }
+
+    func testRepairFailureDoesNotFailTheOpen() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let png = Self.tinyPNG()
+        let (media, recordName) = try await savePhotoWithThumbnail(png, on: access, album: album)
+        store.attachThumbnailError = CloudKitMediaStoreError.retry(after: 0)
+
+        let decrypted = try await access.loadMedia(media: media, progress: { _ in })
+        await access.awaitThumbnailRepairs()
+
+        XCTAssertEqual(decrypted.underlyingMedia.first?.data, png, "the open still returns the cleartext")
+        XCTAssertEqual(attachCalls(store, recordName: recordName), 1, "the repair ran, failed, and was not retried in a loop")
+    }
+
+    func testOpeningARecordThatAlreadyHasAThumbnailNeverOverwritesIt() async throws {
+        let album = makeAlbum()
+        let chunkStore = InMemoryChunkedBlobStore()
+        let store = InMemoryCloudKitMediaStore(chunkStore: chunkStore)
+        let deviceA = await makeDevice(album: album, store: store, chunkStore: chunkStore)
+        let cleartext = try photo(data: Self.tinyPNG())
+        removeLocalState(album: album, mediaID: cleartext.id)
+        _ = try await deviceA.save(media: cleartext, metadata: nil, progress: { _ in })
+        await deviceA.drainUploads()
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: cleartext.id, type: .photo)
+        let original = try XCTUnwrap(store.thumbnailData(recordName: recordName), "precondition: the save carried a thumbnail")
+        let saved = SavedWithoutThumbnail(album: album, store: store, chunkStore: chunkStore, deviceA: deviceA,
+                                          id: cleartext.id, recordNames: [recordName])
+        let deviceB = try await freshDevice(after: saved, evictingFrom: deviceA)
+
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: cleartext.id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        XCTAssertEqual(store.thumbnailData(recordName: recordName), original,
+                       "the record's thumbnail is unchanged by an open on a device without a preview")
+    }
+
+    // MARK: Regression guards — the repair on streaming
+
+    /// A chunked video saved on device A without a thumbnail, written by `writeMovie`.
+    private func saveChunkedVideoWithPreviewGoneAtDrain(
+        writeMovie: (URL) async throws -> Void
+    ) async throws -> (saved: SavedWithoutThumbnail, recordName: String) {
+        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
+        addTeardownBlock { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
+        try await writeMovie(movieURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: movieURL) }
+        let saved = try await saveWithPreviewGoneAtDrain(try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: UUID().uuidString)
+        ]))
+        let recordName = try XCTUnwrap(saved.recordNames.first)
+        let record = try await saved.store.fetchRecordMetadata(recordName: recordName)
+        XCTAssertGreaterThan(record?.chunkCount ?? 0, 2, "precondition: the video was saved in several chunks")
+        return (saved, recordName)
+    }
+
+    /// A movie above the ENC3 threshold whose `moov` atom starts in chunk 1: the
+    /// tiny movie's atoms with a `free` atom inserted before its trailing `moov`,
+    /// then padding. `mdat` does not move, so its sample offsets stay valid, and
+    /// reading the movie's structure needs chunk 1.
+    private func writeMovieWithMoovInSecondChunk(to url: URL) async throws {
+        let tinyURL = FileManager.default.temporaryDirectory.appendingPathComponent("tiny-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: tinyURL, seconds: 1)
+        defer { try? FileManager.default.removeItem(at: tinyURL) }
+        let tiny = try Data(contentsOf: tinyURL)
+
+        var atoms: [(type: String, bytes: Data)] = []
+        var offset = 0
+        while offset + 8 <= tiny.count {
+            let size = tiny[offset..<offset + 4].reduce(0) { $0 << 8 | Int($1) }
+            let type = String(decoding: tiny[offset + 4..<offset + 8], as: UTF8.self)
+            XCTAssertGreaterThanOrEqual(size, 8, "precondition: the tiny movie uses 32-bit atom sizes")
+            guard size >= 8 else { return }
+            atoms.append((type, tiny[offset..<offset + size]))
+            offset += size
+        }
+        XCTAssertEqual(atoms.last?.type, "moov", "precondition: the tiny movie ends with its moov atom")
+
+        func freeAtom(_ length: Int) -> Data {
+            var atom = Data()
+            withUnsafeBytes(of: UInt32(length).bigEndian) { atom.append(contentsOf: $0) }
+            atom.append(contentsOf: Array("free".utf8))
+            atom.append(Data(count: length - atom.count))
+            return atom
+        }
+        var movie = Data()
+        for atom in atoms.dropLast() { movie.append(atom.bytes) }
+        let chunkSize = SeekableEncryptedFormat.defaultChunkSize
+        movie.append(freeAtom(chunkSize + 4_096 - movie.count))
+        movie.append(atoms.last?.bytes ?? Data())
+        movie.append(freeAtom(SeekableEncryptedFormat.threshold + 4_096 - movie.count))
+        try movie.write(to: url)
+    }
+
+    /// Making the thumbnail reads the streamed movie, but only the chunks
+    /// playback already fetched: chunk 0 and the read-ahead behind it.
+    func testStreamingRepairFetchesNoChunkBeyondTheFirstFew() async throws {
+        let (saved, recordName) = try await saveChunkedVideoWithPreviewGoneAtDrain(writeMovie: writeMovieAboveChunkingThreshold(to:))
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        await saved.chunkStore.resetLog()
+
+        let playback = try await deviceB.streamingPlayback(for: try await galleryMedia(on: deviceB, id: saved.id))
+        XCTAssertNotNil(playback, "device B streams the chunked video")
+        await deviceB.awaitThumbnailRepairs()
+
+        let fetched = await saved.chunkStore.fetchLog.filter { $0.media == recordName }.map(\.index)
+        let readAhead = StreamingPlaybackPolicy.cloudKit.readAhead
+        XCTAssertEqual(fetched.first, 0, "chunk 0 is fetched first")
+        XCTAssertLessThanOrEqual(fetched.max() ?? 0, readAhead,
+                                 "nothing past chunk 0's read-ahead window is fetched: \(fetched)")
+    }
+
+    /// A frame grab that fails — chunk 1, which holds the movie's `moov`, does
+    /// not authenticate — is the repair's failure alone: playback is returned
+    /// and the record is left as it was.
+    func testStreamingRepairFailureDoesNotFailPlayback() async throws {
+        let (saved, recordName) = try await saveChunkedVideoWithPreviewGoneAtDrain(writeMovie: writeMovieWithMoovInSecondChunk(to:))
+        let corrupting = ChunkCorruptingBlobStore(wrapping: saved.chunkStore, corruptIndex: 1)
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA, chunkStore: corrupting)
+
+        let playback = try await deviceB.streamingPlayback(for: try await galleryMedia(on: deviceB, id: saved.id))
+        await deviceB.awaitThumbnailRepairs()
+
+        let corruptServed = await corrupting.corruptServed
+        XCTAssertNotNil(playback, "streamingPlayback returns a playback although the frame grab fails")
+        XCTAssertTrue(corruptServed, "chunk 1 was served corrupted")
+        XCTAssertFalse(saved.store.hasThumbnail(recordName: recordName), "a failed frame grab attaches nothing")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: thumbnailURL(forMediaID: saved.id).path),
+                       "a failed frame grab writes no preview")
+    }
+
     // MARK: - One walk of the zone
 
     /// N CloudKit albums cost one walk of the zone per pass, not one per album, and
@@ -2036,4 +2575,128 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(entries, ["queued"], "the album's index records the uploaded item")
         await uploader.shutdown()
     }
+}
+
+// MARK: - Corrupting chunk store
+
+/// Serves one chunk with a flipped byte, so it fails authentication.
+actor ChunkCorruptingBlobStore: ChunkedBlobStoring {
+    private let base: ChunkedBlobStoring
+    private let corruptIndex: Int
+    private(set) var corruptServed = false
+
+    init(wrapping base: ChunkedBlobStoring, corruptIndex: Int) {
+        self.base = base
+        self.corruptIndex = corruptIndex
+    }
+
+    func uploadChunks(enc3FileURL: URL,
+                      mediaRecordName: String,
+                      existingChunks: ExistingChunkPolicy,
+                      progress: @escaping @Sendable (Double) -> Void) async throws -> SeekableEncryptedHeader {
+        try await base.uploadChunks(enc3FileURL: enc3FileURL, mediaRecordName: mediaRecordName,
+                                    existingChunks: existingChunks, progress: progress)
+    }
+
+    func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {
+        var data = try await base.fetchChunk(mediaRecordName: mediaRecordName, index: index)
+        if index == corruptIndex, !data.isEmpty {
+            let last = data.index(before: data.endIndex)
+            data[last] ^= 0xFF
+            corruptServed = true
+        }
+        return data
+    }
+
+    func delete(mediaRecordName: String, chunkCount: Int) async throws {
+        try await base.delete(mediaRecordName: mediaRecordName, chunkCount: chunkCount)
+    }
+}
+
+// MARK: - Recording store
+
+/// Forwards every call to a shared store, as one device's view of the account,
+/// and records what this device fetched. Can fail uploads retryably so a test
+/// chooses which drain attempt lands.
+final class RecordingCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
+
+    private let base: CloudKitMediaStoring
+    private let lock = NSLock()
+    private func locked<T>(_ body: () -> T) -> T { lock.lock(); defer { lock.unlock() }; return body() }
+
+    private var _fetchThumbnailCount = 0
+    private var _fetchBlobCount = 0
+    private var recordNamesFailingUploads: Set<String> = []
+
+    var fetchThumbnailCount: Int { locked { _fetchThumbnailCount } }
+    var fetchBlobCount: Int { locked { _fetchBlobCount } }
+
+    init(wrapping base: CloudKitMediaStoring) {
+        self.base = base
+    }
+
+    /// Every upload of these records throws `.retry(after: 0)` without reaching
+    /// the store, until `stopFailingUploads()`.
+    func failUploadsRetryably(recordNames: Set<String>) {
+        locked { recordNamesFailingUploads.formUnion(recordNames) }
+    }
+
+    func stopFailingUploads() {
+        locked { recordNamesFailingUploads.removeAll() }
+    }
+
+    func upload(_ item: CloudKitMediaUpload,
+                progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
+        if locked({ recordNamesFailingUploads.contains(item.recordName) }) {
+            throw CloudKitMediaStoreError.retry(after: 0)
+        }
+        return try await base.upload(item, progress: progress)
+    }
+
+    func fetchMetadata(albumID: String, includeThumbnail: Bool) async throws -> [CloudKitMediaMetadata] {
+        try await base.fetchMetadata(albumID: albumID, includeThumbnail: includeThumbnail)
+    }
+
+    func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata? {
+        try await base.fetchRecordMetadata(recordName: recordName)
+    }
+
+    func fetchBlob(recordName: String,
+                   to destination: URL,
+                   progress: @escaping @Sendable (Double) -> Void) async throws {
+        locked { _fetchBlobCount += 1 }
+        try await base.fetchBlob(recordName: recordName, to: destination, progress: progress)
+    }
+
+    func fetchThumbnail(recordName: String, to destination: URL) async throws {
+        locked { _fetchThumbnailCount += 1 }
+        try await base.fetchThumbnail(recordName: recordName, to: destination)
+    }
+
+    func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
+        try await base.attachThumbnail(recordName: recordName, thumbnailURL: thumbnailURL)
+    }
+
+    func delete(recordName: String) async throws { try await base.delete(recordName: recordName) }
+    func saveAlbum(_ album: CloudKitAlbumUpload) async throws { try await base.saveAlbum(album) }
+    func fetchAllAlbums() async throws -> [CloudKitAlbumMetadata] { try await base.fetchAllAlbums() }
+    func fetchAlbum(albumID: String) async throws -> CloudKitAlbumMetadata? { try await base.fetchAlbum(albumID: albumID) }
+    func fetchFingerprintCensus() async throws -> CloudKitFingerprintCensus { try await base.fetchFingerprintCensus() }
+    func deleteAlbum(albumID: String) async throws { try await base.deleteAlbum(albumID: albumID) }
+    func fetchChanges(since token: CKServerChangeToken?) async throws -> CloudKitChangeSet {
+        try await base.fetchChanges(since: token)
+    }
+    func loadChangeToken() async -> CKServerChangeToken? { await base.loadChangeToken() }
+    func hasChangeToken() async -> Bool { await base.hasChangeToken() }
+    func commitChangeToken(_ token: CKServerChangeToken?) async { await base.commitChangeToken(token) }
+    func resetChangeToken() async { await base.resetChangeToken() }
+    func reassignAlbum(recordNames: [String], toAlbumID: String) async throws -> [String] {
+        try await base.reassignAlbum(recordNames: recordNames, toAlbumID: toAlbumID)
+    }
+    func confirmAlbum(recordName: String) async throws -> String? { try await base.confirmAlbum(recordName: recordName) }
+    func recreateZone() async throws { try await base.recreateZone() }
+    func ensureZoneExists() async throws { try await base.ensureZoneExists() }
+    func registerZoneSubscription() async throws { try await base.registerZoneSubscription() }
+    func cancelAll() { base.cancelAll() }
+    func accountAvailable() async -> Bool { await base.accountAvailable() }
 }

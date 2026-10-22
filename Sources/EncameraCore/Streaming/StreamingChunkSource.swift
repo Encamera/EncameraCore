@@ -50,6 +50,9 @@ public struct StreamingTelemetry: Sendable, Equatable {
 public enum StreamingChunkSourceError: Error, Equatable {
     /// Every attempt to fetch the chunk ran past the deadline.
     case fetchDeadlineExceeded(index: Int, attempts: Int)
+    /// A reader limited to fetched chunks asked for one the source has not
+    /// fetched and is not fetching.
+    case chunkNotFetched(index: Int)
 }
 
 // MARK: - Chunk source
@@ -124,6 +127,17 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
         let data = try await chunk(at: index)
         scheduleReadAhead(after: index)
         return data
+    }
+
+    /// A chunk this source holds or is already fetching. Never starts a fetch
+    /// or a read-ahead: `nil` when the chunk would have to come from the store.
+    public func fetchedChunk(at index: Int) async throws -> Data? {
+        if let cached = cache[index] {
+            telemetry.chunksServedFromCache += 1
+            touch(index)
+            return cached
+        }
+        return try await inFlight[index]?.value
     }
 
     // MARK: Internals
@@ -322,6 +336,31 @@ public struct ChunkedStreamSession: Sendable {
                                     header: header,
                                     source: source,
                                     reader: reader)
+    }
+
+    /// A session over `source` that reads only chunks the source has already
+    /// fetched or is fetching — for background work on a stream that must not
+    /// add network traffic of its own. Reading past them fails with
+    /// `StreamingChunkSourceError.chunkNotFetched`.
+    public static func openFetchedChunksOnly(source: StreamingChunkSource,
+                                             header: SeekableEncryptedHeader,
+                                             keyBytes: [UInt8]) -> ChunkedStreamSession {
+        let reader = SeekableEncryptedReader(keyBytes: keyBytes, header: header, provider: FetchedChunks(source: source))
+        return ChunkedStreamSession(mediaRecordName: source.mediaRecordName,
+                                    header: header,
+                                    source: source,
+                                    reader: reader)
+    }
+
+    private struct FetchedChunks: SeekableChunkProviding {
+        let source: StreamingChunkSource
+
+        func ciphertextChunk(at index: Int) async throws -> Data {
+            guard let data = try await source.fetchedChunk(at: index) else {
+                throw StreamingChunkSourceError.chunkNotFetched(index: index)
+            }
+            return data
+        }
     }
 
     public func telemetry() async -> StreamingTelemetry {

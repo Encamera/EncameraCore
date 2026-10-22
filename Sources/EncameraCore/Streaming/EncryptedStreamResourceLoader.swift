@@ -118,10 +118,22 @@ public struct StreamingPlayback {
 
     private final class Retained {
         var supervisor: StreamingPlaybackSupervisor?
+        var cancelledOnRelease: [Task<Void, Never>] = []
+
+        deinit {
+            cancelledOnRelease.forEach { $0.cancel() }
+        }
     }
 
     /// The supervisor watching the player `makePlayer()` last built, if any.
     public var supervisor: StreamingPlaybackSupervisor? { retained.supervisor }
+
+    /// Cancels `task` once nothing retains this playback any more, which is
+    /// when its presentation has closed. For background work that reads the
+    /// stream and must not outlive it.
+    func cancelOnRelease(_ task: Task<Void, Never>) {
+        retained.cancelledOnRelease.append(task)
+    }
 
     public init(loader: EncryptedStreamResourceLoader,
                 session: ChunkedStreamSession,

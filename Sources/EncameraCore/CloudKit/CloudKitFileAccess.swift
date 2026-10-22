@@ -24,6 +24,7 @@ import Foundation
 import UIKit
 #endif
 import Combine
+import AVFoundation
 
 /// Supplies the `CloudKitMediaStoring` implementation. Production returns the real
 /// store; UI tests bind a deterministic in-memory mock via `UITestSupport`.
@@ -327,12 +328,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             decrypted.append(cleartext)
         }
         progress(.loaded)
-        return try InteractableMedia(underlyingMedia: decrypted)
+        let opened = try InteractableMedia(underlyingMedia: decrypted)
+        repairThumbnailIfMissing(for: media, decrypted: opened)
+        return opened
     }
 
     public func loadMediaToURLs(media: InteractableMedia<EncryptedMedia>,
                                 progress: @escaping @Sendable (FileLoadingStatus) -> Void) async throws -> [URL] {
         var urls: [URL] = []
+        var decrypted: [CleartextMedia] = []
         for item in media.underlyingMedia {
             try Task.checkCancellation()
             let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
@@ -342,9 +346,13 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             let target = URL.tempMediaDirectory.appendingPathComponent("\(item.id).\(item.mediaType.decryptedFileExtension)")
             let handler = SecretFileHandler(keyBytes: key.keyBytes, source: encMedia, targetURL: target)
             let cleartext = try await handler.decryptToURL()
+            decrypted.append(cleartext)
             if let url = cleartext.url { urls.append(url) }
         }
         progress(.loaded)
+        if let opened = try? InteractableMedia(underlyingMedia: decrypted) {
+            repairThumbnailIfMissing(for: media, decrypted: opened)
+        }
         return urls
     }
 
@@ -363,6 +371,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Chunk 0 is also what proves the key: the record keeps the key it was written
     /// under, so the session decrypts with the key that authenticates chunk 0, and
     /// a video no held key opens throws `missingKeyForMedia` here.
+    ///
+    /// A record without a thumbnail is repaired in the background once the
+    /// playback is built, from a frame of the stream itself; releasing the
+    /// playback cancels that repair.
     public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
         guard media.mediaType == .video, let component = media.underlyingMedia.first(where: { $0.mediaType == .video }) else {
             return nil
@@ -408,7 +420,17 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             .flatMap { try? SeekableEncryptedFormat.decodeMetadata($0) }?
             .video?.slowMotion
         printDebug("streamingPlayback ok recordName=\(recordName) chunks=\(header.chunkCount) bytes=\(header.plaintextLength) slowMotion=\(slowMotion != nil)")
-        return StreamingPlayback(loader: loader, session: session, policy: policy, slowMotion: slowMotion)
+        let playback = StreamingPlayback(loader: loader, session: session, policy: policy, slowMotion: slowMotion)
+        if !recordsKnownToHaveThumbnail.contains(recordName) {
+            let fetchedOnly = ChunkedStreamSession.openFetchedChunksOnly(source: source, header: header, keyBytes: key.keyBytes)
+            let repair = trackThumbnailRepair {
+                await self.attachThumbnailIfMissing(mediaID: component.id, recordNames: [recordName]) {
+                    try await self.createPreview(streaming: fetchedOnly, of: component, key: key, slowMotion: slowMotion)
+                }
+            }
+            playback.cancelOnRelease(repair)
+        }
+        return playback
     }
 
     /// The key that opens one component's ciphertext, proven against the local copy
@@ -533,6 +555,176 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// tests and for callers that must observe upload completion.
     public func drainUploads() async {
         await uploader.drainNow()
+    }
+
+    /// Waits for the background thumbnail repairs that opening media starts,
+    /// including any started while waiting. For tests and for callers that must
+    /// observe a repair landing; opening media never waits on a repair.
+    public func awaitThumbnailRepairs() async {
+        while let repair = thumbnailRepairs.values.first {
+            await repair.value
+        }
+    }
+
+    // MARK: - Thumbnail repair on open
+    //
+    // A record can be saved without `encThumbnail` (see `saveSingle`), and other
+    // devices then have no thumbnail to show. Opening the media is when this
+    // device holds its cleartext, so that is when the thumbnail is rebuilt, if
+    // need be, and written onto the record. The grid never does this: it would
+    // have to download and decrypt the full media first.
+
+    /// Records this session has seen carry a thumbnail. Later opens skip them
+    /// without asking the server. Never persisted: the record is the truth.
+    private var recordsKnownToHaveThumbnail: Set<String> = []
+    /// Records a repair is working on, so overlapping opens check each once.
+    private var recordsBeingRepaired: Set<String> = []
+    private var thumbnailRepairs: [UUID: Task<Void, Never>] = [:]
+
+    /// Runs `operation` in the background, tracked so `awaitThumbnailRepairs()`
+    /// can wait for it.
+    @discardableResult
+    private func trackThumbnailRepair(_ operation: @escaping () async -> Void) -> Task<Void, Never> {
+        let id = UUID()
+        let repair = Task(priority: .utility) {
+            await operation()
+            self.thumbnailRepairs[id] = nil
+        }
+        thumbnailRepairs[id] = repair
+        return repair
+    }
+
+    /// Starts the repair for media an open just decrypted. The thumbnail is the
+    /// thumbnail source's (a Live Photo's photo), and it goes onto every
+    /// component record, since all of them carry the shared thumbnail.
+    private func repairThumbnailIfMissing<T: MediaDescribing>(for media: InteractableMedia<T>,
+                                                              decrypted: InteractableMedia<CleartextMedia>) {
+        guard let source = decrypted.thumbnailSource else { return }
+        let recordNames = media.underlyingMedia.map {
+            Self.componentRecordName(mediaID: $0.id, type: $0.mediaType)
+        }
+        trackThumbnailRepair {
+            await self.attachThumbnailIfMissing(mediaID: source.id, recordNames: recordNames) {
+                try await self.createPreview(fromOpened: source)
+            }
+        }
+    }
+
+    /// Writes this device's preview onto each of `recordNames` that lacks a
+    /// thumbnail, first making the preview with `makePreview` when there is no
+    /// preview file. Skips records already known to have one, records another
+    /// repair is on, and records still queued for upload, whose upload reads the
+    /// preview when it drains. Every failure is logged and dropped: the open has
+    /// already succeeded, and the next open tries again.
+    private func attachThumbnailIfMissing(mediaID: String,
+                                          recordNames: [String],
+                                          makePreview: () async throws -> Void) async {
+        let claimed = recordNames.filter {
+            !recordsKnownToHaveThumbnail.contains($0) && !recordsBeingRepaired.contains($0)
+        }
+        guard !claimed.isEmpty else { return }
+        recordsBeingRepaired.formUnion(claimed)
+        defer { recordsBeingRepaired.subtract(claimed) }
+
+        var candidates: [String] = []
+        for recordName in claimed {
+            if await uploadQueue.pendingFileURL(recordName: recordName) != nil {
+                printDebug("thumbnailRepair skip recordName=\(recordName) reason=queuedForUpload")
+            } else {
+                candidates.append(recordName)
+            }
+        }
+        guard !candidates.isEmpty else { return }
+
+        let previewURL = directoryModel.previewURLForMedia(withID: mediaID)
+        if !FileManager.default.fileExists(atPath: previewURL.path) {
+            do {
+                try await makePreview()
+            } catch {
+                printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) raw=\(error)")
+                return
+            }
+            guard FileManager.default.fileExists(atPath: previewURL.path) else {
+                printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) — no preview file after creating it")
+                return
+            }
+        }
+
+        for recordName in candidates {
+            do {
+                switch try await store.attachThumbnail(recordName: recordName, thumbnailURL: previewURL) {
+                case .attached(let changeTag):
+                    if let changeTag {
+                        await coordinator.adoptThumbnailChangeTag(recordName: recordName, changeTag: changeTag)
+                    }
+                    recordsKnownToHaveThumbnail.insert(recordName)
+                    printDebug("thumbnailRepair attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
+                case .alreadyPresent:
+                    recordsKnownToHaveThumbnail.insert(recordName)
+                    printDebug("thumbnailRepair skip recordName=\(recordName) reason=alreadyPresent")
+                case .recordMissing:
+                    printDebug("thumbnailRepair skip recordName=\(recordName) reason=recordMissing")
+                }
+            } catch {
+                printDebug("thumbnailRepair attach FAILED recordName=\(recordName) raw=\(error)")
+            }
+        }
+    }
+
+    /// The preview `saveSingle` would have written, made from an open's
+    /// cleartext. A video's slow-motion ramp comes from its metadata, read from
+    /// the ciphertext the open left on this device.
+    private func createPreview(fromOpened cleartext: CleartextMedia) async throws {
+        var slowMotion: SlowMotionRamp?
+        if cleartext.mediaType == .video {
+            let recordName = Self.componentRecordName(mediaID: cleartext.id, type: .video)
+            if let local = await coordinator.localCiphertextURL(recordName: recordName) {
+                slowMotion = try? await metadata(ofCiphertextAt: local, id: cleartext.id, type: .video)?.video?.slowMotion
+            }
+        }
+        _ = try await previewAccess.createPreview(for: cleartext, slowMotion: slowMotion)
+    }
+
+    /// The preview `saveSingle` would have written, made from a chunked video
+    /// that never exists as a cleartext file: one frame read from `session`,
+    /// saved under `key`, the key that opened it.
+    private func createPreview(streaming session: ChunkedStreamSession,
+                               of component: EncryptedMedia,
+                               key: PrivateKey,
+                               slowMotion: SlowMotionRamp?) async throws {
+        let grabbed = try await Self.grabFrame(streaming: session, slowMotion: slowMotion)
+        let frame = CleartextMedia(source: grabbed.frame, mediaType: .photo, id: component.id)
+        var preview = PreviewModel(thumbnailMedia: try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: frame))
+        preview.videoDuration = grabbed.videoDuration
+        try await previewAccess.savePreview(preview: preview, sourceMedia: component, underKey: key)
+    }
+
+    /// The frame `ThumbnailUtils.generateThumbnailFromVideo` takes, as PNG, and
+    /// the grid's duration text, read through a loader of its own on `session`.
+    /// The playback's loader is left to the player, whose stall handling reads
+    /// its open requests. AVFoundation reads a movie greedily to its end, so
+    /// `session` should serve only chunks playback has already fetched; the
+    /// frame sits at the start of the movie, which is in them.
+    private static func grabFrame(streaming session: ChunkedStreamSession,
+                                  slowMotion: SlowMotionRamp?) async throws -> (frame: Data, videoDuration: String?) {
+        guard let url = EncryptedStreamScheme.url(mediaRecordName: session.mediaRecordName) else {
+            throw SecretFilesError.createVideoThumbnailError
+        }
+        let loader = EncryptedStreamResourceLoader(session: session)
+        defer { withExtendedLifetime(loader) {} }
+        let asset = AVURLAsset(url: url)
+        asset.resourceLoader.setDelegate(loader, queue: loader.queue)
+        let duration = try await asset.load(.duration)
+        var time = duration
+        time.value = min(time.value, 2)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        let image = try await generator.image(at: time).image
+        guard let png = PlatformImage(cgImage: image).pngData() else {
+            throw SecretFilesError.createVideoThumbnailError
+        }
+        let videoDuration = (slowMotion?.playbackDuration(sourceDuration: duration) ?? duration).durationText
+        return (png, videoDuration)
     }
 
     // MARK: - Enumeration (from the synced index, never the network)

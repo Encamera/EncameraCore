@@ -334,7 +334,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         await sync.syncAll()
 
-        let reported = await sync.albumsNeedingKey
+        let reported = await sync.albumsNeedingPrivateKey
         XCTAssertEqual(reported, 2, "both unreadable remote albums are counted")
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 2,
                        "the count must reach the observable the album grid reads")
@@ -370,7 +370,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         XCTAssertEqual(albumManager.adoptedAlbums.map { $0.name }, ["RemoteOne"],
                        "the album whose key is present is materialized, not counted as locked out")
-        let reported = await sync.albumsNeedingKey
+        let reported = await sync.albumsNeedingPrivateKey
         XCTAssertEqual(reported, 0)
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0)
     }
@@ -406,14 +406,14 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         })
 
         await sync.syncAll()
-        var reported = await sync.albumsNeedingKey
+        var reported = await sync.albumsNeedingPrivateKey
         XCTAssertEqual(reported, 1, "the unreadable remote album is counted while the plane is active")
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 1)
 
         FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
         await sync.syncAll()
 
-        reported = await sync.albumsNeedingKey
+        reported = await sync.albumsNeedingPrivateKey
         XCTAssertEqual(reported, 0)
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0,
                        "a skipped run must not leave the grid claiming albums are locked out")

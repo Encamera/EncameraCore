@@ -201,6 +201,25 @@ public actor CloudKitBlobCache: DebugPrintable {
         return destURL
     }
 
+    /// Moves the cached entry for `recordName` to `newTag` when a save that left
+    /// the blob untouched gave the record a new change tag. The file stays where
+    /// it is. The entry is re-keyed only when `cachedURL` would have served it
+    /// under `previousTag`, so a copy that was already stale stays stale.
+    /// No-op when the record is not cached.
+    public func retag(recordName: String, from previousTag: String?, to newTag: String) {
+        guard let entry = index[recordName] else { return }
+        if let previousTag, let cachedTag = entry.changeTag, cachedTag != previousTag {
+            printDebug("retag skip recordName=\(recordName) reason=staleTag cachedTag=\(cachedTag) previousTag=\(previousTag)")
+            return
+        }
+        index[recordName] = Entry(changeTag: newTag,
+                                  relativePath: entry.relativePath,
+                                  size: entry.size,
+                                  lastAccess: entry.lastAccess)
+        persist()
+        printDebug("retag ok recordName=\(recordName) from=\(entry.changeTag ?? "nil") to=\(newTag)")
+    }
+
     // MARK: - Eviction
 
     public func evict(recordName: String) {
