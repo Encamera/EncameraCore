@@ -854,15 +854,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         // `CloudKitBlobCache.shared`), and a private cache would leave the shared
         // one ignorant of the migrated blobs — its next persist would orphan them,
         // breaking the "blob is in the on-device cache" claim at the delete site.
-        let coordinator = CloudKitSyncCoordinator(
-            albumID: albumID,
-            store: store,
-            cache: CloudKitBlobCache.shared,
-            indexStore: MediaIndexStore(album: cloudAlbum),
-            sizeSidecar: AlbumSizeSidecar(album: cloudAlbum),
-            uploadQueue: uploadQueue,
-            chunkStore: chunkStoreOverride
-        )
+        let coordinator = makeIsolatedCoordinator(cloudAlbum: cloudAlbum, store: store, bus: .shared)
         return MigrationRunContext(
             source: source,
             destination: destination,
@@ -901,7 +893,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             // Bring the index current first so the move sees records uploaded from
             // another device moments ago rather than silently leaving them behind.
             do {
-                try await context.coordinator.sync(albumID: context.cloudKitAlbumID)
+                try await context.coordinator.sync()
             } catch {
                 printDebug("run ABORT — reconcile of the source album failed: \(error)")
                 state = .failed(.other("Could not bring the album up to date with iCloud: \(error)"))
@@ -1499,7 +1491,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                 dateTaken: item.createdAt,
                 subtypeRawValue: 0
             )
-            _ = try? await MediaIndexStore(album: destination).upsert([entry])
+            _ = try? await albumManager.mediaIndexStore(for: destination).upsert([entry])
             guard let destinationModel else { return }
             let url = destinationModel.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
             FileOperationBus.shared.didCreate(EncryptedMedia(source: .url(url), mediaType: item.mediaType, id: item.mediaID))
@@ -1510,7 +1502,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// entry, and its place in the grid, until its other component has moved too;
     /// only then is the grid told it is gone.
     private func removeFromSourceIndex(_ item: MigrationItem, source: Album) async {
-        guard let entryRemoved = try? await MediaIndexStore(album: source).removeComponent(recordName: item.recordName),
+        guard let entryRemoved = try? await albumManager.mediaIndexStore(for: source).removeComponent(recordName: item.recordName),
               entryRemoved else { return }
         let media = EncryptedMedia(source: .url(URL(fileURLWithPath: "/dev/null")),
                                    mediaType: item.mediaType, id: item.mediaID)
@@ -1521,7 +1513,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// moving to CloudKit. A run killed between an item's `sourceDeleted` checkpoint
     /// and its index write leaves the entry naming a file that is gone.
     private func removeLeftoverSourceEntries(of plan: MigrationPlan, source: Album) async {
-        guard let entries = await MediaIndexStore(album: source).current()?.entries else { return }
+        guard let entries = await albumManager.mediaIndexStore(for: source).current()?.entries else { return }
         for item in plan.items where item.state == .sourceDeleted {
             guard let entry = entries.first(where: { $0.id == item.mediaID }),
                   item.mediaType == .photo ? entry.hasPhotoComponent : entry.hasVideoComponent else { continue }
@@ -1858,7 +1850,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         }
         guard let destination, let albumID = plan.destination.cloudKitAlbumID else { return true }
         let store = makeStore(albumID)
-        let coordinator = makeRollbackCoordinator(albumID: albumID, cloudAlbum: destination, store: store)
+        let coordinator = makeRollbackCoordinator(cloudAlbum: destination, store: store)
         for item in plan.items {
             switch item.state {
             case .uploading, .uploaded, .verified:
@@ -1963,9 +1955,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             // `remove` dropped those records from the index; a full fetch lists the
             // ones that stayed, and the re-uploads, again.
             await store.resetChangeToken()
-            let coordinator = makeRollbackCoordinator(albumID: albumID, cloudAlbum: source, store: store)
+            let coordinator = makeRollbackCoordinator(cloudAlbum: source, store: store)
             do {
-                try await coordinator.sync(albumID: albumID)
+                try await coordinator.sync()
             } catch {
                 printDebug("rollback resync FAILED albumID=\(albumID) error=\(error) — the next sync fetches everything")
             }
@@ -2005,16 +1997,27 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// A coordinator for a rollback's own record work. Its gallery events go to a
     /// private bus: the local album shares media ids with the records being
     /// removed, and its grid must not drop them.
-    private func makeRollbackCoordinator(albumID: String, cloudAlbum: Album,
+    private func makeRollbackCoordinator(cloudAlbum: Album,
                                          store: CloudKitMediaStoring) -> CloudKitSyncCoordinator {
-        CloudKitSyncCoordinator(albumID: albumID,
-                                store: store,
-                                cache: CloudKitBlobCache.shared,
-                                indexStore: MediaIndexStore(album: cloudAlbum),
-                                sizeSidecar: AlbumSizeSidecar(album: cloudAlbum),
-                                bus: FileOperationBus(),
-                                uploadQueue: uploadQueue,
-                                chunkStore: chunkStoreOverride)
+        makeIsolatedCoordinator(cloudAlbum: cloudAlbum, store: store, bus: FileOperationBus())
+    }
+
+    /// A coordinator of the run's own, apart from the shared one: it works through
+    /// the run's store, upload queue and chunk store, which tests replace. It
+    /// reaches album indexes through `albumManager` like the shared coordinator,
+    /// and `cloudAlbum`'s are requested first so it finds them even while the
+    /// album is still being filled and no album list shows it.
+    private func makeIsolatedCoordinator(cloudAlbum: Album,
+                                         store: CloudKitMediaStoring,
+                                         bus: FileOperationBus) -> CloudKitSyncCoordinator {
+        _ = albumManager.mediaIndexStore(for: cloudAlbum)
+        _ = albumManager.sizeSidecar(for: cloudAlbum)
+        return CloudKitSyncCoordinator(store: store,
+                                       cache: CloudKitBlobCache.shared,
+                                       albumManager: albumManager,
+                                       bus: bus,
+                                       uploadQueue: uploadQueue,
+                                       chunkStore: chunkStoreOverride)
     }
 
     // MARK: - Pause / Resume / Cancel
@@ -2175,8 +2178,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     /// `pending` work item, sized from the size sidecar. Live Photos contribute one
     /// item per component (each is a record).
     private func enumerateCloudKitItems(album: Album) async -> [MigrationItem] {
-        let entries = await MediaIndexStore(album: album).current()?.entries ?? []
-        let sizes = await AlbumSizeSidecar(album: album).sizesByRecordName()
+        let entries = await albumManager.mediaIndexStore(for: album).current()?.entries ?? []
+        let sizes = await albumManager.sizeSidecar(for: album).sizesByRecordName()
         var items: [MigrationItem] = []
         for entry in entries {
             let createdAt = entry.dateTaken ?? entry.dateEncrypted ?? album.creationDate

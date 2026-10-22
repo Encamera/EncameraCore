@@ -48,7 +48,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         let indexURL = MediaIndexStore.indexURL(for: album)
         let sizeSidecarURL = AlbumSizeSidecar.sidecarURL(for: album)
         let coverSidecarURL = AlbumCoverSidecar.sidecarURL(for: album)
-        let namespace = CloudKitFileAccess.storeNamespace(for: album)
+        let namespace = CloudKitFileAccess.cloudKitAlbumID(for: album)
         let ciphertext = album.encryptedPathComponent
 
         album.name = "After"
@@ -60,7 +60,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertEqual(MediaIndexStore.indexURL(for: album), indexURL, "media index")
         XCTAssertEqual(AlbumSizeSidecar.sidecarURL(for: album), sizeSidecarURL, "size sidecar")
         XCTAssertEqual(AlbumCoverSidecar.sidecarURL(for: album), coverSidecarURL, "cover sidecar")
-        XCTAssertEqual(CloudKitFileAccess.storeNamespace(for: album), namespace, "change-token namespace")
+        XCTAssertEqual(CloudKitFileAccess.cloudKitAlbumID(for: album), namespace, "change-token namespace")
         XCTAssertEqual(namespace, albumID, "the store namespace is the album id itself")
     }
 
@@ -851,7 +851,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
             try placeFile(at: url)
         }
         addTeardownBlock { try? FileManager.default.removeItem(at: cacheFolder) }
-        let namespace = CloudKitFileAccess.storeNamespace(for: album)
+        let namespace = CloudKitFileAccess.cloudKitAlbumID(for: album)
         harness.manager.currentAlbum = album
         var renamedBroadcasts: [Album] = []
         let subscription = harness.manager.albumOperationPublisher.sink { operation in
@@ -881,7 +881,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertEqual(MediaIndexStore.indexURL(for: renamed), indexURL, "media index")
         XCTAssertEqual(AlbumSizeSidecar.sidecarURL(for: renamed), sizeSidecarURL, "size sidecar")
         XCTAssertEqual(AlbumCoverSidecar.sidecarURL(for: renamed), coverSidecarURL, "cover sidecar")
-        XCTAssertEqual(CloudKitFileAccess.storeNamespace(for: renamed), namespace, "change-token namespace")
+        XCTAssertEqual(CloudKitFileAccess.cloudKitAlbumID(for: renamed), namespace, "change-token namespace")
         for url in [cachedBlob, indexURL, sizeSidecarURL, coverSidecarURL] {
             XCTAssertTrue(FileManager.default.fileExists(atPath: url.path), "\(url.lastPathComponent) stays put")
         }
@@ -986,7 +986,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
                                                  albumManager: harness.manager,
                                                  deleteQueue: CloudKitAlbumDeleteQueue(defaults: makeIsolatedDefaults()),
                                                  publishRegistry: CloudKitAlbumPublishRegistry(defaults: makeIsolatedDefaults()))
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let pushed = harness.store.savedAlbumCalls.filter { $0.albumID == albumID }
         XCTAssertEqual(pushed.map(\.encName), [renamed.encryptedPathComponent], "the reconciler saves the new name")

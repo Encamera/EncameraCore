@@ -31,7 +31,7 @@ public actor DiskMediaBackend: MediaBackend {
         self.directoryModel = albumManager.storageModel(for: album)
         if albumID != album.id {
             self.albumID = album.id
-            self.indexStore = MediaIndexStore(album: album)
+            self.indexStore = albumManager.mediaIndexStore(for: album)
         }
     }
 

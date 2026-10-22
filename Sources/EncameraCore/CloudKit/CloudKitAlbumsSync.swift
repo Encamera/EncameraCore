@@ -2,10 +2,11 @@
 //  CloudKitAlbumsSync.swift
 //  EncameraCore
 //
-//  App-level fan-out for CloudKit pushes: a per-album `CloudKitFileAccess` only
-//  delta-syncs the album it was configured for, so inactive CloudKit albums (e.g.
-//  while the album grid is shown) would never refresh on a push. This observes
-//  `cloudKitZoneChanged` and reconciles every CloudKit album.
+//  App-level sync for CloudKit pushes: observes `cloudKitZoneChanged` and runs one
+//  pass over the zone for every CloudKit album, the open one and the rest alike.
+//  A pass is one walk of the zone change feed by the shared
+//  `CloudKitSyncCoordinator`, with the album reconcile run between the walk and
+//  the media changes it routes.
 //
 
 import Foundation
@@ -14,6 +15,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
 
     private let albumManager: AlbumManaging
     private let makeReconciler: @Sendable (AlbumManaging) -> CloudKitAlbumReconciler
+    private let makeCoordinator: @Sendable (AlbumManaging) -> CloudKitSyncCoordinator
     /// Gates reconciliation on the launch-time credential wait having resolved.
     /// `CloudKitAlbumReconciler` matches synced keys against a one-way album-id
     /// hash, so running it while iCloud Keychain credentials are still in flight
@@ -30,7 +32,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// The most recent count of remote albums that could not be materialized for lack
     /// of a synced key (key backup off). The UI reads this to prompt "N albums need
     /// key backup to appear here".
-    public private(set) var albumsNeedingKey: Int = 0
+    public private(set) var albumsNeedingPrivateKey: Int = 0
 
     private var activeSync: Task<Void, Never>?
     private(set) var resyncRequested = false
@@ -39,7 +41,8 @@ public actor CloudKitAlbumsSync: DebugPrintable {
                 observeNotifications: Bool = true,
                 isReadyToSync: @escaping @Sendable () -> Bool = { true },
                 statusReporter: CloudKitSyncStatusReporter? = nil,
-                makeReconciler: (@Sendable (AlbumManaging) -> CloudKitAlbumReconciler)? = nil) {
+                makeReconciler: (@Sendable (AlbumManaging) -> CloudKitAlbumReconciler)? = nil,
+                makeCoordinator: (@Sendable (AlbumManaging) -> CloudKitSyncCoordinator)? = nil) {
         self.albumManager = albumManager
         self.isReadyToSync = isReadyToSync
         self.statusReporter = statusReporter
@@ -48,6 +51,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
                                     keyManager: albumManager.keyManager,
                                     albumManager: albumManager)
         }
+        self.makeCoordinator = makeCoordinator ?? { CloudKitSyncCoordinator.shared(albumManager: $0) }
         if observeNotifications {
             observer = NotificationCenter.default.addObserver(
                 forName: .cloudKitZoneChanged, object: nil, queue: nil
@@ -90,11 +94,12 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         Self.printDebug("shutdown ok")
     }
 
-    /// First reconcile album *existence* from CloudKit (materialize newly-discovered
-    /// albums, remove ones deleted elsewhere, push local-only ones up), THEN reconcile each
-    /// CloudKit album's media index — so a newly materialized album is included in the
-    /// same pass. Local/iCloud-Drive albums are ignored throughout. Overlapping calls
-    /// coalesce into the in-flight run.
+    /// Walks the zone once, reconciles album *existence* from what the walk and the
+    /// album query say (materialize newly-discovered albums, remove ones deleted
+    /// elsewhere, push local-only ones up), THEN applies the walk's media changes to
+    /// every CloudKit album's index — so a newly materialized album gets its media
+    /// from the same walk. Local/iCloud-Drive albums are ignored throughout.
+    /// Overlapping calls coalesce into the in-flight run.
     public func syncAll() async {
         if let active = activeSync {
             resyncRequested = true
@@ -135,7 +140,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         let featureEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
         guard featureEnabled || hasCloudKitAlbums else {
             printDebug("performSyncAll skip reason=cloudKitPlaneInactive featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
-            albumsNeedingKey = 0
+            albumsNeedingPrivateKey = 0
             await LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
             return
         }
@@ -153,22 +158,43 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             printDebug("performSyncAll status unreported reason=\(hasCloudKitAlbums ? "accountUnavailable" : "noCloudKitAlbums")")
         }
 
-        let result = await reconciler.reconcileAlbums()
-        albumsNeedingKey = result.lockedOutCount
-        printDebug("performSyncAll reconcileAlbums done result=\(result)")
-        await LockedAlbumsReporter.shared.report(lockedAlbumCount: albumsNeedingKey)
-
-        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
-            .filter { $0.storageOption == .cloudKit }
-        printDebug("performSyncAll mediaReconcile start albumCount=\(albums.count)")
-        for album in albums {
-            let access = await CloudKitFileAccess(album: album, albumManager: albumManager)
-            _ = await access.reconcile()
+        let reconciled = ReconcileOutcome()
+        if await reconciler.accountAvailable() {
+            do {
+                try await makeCoordinator(albumManager).sync(albumPass: { changes in
+                    await reconciled.set(await reconciler.reconcileAlbums(changes: changes))
+                })
+            } catch {
+                printDebug("performSyncAll zoneSync FAILED raw=\(error)")
+            }
         }
+        // A walk that failed before the album pass still reconciles what the album
+        // query can say, as the reconcile did when it read the feed itself.
+        let result: CloudKitAlbumReconcileResult
+        if let fromWalk = await reconciled.result {
+            result = fromWalk
+        } else {
+            result = await reconciler.reconcileAlbums(changes: .none)
+        }
+        albumsNeedingPrivateKey = result.lockedOutCount
+        printDebug("performSyncAll reconcileAlbums done result=\(result)")
+        await LockedAlbumsReporter.shared.report(lockedAlbumCount: albumsNeedingPrivateKey)
+
+        let albumCount = albumManager.fetchAlbumsFromSources(includingHidden: true)
+            .filter { $0.storageOption == .cloudKit }.count
         await CloudKitUploader.shared.kick()
         if reportsCheck {
             await reporter().reportCheckFinished(succeeded: result.succeeded, storageFull: result.storageFull)
         }
-        printDebug("performSyncAll ok albumCount=\(albums.count) albumsNeedingKey=\(albumsNeedingKey)")
+        printDebug("performSyncAll ok albumCount=\(albumCount) albumsNeedingKey=\(albumsNeedingPrivateKey)")
+    }
+}
+
+/// The album pass's result, carried out of the coordinator's sync.
+private actor ReconcileOutcome {
+    private(set) var result: CloudKitAlbumReconcileResult?
+
+    func set(_ result: CloudKitAlbumReconcileResult) {
+        self.result = result
     }
 }

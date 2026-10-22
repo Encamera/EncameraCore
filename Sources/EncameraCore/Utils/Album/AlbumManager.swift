@@ -372,6 +372,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
 
         wipeImportHistory(album.id)
+        dropAlbumStores(album)
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
             deleteCloudKitAlbumRecord(album)
@@ -382,6 +383,15 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
         fixUpCurrentAlbum(deletedAlbum: album)
+    }
+
+    /// Forgets the albums' index stores and size sidecars, for an album that is gone,
+    /// has left its storage, or has a new id: a store kept past that would go on
+    /// serving its in-memory index after the file under it was removed or moved.
+    private func dropAlbumStores(_ albums: Album...) {
+        for album in albums {
+            AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+        }
     }
 
     /// Whether a storage move holds `album`: a whole-album plan on this device names
@@ -404,6 +414,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
 
         wipeImportHistory(album.id)
+        dropAlbumStores(album)
 
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
@@ -937,6 +948,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         var movedAlbum = album
         movedAlbum.storageOption = toStorage
         wipeImportHistory(album.id, movedAlbum.id)
+        dropAlbumStores(album, movedAlbum)
         albumOperationSubject.send(.albumMoved(album: movedAlbum))
         broadcastAlbumsUpdated()
         printDebug("Completed the move process for album: \(album.name)")
@@ -1012,6 +1024,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
 
         wipeImportHistory(album.id, cloudKitAlbum.id)
+        if album.storageOption != .cloudKit { dropAlbumStores(album) }
         if currentAlbum?.id == album.id { currentAlbum = cloudKitAlbum }
         albumOperationSubject.send(.albumMoved(album: cloudKitAlbum))
         broadcastAlbumsUpdated()
@@ -1063,6 +1076,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: localAlbum))
         try? FileManager.default.removeItem(at: AlbumSizeSidecar.sidecarURL(for: album))
         try? FileManager.default.removeItem(at: AlbumCoverSidecar.sidecarURL(for: album))
+        dropAlbumStores(album, localAlbum)
 
         if let marker {
             removeNameKeyedAlbumSettings(albumName: localAlbum.name)
@@ -1167,6 +1181,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         } catch {
             printDebug("renameAlbum could not carry the album's pending moves: \(error)")
         }
+
+        dropAlbumStores(renamedFrom)
 
         // A local album's id is its name, so its history file moves with the rename.
         do {

@@ -105,11 +105,17 @@ public actor MediaIndexStore {
     }
 
     /// Reads the authoritative on-disk index, refreshing the cache from it. Used by
-    /// the disk reconcile, which must diff against external writes rather than a
-    /// possibly-stale warm cache.
+    /// the disk reconcile and the CloudKit sync, which must diff against external
+    /// writes rather than a possibly-stale warm cache. A file that is gone or
+    /// unreadable drops the cache too: the store lives as long as the process, and
+    /// a removed index must be rebuilt, not served from memory.
     @discardableResult
     public func reloadFromDisk() -> MediaIndex? {
-        guard let loaded = load() else { return nil }
+        guard let loaded = load() else {
+            cachedIndex = nil
+            cacheTimestamp = nil
+            return nil
+        }
         cachedIndex = loaded
         cacheTimestamp = fileModificationDate() ?? Date()
         return loaded

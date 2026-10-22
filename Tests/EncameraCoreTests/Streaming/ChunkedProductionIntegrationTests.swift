@@ -419,8 +419,7 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         let indexURL = tempDir.appendingPathComponent("index-\(UUID().uuidString).encindex")
         let queueSuite = "ck-e2e-delete-\(UUID().uuidString)"
         deleteQueueSuites.append(queueSuite)
-        return CloudKitSyncCoordinator(
-            albumID: albumID,
+        return CloudKitSyncCoordinator.forTesting(albumID: albumID,
             store: makeMediaStore(chunkStore: makeChunkStore()),
             cache: CloudKitBlobCache(baseDir: tempDir.appendingPathComponent("cache-\(UUID().uuidString)"),
                                      maxBytes: 100 * 1024 * 1024),
@@ -494,7 +493,7 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         let blob = try await uploadChunkedVideo()
         let coordinator = makeColdCoordinator(albumID: "album-hash")
 
-        try await coordinator.sync(albumID: "album-hash")
+        try await coordinator.sync()
 
         let afterSync = try await coordinator.chunkedBlobInfo(recordName: videoRecordName)
         let info = try XCTUnwrap(afterSync, "the sync pass erased the record's chunk geometry")
@@ -687,7 +686,7 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
         let indexStore = MediaIndexStore(keyBytes: Array(repeating: 7, count: 32), indexURL: indexURL)
         let cache = CloudKitBlobCache(baseDir: tempDir.appendingPathComponent("cache"), maxBytes: 100_000_000)
         let deleteQueue = CloudKitMediaDeleteQueue(suiteName: makeIsolatedSuiteName())
-        let coordinator = CloudKitSyncCoordinator(albumID: "a1",
+        let coordinator = CloudKitSyncCoordinator.forTesting(albumID: "a1",
                                                   store: store,
                                                   cache: cache,
                                                   indexStore: indexStore,

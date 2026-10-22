@@ -113,4 +113,34 @@ final class DiskMediaBackendIncrementalIndexTests: XCTestCase {
         let afterClear = await backend.mediaIndex()?.entries.count
         XCTAssertEqual(afterClear, 0, "deleteAllMedia must empty the index")
     }
+
+    /// The disk backend gets its store from the album manager like every other
+    /// writer, so it and any other caller fold into the same index.
+    func testDiskBackendUsesAlbumManagerStore() async throws {
+        let album = makeAlbum()
+        let model = album.storageOption.modelForType.init(album: album)
+        try model.initializeDirectories()
+        let manager = makeManager(for: album)
+        defer {
+            try? FileManager.default.removeItem(at: model.baseURL)
+            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+            AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+        }
+
+        let backend = DiskMediaBackend()
+        await backend.configure(for: album, albumManager: manager)
+        let id = UUID().uuidString
+        _ = try await backend.save(media: try makePhoto(id: id), metadata: nil, progress: { _ in })
+
+        let shared = await manager.mediaIndexStore(for: album).current()
+        XCTAssertEqual(shared?.entries.map(\.id), [id],
+                       "the backend's write must be visible through the album manager's store")
+        try await manager.mediaIndexStore(for: album).upsert([MediaIndexEntry(id: "other", hasPhotoComponent: true,
+                                                                              hasVideoComponent: false,
+                                                                              dateEncrypted: nil, dateTaken: nil,
+                                                                              subtypeRawValue: 0)])
+        let seenByBackend = await backend.mediaIndex()
+        XCTAssertEqual(Set(seenByBackend?.entries.map(\.id) ?? []), [id, "other"],
+                       "a write through the album manager's store must be visible to the backend")
+    }
 }

@@ -107,7 +107,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     func shutdownCloudKitSync() async {
         await CloudKitUploader.shared.shutdown()
-        await CloudKitCoordinatorRegistry.shared.shutdownAll()
+        await CloudKitSyncCoordinator.shutdownShared()
         printDebug("EraserUtils: CloudKit sync infrastructure shut down")
     }
 

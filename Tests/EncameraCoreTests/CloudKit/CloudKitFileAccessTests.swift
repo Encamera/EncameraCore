@@ -37,6 +37,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let keyManager = DemoKeyManager()
         keyManager.currentKey = album.key
         let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
         return await CloudKitFileAccess(album: album, albumManager: albumManager, store: store, chunkStore: chunkStore)
     }
 
@@ -1936,5 +1937,103 @@ final class CloudKitFileAccessTests: XCTestCase {
         let data = try JSONEncoder().encode(StorageType.cloudKit)
         let decoded = try JSONDecoder().decode(StorageType.self, from: data)
         XCTAssertEqual(decoded, .cloudKit)
+    }
+
+    // MARK: - One walk of the zone
+
+    /// N CloudKit albums cost one walk of the zone per pass, not one per album, and
+    /// every album's index gets its records from it.
+    func testSyncAllFetchesZoneChangesOncePerPass() async throws {
+        let store = MockCloudKitMediaStore()
+        let prev = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in store }
+        defer { CloudKitStoreProvider.makeStore = prev }
+
+        let albums = (0..<3).map { _ in makeAlbum() }
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = albums[0].key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ck-syncall-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempRoot) }
+        var indexes: [MediaIndexStore] = []
+        for album in albums {
+            let index = MediaIndexStore(keyBytes: album.key.keyBytes,
+                                        indexURL: tempRoot.appendingPathComponent("\(UUID().uuidString).encindex"))
+            albumManager.addCloudKitAlbum(album.albumID!, indexStore: index)
+            indexes.append(index)
+        }
+        store.changeSet = CloudKitChangeSet(
+            changed: albums.enumerated().map { offset, album in
+                CloudKitMediaMetadata(recordName: "m\(offset)", albumID: album.albumID!, mediaID: "m\(offset)",
+                                      mediaType: .photo, createdAt: Date(timeIntervalSince1970: 100), sizeBytes: 1,
+                                      creationDeviceID: "d", schemaVersion: 1, recordChangeTag: "t\(offset)")
+            },
+            deleted: [], token: nil, moreComing: false)
+        let coordinator = CloudKitSyncCoordinator(
+            store: store,
+            cache: CloudKitBlobCache(baseDir: tempRoot.appendingPathComponent("cache"), maxBytes: 100_000_000),
+            albumManager: albumManager,
+            bus: FileOperationBus(),
+            uploadQueue: CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("uploads")),
+            deleteQueue: CloudKitMediaDeleteQueue(suiteName: "ck-syncall-\(UUID().uuidString)"))
+        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
+                                      makeCoordinator: { _ in coordinator })
+
+        await sync.syncAll()
+
+        XCTAssertEqual(store.fetchChangesCount, 1, "one pass must walk the zone once for all three albums")
+        for (offset, index) in indexes.enumerated() {
+            let entries = await index.current()?.entries.map(\.id)
+            XCTAssertEqual(entries, ["m\(offset)"], "album \(offset) must get exactly its own record")
+        }
+
+        await sync.syncAll()
+        XCTAssertEqual(store.fetchChangesCount, 2, "a second pass, as a push triggers, is one more fetch")
+    }
+
+    /// The uploader goes through the zone's coordinator, which finds any album's
+    /// index by id, so a capture queued for an album nobody opened this launch
+    /// still drains.
+    func testUploaderDrainsForAnAlbumNotOpenedThisLaunch() async throws {
+        let store = MockCloudKitMediaStore()
+        let notOpened = makeAlbum()
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = notOpened.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ck-unopened-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempRoot) }
+        let index = MediaIndexStore(keyBytes: notOpened.key.keyBytes,
+                                    indexURL: tempRoot.appendingPathComponent("index.encindex"))
+        albumManager.addCloudKitAlbum(notOpened.albumID!, indexStore: index)
+        let queue = CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("uploads"))
+        let coordinator = CloudKitSyncCoordinator(
+            store: store,
+            cache: CloudKitBlobCache(baseDir: tempRoot.appendingPathComponent("cache"), maxBytes: 100_000_000),
+            albumManager: albumManager,
+            bus: FileOperationBus(),
+            uploadQueue: queue,
+            deleteQueue: CloudKitMediaDeleteQueue(suiteName: "ck-unopened-\(UUID().uuidString)"))
+        let reporter = await MainActor.run { CloudKitSyncStatusReporter() }
+        let uploader = CloudKitUploader(queue: queue, coordinator: coordinator, statusReporter: reporter)
+
+        let fileURL = tempRoot.appendingPathComponent("capture.enc")
+        try Data("ciphertext".utf8).write(to: fileURL)
+        let upload = CloudKitMediaUpload(albumID: notOpened.albumID!, mediaID: "queued", mediaType: .photo,
+                                         createdAt: Date(timeIntervalSince1970: 1), sizeBytes: 10,
+                                         encryptedFileURL: fileURL, encryptedThumbURL: nil)
+        _ = try await queue.enqueue(upload)
+
+        await uploader.drainNow()
+
+        XCTAssertEqual(store.uploadCalls, [upload.recordName], "the queued capture must reach CloudKit")
+        let pending = await queue.all()
+        XCTAssertTrue(pending.isEmpty, "the queue entry must be completed")
+        let entries = await index.current()?.entries.map(\.id)
+        XCTAssertEqual(entries, ["queued"], "the album's index records the uploaded item")
+        await uploader.shutdown()
     }
 }

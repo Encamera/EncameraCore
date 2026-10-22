@@ -2531,8 +2531,7 @@ extension CloudKitMigrationManagerTests {
         /// Reads the record back the way a second device would: a fresh coordinator,
         /// an empty cache, and nothing learned from the upload.
         func readBack(recordName: String, albumID: String, key: [UInt8], into dir: URL) async throws -> Data {
-            let coordinator = CloudKitSyncCoordinator(
-                albumID: albumID,
+            let coordinator = CloudKitSyncCoordinator.forTesting(albumID: albumID,
                 store: mediaStore(),
                 cache: CloudKitBlobCache(baseDir: dir.appendingPathComponent("cache-\(UUID().uuidString)"),
                                          maxBytes: 512 * 1024 * 1024),
@@ -3172,7 +3171,7 @@ extension CloudKitMigrationManagerTests {
                                          recordName: recordName, keyFingerprint: "")
         try await queue.enqueue(upload)
         try? FileManager.default.removeItem(at: file)
-        let coordinator = CloudKitSyncCoordinator(albumID: albumID, store: fixture.store,
+        let coordinator = CloudKitSyncCoordinator.forTesting(albumID: albumID, store: fixture.store,
                                                   cache: CloudKitBlobCache.shared,
                                                   indexStore: MediaIndexStore(album: fixture.album),
                                                   uploadQueue: queue)

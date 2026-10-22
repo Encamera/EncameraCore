@@ -37,10 +37,8 @@ final class CloudKitUploaderTests: XCTestCase {
         queue = CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("uploads", isDirectory: true))
         deleteQueue = makeDeleteQueue()
         coordinator = makeCoordinator(store: store, uploadQueue: queue, deleteQueue: deleteQueue)
-        let registry = CloudKitCoordinatorRegistry()
-        _ = await registry.coordinator(forAlbumID: Self.albumID) { coordinator }
         reporter = await MainActor.run { CloudKitSyncStatusReporter() }
-        uploader = CloudKitUploader(queue: queue, registry: registry, statusReporter: reporter)
+        uploader = CloudKitUploader(queue: queue, coordinator: coordinator, statusReporter: reporter)
     }
 
     override func tearDown() async throws {
@@ -71,7 +69,7 @@ final class CloudKitUploaderTests: XCTestCase {
                                     indexURL: tempRoot.appendingPathComponent("\(UUID().uuidString).encindex"))
         let cache = CloudKitBlobCache(baseDir: tempRoot.appendingPathComponent("cache-\(UUID().uuidString)"),
                                       maxBytes: 500 * 1024 * 1024)
-        return CloudKitSyncCoordinator(albumID: Self.albumID, store: store, cache: cache, indexStore: index,
+        return CloudKitSyncCoordinator.forTesting(albumID: Self.albumID, store: store, cache: cache, indexStore: index,
                                        bus: FileOperationBus(), uploadQueue: uploadQueue,
                                        deleteQueue: deleteQueue)
     }

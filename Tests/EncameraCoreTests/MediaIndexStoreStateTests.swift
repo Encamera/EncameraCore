@@ -261,4 +261,94 @@ final class MediaIndexStoreStateTests: XCTestCase {
         let after = await store.current()
         XCTAssertEqual(after?.entries.map(\.id), ["reconciled"])
     }
+
+    // MARK: - One store per album
+
+    private func makeCloudKitAlbum() -> Album {
+        Album(name: "one-store-\(UUID().uuidString)", storageOption: .cloudKit, creationDate: Date(),
+              key: PrivateKey(keyBytes: randomKey(), creationDate: Date()), albumID: UUID().uuidString)
+    }
+
+    /// The app builds a new `AlbumManager` each time the key becomes available;
+    /// every one of them must hand out the same store for an album.
+    func testAlbumManagerReturnsOneStorePerAlbum() {
+        let album = makeCloudKitAlbum()
+        let first = AlbumManager(keyManager: DemoKeyManager())
+        let second = AlbumManager(keyManager: DemoKeyManager())
+
+        XCTAssertTrue(first.mediaIndexStore(for: album) === second.mediaIndexStore(for: album))
+        XCTAssertTrue(first.sizeSidecar(for: album) === second.sizeSidecar(for: album))
+        XCTAssertTrue(first.mediaIndexStore(forAlbumID: album.albumID!) === first.mediaIndexStore(for: album),
+                      "a lookup by CloudKit album id finds the store already handed out")
+        let other = makeCloudKitAlbum()
+        XCTAssertFalse(first.mediaIndexStore(for: album) === first.mediaIndexStore(for: other))
+        AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+        AlbumStoreRegistry.shared.drop(albumWithID: other.id)
+    }
+
+    /// Two writers that each built their own store would both load the same file and
+    /// the later save would drop the earlier write. Through the one store, every
+    /// upsert lands.
+    func testTwoCallersDoNotLoseConcurrentUpserts() async throws {
+        let album = makeCloudKitAlbum()
+        defer {
+            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+            AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+        }
+        let first = AlbumManager(keyManager: DemoKeyManager())
+        let second = AlbumManager(keyManager: DemoKeyManager())
+        let ids = (0..<40).map { "item-\($0)" }
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for (index, id) in ids.enumerated() {
+                let manager = index.isMultiple(of: 2) ? first : second
+                let store = manager.mediaIndexStore(for: album)
+                let entry = makeEntry(id: id)
+                group.addTask { try await store.upsert([entry]) }
+            }
+            try await group.waitForAll()
+        }
+
+        let onDisk = MediaIndexStore.storedEntries(for: album).map(\.id)
+        XCTAssertEqual(Set(onDisk), Set(ids), "no upsert may be lost to another writer's save")
+    }
+
+    /// A deleted album's store is forgotten, so a later album that reuses nothing of
+    /// it — or a store served from memory after its file is gone — cannot leak into
+    /// the next request.
+    func testDeletedAlbumDropsItsStore() throws {
+        let previousMakeStore = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in MockCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = previousMakeStore }
+        let manager = AlbumManager(keyManager: DemoKeyManager())
+        let album = makeCloudKitAlbum()
+        try CloudKitAlbumMarker(album: album, isHidden: false).write(albumID: album.albumID!)
+        defer { try? CloudKitAlbumMarker.remove(albumID: album.albumID!) }
+        let before = manager.mediaIndexStore(for: album)
+        let sidecarBefore = manager.sizeSidecar(for: album)
+
+        try manager.delete(album: album)
+
+        XCTAssertNil(AlbumStoreRegistry.shared.existingIndexStore(forCloudKitAlbumID: album.albumID!),
+                     "delete must drop the album's index store")
+        XCTAssertNil(AlbumStoreRegistry.shared.existingSizeSidecar(forCloudKitAlbumID: album.albumID!))
+        XCTAssertFalse(manager.mediaIndexStore(for: album) === before)
+        XCTAssertFalse(manager.sizeSidecar(for: album) === sidecarBefore)
+        AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+    }
+
+    /// The store outlives any one index file, so a reload of a removed file must not
+    /// go on serving the copy in memory.
+    func testReloadOfRemovedIndexDropsTheCachedCopy() async throws {
+        let indexURL = try makeTempIndexURL()
+        let store = MediaIndexStore(keyBytes: randomKey(), indexURL: indexURL)
+        try await store.upsert([makeEntry(id: "a")])
+        try FileManager.default.removeItem(at: indexURL)
+
+        let reloaded = await store.reloadFromDisk()
+        let current = await store.current()
+
+        XCTAssertNil(reloaded)
+        XCTAssertNil(current, "a removed index must be rebuilt, not served from memory")
+    }
 }

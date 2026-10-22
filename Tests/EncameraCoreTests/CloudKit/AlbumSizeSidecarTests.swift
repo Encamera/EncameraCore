@@ -46,7 +46,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
                                     indexURL: tempRoot.appendingPathComponent("\(UUID().uuidString).encindex"))
         let cache = CloudKitBlobCache(baseDir: tempRoot.appendingPathComponent("cache-\(UUID().uuidString)"),
                                       maxBytes: 500 * 1024 * 1024)
-        return CloudKitSyncCoordinator(albumID: "a1",
+        return CloudKitSyncCoordinator.forTesting(albumID: "a1",
                                        store: store,
                                        cache: cache,
                                        indexStore: index,
@@ -99,7 +99,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
         let sidecar = AlbumSizeSidecar(fileURL: sidecarURL())
         let coord = makeCoordinator(store: store, sidecar: sidecar)
 
-        try await coord.sync(albumID: "a1")
+        try await coord.sync()
 
         let total = await sidecar.totalBytes()
         XCTAssertEqual(total, 4_000, "Both Live Photo components must contribute their own size")
@@ -119,7 +119,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
         let sidecar = AlbumSizeSidecar(fileURL: sidecarURL())
         let coord = makeCoordinator(store: store, sidecar: sidecar)
 
-        try await coord.sync(albumID: "a1")
+        try await coord.sync()
 
         let total = await sidecar.totalBytes()
         XCTAssertEqual(total, 333)
@@ -136,7 +136,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
         )
         let sidecar = AlbumSizeSidecar(fileURL: sidecarURL())
         let coord = makeCoordinator(store: store, sidecar: sidecar)
-        try await coord.sync(albumID: "a1")
+        try await coord.sync()
 
         try await coord.remove(recordName: "live#1", albumID: "a1")
         var total = await sidecar.totalBytes()
@@ -172,7 +172,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
             deleted: [], token: nil, moreComing: false
         )
         let coord = makeCoordinator(store: store, sidecar: AlbumSizeSidecar(fileURL: url))
-        try await coord.sync(albumID: "a1")
+        try await coord.sync()
 
         let relaunched = AlbumSizeSidecar(fileURL: url)
         let total = await relaunched.totalBytes()
@@ -194,7 +194,7 @@ final class AlbumSizeSidecarTests: XCTestCase {
         let sidecar = AlbumSizeSidecar(fileURL: blocker.appendingPathComponent("a.encsizes"))
         let coord = makeCoordinator(store: store, sidecar: sidecar)
 
-        try await coord.sync(albumID: "a1")
+        try await coord.sync()
 
         let total = await sidecar.totalBytes()
         XCTAssertEqual(total, 0, "Nothing persisted, but the sync itself succeeded")

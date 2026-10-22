@@ -286,7 +286,10 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
     }
 
     public func verifyCloudKitSyncShutdown() async -> ErasureVerdict {
-        let live = await CloudKitCoordinatorRegistry.shared.knownAlbumIDs()
+        var live: [String] = []
+        if let shared = CloudKitSyncCoordinator.existingShared, await !shared.hasShutDown {
+            live.append("zone")
+        }
         return .residue("live sync coordinators", names: live, hint: .retry)
     }
 

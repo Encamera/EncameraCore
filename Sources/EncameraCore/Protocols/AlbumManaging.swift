@@ -61,6 +61,18 @@ public protocol AlbumManaging {
 
     /// Rescans the filesystem and broadcasts the updated album list.
     func notifyAlbumsChanged()
+
+    /// The album's media index store: one instance per album for the whole process,
+    /// so every writer folds into the same index. See `AlbumStoreRegistry`.
+    func mediaIndexStore(for album: Album) -> MediaIndexStore
+    /// The index store of the CloudKit album `albumID`, or nil when no album on this
+    /// device has that id.
+    func mediaIndexStore(forAlbumID albumID: String) -> MediaIndexStore?
+    /// The album's size sidecar, one instance per album for the whole process.
+    func sizeSidecar(for album: Album) -> AlbumSizeSidecar
+    /// The size sidecar of the CloudKit album `albumID`, or nil when no album on
+    /// this device has that id.
+    func sizeSidecar(forAlbumID albumID: String) -> AlbumSizeSidecar?
 }
 
 /// How far an album move has got: `completed` of `total` files handled, whether
@@ -93,6 +105,33 @@ public extension AlbumManaging {
 
     /// Default no-op for lightweight conformers (previews, test doubles).
     func notifyAlbumsChanged() {}
+
+    func mediaIndexStore(for album: Album) -> MediaIndexStore {
+        AlbumStoreRegistry.shared.indexStore(for: album)
+    }
+
+    /// A store already handed out for the album answers first, so an album a
+    /// migration is still filling, which no album list shows yet, is found too.
+    func mediaIndexStore(forAlbumID albumID: String) -> MediaIndexStore? {
+        AlbumStoreRegistry.shared.existingIndexStore(forCloudKitAlbumID: albumID)
+            ?? cloudKitAlbum(withID: albumID).map { mediaIndexStore(for: $0) }
+    }
+
+    func sizeSidecar(for album: Album) -> AlbumSizeSidecar {
+        AlbumStoreRegistry.shared.sizeSidecar(for: album)
+    }
+
+    func sizeSidecar(forAlbumID albumID: String) -> AlbumSizeSidecar? {
+        AlbumStoreRegistry.shared.existingSizeSidecar(forCloudKitAlbumID: albumID)
+            ?? cloudKitAlbum(withID: albumID).map { sizeSidecar(for: $0) }
+    }
+
+    /// The CloudKit album on this device whose record id is `albumID`, hidden or not.
+    func cloudKitAlbum(withID albumID: String) -> Album? {
+        fetchAlbumsFromSources(includingHidden: true).first {
+            $0.storageOption == .cloudKit && $0.albumID == albumID
+        }
+    }
     func fetchAlbumsFromSources() -> [Album] {
         fetchAlbumsFromSources(includingHidden: false)
     }

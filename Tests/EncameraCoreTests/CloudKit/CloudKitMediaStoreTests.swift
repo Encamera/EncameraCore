@@ -13,8 +13,7 @@ import CloudKit
 final class CloudKitMediaStoreTests: XCTestCase {
     private final class Box: @unchecked Sendable { var values: [Double] = [] }
 
-    private let tokenKey = "cloudkit_zone_change_token_v1"
-    private let longLivedMapKey = "cloudkit_longlived_ops_v1"
+    private let tokenKey = CloudKitMediaStore.tokenKey
 
     private func freshDefaults(_ name: String = #function) -> UserDefaults {
         makeIsolatedDefaults(name)
@@ -908,20 +907,7 @@ final class CloudKitMediaStoreTests: XCTestCase {
                        "A failed fetch must not advance the persisted change token")
     }
 
-    // MARK: - Interrupted uploads / legacy long-lived state
-
-    /// The crash was armed by *persisted* long-lived operation IDs that a later store
-    /// construction handed back to CloudKit. Constructing a store must clear the map
-    /// an older build left behind, so there is nothing left to hand back.
-    func testConstructingAStoreClearsTheLegacyLongLivedOperationMap() {
-        let defaults = freshDefaults()
-        defaults.set(["m1": "3090886DAE392CF7", "m2": "opB"], forKey: longLivedMapKey)
-
-        _ = makeStore(adapter: MockCloudKitDatabase(), defaults: defaults)
-
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
-                     "A stale long-lived operation map must not survive store construction")
-    }
+    // MARK: - Interrupted uploads
 
     /// Store construction used to kick off a CloudKit round-trip (fetch all
     /// long-lived operation IDs, then re-enqueue each). It must now be inert: the
@@ -929,7 +915,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
     /// re-enqueues was a chance to raise the uncatchable `CKException`.
     func testConstructingManyStoresIssuesNoCloudKitWork() async {
         let defaults = freshDefaults()
-        defaults.set(["m1": "opA"], forKey: longLivedMapKey)
         let mock = MockCloudKitDatabase()
 
         for _ in 0..<5 {
@@ -940,7 +925,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertEqual(mock.saveCount, 0)
         XCTAssertEqual(mock.fetchCount, 0)
         XCTAssertEqual(mock.deleteCount, 0)
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey))
     }
 
     /// An upload killed part-way (here: the save fails, standing in for the process
@@ -948,11 +932,8 @@ final class CloudKitMediaStoreTests: XCTestCase {
     /// the next attempt at the same record misbehave — the retry is an ordinary save.
     func testInterruptedUploadLeavesNoStateThatBreaksTheNextSave() async throws {
         let defaults = freshDefaults()
-        defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
         let mock = MockCloudKitDatabase()
         let store = makeStore(adapter: mock, defaults: defaults)
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
-                     "Constructing the store must drop the map before anything can hand it back")
 
         mock.saveError = CKErrorFactory.error(.networkFailure)
         do {
@@ -967,8 +948,6 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
         XCTAssertEqual(ref.recordName, "media-1")
         XCTAssertEqual(mock.saveCount, 2, "The retry is a fresh, ordinary save")
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
-                     "An interrupted upload must not record a long-lived operation")
     }
 
     /// The full repro shape: an upload is interrupted, the app is "relaunched"
@@ -985,14 +964,11 @@ final class CloudKitMediaStoreTests: XCTestCase {
         } catch {
             // expected
         }
-        defaults.set(["media-1": "3090886DAE392CF7"], forKey: longLivedMapKey)
 
         let secondMock = MockCloudKitDatabase()
         var stores: [CloudKitMediaStore] = []
         for _ in 0..<3 { stores.append(makeStore(adapter: secondMock, defaults: defaults)) }
         XCTAssertEqual(secondMock.saveCount, 0, "No store construction may issue a CloudKit operation")
-        XCTAssertNil(defaults.object(forKey: longLivedMapKey),
-                     "The relaunch must drop the recorded operation rather than re-attach to it")
 
         let ref = try await XCTUnwrap(stores.last).upload(makeUpload(), progress: { _ in })
 

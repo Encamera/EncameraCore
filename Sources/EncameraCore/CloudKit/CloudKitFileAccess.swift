@@ -28,10 +28,16 @@ import Combine
 /// Supplies the `CloudKitMediaStoring` implementation. Production returns the real
 /// store; UI tests bind a deterministic in-memory mock via `UITestSupport`.
 public enum CloudKitStoreProvider {
-    /// `tokenNamespace` scopes the store's zone change-token cursor per album so
-    /// albums don't clobber each other's sync position. Mocks may ignore it.
-    nonisolated(unsafe) public static var makeStore: @Sendable (_ tokenNamespace: String) -> CloudKitMediaStoring = { namespace in
-        CloudKitMediaStore(tokenNamespace: namespace)
+    /// `purpose` names the caller, for a test double that wants to tell callers
+    /// apart. It has no effect on the store: every store shares the zone's one
+    /// change cursor.
+    ///
+    /// Binding a new factory drops the shared coordinator, so the next one is built
+    /// on the store this factory makes.
+    nonisolated(unsafe) public static var makeStore: @Sendable (_ purpose: String) -> CloudKitMediaStoring = { _ in
+        CloudKitMediaStore()
+    } {
+        didSet { CloudKitSyncCoordinator.resetShared() }
     }
 }
 
@@ -66,9 +72,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Transport for streamed chunks. `nil` means the CloudKit store, built
     /// per session; tests hand in an in-memory one.
     private let chunkStore: ChunkedBlobStoring?
-    /// The album's CloudKit id: the store's change-token namespace, the coordinator
-    /// and registry key, and the `albumID` on every record this album owns.
-    static func storeNamespace(for album: Album) -> String {
+    /// The album's CloudKit id: the `albumID` on every record this album owns, and
+    /// what the coordinator routes those records by.
+    static func cloudKitAlbumID(for album: Album) -> String {
         guard let albumID = album.albumID else {
             assertionFailure("a CloudKit album has no albumID")
             return ""
@@ -76,6 +82,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         return albumID
     }
 
+    /// - Parameter store: a test double. Passing one isolates this instance: it gets
+    ///   its own upload queue, blob cache, delete queue and coordinator, which
+    ///   reaches every album through `albumManager` like the shared one does.
+    ///   Without one, the instance uses the app-wide shared coordinator.
     public init(album: Album,
                 albumManager: AlbumManaging,
                 store: CloudKitMediaStoring? = nil,
@@ -85,15 +95,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         self.keyBytes = album.key.keyBytes
         self.keyManager = albumManager.keyManager
         self.keyResolver = CloudKitRecordKeyResolver(albumKey: album.key, keyManager: albumManager.keyManager)
-        let albumID = Self.storeNamespace(for: album)
+        let albumID = Self.cloudKitAlbumID(for: album)
         self.albumID = albumID
-        let resolvedStore = store ?? CloudKitStoreProvider.makeStore(albumID)
-        self.store = resolvedStore
         self.directoryModel = CloudKitStorageModel(album: album)
-        let index = MediaIndexStore(album: album)
-        self.indexStore = index
-        let sizeSidecar = AlbumSizeSidecar(album: album)
-        if store != nil {
+        self.indexStore = albumManager.mediaIndexStore(for: album)
+        if let store {
+            self.store = store
             let isolatedQueue = CloudKitUploadQueue(
                 baseDir: FileManager.default.temporaryDirectory
                     .appendingPathComponent("CloudKitUploads-test-\(UUID().uuidString)", isDirectory: true)
@@ -101,31 +108,20 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             self.uploadQueue = isolatedQueue
             let isolatedCache = CloudKitBlobCache()
             self.blobCache = isolatedCache
-            let isolatedRegistry = CloudKitCoordinatorRegistry()
-            let isolatedDeletes = CloudKitMediaDeleteQueue(suiteName: Self.testDeleteSuiteName)
-            self.coordinator = await isolatedRegistry.coordinator(forAlbumID: albumID) {
-                CloudKitSyncCoordinator(albumID: albumID,
-                                        store: resolvedStore,
-                                        cache: isolatedCache,
-                                        indexStore: index,
-                                        sizeSidecar: sizeSidecar,
-                                        uploadQueue: isolatedQueue,
-                                        deleteQueue: isolatedDeletes,
-                                        chunkStore: chunkStore)
-            }
-            self.uploader = CloudKitUploader(queue: isolatedQueue, registry: isolatedRegistry)
+            let isolated = CloudKitSyncCoordinator(store: store,
+                                                   cache: isolatedCache,
+                                                   albumManager: albumManager,
+                                                   uploadQueue: isolatedQueue,
+                                                   deleteQueue: CloudKitMediaDeleteQueue(suiteName: Self.testDeleteSuiteName),
+                                                   chunkStore: chunkStore)
+            self.coordinator = isolated
+            self.uploader = CloudKitUploader(queue: isolatedQueue, coordinator: isolated)
         } else {
+            self.store = CloudKitStoreProvider.makeStore("file-access")
             self.uploadQueue = .shared
             self.uploader = .shared
             self.blobCache = .shared
-            self.coordinator = await CloudKitCoordinatorRegistry.shared.coordinator(forAlbumID: albumID) {
-                CloudKitSyncCoordinator(albumID: albumID,
-                                        store: resolvedStore,
-                                        cache: CloudKitBlobCache.shared,
-                                        indexStore: index,
-                                        sizeSidecar: sizeSidecar,
-                                        uploadQueue: .shared)
-            }
+            self.coordinator = CloudKitSyncCoordinator.shared(albumManager: albumManager)
         }
         let preview = DiskFileAccess()
         await preview.configure(for: album, albumManager: albumManager)
@@ -144,10 +140,10 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Lifecycle
 
-    /// Ensures the custom zone exists, registers the push subscription, and does an
-    /// initial delta sync. Safe to call repeatedly; no-ops when the account is
-    /// unavailable. Push-driven re-sync is handled app-wide by `CloudKitAlbumsSync`
-    /// (which covers inactive albums too), not per-instance here.
+    /// Ensures the custom zone exists and does an initial delta sync of the zone,
+    /// which registers the push subscription. Safe to call repeatedly; no-ops when
+    /// the account is unavailable. Push-driven re-sync is handled app-wide by
+    /// `CloudKitAlbumsSync` (which covers inactive albums too), not per-instance here.
     public func start() async {
         printDebug("start begin albumID=\(albumID)")
         if await store.accountAvailable() {
@@ -159,10 +155,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         } else {
             printDebug("start skip albumID=\(albumID) reason=accountUnavailable — zone not ensured")
         }
-        await coordinator.startObserving()
         await uploader.kick()
         do {
-            try await coordinator.sync(albumID: albumID)
+            try await coordinator.sync()
             printDebug("start ok albumID=\(albumID)")
         } catch {
             printDebug("start initialSync FAILED albumID=\(albumID) raw=\(error)")
@@ -542,11 +537,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Enumeration (from the synced index, never the network)
 
-    /// Brings the local index in sync with CloudKit (delta fetch).
+    /// Brings the local index in sync with CloudKit: a delta walk of the zone,
+    /// which brings every other CloudKit album's index current with it.
     @discardableResult
     public func reconcile() async -> Bool {
         do {
-            try await coordinator.sync(albumID: albumID)
+            try await coordinator.sync()
             printDebug("reconcile ok albumID=\(albumID)")
             return true
         } catch {
@@ -671,7 +667,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             components.append(
                 MediaStorageDetails.Component(
                     mediaType: item.mediaType,
-                    remoteBytes: await coordinator.remoteBytes(recordName: recordName),
+                    remoteBytes: await coordinator.remoteBytes(recordName: recordName, albumID: albumID),
                     localBytes: await coordinator.cachedBytes(recordName: recordName),
                     format: format,
                     chunkCount: chunkCount > 0 ? chunkCount : nil
@@ -833,7 +829,8 @@ extension CloudKitFileAccess {
     /// Called on the **target** album's `CloudKitFileAccess`. The store's
     /// `reassignAlbum` rewrites `albumID`, `albumRef` and `parent` on the server;
     /// the local side relocates the blob cache, upserts the target index, and
-    /// emits a bus event so the gallery refreshes.
+    /// emits a bus event so the gallery refreshes. The sync that follows takes the
+    /// records out of the source album's index.
     public func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)? = nil) async throws {
         try refuseIfAlbumIsMovingToLocal("move")
         // Collect record names for all components.
@@ -870,9 +867,10 @@ extension CloudKitFileAccess {
             }
         }
 
-        // A sync picks up the moved records' sizes for the target album's sidecar
-        // and keeps the coordinator's change tags current.
-        try? await coordinator.sync(albumID: albumID)
+        // A sync picks up the moved records' sizes for the target album's sidecar,
+        // clears them from the source album's index, and keeps the coordinator's
+        // change tags current.
+        try? await coordinator.sync()
 
         // Emit a bus event for the gallery to refresh.
         let busMedia = media.underlyingMedia.map { component in

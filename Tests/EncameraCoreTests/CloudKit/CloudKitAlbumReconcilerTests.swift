@@ -234,7 +234,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                               recordChangeTag: "tag"))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
@@ -246,7 +246,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(uuidRecord(name: "Elsewhere", key: makeKey(9)))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [makeKey(1), makeKey(2)], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
@@ -260,7 +260,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(store.savedAlbumCalls.map { $0.albumID }, [local.albumID])
@@ -278,7 +278,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.saveAlbumError = CloudKitMediaStoreError.partial(failed: [albumID: CKErrorFactory.error(.quotaExceeded)])
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        let result = await reconciler.reconcileAlbums()
+        let result = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(result, .succeeded(lockedOutCount: 0, storageFull: true))
         XCTAssertEqual(store.saveAlbumAttemptCount, 1)
@@ -290,7 +290,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [localAlbum("OnlyHere", key: key)])
 
-        let result = await reconciler.reconcileAlbums()
+        let result = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(result, .succeeded(lockedOutCount: 0))
         XCTAssertFalse(result.storageFull)
@@ -302,7 +302,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "Remote", key: absentOwner))
         let (reconciler, _) = makeReconciler(store: store, keys: [makeKey(1)], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 1)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
@@ -426,7 +426,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.accountAvailableValue = false
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(store.fetchChangesCount, 0, "no account means the zone is never read")
@@ -434,7 +434,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
 
         store.accountAvailableValue = true
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.fetchChangesCount, 1)
         XCTAssertEqual(store.fetchAllAlbumsCount, 1)
@@ -448,7 +448,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [localAlbum("Offline", key: key)])
 
-        let result = await reconciler.reconcileAlbums()
+        let result = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(result, .accountUnavailable,
                        "a pass with no account must say so, not pass for a clean reconcile with 0 locked out")
@@ -464,7 +464,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let result = await reconciler.reconcileAlbums()
+        let result = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(result, .fetchFailed,
                        "a failed album query must say so, not pass for a clean reconcile with 0 locked out")
@@ -473,7 +473,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty)
 
         store.fetchAllAlbumsError = nil
-        let retry = await reconciler.reconcileAlbums()
+        let retry = await reconciler.reconcileAlbumsAfterWalk()
         XCTAssertEqual(retry, .succeeded(lockedOutCount: 1),
                        "once the fetch works the pass succeeds and counts the unreadable album")
     }
@@ -485,7 +485,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "Synced", key: key, albumID: local.albumID!))
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.savedAlbumCalls.isEmpty, "an album already present remotely must not be re-pushed")
     }
@@ -498,7 +498,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "FromOtherDevice", key: key, isHidden: true))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(albumManager.adoptedAlbums.map { $0.name }, ["FromOtherDevice"],
@@ -513,7 +513,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        let lockedOut = await reconciler.reconcileAlbums().lockedOutCount
+        let lockedOut = await reconciler.reconcileAlbumsAfterWalk().lockedOutCount
 
         XCTAssertEqual(lockedOut, 0)
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
@@ -534,7 +534,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                             deletedAlbumIDs: [albumID], token: nil, moreComing: false)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.remoteDeletedAlbums.map { $0.name }, ["Gone"],
                        "a deleted remote album must be removed via applyRemoteAlbumDeletion so broadcasts, currentAlbum, and hidden-state cleanup all run without touching CloudKit records")
@@ -549,7 +549,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.savedAlbumCalls.count, 1, "a never-published album is self-healed, not deleted")
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty,
@@ -571,7 +571,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.callOrder.contains(.fetchAlbum(albumID: albumID)),
                       "only a fetch by id can prove the record is gone")
@@ -599,7 +599,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty, "query-index latency must never be read as a deletion")
         XCTAssertTrue(albumManager.remoteDeletedAlbums.isEmpty)
@@ -628,7 +628,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty)
         XCTAssertTrue(albumManager.remoteDeletedAlbums.isEmpty)
@@ -652,7 +652,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.remoteDeletedAlbums.map { $0.name }, ["DeletedElsewhere"])
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty)
@@ -670,7 +670,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(remoteRecord(name: "FromOtherDevice", key: key, albumID: albumID))
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [], publishRegistry: registry)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(registry.isPublished(albumID))
     }
@@ -683,7 +683,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
         albumManager.hiddenAlbumNames = ["Private"]
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.savedAlbumCalls.isEmpty, "the album was recognised as already remote")
         XCTAssertTrue(albumManager.deletedAlbums.isEmpty, "and not treated as absent from the query")
@@ -704,7 +704,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(albumID)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.deletedAlbumCalls, [albumID], "the pending delete must be drained to the server")
         XCTAssertTrue(queue.pending().isEmpty, "a confirmed delete leaves the queue")
@@ -725,7 +725,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(albumID)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.deletedAlbumCalls, [albumID], "the delete was attempted and refused")
         XCTAssertEqual(queue.pending(), [albumID], "an unconfirmed delete stays queued for the next pass")
@@ -743,13 +743,13 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let planStore = try await pendingMoveToCloudKit(into: record.albumID, key: key)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
                       "the album a move on this device is filling must not show up as a second album")
 
         await planStore.delete()
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "once the plan is gone the album is adopted normally")
@@ -767,7 +767,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
                       "an album another device is still moving into CloudKit is not adopted here")
@@ -776,7 +776,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                                       createdAt: record.createdAt, isHidden: false,
                                                       keyFingerprint: key.keyFingerprint,
                                                       migrationInProgress: false))
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "the album is adopted once the moving device clears the flag")
@@ -819,7 +819,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                   member(of: record.albumID, uploadedAgo: stale + Self.day)]
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "an album whose move went quiet for the whole window is adopted")
@@ -834,7 +834,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "a move that flagged the album and then vanished before its first upload is abandoned too")
@@ -848,7 +848,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
                       "a move that saved the album record inside the window is still filling it")
@@ -867,14 +867,14 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                   member(of: "another-album", uploadedAgo: stale)]
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
                       "an item uploaded into the album an hour ago means the move is still filling it")
 
         store.metadataToReturn = [member(of: record.albumID, uploadedAgo: stale),
                                   member(of: "another-album", uploadedAgo: 60 * 60)]
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "only the album's own media count as activity")
@@ -889,7 +889,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.fetchMetadataError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(albumManager.adoptedAlbums.isEmpty,
                       "without the album's media the move cannot be shown to be abandoned")
@@ -910,7 +910,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(record.albumID, requiresNoMembers: true)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "an album with members must not be deleted")
         XCTAssertTrue(queue.pending().isEmpty, "the stale delete intent is dropped")
@@ -927,7 +927,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(record.albumID, requiresNoMembers: true)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.deletedAlbumCalls, [record.albumID])
         XCTAssertTrue(queue.pending().isEmpty)
@@ -945,7 +945,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(record.albumID, requiresNoMembers: true)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.deletedAlbumCalls.isEmpty, "no delete without a completed membership check")
         XCTAssertEqual(queue.pending(), [record.albumID], "the delete waits for the next pass")
@@ -963,7 +963,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(record.albumID)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.deletedAlbumCalls, [record.albumID])
         XCTAssertTrue(queue.pending().isEmpty)
@@ -980,7 +980,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         queue.enqueue(record.albumID)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [], deleteQueue: queue)
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.deletedAlbumCalls.isEmpty,
                       "the destination of a move on this device keeps the media already moved into it")
@@ -1049,7 +1049,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
                                             deletedAlbumIDs: [albumID], token: nil, moreComing: false)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         // The album was removed via the local-only path, not the full delete.
         XCTAssertEqual(albumManager.remoteDeletedAlbums.map { $0.name }, ["Renamed"],
@@ -1085,7 +1085,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record(for: sibling))
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [renamed, sibling])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: renamed.albumID!))
         XCTAssertEqual(marker.encName, newEncName, "album.json takes the record's name ciphertext")
@@ -1117,7 +1117,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         }
         defer { subscription.cancel() }
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
         XCTAssertTrue(marker.isHidden)
@@ -1141,7 +1141,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(reset)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertNil(albumManager.getAlbumCoverImageId(album: album))
         XCTAssertNil(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID)
@@ -1161,7 +1161,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(changed)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
         XCTAssertEqual(marker.coverMediaID, "new-cover")
@@ -1185,7 +1185,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
         XCTAssertEqual(marker.coverMediaID, "my-cover")
@@ -1204,7 +1204,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(unchanged)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!), before)
         XCTAssertEqual(albumManager.notifyAlbumsChangedCount, 0)
@@ -1222,7 +1222,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let marker = try XCTUnwrap(CloudKitAlbumMarker.read(albumID: album.albumID!))
         XCTAssertEqual(Album.decryptedAlbumName(marker.encName, key: key), "LocalName")
@@ -1245,7 +1245,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(stale)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let saved = try XCTUnwrap(store.savedAlbumCalls.first)
         XCTAssertEqual(store.savedAlbumCalls.count, 1)
@@ -1268,13 +1268,13 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.saveAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.dirty, true)
 
         store.saveAlbumError = nil
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.savedAlbumCalls.map(\.encName), [album.encryptedPathComponent])
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.dirty, false)
@@ -1290,7 +1290,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [album])
         XCTAssertFalse(albumManager.isAlbumHidden(album), "precondition: the manager's own flag disagrees")
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         let saved = try XCTUnwrap(store.savedAlbumCalls.first)
         XCTAssertTrue(saved.isHidden)
@@ -1303,14 +1303,14 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.savedAlbumCalls.count, 1)
         XCTAssertNil(store.savedAlbumCalls.first?.coverMediaID)
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.dirty, false)
 
         store.changeSet = changeFeed(changedAlbums: [record(for: album, coverMediaID: nil)])
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID, "none",
                        "the record's missing cover does not turn a disabled cover back on")
@@ -1323,7 +1323,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         store.seedAlbum(record(for: album))
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
-        _ = await reconciler.reconcileAlbums()
+        _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
     }
@@ -1348,5 +1348,24 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(pending.count, 100, "Racing enqueue/remove must not lose entries")
         XCTAssertTrue(pending.allSatisfy { $0.hasPrefix("fresh-") },
                       "All enqueued entries must survive and all removed entries must be gone")
+    }
+
+    /// The zone walk, not the reconciler, reads the feed now. An album the walk
+    /// reports deleted must be gone before the push step, or the never-published
+    /// self-heal would upload it again and undo another device's delete.
+    func testAlbumDeletedRemotelyIsNotPushedBack() async {
+        let key = makeKey(5)
+        let local = localAlbum("DeletedElsewhere", key: key)
+        let store = MockCloudKitMediaStore()
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local])
+
+        let result = await reconciler.reconcileAlbums(
+            changes: CloudKitAlbumChanges(changedAlbums: [], deletedAlbumIDs: [local.albumID!]))
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(albumManager.remoteDeletedAlbums.map(\.albumID), [local.albumID])
+        XCTAssertTrue(store.savedAlbumCalls.isEmpty,
+                      "an album the walk reported deleted must not be pushed back to the server")
+        XCTAssertEqual(store.fetchChangesCount, 0, "the reconciler must not read the change feed itself")
     }
 }

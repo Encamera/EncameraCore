@@ -16,7 +16,9 @@
 //     at create-time is recovered.
 //
 //  Deletions come from the zone change feed (`deletedAlbumIDs`), not from absence
-//  in `fetchAllAlbums`. That distinction is the whole design: the query's index is
+//  in `fetchAllAlbums`. The reconciler does not read the feed itself:
+//  `CloudKitSyncCoordinator` walks the zone once per sync for media and albums
+//  alike and hands it the album part (`CloudKitAlbumChanges`). That distinction is the whole design: the query's index is
 //  eventually consistent, so absence there is not evidence of anything, and a
 //  reconciler that treated it as a delete would race every fresh create. An album
 //  absent from the query that was never published is pushed (self-heal). One that
@@ -79,7 +81,7 @@ public enum CloudKitAlbumReconcileResult: Equatable, Sendable {
 
 public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable {
 
-    private let store: CloudKitMediaStoring
+    let store: CloudKitMediaStoring
     private let keyManager: KeyManager
     private let albumManager: AlbumManaging
     private let deleteQueue: CloudKitAlbumDeleteQueue
@@ -109,19 +111,55 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// A successful pass carries the number of remote albums that could NOT be
     /// materialized for lack of a matching (synced) key — surfaced to the UI as
     /// "needs key backup".
+    ///
+    /// - Parameter changes: what the zone walk reported about albums since the
+    ///   cursor. Deletions among them are applied before anything is pushed, so an
+    ///   album deleted on another device is not uploaded again from here.
     @discardableResult
-    public func reconcileAlbums() async -> CloudKitAlbumReconcileResult {
+    public func reconcileAlbums(changes: CloudKitAlbumChanges) async -> CloudKitAlbumReconcileResult {
         printDebug("reconcileAlbums start")
         guard await store.accountAvailable() else {
             printDebug("reconcileAlbums skip reason=accountUnavailable")
             return .accountUnavailable
         }
 
-        // 0. Drain pending local delete intents FIRST: a delete made offline or
-        // killed mid-flight must reach the server before the pull below, or its
-        // still-live record would resurrect the album on the very device that
-        // deleted it. Whatever fails to drain stays queued and is excluded from
-        // materialization and self-heal push this pass.
+        let pendingDeletes = await drainPendingDeletes()
+        let deletedRemotely = applyRemoteAlbumChanges(changes)
+
+        let remote: [CloudKitAlbumMetadata]
+        do {
+            remote = try await store.fetchAllAlbums()
+            printDebug("reconcileAlbums fetchAllAlbums ok remoteCount=\(remote.count)")
+        } catch {
+            printDebug("reconcileAlbums fetchAllAlbums FAILED error=\(error)")
+            return .fetchFailed
+        }
+
+        let keys = storedKeysOrEmpty()
+        var onDeviceByID = localCloudKitAlbumsByID()
+        printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(onDeviceByID.count) remote=\(remote.count)")
+        for albumID in deletedRemotely { onDeviceByID[albumID] = nil }
+
+        let pull = await pullRemoteAlbums(remote, onDeviceByID: onDeviceByID, pendingDeletes: pendingDeletes, keys: keys)
+        let push = await pushAlbumsOnDeviceIfNeeded(onDeviceByID,
+                                                    remoteIDs: Set(remote.map(\.albumID)),
+                                                    pendingDeletes: pendingDeletes,
+                                                    keys: keys)
+
+        let deletedLocally = deletedRemotely.count + push.deleted
+        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(pull.adopted) deletedLocally=\(deletedLocally) pushed=\(push.pushed) lockedOut=\(pull.lockedOut) storageFull=\(push.storageFull) stillPendingDeletes=\(pendingDeletes.count)")
+        return .succeeded(lockedOutCount: pull.lockedOut, storageFull: push.storageFull)
+    }
+
+    // MARK: - Delete drain
+
+    /// Issues every queued local album delete and returns the ids still queued.
+    ///
+    /// Runs before the pull: a delete made offline or killed mid-flight must reach
+    /// the server first, or its still-live record would resurrect the album on the
+    /// very device that deleted it. Whatever fails to drain stays queued and is
+    /// excluded from materialization and self-heal push this pass.
+    private func drainPendingDeletes() async -> Set<String> {
         var pendingDeletes = deleteQueue.pending()
         printDebug("reconcileAlbums deleteDrain start pending=\(pendingDeletes.count)")
         for albumID in pendingDeletes.sorted() {
@@ -146,103 +184,134 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             }
         }
         printDebug("reconcileAlbums deleteDrain done stillPending=\(pendingDeletes.count)")
+        return pendingDeletes
+    }
 
-        let deletedRemotely = await applyRemoteDeletions()
-
-        let remote: [CloudKitAlbumMetadata]
+    private func storedKeysOrEmpty() -> [PrivateKey] {
         do {
-            remote = try await store.fetchAllAlbums()
-            printDebug("reconcileAlbums fetchAllAlbums ok remoteCount=\(remote.count)")
-        } catch {
-            printDebug("reconcileAlbums fetchAllAlbums FAILED error=\(error)")
-            return .fetchFailed
-        }
-
-        let keys: [PrivateKey]
-        do {
-            keys = try keyManager.storedKeys()
+            return try keyManager.storedKeys()
         } catch {
             printDebug("reconcileAlbums storedKeys FAILED error=\(error); proceeding with no keys")
-            keys = []
+            return []
         }
-        var localByID = localCloudKitAlbumsByID()
-        var remoteIDs = Set<String>()
-        var lockedOut = 0
+    }
+
+    // MARK: - Pull
+
+    private enum PullOutcome { case adopted, skipped, lockedOut }
+
+    /// Adopts every remote album this device has not materialized and can open.
+    private func pullRemoteAlbums(_ remote: [CloudKitAlbumMetadata],
+                                  onDeviceByID: [String: Album],
+                                  pendingDeletes: Set<String>,
+                                  keys: [PrivateKey]) async -> (adopted: Int, lockedOut: Int) {
         var adopted = 0
-        printDebug("reconcileAlbums state keys=\(keys.count) localCloudKitAlbums=\(localByID.count) remote=\(remote.count)")
-        for albumID in deletedRemotely { localByID[albumID] = nil }
-
+        var lockedOut = 0
         for record in remote {
-            remoteIDs.insert(record.albumID)
-
-            if pendingDeletes.contains(record.albumID) {
-                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=deletePending")
-                continue
+            switch await pull(record, onDeviceByID: onDeviceByID, pendingDeletes: pendingDeletes, keys: keys) {
+            case .adopted: adopted += 1
+            case .lockedOut: lockedOut += 1
+            case .skipped: break
             }
+        }
+        return (adopted, lockedOut)
+    }
 
-            publishRegistry.markPublished(record.albumID)
-
-            if localByID[record.albumID] != nil {
-                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
-                continue
-            }
-
-            if case .destination = MigrationPlanStore.planRole(forAlbumID: Self.cloudKitAlbumKey(record.albumID)) {
-                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=destinationOfALocalMove")
-                continue
-            }
-            if await CloudKitAlbumMembership.isBeingFilled(record, store: store) {
-                printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=migrationInProgress")
-                continue
-            }
-
-            guard let match = Self.match(record: record, keys: keys) else {
-                lockedOut += 1
-                printDebug("reconcileAlbums pull MISS albumID=\(record.albumID) reason=noMatchingKey candidateKeys=\(keys.count)")
-                //TODO: We have to surface this!
-                continue
-            }
-            printDebug("reconcileAlbums pull adopt albumID=\(record.albumID) isHidden=\(record.isHidden) createdAt=\(record.createdAt)")
-            albumManager.adoptCloudKitAlbum(record: record, key: match.key)
-            adopted += 1
+    /// Adopts one remote album unless a delete of it is queued, it is already
+    /// materialized, a move is still filling it, or no stored key opens its name.
+    private func pull(_ record: CloudKitAlbumMetadata,
+                      onDeviceByID: [String: Album],
+                      pendingDeletes: Set<String>,
+                      keys: [PrivateKey]) async -> PullOutcome {
+        if pendingDeletes.contains(record.albumID) {
+            printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=deletePending")
+            return .skipped
         }
 
+        publishRegistry.markPublished(record.albumID)
+
+        if onDeviceByID[record.albumID] != nil {
+            printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
+            return .skipped
+        }
+
+        if case .destination = MigrationPlanStore.planRole(forAlbumID: Self.cloudKitAlbumKey(record.albumID)) {
+            printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=destinationOfALocalMove")
+            return .skipped
+        }
+        if await CloudKitAlbumMembership.isBeingFilled(record, store: store) {
+            printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=migrationInProgress")
+            return .skipped
+        }
+
+        guard let match = Self.match(record: record, keys: keys) else {
+            printDebug("reconcileAlbums pull MISS albumID=\(record.albumID) reason=noMatchingKey candidateKeys=\(keys.count)")
+            //TODO: We have to surface this!
+            return .lockedOut
+        }
+        printDebug("reconcileAlbums pull adopt albumID=\(record.albumID) isHidden=\(record.isHidden) createdAt=\(record.createdAt)")
+        albumManager.adoptCloudKitAlbum(record: record, key: match.key)
+        return .adopted
+    }
+
+    // MARK: - Push
+
+    private enum PushDecision {
+        case push(reason: String)
+        case deleteLocally
+        case skip
+    }
+
+    /// Pushes every CloudKit album on this device whose record lacks a change made
+    /// here, and removes the ones whose published record is gone.
+    private func pushAlbumsOnDeviceIfNeeded(_ onDeviceByID: [String: Album],
+                                            remoteIDs: Set<String>,
+                                            pendingDeletes: Set<String>,
+                                            keys: [PrivateKey]) async -> (pushed: Int, deleted: Int, storageFull: Bool) {
         var pushed = 0
+        var deleted = 0
         var storageFull = false
-        var deletedLocally = deletedRemotely.count
-        for (albumID, album) in localByID where !pendingDeletes.contains(albumID) {
+        for (albumID, album) in onDeviceByID where !pendingDeletes.contains(albumID) {
             let marker = CloudKitAlbumMarker.read(albumID: albumID)
-            let reason: String
-            if remoteIDs.contains(albumID) {
-                guard marker?.dirty == true else { continue }
-                reason = "dirty"
-            } else if publishRegistry.isPublished(albumID) {
-                switch await lookUpByID(albumID) {
-                case .present:
-                    guard marker?.dirty == true else { continue }
-                    reason = "dirty"
-                case .gone:
-                    printDebug("reconcileAlbums delete albumID=\(albumID) reason=publishedAndNotFoundByID")
-                    albumManager.applyRemoteAlbumDeletion(album: album)
-                    publishRegistry.forget(albumID)
-                    deletedLocally += 1
-                    continue
-                case .unknown:
-                    continue
+            switch await pushDecision(for: albumID, marker: marker, remoteIDs: remoteIDs) {
+            case .skip:
+                continue
+            case .deleteLocally:
+                printDebug("reconcileAlbums delete albumID=\(albumID) reason=publishedAndNotFoundByID")
+                albumManager.applyRemoteAlbumDeletion(album: album)
+                publishRegistry.forget(albumID)
+                deleted += 1
+            case .push(let reason):
+                switch await push(album: album, marker: marker, keys: keys, reason: reason) {
+                case .pushed: pushed += 1
+                case .storageFull: storageFull = true
+                case .failed: break
                 }
-            } else {
-                reason = "neverPublished"
-            }
-
-            switch await push(album: album, marker: marker, keys: keys, reason: reason) {
-            case .pushed: pushed += 1
-            case .storageFull: storageFull = true
-            case .failed: break
             }
         }
+        return (pushed, deleted, storageFull)
+    }
 
-        printDebug("reconcileAlbums ok remote=\(remote.count) adopted=\(adopted) deletedLocally=\(deletedLocally) pushed=\(pushed) lockedOut=\(lockedOut) storageFull=\(storageFull) stillPendingDeletes=\(pendingDeletes.count)")
-        return .succeeded(lockedOutCount: lockedOut, storageFull: storageFull)
+    /// Whether this device's copy of a CloudKit album is pushed to its record. One
+    /// the query returned, or one found by id after the query missed it, is pushed
+    /// only when its marker is dirty. One never published is pushed to self-heal a
+    /// create-time save that failed. One published but not found by id was deleted
+    /// elsewhere, so it is deleted here instead.
+    private func pushDecision(for albumID: String,
+                              marker: CloudKitAlbumMarker?,
+                              remoteIDs: Set<String>) async -> PushDecision {
+        let ifDirty: PushDecision = marker?.dirty == true ? .push(reason: "dirty") : .skip
+        if remoteIDs.contains(albumID) {
+            return ifDirty
+        }
+        guard publishRegistry.isPublished(albumID) else {
+            return .push(reason: "neverPublished")
+        }
+        switch await lookUpByID(albumID) {
+        case .present: return ifDirty
+        case .gone: return .deleteLocally
+        case .unknown: return .skip
+        }
     }
 
     /// `Album.id` of the CloudKit album whose record name is `albumID`, the key
@@ -346,7 +415,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         return .pushed
     }
 
-    /// Applies what the zone change feed reports about albums and returns the ids
+    /// Applies what the zone change feed reported about albums and returns the ids
     /// removed. Deletions here are the authoritative cross-device delete signal.
     ///
     /// Local removal routes through `AlbumManager.applyRemoteAlbumDeletion` so
@@ -357,54 +426,51 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// name, hidden flag or cover differ — a remote rename changes no id, so nothing
     /// is deleted, adopted or evicted. A dirty marker keeps only the fields its local
     /// change touched; the push step saves those over the record.
-    private func applyRemoteDeletions() async -> Set<String> {
-        var removed: Set<String> = []
-        var metadataApplied = 0
-        let localByID = localCloudKitAlbumsByID()
-        var token = await store.loadChangeToken()
-        var moreComing = true
+    @discardableResult
+    public func applyRemoteAlbumChanges(_ changes: CloudKitAlbumChanges) -> Set<String> {
+        let onDeviceByID = localCloudKitAlbumsByID()
+        let removed = applyRemoteAlbumDeletions(changes.deletedAlbumIDs, onDeviceByID: onDeviceByID)
+        let metadataApplied = applyRemoteAlbumUpdates(changes.changedAlbums, onDeviceByID: onDeviceByID)
 
-        while moreComing {
-            let changeSet: CloudKitChangeSet
-            do {
-                changeSet = try await store.fetchChanges(since: token)
-            } catch {
-                printDebug("applyRemoteDeletions fetchChanges FAILED error=\(error)")
-                return removed
-            }
-            if changeSet.token != nil { token = changeSet.token }
-            moreComing = changeSet.moreComing
-
-            for albumID in changeSet.deletedAlbumIDs {
-                publishRegistry.forget(albumID)
-                guard let album = localByID[albumID] else {
-                    printDebug("applyRemoteDeletions skip albumID=\(albumID) reason=notMaterializedLocally")
-                    continue
-                }
-                printDebug("applyRemoteDeletions delete albumID=\(albumID)")
-                albumManager.applyRemoteAlbumDeletion(album: album)
-                removed.insert(albumID)
-            }
-            for albumMeta in changeSet.changedAlbums {
-                publishRegistry.markPublished(albumMeta.albumID)
-                guard let coverChanged = applyRemoteMetadata(albumMeta) else { continue }
-                metadataApplied += 1
-                // album.json already holds the new cover, so a grid reload on this
-                // event reads it.
-                if coverChanged, localByID[albumMeta.albumID] != nil {
-                    FileOperationBus.shared.albumCoverChanged()
-                }
-            }
-        }
-
-        // Committed only after the deletions above were applied, so a failure
-        // re-reads the same notices rather than losing them.
-        await store.commitChangeToken(token)
         if metadataApplied > 0 {
             albumManager.notifyAlbumsChanged()
         }
-        printDebug("applyRemoteDeletions ok removed=\(removed.count) metadataApplied=\(metadataApplied)")
+        printDebug("applyRemoteAlbumChanges ok removed=\(removed.count) metadataApplied=\(metadataApplied)")
         return removed
+    }
+
+    /// Removes each deleted album this device has materialized and returns the ids
+    /// removed.
+    private func applyRemoteAlbumDeletions(_ albumIDs: [String], onDeviceByID: [String: Album]) -> Set<String> {
+        var removed: Set<String> = []
+        for albumID in albumIDs {
+            publishRegistry.forget(albumID)
+            guard let album = onDeviceByID[albumID] else {
+                printDebug("applyRemoteAlbumChanges skip albumID=\(albumID) reason=notMaterializedLocally")
+                continue
+            }
+            printDebug("applyRemoteAlbumChanges delete albumID=\(albumID)")
+            albumManager.applyRemoteAlbumDeletion(album: album)
+            removed.insert(albumID)
+        }
+        return removed
+    }
+
+    /// Applies each changed album record to its `album.json` and returns how many
+    /// were rewritten.
+    private func applyRemoteAlbumUpdates(_ records: [CloudKitAlbumMetadata], onDeviceByID: [String: Album]) -> Int {
+        var metadataApplied = 0
+        for albumMeta in records {
+            publishRegistry.markPublished(albumMeta.albumID)
+            guard let coverChanged = applyRemoteMetadata(albumMeta) else { continue }
+            metadataApplied += 1
+            // album.json already holds the new cover, so a grid reload on this
+            // event reads it.
+            if coverChanged, onDeviceByID[albumMeta.albumID] != nil {
+                FileOperationBus.shared.albumCoverChanged()
+            }
+        }
+        return metadataApplied
     }
 
     /// Rewrites the album's `album.json` from `record` when the record's name,

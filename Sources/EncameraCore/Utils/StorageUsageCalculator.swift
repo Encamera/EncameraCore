@@ -18,12 +18,13 @@ public actor StorageUsageCalculator: DebugPrintable {
     private let driveSizing: ICloudDriveSizing
     private let thumbnailDirectory: URL
     private let indexDirectory: URL
-    /// Test seam: production reads the real per-album sidecar, a fixture supplies its
-    /// own so the walk can be exercised without an Application Support directory.
-    private let makeSidecar: @Sendable (Album) -> AlbumSizeSidecar
+    /// Test seam: production reads the album's sidecar from `albumManager`, a fixture
+    /// supplies its own so the walk can be exercised without an Application Support
+    /// directory.
+    private let makeSidecar: (@Sendable (Album) -> AlbumSizeSidecar)?
     /// Test seam: how many media components the album's index holds. Decides whether
     /// a CloudKit album with no sidecar is genuinely empty or has never been measured.
-    private let indexComponentCount: @Sendable (Album) async -> Int
+    private let indexComponentCount: (@Sendable (Album) async -> Int)?
 
     /// Whether the last run's disk walk executed on the main thread. Nothing in the
     /// app reads this; `StorageUsageCalculatorTests` does, because "does not block
@@ -37,11 +38,8 @@ public actor StorageUsageCalculator: DebugPrintable {
                 driveSizing: ICloudDriveSizing = ICloudDriveSizer(),
                 thumbnailDirectory: URL = MediaPreviewStorage.directory,
                 indexDirectory: URL = MediaIndexStore.indexDirectoryURL(),
-                makeSidecar: @escaping @Sendable (Album) -> AlbumSizeSidecar = { AlbumSizeSidecar(album: $0) },
-                indexComponentCount: @escaping @Sendable (Album) async -> Int = { album in
-                    let entries = await MediaIndexStore(album: album).current()?.entries ?? []
-                    return entries.reduce(0) { $0 + ($1.hasPhotoComponent ? 1 : 0) + ($1.hasVideoComponent ? 1 : 0) }
-                }) {
+                makeSidecar: (@Sendable (Album) -> AlbumSizeSidecar)? = nil,
+                indexComponentCount: (@Sendable (Album) async -> Int)? = nil) {
         self.albumManager = albumManager
         self.cache = cache
         self.driveSizing = driveSizing
@@ -49,6 +47,12 @@ public actor StorageUsageCalculator: DebugPrintable {
         self.indexDirectory = indexDirectory
         self.makeSidecar = makeSidecar
         self.indexComponentCount = indexComponentCount
+    }
+
+    private func componentCount(inIndexOf album: Album) async -> Int {
+        if let indexComponentCount { return await indexComponentCount(album) }
+        let entries = await albumManager.mediaIndexStore(for: album).current()?.entries ?? []
+        return entries.reduce(0) { $0 + ($1.hasPhotoComponent ? 1 : 0) + ($1.hasVideoComponent ? 1 : 0) }
     }
 
     /// Measures every bucket.
@@ -92,12 +96,12 @@ public actor StorageUsageCalculator: DebugPrintable {
                                                              mediaBytes: media,
                                                              indexBytes: indexBytes))
             case .cloudKit:
-                let sidecar = makeSidecar(album)
+                let sidecar = makeSidecar?(album) ?? albumManager.sizeSidecar(for: album)
                 var media: MediaTypeBytes?
                 if await sidecar.existsOnDisk() {
                     let sizes = await sidecar.sizesByRecordName()
                     media = MediaTypeBytes.tabulate(sizes.map { MediaComponentBytes(recordName: $0.key, bytes: $0.value) })
-                } else if await indexComponentCount(album) == 0 {
+                } else if await componentCount(inIndexOf: album) == 0 {
                     media = .zero
                 }
                 cloudKitMedia = media.flatMap { m in cloudKitMedia.map { $0 + m } }

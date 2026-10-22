@@ -11,10 +11,9 @@
 //  because the previous arrangement (upload first, record locally only on
 //  success) silently discarded a capture whenever CloudKit refused a record.
 //
-//  A queued item can only be uploaded through its album's coordinator, and
-//  building one needs the album key the queue deliberately does not store. So the
-//  uploader works with the coordinators that already exist for albums opened this
-//  launch; anything else drains when its album is next opened.
+//  Every item goes through the zone's one coordinator, which finds the item's
+//  album index by `albumID`, so an item drains whether or not its album has been
+//  opened this launch.
 //
 
 import Foundation
@@ -24,7 +23,10 @@ public actor CloudKitUploader: DebugPrintable {
     public static let shared = CloudKitUploader()
 
     private let queue: CloudKitUploadQueue
-    private let registry: CloudKitCoordinatorRegistry
+    /// The coordinator to upload through. The shared uploader asks for the shared
+    /// coordinator each pass; until the app has built it (its first sync), a pass
+    /// defers everything.
+    private let coordinator: @Sendable () -> CloudKitSyncCoordinator?
     /// Nil means `CloudKitSyncStatusReporter.shared`, which can only be read on
     /// the main actor.
     private let statusReporter: CloudKitSyncStatusReporter?
@@ -45,10 +47,14 @@ public actor CloudKitUploader: DebugPrintable {
     private var hasSwept = false
 
     public init(queue: CloudKitUploadQueue = .shared,
-                registry: CloudKitCoordinatorRegistry = .shared,
+                coordinator: CloudKitSyncCoordinator? = nil,
                 statusReporter: CloudKitSyncStatusReporter? = nil) {
         self.queue = queue
-        self.registry = registry
+        if let coordinator {
+            self.coordinator = { coordinator }
+        } else {
+            self.coordinator = { CloudKitSyncCoordinator.existingShared }
+        }
         self.statusReporter = statusReporter
     }
 
@@ -160,7 +166,7 @@ public actor CloudKitUploader: DebugPrintable {
                 deferredCount += 1
                 continue
             }
-            guard let coordinator = await registry.existingCoordinator(forAlbumID: item.albumID) else {
+            guard let coordinator = coordinator() else {
                 deferredCount += 1
                 continue
             }

@@ -3,7 +3,8 @@
 //  EncameraCoreTests
 //
 //  Minimal AlbumManaging for FileAccess tests: just enough to satisfy
-//  the preview pipeline (key access + storage model).
+//  the preview pipeline (key access + storage model), plus CloudKit albums
+//  whose index stores a test supplies (`addCloudKitAlbum`).
 //
 
 import Foundation
@@ -117,6 +118,51 @@ final class MockAlbumManager: AlbumManaging {
         return Album.localTwin(of: album)
     }
     func renameAlbum(album: Album, to newName: String) throws -> Album { album }
+
+    // MARK: - Album stores
+
+    /// Stores handed out for CloudKit albums added with `addCloudKitAlbum`, by
+    /// album id. A nil sidecar means the album has none, so size writes are
+    /// skipped. Any other album gets the process-wide stores.
+    private var cloudKitAlbumStores: [String: (index: MediaIndexStore, sizeSidecar: AlbumSizeSidecar?)] = [:]
+
+    /// Adds a CloudKit album whose index and size sidecar are the given stores,
+    /// typically temp files, so a test owns exactly what the coordinator writes.
+    @discardableResult
+    func addCloudKitAlbum(_ albumID: String,
+                          indexStore: MediaIndexStore,
+                          sizeSidecar: AlbumSizeSidecar? = nil) -> Album {
+        let album = Album(name: "album-\(albumID)", storageOption: .cloudKit, creationDate: Date(),
+                          key: Self.testAlbumKey, albumID: albumID)
+        albumsOnDisk.append(album)
+        cloudKitAlbumStores[albumID] = (indexStore, sizeSidecar)
+        return album
+    }
+
+    static let testAlbumKey = PrivateKey(keyBytes: Array(repeating: 7, count: 32),
+                                         creationDate: Date(timeIntervalSince1970: 0))
+
+    func mediaIndexStore(for album: Album) -> MediaIndexStore {
+        if let albumID = album.albumID, let stores = cloudKitAlbumStores[albumID] { return stores.index }
+        return AlbumStoreRegistry.shared.indexStore(for: album)
+    }
+
+    func mediaIndexStore(forAlbumID albumID: String) -> MediaIndexStore? {
+        if let stores = cloudKitAlbumStores[albumID] { return stores.index }
+        return AlbumStoreRegistry.shared.existingIndexStore(forCloudKitAlbumID: albumID)
+            ?? cloudKitAlbum(withID: albumID).map { AlbumStoreRegistry.shared.indexStore(for: $0) }
+    }
+
+    func sizeSidecar(for album: Album) -> AlbumSizeSidecar {
+        if let albumID = album.albumID, let sidecar = cloudKitAlbumStores[albumID]?.sizeSidecar { return sidecar }
+        return AlbumStoreRegistry.shared.sizeSidecar(for: album)
+    }
+
+    func sizeSidecar(forAlbumID albumID: String) -> AlbumSizeSidecar? {
+        if let stores = cloudKitAlbumStores[albumID] { return stores.sizeSidecar }
+        return AlbumStoreRegistry.shared.existingSizeSidecar(forCloudKitAlbumID: albumID)
+            ?? cloudKitAlbum(withID: albumID).map { AlbumStoreRegistry.shared.sizeSidecar(for: $0) }
+    }
     func validateAlbumName(name: String) throws {}
     func albumMediaCount(album: Album) -> Int { 0 }
     func isAlbumHidden(_ album: Album) -> Bool { hiddenAlbumNames.contains(album.name) }

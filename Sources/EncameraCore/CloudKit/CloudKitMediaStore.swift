@@ -19,13 +19,10 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     private let defaults: UserDefaults
     private let zoneID: CKRecordZone.ID
 
-    /// Per-namespace change-token key. The zone is shared across albums, but each
-    /// album keeps its own independent cursor into the zone — otherwise syncing one
-    /// album would advance the token for all the others and they'd miss changes.
-    private let tokenKey: String
-    /// Written only by builds that issued uploads as long-lived operations; read now
-    /// solely so it can be deleted. See `purgeLegacyLongLivedState()`.
-    private let longLivedMapKey = "cloudkit_longlived_ops_v1"
+    /// The zone's one change cursor. Every album's media lives in the zone, and one
+    /// coordinator walks it for all of them.
+    static let tokenKey = "cloudkit_zone_change_token_v1_zone"
+    private var tokenKey: String { Self.tokenKey }
     /// Keyed by container id for the same reason as `CloudKitContainer`'s
     /// zone-created flag: the subscription lives in a specific container, so a
     /// flag set for one container must not suppress registration in another.
@@ -78,17 +75,12 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     public init(container: CloudKitContainer = .shared,
                 adapter: CloudKitDatabaseAdapter? = nil,
                 defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard,
-                tokenNamespace: String = "",
                 chunkStore: ChunkedBlobStoring? = nil) {
         self.container = container
         self.defaults = defaults
         self.zoneID = container.zoneID
-        self.tokenKey = tokenNamespace.isEmpty
-            ? "cloudkit_zone_change_token_v1"
-            : "cloudkit_zone_change_token_v1_\(tokenNamespace)"
         self.adapter = adapter ?? CKDatabaseAdapter(database: container.privateDB)
         self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore(container: container) }
-        purgeLegacyLongLivedState()
     }
 
     // MARK: - Account
@@ -673,15 +665,6 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
     public func cancelAll() {
         adapter.cancelAll()
-    }
-
-    // MARK: - Legacy long-lived state
-
-    /// Drops the operation-ID map older builds persisted for long-lived uploads.
-    func purgeLegacyLongLivedState() {
-        guard defaults.object(forKey: longLivedMapKey) != nil else { return }
-        printDebug("purgeLegacyLongLivedState clearing \(longLivedMapKey)")
-        defaults.removeObject(forKey: longLivedMapKey)
     }
 
     // MARK: - Record <-> metadata mapping
