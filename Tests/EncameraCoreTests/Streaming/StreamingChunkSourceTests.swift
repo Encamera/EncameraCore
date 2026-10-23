@@ -109,6 +109,45 @@ final class StreamingChunkSourceTests: XCTestCase {
                        + "can never be read again for the life of the session")
     }
 
+    // MARK: - Progress
+
+    /// The chunk the caller asked for reports its transfer; the read-ahead it
+    /// schedules does not, so the fractions describe one chunk only.
+    func testProgressReportsTheRequestedChunksTransferOnly() async throws {
+        let (backing, plaintext, _) = try await seed(bytes: 50_000, chunkSize: 4_096)
+        let store = ProgressReportingChunkStore(backing: backing)
+        let source = StreamingChunkSource(store: store,
+                                          mediaRecordName: "media-1",
+                                          geometry: SeekableChunkGeometry(chunkSize: 4_096,
+                                                                          plaintextLength: plaintext.count,
+                                                                          headerLength: 0),
+                                          readAhead: 2)
+        let recorder = FractionRecorder()
+
+        _ = try await source.ciphertextChunk(at: 0, progress: { recorder.record($0) })
+        _ = try await source.ciphertextChunk(at: 1)
+        _ = try await source.ciphertextChunk(at: 2)
+
+        XCTAssertEqual(recorder.fractions, store.fractions)
+    }
+
+    /// A chunk already in memory has no transfer to report.
+    func testProgressIsSilentForACachedChunk() async throws {
+        let (backing, plaintext, _) = try await seed(bytes: 50_000, chunkSize: 4_096)
+        let source = StreamingChunkSource(store: ProgressReportingChunkStore(backing: backing),
+                                          mediaRecordName: "media-1",
+                                          geometry: SeekableChunkGeometry(chunkSize: 4_096,
+                                                                          plaintextLength: plaintext.count,
+                                                                          headerLength: 0),
+                                          readAhead: 0)
+        _ = try await source.ciphertextChunk(at: 0)
+        let recorder = FractionRecorder()
+
+        _ = try await source.ciphertextChunk(at: 0, progress: { recorder.record($0) })
+
+        XCTAssertEqual(recorder.fractions, [])
+    }
+
     // MARK: - Hung fetches
 
     /// A store whose `fetchChunk` for `hangingIndex` never returns on its first

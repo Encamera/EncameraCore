@@ -69,7 +69,7 @@ public enum FileAccessError: Error, ErrorDescribable {
     }
 }
 
-public enum FileLoadingStatus {
+public enum FileLoadingStatus: Sendable {
     case notLoaded
     case downloading(progress: Double)
     case decrypting(progress: Double)
@@ -235,7 +235,12 @@ public protocol MediaBackend: FileReader, FileWriter {
     /// or `nil` when the item plays through the ordinary materialize-then-decrypt
     /// path. Only the CloudKit backend answers non-nil today — for a chunked
     /// video whose bytes live as `EncBlobChunk` records.
-    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback?
+    ///
+    /// `progress` reports the fraction (0…1) of the first chunk downloaded
+    /// while the backend fetches it before returning. It is never called when
+    /// that chunk is already on the device.
+    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>,
+                           progress: @escaping @Sendable (Double) -> Void) async throws -> StreamingPlayback?
 
     /// Where the item's ciphertext lives, what it costs in each place, and which
     /// container format holds it. Purely observational — no download is triggered
@@ -260,8 +265,13 @@ public protocol MediaBackend: FileReader, FileWriter {
 
 public extension MediaBackend {
     /// Default: nothing streams; every backend but CloudKit materializes.
-    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>,
+                           progress: @escaping @Sendable (Double) -> Void) async throws -> StreamingPlayback? {
         nil
+    }
+
+    func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+        try await streamingPlayback(for: media, progress: { _ in })
     }
 }
 

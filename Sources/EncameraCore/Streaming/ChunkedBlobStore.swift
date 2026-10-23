@@ -110,6 +110,13 @@ public protocol ChunkedBlobStoring: Sendable {
     /// Fetches one chunk's ciphertext.
     func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data
 
+    /// Fetches one chunk's ciphertext, reporting the fraction of the transfer
+    /// done (0…1) as it goes. A store that cannot measure a transfer never
+    /// calls `progress`; the default implementation below covers it.
+    func fetchChunk(mediaRecordName: String,
+                    index: Int,
+                    progress: @escaping @Sendable (Double) -> Void) async throws -> Data
+
     /// Fetches one chunk's ciphertext and, when the store staged it in a file of
     /// its own, hands that file over as well.
     ///
@@ -117,6 +124,12 @@ public protocol ChunkedBlobStoring: Sendable {
     /// somewhere it wants it or delete it, on every path. A store that never
     /// touches disk reports `nil` and the default implementation below covers it.
     func fetchChunkStaged(mediaRecordName: String, index: Int) async throws -> FetchedChunk
+
+    /// `fetchChunkStaged(mediaRecordName:index:)`, reporting the transfer's
+    /// progress as `fetchChunk(mediaRecordName:index:progress:)` does.
+    func fetchChunkStaged(mediaRecordName: String,
+                          index: Int,
+                          progress: @escaping @Sendable (Double) -> Void) async throws -> FetchedChunk
 
     /// Removes every chunk record. Records already absent are success — deleting is
     /// idempotent.
@@ -138,6 +151,18 @@ public extension ChunkedBlobStoring {
     func fetchChunkStaged(mediaRecordName: String, index: Int) async throws -> FetchedChunk {
         FetchedChunk(data: try await fetchChunk(mediaRecordName: mediaRecordName, index: index),
                      stagedFileURL: nil)
+    }
+
+    func fetchChunk(mediaRecordName: String,
+                    index: Int,
+                    progress: @escaping @Sendable (Double) -> Void) async throws -> Data {
+        try await fetchChunk(mediaRecordName: mediaRecordName, index: index)
+    }
+
+    func fetchChunkStaged(mediaRecordName: String,
+                          index: Int,
+                          progress: @escaping @Sendable (Double) -> Void) async throws -> FetchedChunk {
+        try await fetchChunkStaged(mediaRecordName: mediaRecordName, index: index)
     }
 }
 
@@ -424,19 +449,31 @@ public final class CloudKitChunkedBlobStore: ChunkedBlobStoring, DebugPrintable,
     /// bytes has no use for the file. Twenty chunks per video, so keeping them is
     /// how tmp grows by the size of every video ever played.
     public func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {
-        let chunk = try await fetchChunkStaged(mediaRecordName: mediaRecordName, index: index)
+        try await fetchChunk(mediaRecordName: mediaRecordName, index: index, progress: { _ in })
+    }
+
+    public func fetchChunk(mediaRecordName: String,
+                           index: Int,
+                           progress: @escaping @Sendable (Double) -> Void) async throws -> Data {
+        let chunk = try await fetchChunkStaged(mediaRecordName: mediaRecordName, index: index, progress: progress)
         CKDatabaseAdapter.discardSnapshot(at: chunk.stagedFileURL)
         return chunk.data
     }
 
     public func fetchChunkStaged(mediaRecordName: String, index: Int) async throws -> FetchedChunk {
+        try await fetchChunkStaged(mediaRecordName: mediaRecordName, index: index, progress: { _ in })
+    }
+
+    public func fetchChunkStaged(mediaRecordName: String,
+                                 index: Int,
+                                 progress: @escaping @Sendable (Double) -> Void) async throws -> FetchedChunk {
         let recordID = CKRecord.ID(
             recordName: ChunkedBlobSchema.chunkRecordName(mediaRecordName: mediaRecordName, index: index),
             zoneID: zoneID)
         let records = try await adapter.fetch(recordIDs: [recordID],
                                               desiredKeys: [ChunkedBlobSchema.Chunk.encChunk],
                                               qualityOfService: .userInteractive,
-                                              perRecordProgress: { _, _ in })
+                                              perRecordProgress: { _, fraction in progress(fraction) })
         guard let record = records[recordID] else {
             throw ChunkedBlobError.chunkNotFound("\(mediaRecordName)#c\(index)")
         }

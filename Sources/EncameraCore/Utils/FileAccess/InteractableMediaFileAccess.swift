@@ -143,8 +143,9 @@ public actor InteractableMediaFileAccess: FileAccess {
         try await requireBackend().loadMetadata(for: media)
     }
 
-    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
-        try await requireBackend().streamingPlayback(for: media)
+    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>,
+                                  progress: @escaping @Sendable (Double) -> Void) async throws -> StreamingPlayback? {
+        try await requireBackend().streamingPlayback(for: media, progress: progress)
     }
 
     public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {

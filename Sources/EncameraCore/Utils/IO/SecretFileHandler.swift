@@ -399,13 +399,20 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         try destinationHandler.prepareIfDoesNotExist()
 
         return try await withTaskCancellationHandler {
-            for try await data in try await decryptFile() {
-                try Task.checkCancellation()
-                try autoreleasepool {
-                    try destinationHandler.write(contentsOf: data)
+            do {
+                for try await data in try await decryptFile() {
+                    try Task.checkCancellation()
+                    try autoreleasepool {
+                        try destinationHandler.write(contentsOf: data)
+                    }
                 }
+                try destinationHandler.closeReader()
+            } catch {
+                // The destination exists from `prepareIfDoesNotExist`; left
+                // behind, a later open would take it for a decrypted copy.
+                try? FileManager.default.removeItem(at: destinationURL)
+                throw error
             }
-            try destinationHandler.closeReader()
 
             return CleartextMedia(source: destinationURL)
         } onCancel: {

@@ -42,6 +42,20 @@ public enum CloudKitStoreProvider {
     }
 }
 
+public extension Notification.Name {
+    /// Posted when opening media wrote a preview it had none of on this device,
+    /// so a grid cell that failed to load one can try again. The media's id is
+    /// `previewMediaID`.
+    static let mediaPreviewDidChange = Notification.Name("EncameraMediaPreviewDidChange")
+}
+
+public extension Notification {
+    /// The media a `.mediaPreviewDidChange` is about.
+    var previewMediaID: String? { userInfo?[Self.previewMediaIDKey] as? String }
+
+    internal static let previewMediaIDKey = "mediaID"
+}
+
 public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     /// Stable per-process suite name for test-mode delete bookkeeping so every
@@ -365,7 +379,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// The first chunk is fetched here, before there is a player to wait on it.
     /// AVFoundation fails an item whose first loading request has produced no
     /// byte after ~20 s, and cold CloudKit takes longer than that to hand over a
-    /// 4 MiB chunk; the caller's loading UI covers the wait instead. A first
+    /// 4 MiB chunk; the caller's loading UI covers the wait instead, fed by
+    /// `progress`. A first
     /// chunk that cannot be fetched throws — the video cannot be streamed.
     ///
     /// Chunk 0 is also what proves the key: the record keeps the key it was written
@@ -375,7 +390,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// A record without a thumbnail is repaired in the background once the
     /// playback is built, from a frame of the stream itself; releasing the
     /// playback cancels that repair.
-    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>) async throws -> StreamingPlayback? {
+    public func streamingPlayback(for media: InteractableMedia<EncryptedMedia>,
+                                  progress: @escaping @Sendable (Double) -> Void) async throws -> StreamingPlayback? {
         guard media.mediaType == .video, let component = media.underlyingMedia.first(where: { $0.mediaType == .video }) else {
             return nil
         }
@@ -403,7 +419,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let prefetchStarted = Date()
         let chunk0: Data
         do {
-            chunk0 = try await source.ciphertextChunk(at: 0)
+            chunk0 = try await source.ciphertextChunk(at: 0, progress: progress)
             printDebug("streamingPlayback prefetch ok recordName=\(recordName) "
                        + "ms=\(Int(Date().timeIntervalSince(prefetchStarted) * 1000))")
         } catch {
@@ -648,6 +664,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) — no preview file after creating it")
                 return
             }
+            NotificationCenter.default.post(name: .mediaPreviewDidChange, object: nil,
+                                            userInfo: [Notification.previewMediaIDKey: mediaID])
         }
 
         for recordName in candidates {

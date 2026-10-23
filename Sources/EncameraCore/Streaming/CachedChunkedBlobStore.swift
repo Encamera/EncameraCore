@@ -41,6 +41,10 @@ public final class CachedChunkedBlobStore: ChunkedBlobStoring, DebugPrintable, @
                                      existingChunks: existingChunks, progress: progress)
     }
 
+    public func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {
+        try await fetchChunk(mediaRecordName: mediaRecordName, index: index, progress: { _ in })
+    }
+
     /// Reads through the cache, but never writes through it.
     ///
     /// Persisting a chunk costs a filesystem operation on 4 MiB plus the cache
@@ -52,7 +56,12 @@ public final class CachedChunkedBlobStore: ChunkedBlobStoring, DebugPrintable, @
     /// job. So the bytes go back to the caller the moment they arrive and the file
     /// lands in the cache behind them, where being slow or failing outright costs
     /// nothing but a later re-fetch.
-    public func fetchChunk(mediaRecordName: String, index: Int) async throws -> Data {
+    ///
+    /// Reports progress only for a cache miss; a chunk read from the cache
+    /// arrives without any.
+    public func fetchChunk(mediaRecordName: String,
+                           index: Int,
+                           progress: @escaping @Sendable (Double) -> Void) async throws -> Data {
         let chunkRecordName = ChunkedBlobSchema.chunkRecordName(mediaRecordName: mediaRecordName, index: index)
         // A nil validationTag means the caller could not determine the current
         // content version — skip the cache entirely rather than serving bytes that
@@ -64,7 +73,7 @@ public final class CachedChunkedBlobStore: ChunkedBlobStoring, DebugPrintable, @
                 return data
             }
         }
-        let chunk = try await store.fetchChunkStaged(mediaRecordName: mediaRecordName, index: index)
+        let chunk = try await store.fetchChunkStaged(mediaRecordName: mediaRecordName, index: index, progress: progress)
         persistInBackground(chunk, as: chunkRecordName)
         return chunk.data
     }

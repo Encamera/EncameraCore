@@ -1099,6 +1099,27 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(playback?.slowMotion, ramp)
     }
 
+    /// The lightbox's loading state reads chunk 0's transfer from here while the
+    /// prefetch runs, through the blob cache on a miss.
+    func testStreamingPlaybackReportsTheFirstChunksDownloadProgress() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let backing = InMemoryChunkedBlobStore()
+        let chunkStore = ProgressReportingChunkStore(backing: backing)
+        let access = await makeAccess(album: album, store: store, chunkStore: chunkStore)
+        let id = UUID().uuidString
+        _ = try await seedChunkedVideo(in: store, album: album, id: id, chunkStore: backing)
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .video, id: id)
+        ])
+        let recorder = FractionRecorder()
+
+        let playback = try await access.streamingPlayback(for: media, progress: { recorder.record($0) })
+
+        XCTAssertNotNil(playback)
+        XCTAssertEqual(recorder.fractions, chunkStore.fractions)
+    }
+
     func testStreamingPlaybackOfAnOrdinaryVideoHasNoRamp() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
@@ -2154,6 +2175,50 @@ final class CloudKitFileAccessTests: XCTestCase {
         } catch {}
     }
 
+    // MARK: A failed decrypt leaves no decrypted copy
+
+    func testAFailedPreviewLeavesNoDecryptedCopyBehind() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        let media = try await galleryMedia(on: deviceB, id: saved.id)
+
+        _ = try? await deviceB.loadMediaPreview(for: media)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: decryptedCopyURL(id: saved.id, type: .video).path),
+                       "a decrypt that failed before writing anything must not leave an empty copy to be reused")
+    }
+
+    func testARetriedPreviewFailsTheSameWayAsTheFirst() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        let media = try await galleryMedia(on: deviceB, id: saved.id)
+        _ = try? await deviceB.loadMediaPreview(for: media)
+
+        do {
+            _ = try await deviceB.loadMediaPreview(for: media)
+            XCTFail("device B still has nothing to make a preview from")
+        } catch SecretFilesError.createVideoThumbnailError {
+            XCTFail("the retry read an empty decrypted copy left by the first attempt as the video")
+        } catch {}
+    }
+
+    func testAnEmptyDecryptedCopyIsDeletedAndTheVideoDecryptedAgain() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let media = try await galleryMedia(on: saved.deviceA, id: saved.id)
+        let decryptedCopy = decryptedCopyURL(id: saved.id, type: .video)
+        try FileManager.default.createDirectory(at: decryptedCopy.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.removeItem(at: decryptedCopy)
+        XCTAssertTrue(FileManager.default.createFile(atPath: decryptedCopy.path, contents: Data()),
+                      "precondition: an empty copy, as a failed decrypt used to leave")
+
+        let preview = try await saved.deviceA.loadMediaPreview(for: media)
+
+        XCTAssertNotNil(preview.thumbnailMedia.data.flatMap(PlatformImage.init(data:)),
+                        "the preview is made from the video, not the empty copy")
+        let size = try FileManager.default.attributesOfItem(atPath: decryptedCopy.path)[.size] as? Int
+        XCTAssertGreaterThan(size ?? 0, 0, "the empty copy was replaced by the decrypted video")
+    }
+
     // MARK: RED — opening the media repairs the record
 
     func testOpeningAVideoOnAnotherDeviceRepairsTheRecordThumbnail() async throws {
@@ -2268,6 +2333,55 @@ final class CloudKitFileAccessTests: XCTestCase {
                                                 album: saved.album, id: saved.id)
         XCTAssertTrue(hasThumbnail, "streaming the video on device B writes encThumbnail onto the record")
         XCTAssertNotNil(image, "the attached thumbnail decrypts to a decodable image")
+    }
+
+    // MARK: A repaired preview is announced, so the grid can show it
+
+    func testOpeningAVideoWithoutAPreviewAnnouncesTheRepairedOne() async throws {
+        let saved = try await saveVideoWithPreviewGoneAtDrain()
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        let announcements = PreviewAnnouncements()
+
+        _ = try await deviceB.loadMedia(media: try await galleryMedia(on: deviceB, id: saved.id), progress: { _ in })
+        await deviceB.awaitThumbnailRepairs()
+
+        XCTAssertEqual(announcements.mediaIDs, [saved.id],
+                       "the grid cell that failed for want of a preview is told one now exists")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: thumbnailURL(forMediaID: saved.id).path),
+                      "the announced preview is on disk for the grid to load")
+    }
+
+    func testStreamingAChunkedVideoWithoutAPreviewAnnouncesTheRepairedOne() async throws {
+        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
+        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
+        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
+        try await writeMovieAboveChunkingThreshold(to: movieURL)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+        let saved = try await saveWithPreviewGoneAtDrain(try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: UUID().uuidString)
+        ]))
+        let deviceB = try await freshDevice(after: saved, evictingFrom: saved.deviceA)
+        let announcements = PreviewAnnouncements()
+
+        let playback = try await deviceB.streamingPlayback(for: try await galleryMedia(on: deviceB, id: saved.id))
+        XCTAssertNotNil(playback, "precondition: device B streams the chunked video")
+        await deviceB.awaitThumbnailRepairs()
+
+        XCTAssertEqual(announcements.mediaIDs, [saved.id])
+    }
+
+    func testOpeningMediaThatAlreadyHasAPreviewAnnouncesNothing() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let access = await makeAccess(album: album, store: store)
+        let (media, _) = try await savePhotoWithThumbnail(Self.tinyPNG(), on: access, album: album)
+        let announcements = PreviewAnnouncements()
+
+        _ = try await access.loadMedia(media: media, progress: { _ in })
+        await access.awaitThumbnailRepairs()
+
+        XCTAssertEqual(announcements.mediaIDs, [], "the preview the grid already shows did not change")
     }
 
     func testRepairedVideoStillOpensFromTheBlobCache() async throws {
@@ -2699,4 +2813,30 @@ final class RecordingCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendab
     func registerZoneSubscription() async throws { try await base.registerZoneSubscription() }
     func cancelAll() { base.cancelAll() }
     func accountAvailable() async -> Bool { await base.accountAvailable() }
+}
+
+/// Collects the media ids of every `.mediaPreviewDidChange` posted while it lives.
+private final class PreviewAnnouncements: @unchecked Sendable {
+    private let lock = NSLock()
+    private var ids: [String] = []
+    private var observer: NSObjectProtocol?
+
+    init() {
+        observer = NotificationCenter.default.addObserver(forName: .mediaPreviewDidChange, object: nil, queue: nil) { [weak self] notification in
+            guard let self, let id = notification.previewMediaID else { return }
+            self.lock.lock()
+            self.ids.append(id)
+            self.lock.unlock()
+        }
+    }
+
+    deinit {
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    var mediaIDs: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return ids
+    }
 }

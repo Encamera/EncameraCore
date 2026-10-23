@@ -129,6 +129,16 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
         return data
     }
 
+    /// `ciphertextChunk(at:)`, reporting the fraction of the chunk's transfer
+    /// done as it goes. Only a fetch this call starts reports: a chunk already
+    /// cached or in flight arrives without progress. Each retry reports from 0.
+    public func ciphertextChunk(at index: Int,
+                                progress: @escaping @Sendable (Double) -> Void) async throws -> Data {
+        let data = try await chunk(at: index, progress: progress)
+        scheduleReadAhead(after: index)
+        return data
+    }
+
     /// A chunk this source holds or is already fetching. Never starts a fetch
     /// or a read-ahead: `nil` when the chunk would have to come from the store.
     public func fetchedChunk(at index: Int) async throws -> Data? {
@@ -142,13 +152,13 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
 
     // MARK: Internals
 
-    private func chunk(at index: Int) async throws -> Data {
+    private func chunk(at index: Int, progress: (@Sendable (Double) -> Void)? = nil) async throws -> Data {
         if let cached = cache[index] {
             telemetry.chunksServedFromCache += 1
             touch(index)
             return cached
         }
-        return try await fetchTask(for: index).value
+        return try await fetchTask(for: index, progress: progress).value
     }
 
     /// The single place a chunk is pulled from the store.
@@ -164,15 +174,16 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
     /// network fetch: an earlier version recorded in both the direct path and the
     /// read-ahead completion, which let `chunksFetched` exceed the blob's chunk
     /// count and would have quietly inflated any byte-cost assertion.
-    private func fetchTask(for index: Int) -> Task<Data, Error> {
+    private func fetchTask(for index: Int, progress: (@Sendable (Double) -> Void)? = nil) -> Task<Data, Error> {
         if let existing = inFlight[index] { return existing }
+        let progress = progress ?? { _ in }
         let task = Task { [weak self, store, mediaRecordName, fetchDeadline, maxFetchAttempts] () -> Data in
             for attempt in 1...maxFetchAttempts {
                 let startedAt = Date()
                 if attempt > 1 {
                     await self?.printDebug("fetchChunk retry record=\(mediaRecordName) index=\(index) attempt=\(attempt)")
                 }
-                let fetch = Task { try await store.fetchChunk(mediaRecordName: mediaRecordName, index: index) }
+                let fetch = Task { try await store.fetchChunk(mediaRecordName: mediaRecordName, index: index, progress: progress) }
                 guard let outcome = await Self.outcome(of: fetch, within: fetchDeadline) else {
                     fetch.cancel()
                     await self?.printDebug("fetchChunk DEADLINE record=\(mediaRecordName) index=\(index) attempt=\(attempt) "

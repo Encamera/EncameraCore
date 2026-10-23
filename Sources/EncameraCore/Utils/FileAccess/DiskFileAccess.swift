@@ -894,8 +894,14 @@ extension DiskFileAccess {
         printDebug("decryptMediaToURL: Target URL: \(targetURL.path)")
 
         if FileManager.default.fileExists(atPath: targetURL.path) {
-            printDebug("decryptMediaToURL: Target already exists, returning cached")
-            return CleartextMedia(source: targetURL)
+            let size = (try? FileManager.default.attributesOfItem(atPath: targetURL.path)[.size] as? Int) ?? 0
+            if size > 0 {
+                printDebug("decryptMediaToURL: Target already exists, returning cached")
+                return CleartextMedia(source: targetURL)
+            }
+            // An empty copy is what a failed decrypt used to leave behind.
+            printDebug("decryptMediaToURL: Target exists but is empty, deleting and decrypting again")
+            try? FileManager.default.removeItem(at: targetURL)
         }
 
         let resolution = try await resolveKey(for: sourceURL, mediaID: encrypted.id)
