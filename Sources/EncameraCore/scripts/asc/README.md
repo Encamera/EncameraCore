@@ -3,7 +3,6 @@
 Python client library for the [App Store Connect API](https://developer.apple.com/documentation/appstoreconnectapi).
 
 Used by:
-- [`asc-mcp`](../asc-mcp/) — exposes the library as Model Context Protocol tools
 - [`scripts/testflight_admin.py`](../testflight_admin.py) — manages TestFlight builds, beta groups, and testers
 - [`scripts/expire_testflight_builds.py`](../expire_testflight_builds.py) — expires old TestFlight builds
 - [`scripts/app_store_localization/localize.py`](../app_store_localization/localize.py) — translates App Store metadata

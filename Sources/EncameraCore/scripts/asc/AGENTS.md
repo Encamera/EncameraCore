@@ -31,10 +31,10 @@ app_id = client.resolve_app_id()                  # honors app.bundle_id or app.
 | A beta app review call | `asc/testflight/review.py` |
 | An Xcode Cloud call | one of the `asc/xcode_cloud/*.py` modules |
 
-Anything added under `asc/testflight/` must also be re-exported from `asc/testflight/__init__.py` (both the import and `__all__`) — callers and the MCP server import from the package root, not the submodules.
+Anything added under `asc/testflight/` must also be re-exported from `asc/testflight/__init__.py` (both the import and `__all__`) — callers import from the package root, not the submodules.
 | A new dataclass | `asc/models.py` (or `asc/xcode_cloud/models.py` for that subpackage) |
 
-**Do not add MCP-specific code to `asc`.** The `asc` library must not import from `mcp`. MCP wrappers live in `../asc-mcp/src/asc_mcp/server.py`. If you add a library function that should be MCP-exposed, also add a `@mcp.tool()` in `server.py` that calls it.
+The App Store Connect MCP server is no longer in this repo; it lives in the standalone `asc-mcp` project with its own copy of this library. Changes made here do not reach it.
 
 ## Function conventions
 
@@ -87,27 +87,21 @@ JSON:API relationship deletions require a request body (`{"data": [{"type": "...
 
 ## Running and testing
 
-- The library is installed editable in `../asc-mcp/.venv` via `requirements.txt`. Edits to `asc/**` are picked up immediately — no reinstall needed.
+- The library is installed editable in `scripts/.venv` via `scripts/requirements.txt` (see `scripts/RELEASE.md`). Edits to `asc/**` are picked up immediately — no reinstall needed.
 - Smoke-test new code by running it against the live ASC API from that venv:
   ```bash
-  scripts/asc-mcp/.venv/bin/python -c "
+  scripts/.venv/bin/python -c "
   from asc.auth import Credentials
   from asc.client import ASCClient
   c = ASCClient(Credentials.load('scripts/app_store_localization/credentials.yml'))
   # call your new function here
   "
   ```
-- Verify the MCP still works after a non-trivial library change:
-  ```bash
-  printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}\n' \
-    | ASC_CREDENTIALS_PATH=scripts/app_store_localization/credentials.yml \
-      scripts/asc-mcp/.venv/bin/asc-mcp | head -c 400
-  ```
 
 ## Credentials path
 
-The real credentials live at `scripts/app_store_localization/credentials.yml` (the path predates the asc-mcp move; it stays there because `localize.py` reads other config from the same dir). Both standalone scripts and the MCP server load from there via the `ASC_CREDENTIALS_PATH` env var, configured in `~/.claude.json` for the MCP.
+The real credentials live at `scripts/app_store_localization/credentials.yml` (it stays there because `localize.py` reads other config from the same dir). Scripts load it from there via the `ASC_CREDENTIALS_PATH` env var or an explicit path.
 
-## When extending breaks the MCP
+## Public names
 
-`asc/__init__.py` re-exports `Credentials`, `TokenManager`, `ASCClient`. Don't change those public names without updating `asc_mcp/server.py`. Other modules can be freely refactored — `server.py` imports them by full path (`from asc.pricing import iap`, etc.).
+`asc/__init__.py` re-exports `Credentials`, `TokenManager`, `ASCClient`. The scripts in `scripts/` import them by those names, so update the callers if you rename them. Other modules can be freely refactored.
