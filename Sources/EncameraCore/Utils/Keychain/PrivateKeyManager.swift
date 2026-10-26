@@ -329,6 +329,29 @@ final class PrivateKeyManager: DebugPrintable {
         try setActiveKey(keyObject)
     }
 
+    /// Selects a current key when there is none, from whatever keys are in the
+    /// keychain now. iCloud Keychain delivers key items without selecting one,
+    /// and the synced `currentKey` pointer travels separately, so either can
+    /// arrive first.
+    ///
+    /// The pointer's key wins when it is here. A pointer whose key has not
+    /// arrived is left alone, since another device wrote it and its key is
+    /// usually still in flight: the oldest key here is used without repinning,
+    /// and the pointer's key takes over on the next unlock. With no pointer,
+    /// the oldest key is pinned.
+    @discardableResult
+    func selectActiveKeyIfNeeded() -> PrivateKey? {
+        if let currentKey { return currentKey }
+        guard let oldestStoredKey = (try? storedKeys())?.first else { return nil }
+        let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String
+        if let activeKeyRef, PrivateKey.isFingerprintLabel(activeKeyRef) {
+            currentKey = keyWith(fingerprint: activeKeyRef) ?? oldestStoredKey
+        } else {
+            try? setActiveKey(oldestStoredKey)
+        }
+        return currentKey
+    }
+
     // MARK: - iCloud sync
 
     /// Moves every Encamera key item and every passphrase item on or off the

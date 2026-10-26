@@ -276,6 +276,11 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         try privateKeyManager.setActiveKey(key)
     }
 
+    @discardableResult
+    public func selectActiveKeyIfNeeded() -> PrivateKey? {
+        privateKeyManager.selectActiveKeyIfNeeded()
+    }
+
     func getActiveKey() throws -> PrivateKey {
         try privateKeyManager.getActiveKey()
     }
@@ -448,25 +453,22 @@ private extension KeychainManager {
 
     /// Heals key state after authentication when the active key can't be loaded.
     /// On a second device, the KVS-synced `currentKey` default may name a key
-    /// that never reached this device, and the default key itself may still be
-    /// derivable from the synced passphrase even if its keychain item hasn't
-    /// arrived. Runs on every unlock, so key material that syncs in minutes
-    /// after first launch is picked up on the next authentication.
+    /// that hasn't reached this device yet, and the default key itself may still
+    /// be derivable from the synced passphrase even if its keychain item hasn't
+    /// arrived. Runs on every unlock; keys that arrive later are
+    /// selected by `KeychainSyncManager`.
     func attemptKeyRestoreAfterFailedLoad() {
         printDebug("attemptKeyRestoreAfterFailedLoad: snapshot \(credentialSnapshot()), currentKey default='\(UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String ?? "nil")'")
-        if let activeKeyRef = UserDefaultUtils.value(forKey: UserDefaultKey.currentKey) as? String,
-           PrivateKey.isFingerprintLabel(activeKeyRef),
-           keyWith(fingerprint: activeKeyRef) == nil {
-            printDebug("Clearing stale currentKey '\(activeKeyRef)' — key not present on this device")
-            UserDefaultUtils.removeObject(forKey: UserDefaultKey.currentKey)
-        }
-
+        var restored = false
         do {
-            let restored = try restoreDefaultKeyFromPassphraseIfNeeded()
-            try privateKeyManager.getActiveKeyAndSet()
-            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(currentKey?.keyFingerprint ?? "nil")')")
+            restored = try restoreDefaultKeyFromPassphraseIfNeeded()
         } catch {
-            printDebug("Key restore after failed load did not succeed:", error)
+            printDebug("Restoring the default key from its passphrase failed:", error)
+        }
+        if let key = privateKeyManager.selectActiveKeyIfNeeded() {
+            printDebug("attemptKeyRestoreAfterFailedLoad: succeeded (restoredFromPassphrase=\(restored), currentKey='\(key.keyFingerprint)')")
+        } else {
+            printDebug("Key restore after failed load did not succeed: no key on this device")
         }
     }
 

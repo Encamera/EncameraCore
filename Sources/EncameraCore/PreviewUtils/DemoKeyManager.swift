@@ -199,6 +199,10 @@ public class DemoKeyManager: KeyManager {
         return storedKeysValue
     }
 
+    public func selectActiveKeyIfNeeded() -> PrivateKey? {
+        currentKey
+    }
+
     public func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws {
         storedKeysValue.removeAll { $0.keyFingerprint == fingerprint }
     }

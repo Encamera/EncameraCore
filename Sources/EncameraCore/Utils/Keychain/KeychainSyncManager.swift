@@ -62,9 +62,20 @@ public actor KeychainSyncManager: DebugPrintable {
     }
 
     /// Reads the backup flag and, if it changed to enabled, runs the adoption
-    /// pass. Cheap when nothing changed: one keychain read.
+    /// pass. Then, when no key is current, selects one of the keys that have
+    /// arrived: that runs on every pass, because key items usually arrive after
+    /// the flag. Cheap when nothing changed: a few keychain reads.
     @discardableResult
     public func syncKeychainItems() -> KeychainSyncPassOutcome {
+        let outcome = adoptAccountCredentialsIfFlagChanged()
+        if privateKeyManager.currentKey == nil,
+           let key = privateKeyManager.selectActiveKeyIfNeeded() {
+            printDebug("selected arrived key \(key.keyFingerprint) as the current key")
+        }
+        return outcome
+    }
+
+    private func adoptAccountCredentialsIfFlagChanged() -> KeychainSyncPassOutcome {
         guard let status = backupStatusManager.getBackupStatus() else {
             lastSeenStatus = nil
             return .skipped(.flagNotSet)

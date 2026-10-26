@@ -128,6 +128,10 @@ public protocol KeyManager {
     @MainActor
     func keyWith(uuid: UUID) -> PrivateKey?
     func storedKeys() throws -> [PrivateKey]
+    /// Makes one of the stored keys current when none is, and returns the
+    /// current key. Keys that arrive through iCloud Keychain are stored but not
+    /// selected, and `keyPublisher` only fires on selection.
+    @discardableResult func selectActiveKeyIfNeeded() -> PrivateKey?
     /// Removes a single key from the library, addressed by fingerprint.
     /// Defaults to device-local; see `KeyDeletionScope`.
     func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws
