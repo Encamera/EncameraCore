@@ -75,7 +75,6 @@
 "ConfirmPinCode" = "暗証コードを確認";
 "Error deleting all files" = "すべてのファイルの削除中にエラーが発生しました";
 "GalleryView.AlbumCoverSetToast" = "アルバムカバーが設定されました";
-"GetStartedButtonText" = "始めましょう";
 "Current Password" = "現在のパスワード";
 "Missing password" = "パスワードがありません";
 "Keys" = "鍵";
@@ -403,7 +402,6 @@
 "ImportingPleaseWait" = "インポート中...お待ちください";
 "PurchaseView.BenefitModel.HiddenAlbums" = "非表示アルバム";
 "CannotClearMessage" = "パスコードを解除できません。これを行うにはFace IDを有効にする必要があります。";
-"You have an existing password for this device." = "このデバイスには既存のパスワードがあります。";
 "AlbumsTitle" = "アルバム";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "フォトライブラリから削除しますか？";
 "No iCloud account found on this device." = "このデバイスでiCloudアカウントが見つかりません。";

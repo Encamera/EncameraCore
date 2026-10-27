@@ -61,7 +61,6 @@
 "Confirm adding key" = "키 추가 확인";
 "PleaseEnterAnAlbumName" = "앨범의 이름을 입력해 주세요";
 "CreateNewAlbum" = "새 앨범 만들기";
-"GetStartedButtonText" = "시작합시다";
 "Notification.InactiveUserReminder.Title" = "당신의 이미지가 위험에 처할 수 있습니다 \\ud83d\\udea8";
 "Error coding keychain data." = "키체인 데이터 코딩 오류.";
 "OnboardingPermissionsSubheading" = "앱에 액세스하려면 카메라 및 마이크 사용 권한을 부여해야 합니다";
@@ -189,7 +188,6 @@
 "PermissionsNeededText" = "계속하려면 카메라 권한을 활성화해야 합니다. 설정 앱을 열어 이 작업을 수행하세요.";
 "FeedbackView.Subheading" = "귀하의 피드백은 저희에게 매우 중요하며 더 나은 제품을 만드는 데 도움이 됩니다. 정말 감사합니다!";
 "Hide" = "숨기기";
-"You have an existing password for this device." = "이 장치에 대한 기존 비밀번호가 있습니다.";
 "AlbumDetailView.HideAlbumMenuItem" = "앨범 숨기기";
 "OnboardingPermissionsMicrophoneAccessSubheading" = "동영상에만 필요";
 "Settings" = "설정";

@@ -42,7 +42,6 @@
 "Created %@" = "Luotu %@";
 "Missing password" = "Salasana puuttuu";
 "Encrypt Everything" = "Salaa kaikki";
-"GetStartedButtonText" = "Aloitetaan";
 "PhotoPickerWrapper.GrantFullAccess" = "Myönnä täysi käyttöoikeus";
 "NotificationListTitle" = "Ilmoitukset";
 "ImportTaskDetailsView.ClearAll" = "Tyhjennä kaikki";
@@ -391,7 +390,6 @@ On tärkeää tallentaa tämä avain siltä varalta, että kadotat laitteesi.";
 "RepeatPinCode" = "Toista PIN-koodi";
 "Share Decrypted" = "Jaa salauksen purkamaton";
 "Settings.Version" = "Versio";
-"You have an existing password for this device." = "Tällä laitteella on jo olemassa oleva salasana.";
 "premium" = "premium";
 "Back Up Key" = "Varmuuskopioi avain";
 "PhotoPickerWrapper.PrivacyFirst" = "Yksityisyys ensin";

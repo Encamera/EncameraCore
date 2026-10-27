@@ -76,7 +76,6 @@
 "ConfirmPinCode" = "Bekræft pinkode";
 "Error deleting all files" = "Fejl ved sletning af alle filer";
 "GalleryView.AlbumCoverSetToast" = "Albumcover indstillet";
-"GetStartedButtonText" = "Lad os begynde";
 "Current Password" = "Nuværende adgangskode";
 "Missing password" = "Manglende adgangskode";
 "Keys" = "Nøgler";
@@ -386,7 +385,6 @@ Det er vigtigt at gemme denne nøgle, hvis du mister din enhed.";
 "ImportingPleaseWait" = "Importerer... Vent venligst";
 "PurchaseView.BenefitModel.HiddenAlbums" = "Skjulte albummer";
 "CannotClearMessage" = "Du kan ikke fjerne din adgangskode. Du skal have Face ID aktiveret for at gøre dette.";
-"You have an existing password for this device." = "Du har allerede en adgangskode for denne enhed.";
 "AlbumsTitle" = "Album";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Slet fra fotobibliotek?";
 "No iCloud account found on this device." = "Ingen iCloud-konto fundet på denne enhed.";

@@ -75,7 +75,6 @@
 "ConfirmPinCode" = "Conferma codice PIN";
 "Error deleting all files" = "Errore nell'eliminazione di tutti i file";
 "GalleryView.AlbumCoverSetToast" = "Copertina dell'album impostata";
-"GetStartedButtonText" = "Iniziamo";
 "Current Password" = "Password attuale";
 "Missing password" = "Password mancante";
 "Keys" = "Chiavi";
@@ -392,7 +391,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "ImportingPleaseWait" = "Importazione in corso... Attendere prego";
 "PurchaseView.BenefitModel.HiddenAlbums" = "Album nascosti";
 "CannotClearMessage" = "Non puoi cancellare il tuo codice. Devi avere Face ID abilitato per poterlo fare.";
-"You have an existing password for this device." = "Hai già una password per questo dispositivo.";
 "AlbumsTitle" = "Album";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Eliminare dalla Libreria foto?";
 "No iCloud account found on this device." = "Nessun account iCloud trovato su questo dispositivo.";

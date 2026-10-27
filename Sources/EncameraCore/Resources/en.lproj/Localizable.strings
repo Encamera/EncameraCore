@@ -116,7 +116,6 @@
 "PromptToErase.Reset.RestartNote" = "Every step is checked as it runs. Encamera restarts when the reset is finished.";
 "PromptToErase.Reset.Hold" = "Hold to reset";
 "PromptToErase.Reset.Countdown" = "Resetting in %@";
-"PromptToErase.Reset.Link" = "Forgot your passcode? Reset it";
 
 /* ./Encamera/Settings/EraseProgressView.swift */
 "EraseProgress.Title" = "Erasing All Data";
@@ -401,10 +400,8 @@
 "OnboardingCarousel.SubheadingText2" = "Your albums are locked with your unique key and stored safely on your device or iCloud.";
 "OnboardingCarousel.HeadingText3" = "No accounts. No profiling. No ads.";
 "OnboardingCarousel.SubheadingText3" = "Encamera never collects your data. Your private moments stay completely yours.";
-"GetStartedButtonText" = "Let's Start";
 
 
-"You have an existing password for this device." = "You have an existing password for this device.";
 
 "Set Password" = "Set Password";
 "SetAPasswordWarning" = "Set a password to access the app. Be sure to store it in a safe place – you cannot recover it later.";
@@ -711,8 +708,6 @@
 "Settings.BackupKeyToiCloudDescription" = "If enabled, your key will automatically be backed up to your iCloud Keychain. If you lose your device, you will still have access to files stored on iCloud if you choose this option.";
 "Settings.ICloudBackupAndSync" = "iCloud Backup & Sync";
 "Settings.CloudKitUpgradeRow" = "Upgrade iCloud albums";
-"Settings.ICloudBackupAndSync.EnableTitle" = "Turn on iCloud Backup & Sync?";
-"Settings.ICloudBackupAndSync.EnableSimpleWarning" = "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.";
 "Settings.ICloudBackupAndSync.EnableDrawerTitle" = "Turn on iCloud sync?";
 "Settings.ICloudBackupAndSync.EnableDrawerSubtitle" = "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.";
 "Settings.ICloudBackupAndSync.EnableDrawerConfirm" = "Turn On";
@@ -1355,18 +1350,8 @@
 
 
 /* ./Encamera/Components/RestoringFromiCloudView.swift - iCloud Keychain restore wait screen */
-"RestoringFromICloud.Title" = "Restoring from iCloud…";
-"RestoringFromICloud.Subtitle" = "Looking for your Encamera account from another device. This usually takes a few seconds.";
 "RestoringFromICloud.SetUpAsNew" = "Set up as a new device";
-"RestoringFromICloud.EnterKeyPhrase" = "Enter recovery key instead";
 "RestoringFromICloud.FinishingRestore" = "Finishing restore…";
-"Onboarding.AlreadyUseEncamera" = "I already use Encamera on another device";
-/* ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Backup & Sync opt-in during onboarding (ENC-95). Default off; explicit tap required. */
-"Onboarding.ICloudBackupAndSync.Title" = "Use Encamera on all your devices";
-"Onboarding.ICloudBackupAndSync.Body" = "Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.";
-"Onboarding.ICloudBackupAndSync.EnableButton" = "Turn On iCloud Backup & Sync";
-"Onboarding.ICloudBackupAndSync.SkipButton" = "Not Now";
-"Onboarding.ICloudBackupAndSync.ConfirmTurnOn" = "Turn On";
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - Restore Purchases during onboarding (ENC-96). Three distinct failure modes. */
 "Onboarding.RestorePurchases.NoPurchasesTitle" = "No purchases to restore";
 "Onboarding.RestorePurchases.NoPurchasesMessage" = "We couldn't find any previous purchases on your Apple ID. You can continue setting up Encamera and subscribe any time.";
@@ -1384,11 +1369,6 @@
 "ReturningUser.KeyOnOtherDevice" = "It's on my other device";
 "ReturningUser.IDontHaveMyKey" = "I don't have my key";
 "ReturningUser.SetUpAsNew" = "Set up as a new device";
-"ReturningUser.RecoveryTitle" = "Recover your key";
-"ReturningUser.RecoveryBody" = "Key recovery isn't built yet. This is a placeholder for the upcoming recovery flow.";
-"ReturningUser.DeleteTitle" = "Delete existing data";
-"ReturningUser.DeleteBody" = "The delete-my-data flow isn't built yet. This is a placeholder for the upcoming destructive path.";
-"ReturningUser.PlaceholderContinue" = "Continue";
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - Destructive delete-my-iCloud-data path (ENC-94). Escalating confirmation, then hold-to-delete. Placeholder copy pending design (ENC-101/102). */
 "ReturningUser.Destructive.ExistsTitle" = "Delete your iCloud data";
 "ReturningUser.Destructive.ExistsBody" = "You're about to remove the Encamera data stored in your iCloud. Review what will be deleted before you continue.";

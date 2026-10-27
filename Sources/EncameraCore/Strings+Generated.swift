@@ -291,8 +291,6 @@ public enum L10n {
   }
   /// Get Premium
   public static let getPremium = L10n.tr("Localizable", "GetPremium", fallback: "Get Premium")
-  /// Let's Start
-  public static let getStartedButtonText = L10n.tr("Localizable", "GetStartedButtonText", fallback: "Let's Start")
   /// ./Encamera/ImageViewing/GalleryGridView.swift
   public static let hide = L10n.tr("Localizable", "Hide", fallback: "Hide")
   /// ./Encamera/Settings/PromptToErase.swift
@@ -729,8 +727,6 @@ public enum L10n {
   public static let whyEncryptMedia = L10n.tr("Localizable", "Why Encrypt Media?", fallback: "Why Encrypt Media?")
   /// Yes
   public static let yes = L10n.tr("Localizable", "Yes", fallback: "Yes")
-  /// You have an existing password for this device.
-  public static let youHaveAnExistingPasswordForThisDevice = L10n.tr("Localizable", "You have an existing password for this device.", fallback: "You have an existing password for this device.")
   /// You took your first photo! 📸 🥳
   public static let youTookYourFirstPhoto📸🥳 = L10n.tr("Localizable", "You took your first photo! 📸 🥳", fallback: "You took your first photo! 📸 🥳")
   /// Your Keys
@@ -2455,8 +2451,6 @@ public enum L10n {
     }
   }
   public enum Onboarding {
-    /// I already use Encamera on another device
-    public static let alreadyUseEncamera = L10n.tr("Localizable", "Onboarding.AlreadyUseEncamera", fallback: "I already use Encamera on another device")
     public enum Encryption {
       /// Before it's stored on your device or in iCloud
       public static let row1 = L10n.tr("Localizable", "Onboarding.Encryption.row1", fallback: "Before it's stored on your device or in iCloud")
@@ -2466,18 +2460,6 @@ public enum L10n {
       public static let row3 = L10n.tr("Localizable", "Onboarding.Encryption.row3", fallback: "Your recovery key is the only way to recover them if you lose access")
       /// Encryption explainer
       public static let title = L10n.tr("Localizable", "Onboarding.Encryption.title", fallback: "Every file you add is encrypted")
-    }
-    public enum ICloudBackupAndSync {
-      /// Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.
-      public static let body = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.Body", fallback: "Your key and passcode can travel with you through your iCloud Keychain, so Encamera works on your iPad and your other Apple devices.")
-      /// Turn On
-      public static let confirmTurnOn = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.ConfirmTurnOn", fallback: "Turn On")
-      /// Turn On iCloud Backup & Sync
-      public static let enableButton = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.EnableButton", fallback: "Turn On iCloud Backup & Sync")
-      /// Not Now
-      public static let skipButton = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.SkipButton", fallback: "Not Now")
-      /// ./Encamera/Onboarding/OnboardingHostingView.swift - iCloud Backup & Sync opt-in during onboarding (ENC-95). Default off; explicit tap required.
-      public static let title = L10n.tr("Localizable", "Onboarding.ICloudBackupAndSync.Title", fallback: "Use Encamera on all your devices")
     }
     public enum NeedKey {
       /// Without your encryption key, you won't be able to access your existing encrypted files on this device.
@@ -2831,8 +2813,6 @@ public enum L10n {
       public static let explanation = L10n.tr("Localizable", "PromptToErase.Reset.Explanation", fallback: "This removes your passcode, encryption keys and app settings from this device and every other device on your iCloud account.")
       /// Hold to reset
       public static let hold = L10n.tr("Localizable", "PromptToErase.Reset.Hold", fallback: "Hold to reset")
-      /// Forgot your passcode? Reset it
-      public static let link = L10n.tr("Localizable", "PromptToErase.Reset.Link", fallback: "Forgot your passcode? Reset it")
       /// Your photos and videos are not deleted. To see them again, you will need the key phrase for each key.
       public static let mediaKept = L10n.tr("Localizable", "PromptToErase.Reset.MediaKept", fallback: "Your photos and videos are not deleted. To see them again, you will need the key phrase for each key.")
       /// Reset your passcode and keys?
@@ -2918,24 +2898,14 @@ public enum L10n {
     }
   }
   public enum RestoringFromICloud {
-    /// Enter recovery key instead
-    public static let enterKeyPhrase = L10n.tr("Localizable", "RestoringFromICloud.EnterKeyPhrase", fallback: "Enter recovery key instead")
     /// Finishing restore…
     public static let finishingRestore = L10n.tr("Localizable", "RestoringFromICloud.FinishingRestore", fallback: "Finishing restore…")
-    /// Set up as a new device
-    public static let setUpAsNew = L10n.tr("Localizable", "RestoringFromICloud.SetUpAsNew", fallback: "Set up as a new device")
-    /// Looking for your Encamera account from another device. This usually takes a few seconds.
-    public static let subtitle = L10n.tr("Localizable", "RestoringFromICloud.Subtitle", fallback: "Looking for your Encamera account from another device. This usually takes a few seconds.")
     /// ./Encamera/Components/RestoringFromiCloudView.swift - iCloud Keychain restore wait screen
-    public static let title = L10n.tr("Localizable", "RestoringFromICloud.Title", fallback: "Restoring from iCloud…")
+    public static let setUpAsNew = L10n.tr("Localizable", "RestoringFromICloud.SetUpAsNew", fallback: "Set up as a new device")
   }
   public enum ReturningUser {
     /// We found an existing Encamera account linked to your iCloud. Choose how you'd like to continue on this device.
     public static let body = L10n.tr("Localizable", "ReturningUser.Body", fallback: "We found an existing Encamera account linked to your iCloud. Choose how you'd like to continue on this device.")
-    /// The delete-my-data flow isn't built yet. This is a placeholder for the upcoming destructive path.
-    public static let deleteBody = L10n.tr("Localizable", "ReturningUser.DeleteBody", fallback: "The delete-my-data flow isn't built yet. This is a placeholder for the upcoming destructive path.")
-    /// Delete existing data
-    public static let deleteTitle = L10n.tr("Localizable", "ReturningUser.DeleteTitle", fallback: "Delete existing data")
     /// I don't have my key
     public static let iDontHaveMyKey = L10n.tr("Localizable", "ReturningUser.IDontHaveMyKey", fallback: "I don't have my key")
     /// I have my key
@@ -2954,12 +2924,6 @@ public enum L10n {
     public static func mediaCountLegacy(_ p1: Int) -> String {
       return L10n.tr("Localizable", "ReturningUser.MediaCountLegacy", p1, fallback: "%d files found in iCloud Drive")
     }
-    /// Continue
-    public static let placeholderContinue = L10n.tr("Localizable", "ReturningUser.PlaceholderContinue", fallback: "Continue")
-    /// Key recovery isn't built yet. This is a placeholder for the upcoming recovery flow.
-    public static let recoveryBody = L10n.tr("Localizable", "ReturningUser.RecoveryBody", fallback: "Key recovery isn't built yet. This is a placeholder for the upcoming recovery flow.")
-    /// Recover your key
-    public static let recoveryTitle = L10n.tr("Localizable", "ReturningUser.RecoveryTitle", fallback: "Recover your key")
     /// Set up as a new device
     public static let setUpAsNew = L10n.tr("Localizable", "ReturningUser.SetUpAsNew", fallback: "Set up as a new device")
     /// ./Encamera/Onboarding/OnboardingHostingView.swift - Returning-user branch screen (ENC-91). Placeholder copy pending design (ENC-75).
@@ -3089,10 +3053,6 @@ public enum L10n {
       public static let enableDrawerSubtitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerSubtitle", fallback: "Your credentials and encryption keys will be securely synced via iCloud Keychain.\n\nOther devices will use this device’s passcode or password to unlock Encamera.")
       /// Turn on iCloud sync?
       public static let enableDrawerTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableDrawerTitle", fallback: "Turn on iCloud sync?")
-      /// Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.
-      public static let enableSimpleWarning = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableSimpleWarning", fallback: "Your key and passcode will be copied into your iCloud Keychain so your other Apple devices can open your albums. Anyone who can unlock your iCloud account can then reach them.")
-      /// Turn on iCloud Backup & Sync?
-      public static let enableTitle = L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnableTitle", fallback: "Turn on iCloud Backup & Sync?")
       /// Turning on in %d
       public static func enablingIn(_ p1: Int) -> String {
         return L10n.tr("Localizable", "Settings.ICloudBackupAndSync.EnablingIn", p1, fallback: "Turning on in %d")

@@ -75,7 +75,6 @@
 "ConfirmPinCode" = "تأكيد رمز التعريف";
 "Error deleting all files" = "حدث خطأ أثناء حذف جميع الملفات";
 "GalleryView.AlbumCoverSetToast" = "تم تعيين غلاف الألبوم";
-"GetStartedButtonText" = "لنبدأ";
 "Current Password" = "كلمة المرور الحالية";
 "Missing password" = "كلمة المرور مفقودة";
 "Keys" = "المفاتيح";
@@ -387,7 +386,6 @@
 "ImportingPleaseWait" = "جارٍ الاستيراد... يرجى الانتظار";
 "PurchaseView.BenefitModel.HiddenAlbums" = "الألبومات المخفية";
 "CannotClearMessage" = "لا يمكنك إزالة رمز المرور الخاص بك. يجب تفعيل خاصية Face ID للقيام بذلك.";
-"You have an existing password for this device." = "لديك كلمة مرور موجودة بالفعل لهذا الجهاز.";
 "AlbumsTitle" = "الألبومات";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "هل تريد الحذف من مكتبة الصور؟";
 "No iCloud account found on this device." = "لم يتم العثور على حساب iCloud على هذا الجهاز.";

@@ -210,8 +210,6 @@
 "OnboardingCarousel.SubheadingText2" = "你的相簿以你的專屬金鑰鎖定，安全地儲存在你的裝置或 iCloud 上。";
 "OnboardingCarousel.HeadingText3" = "無需帳號。無個人檔案。無廣告。";
 "OnboardingCarousel.SubheadingText3" = "Encamera 絕不收集你的資料。你的私人時刻完全屬於你自己。";
-"GetStartedButtonText" = "開始使用";
-"You have an existing password for this device." = "您已為此裝置設定密碼。";
 "Set Password" = "設定密碼";
 "SetAPasswordWarning" = "請設定一組密碼以存取此應用程式。請務必將密碼妥善保管——日後無法找回。";
 "Storage location onboarding" = "您想將媒體儲存在哪裡？每個金鑰加密後，資料將儲存在其專屬目錄中。";

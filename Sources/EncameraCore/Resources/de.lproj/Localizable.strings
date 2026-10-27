@@ -261,7 +261,6 @@
 "Next" = "Weiter";
 "OnboardingIntroHeadingText1" = "Datenschutzorientierte Kamera";
 "OnboardingIntroSubheadingText" = "Encamera verschlüsselt alles, um Ihre Medien vor unerwünschten Blicken zu schützen.";
-"GetStartedButtonText" = "Lasst uns anfangen";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera verschlüsselt alles, um Ihre Daten vor den neugierigen Blicken von KI, Medienanalysen und anderen Datenschutzverletzungen zu schützen.";
 "KeyBasedEncryption" = "Schlüsselbasierte Verschlüsselung";
 "IntroStorageExplanation" = "Ihre Medien sind sicher hinter einem Schlüssel verwahrt und lokal auf Ihrem Gerät oder in iCloud gespeichert.";
@@ -271,7 +270,6 @@
 "EncameraIsOpenSource" = "Open Source";
 "OpenSourceExplanation" = "Die Kernfunktionalitäten von Encamera sind Open Source, sodass Sie den Code, der Ihre Fotos sicher macht, einsehen können.";
 "Enter Password" = "Passwort eingeben";
-"You have an existing password for this device." = "Sie haben bereits ein Passwort für dieses Gerät.";
 "Set Password" = "Passwort festlegen";
 "SetAPasswordWarning" = "Legen Sie ein Passwort fest, um auf die App zuzugreifen. Bewahren Sie es an einem sicheren Ort auf – Sie können es später nicht wiederherstellen.";
 "Storage location onboarding" = "Wo möchten Sie Ihre Medien speichern? Jeder Schlüssel speichert die Daten in seinem eigenen Verzeichnis, sobald sie verschlüsselt sind.";

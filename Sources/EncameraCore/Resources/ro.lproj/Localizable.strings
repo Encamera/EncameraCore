@@ -213,8 +213,6 @@ Aplicația se va închide după ce ștergerea este finalizată.";
 "OnboardingCarousel.SubheadingText2" = "Albumele tale sunt blocate cu cheia ta unică și stocate în siguranță pe dispozitivul tău sau în iCloud.";
 "OnboardingCarousel.HeadingText3" = "Fără conturi. Fără profilare. Fără reclame.";
 "OnboardingCarousel.SubheadingText3" = "Encamera nu colectează niciodată datele tale. Momentele tale private rămân complet ale tale.";
-"GetStartedButtonText" = "Să începem";
-"You have an existing password for this device." = "Aveți deja o parolă pentru acest dispozitiv.";
 "Set Password" = "Setează parolă";
 "SetAPasswordWarning" = "Setați o parolă pentru a accesa aplicația. Asigurați-vă că o păstrați într-un loc sigur – nu o veți putea recupera mai târziu.";
 "Storage location onboarding" = "Unde doriți să stocați fișierele media? Fiecare cheie va stoca datele într-un director propriu, odată ce sunt criptate.";

@@ -33,57 +33,24 @@ public enum OnboardingState: Codable, Equatable {
 
 public enum OnboardingFlowScreen: String, Identifiable {
     case intro
-    case enterExistingPassword
     case setPassword
     case enterPassword
     case confirmPassword
     case biometrics
-    case biometricsWithPin
     case setPinCode
     case confirmPinCode
-    case showKeyPhrase
-    /// iCloud Backup & Sync opt-in, shown AFTER auth setup and BEFORE
-    /// the app opens. Offers the mode defaulted OFF (no pre-check, explicit tap
-    /// required), with the honest framing that the key lives in the user's iCloud
-    /// Keychain. Gated on `.keychainSyncRestore`; skipped for a user who already
-    /// arrived through a recovery path or already has sync on. Handled in
-    /// `handleNavigationFor`, never `fatalError`.
+    /// The iCloud Backup & Sync confirmation. Its raw value is the
+    /// `onboardingScreen` marker text.
     case multiDeviceOptIn
-    /// Returning-user branch shown when the existing-data probe returns
-    /// `.found`. Genuine new users (`.none`/`.unknown`) never reach it.
-    case returningUserBranch
-    /// Manual key-phrase entry for the "I have my key" happy path:
+    /// Manual key-phrase entry for the "I have my key" path:
     /// paste/type the phrase, validate it against the fingerprints the existing
-    /// data needs, and accept it additively. Handled in `handleNavigationFor`,
-    /// never `fatalError`.
+    /// data needs, and accept it additively.
     case returningUserManualKeyEntry
-    /// Placeholder destination retained for the guided flip-the-switch recovery
-    /// flow that lands in ENC-93. Handled in `handleNavigationFor`, never
-    /// `fatalError`.
-    case returningUserRecoveryPlaceholder
     /// Guided flip-the-switch recovery: the second "I have my key" path,
     /// for a user who still has their other device but not the key phrase. Waits
-    /// for the key to arrive via iCloud Keychain (polling the ENC-68 credential
-    /// coordinator), with a mandatory timeout, fingerprint verification on
-    /// arrival, and a manual-entry fallback. Handled in `handleNavigationFor`,
-    /// never `fatalError`.
+    /// for the key to arrive via iCloud Keychain, with a mandatory timeout,
+    /// fingerprint verification on arrival, and a manual-entry fallback.
     case returningUserGuidedSync
-    /// Placeholder destination for "I don't have my key" — retained for the guided
-    /// recovery follow-ups. The live destructive flow lands in the three screens
-    /// below. Handled in `handleNavigationFor`, never `fatalError`.
-    case returningUserDestructivePlaceholder
-    /// Destructive delete-my-iCloud-data path, the "I don't have my key"
-    /// branch. Three escalating confirmations, each handled in `handleNavigationFor`
-    /// and never `fatalError`; a back-out at any of them cancels the whole flow
-    /// (nothing is deleted until the hold completes on the third).
-    ///
-    /// Screen 1 — what exists: counts + advisory device names from the probe.
-    case returningUserDestructiveConfirm
-    /// Screen 2 — what it means: unrecoverable, no recovery, crypto-wallet framing.
-    case returningUserDestructiveWarning
-    /// Screen 3 — hold-to-delete (reusing `HoldToConfirmButton`), gated on being
-    /// online. On success: fresh key + normal auth. On partial failure: honest report.
-    case returningUserDestructiveHold
     /// One-time upgrade of every remaining iCloud Drive album to CloudKit,
     /// presented outside the onboarding navigation stack. The raw values are the
     /// `onboardingScreen` marker text; the screens are hosted by their own flow,
@@ -92,10 +59,9 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case cloudKitUpgradeProgress
     case cloudKitUpgradeComplete
     /// Save-recovery-key flow offered after the first item lands in a new
-    /// album. Hosted by `RecoveryKeyFlowHostingView`, not `handleNavigationFor`.
+    /// album. Hosted by `RecoveryKeyFlowHostingView`, not the onboarding navigation stack.
     case recoveryKeyIntro
     case recoveryKeyPhrase
-    // MARK: - Multi-Device Onboarding (ENC-264)
     // MARK: - Multi-Device Onboarding
     case loginMethod
     case unlockMethod
