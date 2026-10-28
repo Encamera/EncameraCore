@@ -60,7 +60,8 @@ public enum KeyFingerprintVerification: Equatable {
 
 /// The result of accepting a manually entered key.
 public struct KeyEntryOutcome: Equatable {
-    /// The key that was derived and saved.
+    /// The key that was derived. `acceptKey` has also saved it; `validateKey`
+    /// has not.
     public let key: PrivateKey
     /// True when the key was checked against a known fingerprint and matched.
     /// False when no fingerprints were available (offline / `.unknown` probe),
@@ -125,6 +126,17 @@ public struct KeyEntryValidator {
     @discardableResult
     public func acceptKey(phraseComponents: [String],
                           requiredFingerprints: [String]) throws -> KeyEntryOutcome {
+        let outcome = try validateKey(phraseComponents: phraseComponents,
+                                      requiredFingerprints: requiredFingerprints)
+        try keyManager.save(key: outcome.key, setNewKeyToCurrent: true)
+        return outcome
+    }
+
+    /// `acceptKey` without the save: derives the phrase and gates it on
+    /// `requiredFingerprints`, writing nothing. For callers that persist the
+    /// accepted key later, together with the rest of what they set up.
+    public func validateKey(phraseComponents: [String],
+                            requiredFingerprints: [String]) throws -> KeyEntryOutcome {
 
         let candidate: PrivateKey
         do {
@@ -146,8 +158,6 @@ public struct KeyEntryValidator {
         case let .mismatch(entered, required):
             throw KeyEntryValidationError.fingerprintMismatch(entered: entered, required: required)
         }
-
-        try keyManager.save(key: candidate, setNewKeyToCurrent: true)
 
         return KeyEntryOutcome(key: candidate, validatedAgainstFingerprint: validated)
     }

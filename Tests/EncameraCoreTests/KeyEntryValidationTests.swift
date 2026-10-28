@@ -116,6 +116,35 @@ final class KeyEntryValidationTests: XCTestCase {
         XCTAssertEqual(try manager.storedKeys().count, 1)
     }
 
+    /// `validateKey` applies the same gate as `acceptKey` but leaves the keychain
+    /// and the current key untouched, so a caller can persist the key later.
+    func testValidateKeyWritesNothing() throws {
+        let manager = DemoKeyManager()
+        let required = try fingerprint(of: correctPhrase, manager: manager)
+
+        let outcome = try KeyEntryValidator(keyManager: manager)
+            .validateKey(phraseComponents: correctPhrase, requiredFingerprints: [required])
+
+        XCTAssertTrue(outcome.validatedAgainstFingerprint)
+        XCTAssertEqual(outcome.key.keyFingerprint, required)
+        XCTAssertEqual(try manager.storedKeys().count, 0, "validateKey must not save the key")
+        XCTAssertNotEqual(manager.currentKey?.keyFingerprint, required,
+                          "validateKey must not change the current key")
+    }
+
+    /// `validateKey` rejects a wrong phrase exactly as `acceptKey` does.
+    func testValidateKeyRejectsMismatch() throws {
+        let manager = DemoKeyManager()
+        let required = try fingerprint(of: correctPhrase, manager: manager)
+
+        XCTAssertThrowsError(try KeyEntryValidator(keyManager: manager)
+            .validateKey(phraseComponents: wrongPhrase, requiredFingerprints: [required])) { error in
+            guard case .fingerprintMismatch = error as? KeyEntryValidationError else {
+                return XCTFail("expected .fingerprintMismatch, got \(error)")
+            }
+        }
+    }
+
     // MARK: - Shared fingerprint gate (reused by ENC-93's guided flow)
 
     /// `KeyEntryValidator.verify` is the single fingerprint gate shared by manual
