@@ -166,8 +166,14 @@ public actor InteractableMediaFileAccess: FileAccess {
         try await requireBackend().move(media: media, progress: progress)
     }
 
+    /// Deletes `media`, then falls the album back to its default cover if one of
+    /// the deleted items was its cover.
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         try await requireBackend().delete(media: media)
+        guard let album, let albumManager else { return }
+        for item in media {
+            albumManager.resetAlbumCover(album: album, ifItIs: item.id)
+        }
     }
 
     public func deleteAllMedia() async throws {

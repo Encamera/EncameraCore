@@ -773,6 +773,77 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertFalse(harness.store.callOrder.contains { isSaveAlbum($0, source.albumID!) })
     }
 
+    private func delete(_ media: [InteractableMedia<EncryptedMedia>], from album: Album,
+                        with manager: AlbumManager) async throws {
+        let access = await InteractableMediaFileAccess(for: album, albumManager: manager)
+        try await access.delete(media: media)
+    }
+
+    func testDeletingACloudKitAlbumsCoverItemClearsItsCoverAndPushesTheRecord() async throws {
+        let harness = try makeMetadataHarness(coverMediaID: "cover-ck")
+        let album = harness.album
+        let albumID = album.albumID!
+        seedPhotoRecord(harness.store, mediaID: "cover-ck", albumID: albumID)
+        seedPhotoRecord(harness.store, mediaID: "stays", albumID: albumID)
+        try await AlbumCoverSidecar(album: album).setCoverMediaID("cover-ck")
+
+        try await delete([try cloudKitPhoto("cover-ck", in: album)], from: album, with: harness.manager)
+
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: albumID)?.coverMediaID,
+                     "the album falls back to its default cover")
+        XCTAssertNil(harness.manager.getAlbumCoverImageId(album: album))
+        XCTAssertFalse(harness.manager.isAlbumCoverImageDisabled(album: album))
+        let sidecarCover = await AlbumCoverSidecar(album: album).coverMediaID()
+        XCTAssertNil(sidecarCover, "no cached copy of the deleted cover survives to be shown")
+        let pushed = await waitUntil { harness.store.callOrder.contains { self.isSaveAlbum($0, albumID) } }
+        XCTAssertTrue(pushed, "the album record is pushed so other devices drop the cover too")
+    }
+
+    func testDeletingACloudKitItemThatIsNotTheCoverLeavesTheCoverAlone() async throws {
+        let harness = try makeMetadataHarness(coverMediaID: "cover-ck")
+        let album = harness.album
+        seedPhotoRecord(harness.store, mediaID: "cover-ck", albumID: album.albumID!)
+        seedPhotoRecord(harness.store, mediaID: "other", albumID: album.albumID!)
+
+        try await delete([try cloudKitPhoto("other", in: album)], from: album, with: harness.manager)
+
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID, "cover-ck")
+        XCTAssertEqual(harness.manager.getAlbumCoverImageId(album: album), "cover-ck")
+    }
+
+    func testDeletingItemsFromACloudKitAlbumWhoseCoverIsTurnedOffKeepsItTurnedOff() async throws {
+        let harness = try makeMetadataHarness(coverMediaID: CloudKitAlbumMarker.disabledCoverID)
+        let album = harness.album
+        seedPhotoRecord(harness.store, mediaID: "item", albumID: album.albumID!)
+
+        try await delete([try cloudKitPhoto("item", in: album)], from: album, with: harness.manager)
+
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID,
+                       CloudKitAlbumMarker.disabledCoverID)
+        XCTAssertTrue(harness.manager.isAlbumCoverImageDisabled(album: album))
+    }
+
+    /// A local album keeps its cover in `AlbumsSyncedStore`, under its name.
+    func testDeletingALocalAlbumsCoverItemFallsBackToTheDefaultCover() async throws {
+        let harness = try makeMetadataHarness()
+        let manager = harness.manager
+        let album = try manager.create(name: "DeleteCover-\(UUID().uuidString)", storageOption: .local)
+        defer { try? FileManager.default.removeItem(at: album.storageURL) }
+        let access = await InteractableMediaFileAccess(for: album, albumManager: manager)
+        let photo = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: UUID().uuidString)
+        ])
+        let encrypted = try await access.save(media: photo, metadata: nil, progress: { _ in })
+        let saved = try XCTUnwrap(encrypted)
+        manager.setAlbumCoverImage(album: album, image: saved)
+        XCTAssertEqual(try harness.syncedStore.getCoverImageId(album.name), saved.id, "precondition")
+
+        try await access.delete(media: [saved])
+
+        XCTAssertNil(manager.getAlbumCoverImageId(album: album), "the album falls back to its default cover")
+        XCTAssertNil(try harness.syncedStore.getCoverImageId(album.name))
+    }
+
     /// The hidden-albums list covers both places a hidden flag lives: `album.json`
     /// for a CloudKit album, and the name-keyed synced store for a local one.
     func testHiddenAlbumsListsHiddenCloudKitAndLocalAlbumsOnly() throws {
