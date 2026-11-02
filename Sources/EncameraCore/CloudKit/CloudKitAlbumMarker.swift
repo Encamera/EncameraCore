@@ -8,6 +8,10 @@
 //  list needs to show the album offline. The name is only ever stored as
 //  ciphertext (`encName`).
 //
+//  It also links the album to its iCloud Drive folder when it has one: the
+//  folder that still holds the album's media not yet moved to CloudKit. The link
+//  is this device's own and never reaches the album record.
+//
 
 import Foundation
 
@@ -28,6 +32,16 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
     /// every field, as for a marker written dirty whole (a new or moved-in album).
     /// A remote change to any other field is still applied while the marker is dirty.
     public var dirtyFields: Set<Field>?
+    /// The album's iCloud Drive folder, as a path relative to the iCloud Drive
+    /// root (`albums/<folder>`, or `<folder>` for an album still in the root
+    /// layout). Nil when the album has no linked folder. Relative because the
+    /// container's absolute path is not stable across launches and devices.
+    ///
+    /// The folder name is whatever the folder is called on iCloud Drive: the
+    /// ciphertext `Album_` form, or the plaintext name of an album created before
+    /// album-name encryption. Not a record field, so `fields(differingFrom:)`
+    /// ignores it and setting it marks nothing dirty.
+    public var iCloudDriveFolderPath: String?
 
     /// The record fields `album.json` mirrors.
     public enum Field: String, Codable, CaseIterable, Sendable {
@@ -40,7 +54,8 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
                 coverMediaID: String? = nil,
                 keyFingerprint: String? = nil,
                 dirty: Bool = false,
-                dirtyFields: Set<Field>? = nil) {
+                dirtyFields: Set<Field>? = nil,
+                iCloudDriveFolderPath: String? = nil) {
         self.encName = encName
         self.createdAt = createdAt
         self.isHidden = isHidden
@@ -48,6 +63,7 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
         self.keyFingerprint = keyFingerprint
         self.dirty = dirty
         self.dirtyFields = dirtyFields
+        self.iCloudDriveFolderPath = iCloudDriveFolderPath
     }
 
     /// The marker for a CloudKit album as this device currently knows it.
@@ -103,6 +119,84 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
 
     static func albumID(forDirectoryName name: String) -> String? {
         name.removingPercentEncoding
+    }
+
+    // MARK: - iCloud Drive folder link
+
+    /// `folder`'s path relative to `root`, or nil when `folder` is not inside it.
+    public static func iCloudDriveFolderPath(for folder: URL,
+                                             relativeTo root: URL = iCloudStorageModel.rootURL) -> String? {
+        let rootComponents = root.standardizedFileURL.resolvingSymlinksInPath().pathComponents
+        let folderComponents = folder.standardizedFileURL.resolvingSymlinksInPath().pathComponents
+        guard folderComponents.count > rootComponents.count,
+              Array(folderComponents.prefix(rootComponents.count)) == rootComponents else {
+            return nil
+        }
+        return folderComponents.dropFirst(rootComponents.count).joined(separator: "/")
+    }
+
+    /// The linked iCloud Drive folder under `root`, or nil when the album has no
+    /// link. The folder is not checked for existence.
+    public func linkedICloudDriveFolderURL(relativeTo root: URL = iCloudStorageModel.rootURL) -> URL? {
+        guard let iCloudDriveFolderPath, !iCloudDriveFolderPath.isEmpty else { return nil }
+        return root.appendingPathComponent(iCloudDriveFolderPath, isDirectory: true)
+    }
+
+    /// Links the marker to `folder`. Returns false, changing nothing, when
+    /// `folder` is not inside `root`.
+    @discardableResult
+    public mutating func linkICloudDriveFolder(_ folder: URL,
+                                               relativeTo root: URL = iCloudStorageModel.rootURL) -> Bool {
+        guard let path = Self.iCloudDriveFolderPath(for: folder, relativeTo: root) else { return false }
+        iCloudDriveFolderPath = path
+        return true
+    }
+
+    /// The iCloud Drive folder the album `albumID` is linked to on this device, or
+    /// nil when it has no marker or no link. iCloud Drive is unavailable when the
+    /// container cannot be reached, so callers check the folder exists.
+    public static func linkedICloudDriveFolderURL(albumID: String) -> URL? {
+        guard iCloudStorageModel.isRootAvailable else { return nil }
+        return read(albumID: albumID)?.linkedICloudDriveFolderURL()
+    }
+
+    /// The id of the CloudKit album on this device whose `album.json` links the
+    /// iCloud Drive folder `folder`, or nil when none does.
+    public static func albumID(linkingICloudDriveFolder folder: URL) -> String? {
+        guard iCloudStorageModel.isRootAvailable,
+              let path = iCloudDriveFolderPath(for: folder) else { return nil }
+        return all().first { $0.marker.iCloudDriveFolderPath == path }?.albumID
+    }
+
+    /// Links the album `albumID`'s marker to `folder` and writes it, leaving
+    /// `dirty` alone: the link is not on the album record.
+    ///
+    /// - Returns: whether `album.json` was written. False when the album has no
+    ///   marker on this device, `folder` is outside the iCloud Drive root, or the
+    ///   marker already links `folder`.
+    @discardableResult
+    public static func linkICloudDriveFolder(_ folder: URL,
+                                             albumID: String,
+                                             relativeTo root: URL = iCloudStorageModel.rootURL) throws -> Bool {
+        guard var marker = read(albumID: albumID) else { return false }
+        let before = marker.iCloudDriveFolderPath
+        guard marker.linkICloudDriveFolder(folder, relativeTo: root),
+              marker.iCloudDriveFolderPath != before else { return false }
+        try marker.write(albumID: albumID)
+        return true
+    }
+
+    /// Drops the album `albumID`'s link to its iCloud Drive folder and writes the
+    /// marker, leaving `dirty` alone.
+    ///
+    /// - Returns: whether `album.json` was written. False when the album has no
+    ///   marker on this device or no link.
+    @discardableResult
+    public static func unlinkICloudDriveFolder(albumID: String) throws -> Bool {
+        guard var marker = read(albumID: albumID), marker.iCloudDriveFolderPath != nil else { return false }
+        marker.iCloudDriveFolderPath = nil
+        try marker.write(albumID: albumID)
+        return true
     }
 
     // MARK: - Location

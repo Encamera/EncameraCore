@@ -223,6 +223,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// coordinator beside the shared one, and the one that republishes a name is
     /// not always the one that marked it.
     private let deleteQueue: CloudKitMediaDeleteQueue
+    /// Albums whose index something other than this walk created, which get the
+    /// same whole-zone walk as an album without an index.
+    private let zoneWalkRequests: CloudKitZoneWalkRequests
 
     /// Whether a delete has already claimed this record name on this device —
     /// possibly on another coordinator.
@@ -271,6 +274,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     /// Writes captured record sizes to the album's size sidecar.
     ///
+    /// Only the sizes of `.cloudKit` components: a component the album's live
+    /// index places on iCloud Drive keeps the size the folder scanner wrote, so
+    /// nothing here writes over or removes it.
+    ///
     /// Never throws: the sidecar answers a Settings screen, and a failure to write
     /// it must not fail a sync or hold up a change-token commit. The album goes on
     /// reporting a stale cloud figure until the next sync or a backfill. An album
@@ -278,8 +285,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private func persistSizes(albumID: String, updates: [String: Int64], removals: Set<String>) async {
         guard !updates.isEmpty || !removals.isEmpty,
               let sizeSidecar = albumManager.sizeSidecar(forAlbumID: albumID) else { return }
+        let entries = await indexStore(forAlbumID: albumID)?.current()?.entries ?? []
         do {
-            try await sizeSidecar.apply(updates: updates, removals: removals)
+            try await sizeSidecar.apply(updates: updates, removals: removals, owner: .cloudKit, entries: entries)
             printDebug("sizeSidecar ok albumID=\(albumID) updated=\(updates.count) removed=\(removals.count)")
         } catch {
             printDebug("sizeSidecar FAILED albumID=\(albumID) updated=\(updates.count) removed=\(removals.count) — cloud size will read stale raw=\(error)")
@@ -292,13 +300,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 bus: FileOperationBus = .shared,
                 uploadQueue: CloudKitUploadQueue = .shared,
                 deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
-                chunkStore: ChunkedBlobStoring? = nil) {
+                chunkStore: ChunkedBlobStoring? = nil,
+                zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests()) {
         self.store = store
         self.cache = cache
         self.albumManagerBox = AlbumManagerBox(albumManager)
         self.bus = bus
         self.uploadQueue = uploadQueue
         self.deleteQueue = deleteQueue
+        self.zoneWalkRequests = zoneWalkRequests
         self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore() }
     }
 
@@ -512,16 +522,33 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// completes while the fetch is suspended has left the queue but may be
     /// missing from a snapshot taken before its save landed.
     ///
+    /// Components stored on iCloud Drive are never reaped. They have no record
+    /// yet, so their absence from the zone says nothing; the iCloud Drive folder
+    /// scan owns them.
+    ///
     /// A reaped record is marked without a claim, so it reads as deleted until a
     /// later fetch returns it, and then becomes readable again.
     private func reap(_ album: inout AlbumApply, pendingUpload: Set<MediaComponent>) async {
         var reaped = 0
         var exempt = 0
+        var onICloudDrive = 0
 
         for entry in album.entries {
             var components: [MediaComponent] = []
-            if entry.hasPhotoComponent { components.append(.init(mediaID: entry.id, mediaType: .photo)) }
-            if entry.hasVideoComponent { components.append(.init(mediaID: entry.id, mediaType: .video)) }
+            if entry.hasPhotoComponent {
+                if entry.photoLocation == .cloudKit {
+                    components.append(.init(mediaID: entry.id, mediaType: .photo))
+                } else {
+                    onICloudDrive += 1
+                }
+            }
+            if entry.hasVideoComponent {
+                if entry.videoLocation == .cloudKit {
+                    components.append(.init(mediaID: entry.id, mediaType: .video))
+                } else {
+                    onICloudDrive += 1
+                }
+            }
 
             for component in components where !album.seen.contains(component) {
                 guard !pendingUpload.contains(component) else {
@@ -547,7 +574,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
         }
 
-        printDebug("reap done albumID=\(album.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) seen=\(album.seen.count) entriesRemaining=\(album.entries.count)")
+        printDebug("reap done albumID=\(album.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) exemptOnICloudDrive=\(onICloudDrive) seen=\(album.seen.count) entriesRemaining=\(album.entries.count)")
     }
 
     /// The components waiting in the upload queue, in the form the reap compares.
@@ -591,7 +618,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 await store.resetChangeToken()
                 token = nil
             } else {
-                let withoutIndex = await loadAlbumIndexes().values.filter { !$0.hadIndex }.map(\.albumID)
+                let walkRequested = zoneWalkRequests.requested()
+                let withoutIndex = await loadAlbumIndexes().values
+                    .filter { !$0.hadIndex || walkRequested.contains($0.albumID) }
+                    .map(\.albumID)
                 if !withoutIndex.isEmpty {
                     printDebug("performSync token DISCARDED albumsWithoutIndex=\(withoutIndex.sorted()) — an index is missing/corrupt while the zone cursor exists; walking the whole zone")
                     await store.resetChangeToken()
@@ -653,9 +683,14 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         var skippedOtherAlbum = 0
         for meta in changed {
             let mediaID = meta.mediaID
-            // The record left any other album that holds it: a move.
+            // The record left any other album that holds it: a move. A component
+            // that album still holds on iCloud Drive is not this record's copy.
             for holderID in holders[mediaID] ?? [] where holderID != meta.albumID {
                 guard var source = albums[holderID], source.holds(mediaID: mediaID) else { continue }
+                guard !source.entries.hasICloudDriveComponent(recordName: meta.recordName) else {
+                    printDebug("performSync movedAway skip recordName=\(meta.recordName) mediaID=\(mediaID) fromAlbumID=\(holderID) reason=onICloudDrive")
+                    continue
+                }
                 let entryRemoved = source.entries.removeComponent(recordName: meta.recordName)
                 source.removedRecordNames.append(meta.recordName)
                 await cache.evict(recordName: meta.recordName)
@@ -705,9 +740,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             let mediaID = MediaRecordName.mediaID(from: recordName)
             await cache.evict(recordName: recordName)
 
-            let holderIDs = (holders[mediaID] ?? []).filter { albums[$0]?.holds(mediaID: mediaID) == true }
+            let allHolderIDs = (holders[mediaID] ?? []).filter { albums[$0]?.holds(mediaID: mediaID) == true }
+            // A component an album holds on iCloud Drive is owned by the folder
+            // scan, not the record the feed deleted.
+            let holderIDs = allHolderIDs.filter {
+                albums[$0]?.entries.hasICloudDriveComponent(recordName: recordName) == false
+            }
             guard !holderIDs.isEmpty else {
-                printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) — in no local index; cache evicted")
+                if allHolderIDs.isEmpty {
+                    printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) — in no local index; cache evicted")
+                } else {
+                    printDebug("performSync hardDelete skip recordName=\(recordName) mediaID=\(mediaID) albumIDs=\(allHolderIDs.sorted()) reason=onICloudDrive; cache evicted")
+                }
                 continue
             }
             deleteQueue.markDeletedFromFeed(recordName)
@@ -756,8 +800,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     try await album.indexStore.apply { live in
                         var changed = false
                         for entry in album.upserted where live.upsert(entry) { changed = true }
-                        for recordName in album.removedRecordNames where live.removeComponent(recordName: recordName) {
-                            changed = true
+                        for recordName in album.removedRecordNames
+                        where !live.hasICloudDriveComponent(recordName: recordName) {
+                            if live.removeComponent(recordName: recordName) { changed = true }
                         }
                         return changed
                     }
@@ -786,6 +831,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         await store.commitChangeToken(token)
+        if startedWithoutToken {
+            zoneWalkRequests.clear(Set(albums.keys))
+        }
         printDebug("performSync ok albums=\(albums.count) pages=\(page) changed=\(changed.count) deleted=\(deleted.count)")
         if token == nil {
             printDebug("performSync token WARNING — no token returned by the change feed; next sync will walk the whole zone")
@@ -925,6 +973,23 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     // MARK: - Blob residency
 
+    /// The record's ciphertext when this device already holds it, waiting in the
+    /// upload queue or current in the blob cache, without fetching anything. Nil
+    /// for a record known to be deleted.
+    public func residentBlobURL(recordName: String) async -> URL? {
+        guard !isKnownDeleted(recordName) else { return nil }
+        if let waiting = await uploadQueue.pendingFileURL(recordName: recordName) {
+            printDebug("residentBlobURL hit recordName=\(recordName) source=uploadQueue file=\(waiting.lastPathComponent)")
+            return waiting
+        }
+        let expectedTag = changeTags[recordName]
+        if let cached = await cache.cachedURL(recordName: recordName, changeTag: expectedTag) {
+            printDebug("residentBlobURL hit recordName=\(recordName) source=cache expectedTag=\(expectedTag ?? "nil") file=\(cached.lastPathComponent)")
+            return cached
+        }
+        return nil
+    }
+
     /// Downloads the record's ciphertext into the blob cache, or returns the copy
     /// already there.
     ///
@@ -941,18 +1006,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             throw CloudKitMediaStoreError.notFound
         }
 
-        if let waiting = await uploadQueue.pendingFileURL(recordName: recordName) {
-            printDebug("ensureBlobLocal hit recordName=\(recordName) source=uploadQueue file=\(waiting.lastPathComponent)")
+        if let resident = await residentBlobURL(recordName: recordName) {
             progress(1.0)
-            return waiting
+            return resident
         }
-
         let expectedTag = changeTags[recordName]
-        if let cached = await cache.cachedURL(recordName: recordName, changeTag: expectedTag) {
-            printDebug("ensureBlobLocal hit recordName=\(recordName) source=cache expectedTag=\(expectedTag ?? "nil") file=\(cached.lastPathComponent)")
-            progress(1.0)
-            return cached
-        }
         try Task.checkCancellation()
 
         let waiter = BlobWaiter(progress: progress)
@@ -1178,20 +1236,17 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///   indexed and announced this item (the capture path). The index upsert
     ///   still runs — it is idempotent, and the migration path relies on it — but
     ///   the gallery is not told twice about the same photo.
+    /// - Parameter cacheInsertion: where the uploaded blob enters the blob
+    ///   cache's eviction order.
     public func upload(_ item: CloudKitMediaUpload,
                        progress: @escaping @Sendable (Double) -> Void,
-                       alreadyVisibleLocally: Bool = false) async throws -> CloudKitMediaRef {
+                       alreadyVisibleLocally: Bool = false,
+                       cacheInsertion: CloudKitBlobCache.Insertion = .warm) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
         await forgetDeletion(of: item.recordName)
         let ref: CloudKitMediaRef
         do {
-            do {
-                ref = try await store.upload(item, progress: progress)
-            } catch CloudKitMediaStoreError.zoneNotFound {
-                printDebug("upload zoneNotFound recordName=\(item.recordName) — recreating the zone and retrying once")
-                try await store.recreateZone()
-                ref = try await store.upload(item, progress: progress)
-            }
+            ref = try await store.upload(item, progress: progress)
         } catch {
             printDebug("upload FAILED recordName=\(item.recordName) albumID=\(item.albumID) raw=\(error)")
             throw error
@@ -1213,7 +1268,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         deleteQueue.forgetDeletion(of: ref.recordName)
-        return try await recordLanded(item, ref: ref, alreadyVisibleLocally: alreadyVisibleLocally)
+        return try await recordLanded(item, ref: ref, alreadyVisibleLocally: alreadyVisibleLocally,
+                                      cacheInsertion: cacheInsertion)
     }
 
     /// Adopts a record an earlier attempt of this upload already committed — the
@@ -1242,7 +1298,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         _ = try await recordLanded(item,
                                    ref: CloudKitMediaRef(recordName: item.recordName,
                                                          recordChangeTag: landed.recordChangeTag),
-                                   alreadyVisibleLocally: alreadyVisibleLocally)
+                                   alreadyVisibleLocally: alreadyVisibleLocally,
+                                   cacheInsertion: .warm)
         printDebug("adoptLandedUpload ok recordName=\(item.recordName)")
         return .adopted
     }
@@ -1267,7 +1324,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// geometry, blob cache, index and sizes.
     private func recordLanded(_ item: CloudKitMediaUpload,
                               ref: CloudKitMediaRef,
-                              alreadyVisibleLocally: Bool) async throws -> CloudKitMediaRef {
+                              alreadyVisibleLocally: Bool,
+                              cacheInsertion: CloudKitBlobCache.Insertion) async throws -> CloudKitMediaRef {
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         let headerBytes = item.chunkCount > 0
             ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
@@ -1279,7 +1337,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             try await cache.store(recordName: ref.recordName,
                                   changeTag: ref.recordChangeTag,
                                   albumID: item.albumID,
-                                  from: item.encryptedFileURL)
+                                  from: item.encryptedFileURL,
+                                  insertion: cacheInsertion)
         } catch {
             printDebug("upload WARNING recordName=\(ref.recordName) local cache store failed; blob will be re-downloaded on next read raw=\(error)")
         }
@@ -1406,6 +1465,34 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         return deleteQueue.pending().contains(recordName) ? .queued : .confirmed
     }
 
+    /// Clears local state for a user delete of a component the index places on
+    /// iCloud Drive, once the caller has removed its file from the album's linked
+    /// folder: the index component, the preview once no component of the media is
+    /// left, and its size. It has no record, so nothing is deleted in CloudKit;
+    /// the record name is marked deleted all the same, so a migration upload of it
+    /// already in flight is deleted when it lands (`upload`).
+    ///
+    /// - Returns: whether the whole index entry is gone.
+    @discardableResult
+    public func removeICloudDriveComponent(recordName: String, albumID: String) async throws -> Bool {
+        printDebug("removeICloudDrive start recordName=\(recordName) albumID=\(albumID)")
+        deleteQueue.claimDeletion(of: recordName, queueRemoteDelete: false)
+        var entryRemoved = false
+        if let indexStore = indexStore(forAlbumID: albumID) {
+            do {
+                entryRemoved = try await indexStore.removeComponent(recordName: recordName)
+            } catch {
+                printDebug("removeICloudDrive indexRemove FAILED recordName=\(recordName) raw=\(error)")
+                throw error
+            }
+        }
+        if entryRemoved { removeLocalPreview(mediaID: MediaRecordName.mediaID(from: recordName)) }
+        await persistSizes(albumID: albumID, updates: [:], removals: [recordName])
+        printDebug("removeICloudDrive ok recordName=\(recordName) entryRemoved=\(entryRemoved)")
+        emitDeletion(mediaID: MediaRecordName.mediaID(from: recordName), albumID: albumID, entryRemoved: entryRemoved)
+        return entryRemoved
+    }
+
     /// Emit a delete when the whole item is gone, otherwise a refresh so the
     /// gallery re-reads the still-present item rather than dropping it.
     private func emitDeletion(mediaID: String, albumID: String, entryRemoved: Bool) {
@@ -1437,9 +1524,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// does any geometry lookup on the same record, so only a record neither has
     /// touched pays a single metadata fetch — whose size is then banked in turn. An
     /// unreachable server yields `nil` rather than an error: an unknown size is a
-    /// blank row, not a failed screen.
+    /// blank row, not a failed screen. For a component the index places on iCloud
+    /// Drive the sidecar holds the file's size, not a record's, so it is not asked.
     public func remoteBytes(recordName: String, albumID: String) async -> Int64? {
-        if let known = await albumManager.sizeSidecar(forAlbumID: albumID)?.bytes(forRecordName: recordName) {
+        let onICloudDrive = await indexStore(forAlbumID: albumID)?.current()?.entries
+            .hasICloudDriveComponent(recordName: recordName) ?? false
+        if !onICloudDrive,
+           let known = await albumManager.sizeSidecar(forAlbumID: albumID)?.bytes(forRecordName: recordName) {
             return known
         }
         return try? await fetchAndBankMetadata(recordName: recordName)?.sizeBytes
@@ -1522,8 +1613,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     /// Maps one CloudKit component record to a single-component index entry.
     /// Source-specific (CloudKit -> entry), so it stays here rather than on the
-    /// shared algebra — but it feeds the shared `upsert`. `internal` for the
-    /// disk/cloud index-equivalence test.
+    /// shared algebra — but it feeds the shared `upsert`. The component's
+    /// location is `.cloudKit`, so upserting it moves a component the index held
+    /// on iCloud Drive to CloudKit while the entry keeps its date. `internal` for
+    /// the disk/cloud index-equivalence test.
     static func indexEntry(from meta: CloudKitMediaMetadata) -> MediaIndexEntry {
         MediaIndexEntry(id: meta.mediaID,
                         hasPhotoComponent: meta.mediaType == .photo,

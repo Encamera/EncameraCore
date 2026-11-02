@@ -108,25 +108,37 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
         if let running = MigrationRunRoles.shared.role(forAlbumID: albumID) {
             return running
         }
-        let fileManager = FileManager.default
-        let hash = sourceHash(albumID: albumID)
-        let ownPlan = directoryURL().appendingPathComponent(hash, isDirectory: true)
-            .appendingPathComponent("\(MigrationPlan.albumPlanID).encplan")
-        if fileManager.fileExists(atPath: ownPlan.path) {
+        if MigrationPlanFileUtil.hasAlbumPlan(in: MigrationPlanFileUtil.sourceDirectory(albumID: albumID)) {
             return .source(direction(ofSourceAlbumID: albumID), isRunning: false)
         }
-        let sourceDirectories = (try? fileManager.contentsOfDirectory(at: directoryURL(),
-                                                                      includingPropertiesForKeys: nil)) ?? []
-        for directory in sourceDirectories {
-            let marker = directory.appendingPathComponent(destinationMarkerName)
-            let plan = directory.appendingPathComponent("\(MigrationPlan.albumPlanID).encplan")
+        let hash = sourceHash(albumID: albumID)
+        for directory in MigrationPlanFileUtil.contents(of: directoryURL()) {
+            let plan = MigrationPlanFileUtil.albumPlanURL(in: directory)
+            let marker = MigrationPlanFileUtil.file(named: destinationMarkerName, besidePlanAt: plan)
             guard let named = try? String(contentsOf: marker, encoding: .utf8),
                   named == hash,
-                  fileManager.fileExists(atPath: plan.path) else { continue }
+                  MigrationPlanFileUtil.exists(plan) else { continue }
             return .destination(albumID.hasSuffix("_\(StorageType.cloudKit.rawValue)") ? .toCloudKit : .toLocal,
                                 isRunning: false)
         }
         return .none
+    }
+
+    /// Removes every whole-album plan on disk whose destination is the album
+    /// `albumID` (`Album.id`), with its destination marker, so no resume runs it
+    /// again. Needs no key. For a deleted album whose moves are not running.
+    static func removeWholeAlbumPlans(intoAlbumID albumID: String) {
+        let fileManager = FileManager.default
+        let hash = sourceHash(albumID: albumID)
+        let sourceDirectories = (try? fileManager.contentsOfDirectory(at: directoryURL(),
+                                                                      includingPropertiesForKeys: nil)) ?? []
+        for directory in sourceDirectories {
+            let marker = directory.appendingPathComponent(destinationMarkerName)
+            guard let named = try? String(contentsOf: marker, encoding: .utf8), named == hash else { continue }
+            let plan = directory.appendingPathComponent("\(MigrationPlan.albumPlanID).encplan")
+            try? fileManager.removeItem(at: plan)
+            try? fileManager.removeItem(at: marker)
+        }
     }
 
     /// `planRole(forAlbumID:).refusesNewMedia`, answered from the runs in flight
@@ -149,9 +161,9 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     /// move to CloudKit has no destination to name until its album id is resolved.
     static func recordDestination(of plan: MigrationPlan, planURL: URL) {
         guard plan.scope == .album else { return }
-        let marker = planURL.deletingLastPathComponent().appendingPathComponent(destinationMarkerName)
+        let marker = MigrationPlanFileUtil.file(named: destinationMarkerName, besidePlanAt: planURL)
         guard plan.destination.storage != .cloudKit || plan.destination.cloudKitAlbumID != nil else {
-            try? FileManager.default.removeItem(at: marker)
+            try? MigrationPlanFileUtil.remove(marker)
             return
         }
         try? Data(sourceHash(albumID: plan.destination.albumID).utf8).write(to: marker, options: .atomic)
@@ -159,9 +171,8 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
 
     /// Removes the destination marker beside the plan at `planURL`, if any.
     static func removeDestinationMarker(besidePlanAt planURL: URL) {
-        guard planURL.deletingPathExtension().lastPathComponent == MigrationPlan.albumPlanID else { return }
-        try? FileManager.default.removeItem(at: planURL.deletingLastPathComponent()
-            .appendingPathComponent(destinationMarkerName))
+        guard MigrationPlanFileUtil.isAlbumPlan(planURL) else { return }
+        try? MigrationPlanFileUtil.remove(MigrationPlanFileUtil.file(named: destinationMarkerName, besidePlanAt: planURL))
     }
 }
 

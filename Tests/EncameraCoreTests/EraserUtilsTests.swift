@@ -10,7 +10,8 @@
 //  never its erase call — decide the outcome. `.reset` must run exactly the
 //  reset tier: keys, settings and cleartext, never CloudKit or the encrypted
 //  media. Every seam is a mock, so no real defaults, keychain, or filesystem are
-//  wiped in the test process.
+//  wiped in the test process, except the migration and iCloud Drive steps the
+//  linked-folder tests run for real against a scratch iCloud Drive root.
 //
 
 import XCTest
@@ -49,13 +50,13 @@ final class EraserUtilsTests: XCTestCase {
         func mayHaveCloudKitData() async -> Bool { mayHaveData }
     }
 
-    private final class RecordingLocalEraser: LocalDataErasing {
-        private(set) var steps: [String] = []
+    private class RecordingLocalEraser: LocalDataErasing, @unchecked Sendable {
+        var steps: [String] = []
         func shutdownCloudKitSync() async { steps.append("shutdownCloudKitSync") }
         func eraseMigrationState() async { steps.append("migrationState") }
         func eraseActiveBackendMedia() async { steps.append("activeBackendMedia") }
         func eraseAllLocalMediaFiles() { steps.append("allLocalMediaFiles") }
-        func eraseICloudDriveMedia() { steps.append("iCloudDriveMedia") }
+        func eraseICloudDriveMedia() async { steps.append("iCloudDriveMedia") }
         func eraseMediaIndexes() { steps.append("mediaIndexes") }
         func eraseBlobCache() async { steps.append("blobCache") }
         func eraseThumbnails() { steps.append("thumbnails") }
@@ -69,7 +70,7 @@ final class EraserUtilsTests: XCTestCase {
 
     /// Answers every verification with a scripted verdict, so a test can make one
     /// step "dirty" and watch what the runner does about it.
-    private final class ScriptedVerifier: LocalDataVerifying {
+    private class ScriptedVerifier: LocalDataVerifying {
         var failing: [String: ErasureVerdict] = [:]
         private(set) var verified: [String] = []
 
@@ -98,7 +99,7 @@ final class EraserUtilsTests: XCTestCase {
     }
 
     private static let allDataSteps = [
-        "migrationState", "shutdownCloudKitSync", "activeBackendMedia", "allLocalMediaFiles", "iCloudDriveMedia", "mediaIndexes",
+        "migrationState", "shutdownCloudKitSync", "iCloudDriveMedia", "activeBackendMedia", "allLocalMediaFiles", "mediaIndexes",
         "blobCache", "thumbnails", "tempDirectories", "sharedContainerImports",
         "residualContainerFiles", "keychain", "userDefaults"
     ]
@@ -107,14 +108,16 @@ final class EraserUtilsTests: XCTestCase {
                            cloud: CloudDataErasing,
                            local: LocalDataErasing,
                            verifier: LocalDataVerifying = ScriptedVerifier(),
-                           appLayerSteps: [ErasureStep] = []) -> EraserUtils {
+                           appLayerSteps: [ErasureStep] = [],
+                           cancelPendingBackgroundSlices: @escaping @Sendable () -> Void = {}) -> EraserUtils {
         EraserUtils(keyManager: DemoKeyManager(),
                     fileAccess: InteractableMediaFileAccess(),
                     erasureScope: scope,
                     cloudKitEraser: cloud,
                     localEraser: local,
                     localVerifier: verifier,
-                    appLayerSteps: appLayerSteps)
+                    appLayerSteps: appLayerSteps,
+                    cancelPendingBackgroundSlices: cancelPendingBackgroundSlices)
     }
 
     /// Collects progress reports on the calling task, in order.
@@ -365,5 +368,219 @@ final class EraserUtilsTests: XCTestCase {
         XCTAssertEqual(report.report(for: "app.analytics")?.outcome, .fail)
         XCTAssertEqual(report.report(for: "app.analytics")?.hint, .retry)
         XCTAssertEqual(report.report(for: "final.verify")?.outcome, .pass, "the run carried on")
+    }
+
+    // MARK: - Linked iCloud Drive folders and migration state
+
+    /// Runs the migration and iCloud Drive steps for real and records the rest.
+    private final class PartlyRealLocalEraser: RecordingLocalEraser, @unchecked Sendable {
+        private let real = DefaultLocalDataEraser(keyManager: DemoKeyManager(), fileAccess: InteractableMediaFileAccess())
+
+        override func eraseMigrationState() async {
+            steps.append("migrationState")
+            await real.eraseMigrationState()
+        }
+
+        override func eraseICloudDriveMedia() async {
+            steps.append("iCloudDriveMedia")
+            await real.eraseICloudDriveMedia()
+        }
+    }
+
+    /// Verifies the migration and iCloud Drive steps for real and passes the rest.
+    private final class PartlyRealVerifier: ScriptedVerifier {
+        private let real = DefaultLocalDataVerifier(keyManager: DemoKeyManager(), fileAccess: InteractableMediaFileAccess())
+
+        override func verifyMigrationState() async -> ErasureVerdict { await real.verifyMigrationState() }
+        override func verifyICloudDriveMedia() -> ErasureVerdict { real.verifyICloudDriveMedia() }
+    }
+
+    private struct LinkedFolders {
+        /// Linked by a local marker; its own marker file is evicted.
+        let byLocalMarker: URL
+        let localMarkerAlbumID: String
+        /// Holds a marker file; no local marker links it.
+        let byMarkerFile: URL
+        let markerFileAlbumID: String
+    }
+
+    private var iCloudDriveRoot: URL?
+    private var writtenLocalMarkerIDs: [String] = []
+
+    override func setUp() {
+        super.setUp()
+        UserDefaultUtils.current = UserDefaultUtils()
+    }
+
+    override func tearDown() {
+        MainActor.assumeIsolated {
+            ICloudDriveBlobMigration._testClearEraseHalt()
+            CloudKitMigrationManager._testClearAbortAll()
+            BlobMigrationKeyCache.shared.clear()
+        }
+        for albumID in writtenLocalMarkerIDs {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            MigrationPlanStore.removeICloudDriveMigrationPlan(cloudKitAlbumID: albumID)
+        }
+        writtenLocalMarkerIDs = []
+        try? MigrationPlanStore.clearAllPlans()
+        DeletedCloudKitAlbums().removeAll()
+        if let iCloudDriveRoot {
+            iCloudStorageModel.testContainerRootOverride = nil
+            try? FileManager.default.removeItem(at: iCloudDriveRoot)
+        }
+        iCloudDriveRoot = nil
+        UserDefaultUtils.current = UserDefaultUtils()
+        super.tearDown()
+    }
+
+    /// A scratch iCloud Drive root holding two linked folders in the legacy
+    /// layout, where only a linked-folder lookup finds them, each with a media
+    /// file and an iCloud Drive migration plan.
+    private func makeLinkedFolders() throws -> LinkedFolders {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("erase-linked-\(UUID().uuidString)", isDirectory: true)
+        iCloudDriveRoot = root
+        iCloudStorageModel.testContainerRootOverride = root
+
+        let byLocalMarker = root.appendingPathComponent("Album_\(UUID().uuidString)", isDirectory: true)
+        let byMarkerFile = root.appendingPathComponent("Album_\(UUID().uuidString)", isDirectory: true)
+        for folder in [byLocalMarker, byMarkerFile] {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data("ciphertext".utf8).write(to: folder.appendingPathComponent("\(UUID().uuidString).encimage"))
+        }
+
+        let localMarkerAlbumID = UUID().uuidString
+        FileManager.default.createFile(
+            atPath: byLocalMarker.appendingPathComponent(ICloudDriveAlbumMarkerFile.placeholderFileName).path,
+            contents: Data())
+        try CloudKitAlbumMarker(encName: "enc", createdAt: Date(), iCloudDriveFolderPath: byLocalMarker.lastPathComponent)
+            .write(albumID: localMarkerAlbumID)
+        writtenLocalMarkerIDs.append(localMarkerAlbumID)
+
+        let markerFileAlbumID = UUID().uuidString
+        try ICloudDriveAlbumMarkerFile(albumID: markerFileAlbumID).write(toAlbumDirectory: byMarkerFile)
+        writtenLocalMarkerIDs.append(markerFileAlbumID)
+
+        for albumID in [localMarkerAlbumID, markerFileAlbumID] {
+            try writePlaceholderPlan(at: MigrationPlanStore.iCloudDriveMigrationPlanURL(cloudKitAlbumID: albumID))
+        }
+        return LinkedFolders(byLocalMarker: byLocalMarker, localMarkerAlbumID: localMarkerAlbumID,
+                             byMarkerFile: byMarkerFile, markerFileAlbumID: markerFileAlbumID)
+    }
+
+    private func writePlaceholderPlan(at url: URL) throws {
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("plan".utf8).write(to: url)
+    }
+
+    @MainActor
+    func testAccountWideEraseRemovesLinkedICloudDriveFolders() async throws {
+        let folders = try makeLinkedFolders()
+        DeletedCloudKitAlbums().insert(UUID().uuidString)
+        XCTAssertEqual(DefaultLocalDataVerifier.linkedICloudDriveFolders().count, 2,
+                       "precondition: the verifier finds both linked folders")
+
+        let local = PartlyRealLocalEraser()
+        let report = await makeUtils(scope: .allData, cloud: MockCloudDataEraser(), local: local,
+                                     verifier: PartlyRealVerifier())
+            .erase(progress: { _ in })
+
+        XCTAssertEqual(local.steps, Self.allDataSteps)
+        for folder in [folders.byLocalMarker, folders.byMarkerFile] {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path),
+                           "\(folder.lastPathComponent) holds the only copy of items not yet in CloudKit and goes with the erase")
+        }
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: folders.localMarkerAlbumID)?.iCloudDriveFolderPath,
+                     "no local marker links a folder after the erase")
+        for albumID in [folders.localMarkerAlbumID, folders.markerFileAlbumID] {
+            XCTAssertFalse(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: albumID), "no plan into \(albumID) remains")
+        }
+        XCTAssertTrue(DeletedCloudKitAlbums().all().isEmpty,
+                      "with every linked folder gone, no deleted album is left to hide a new folder")
+        XCTAssertEqual(report.report(for: "media.iCloudDrive")?.outcome, .pass)
+        XCTAssertEqual(report.report(for: "migration.state")?.outcome, .pass)
+        XCTAssertTrue(DefaultLocalDataVerifier.linkedICloudDriveFolders().isEmpty)
+    }
+
+    /// The verifier names a linked folder that survived, so an erase that missed
+    /// one fails its step.
+    @MainActor
+    func testICloudDriveVerificationFailsOnASurvivingLinkedFolder() throws {
+        let folders = try makeLinkedFolders()
+        let verifier = DefaultLocalDataVerifier(keyManager: DemoKeyManager(), fileAccess: InteractableMediaFileAccess())
+
+        let verdict = verifier.verifyICloudDriveMedia()
+
+        XCTAssertFalse(verdict.passed)
+        XCTAssertTrue(verdict.detail.contains(folders.byLocalMarker.lastPathComponent), verdict.detail)
+        XCTAssertTrue(verdict.detail.contains(folders.byMarkerFile.lastPathComponent), verdict.detail)
+        let files = DefaultErasureVerifier(keyManager: DemoKeyManager()).survivingFilesForTesting(scope: .allData, containerPathLimit: 0)
+        XCTAssertTrue(files.contains("linkedICloudDriveFolder:\(folders.byMarkerFile.lastPathComponent)"), "\(files)")
+        XCTAssertFalse(DefaultErasureVerifier(keyManager: DemoKeyManager()).survivingFilesForTesting(scope: .reset)
+            .contains { $0.hasPrefix("linkedICloudDriveFolder:") },
+                       "a reset keeps the folders, so they are not its residue")
+    }
+
+    @MainActor
+    func testLocalResetLeavesLinkedFoldersAlone() async throws {
+        let folders = try makeLinkedFolders()
+        let contentsBefore = try [folders.byLocalMarker, folders.byMarkerFile].map {
+            try FileManager.default.contentsOfDirectory(atPath: $0.path).sorted()
+        }
+
+        let local = PartlyRealLocalEraser()
+        _ = await makeUtils(scope: .reset, cloud: MockCloudDataEraser(), local: local, verifier: PartlyRealVerifier())
+            .erase(progress: { _ in })
+
+        XCTAssertEqual(local.steps, Self.resetSteps)
+        let contentsAfter = try [folders.byLocalMarker, folders.byMarkerFile].map {
+            try FileManager.default.contentsOfDirectory(atPath: $0.path).sorted()
+        }
+        XCTAssertEqual(contentsAfter, contentsBefore, "a reset keeps the encrypted media, in the linked folders too")
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: folders.localMarkerAlbumID)?.iCloudDriveFolderPath,
+                       folders.byLocalMarker.lastPathComponent, "the album still links its folder")
+    }
+
+    @MainActor
+    func testEraseRemovesMigrationPlansAndCancelsSlices() async throws {
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
+        let albumManager = AlbumManager(keyManager: DemoKeyManager(keys: [key]), syncedDataStore: nil)
+        for scope in [ErasureScope.allData, .reset] {
+            ICloudDriveBlobMigration._testClearEraseHalt()
+            let localAlbum = Album(name: "move-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: key)
+            let localPlan = MigrationPlanStore.planURL(for: localAlbum)
+            let iCloudDrivePlan = MigrationPlanStore.iCloudDriveMigrationPlanURL(cloudKitAlbumID: UUID().uuidString)
+            try writePlaceholderPlan(at: localPlan)
+            try writePlaceholderPlan(at: iCloudDrivePlan)
+            BlobMigrationKeyCache.shared.refreshKeysFromKeychain(using: albumManager)
+            XCTAssertEqual(BlobMigrationKeyCache.shared.storedKeys.count, 1, "precondition: keys are held in memory")
+
+            let local = PartlyRealLocalEraser()
+            let report = await makeUtils(scope: scope, cloud: MockCloudDataEraser(), local: local,
+                                         verifier: PartlyRealVerifier(),
+                                         cancelPendingBackgroundSlices: { [local] in local.steps.append("cancelSlices") })
+                .erase(progress: { _ in })
+
+            XCTAssertEqual(local.steps.first, "cancelSlices", "\(scope): pending slices are cancelled before anything is erased")
+            XCTAssertEqual(local.steps.filter { $0 == "cancelSlices" }.count, 1)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: localPlan.path), "\(scope): the local move's plan goes")
+            XCTAssertFalse(FileManager.default.fileExists(atPath: iCloudDrivePlan.path), "\(scope): the iCloud Drive album's plan goes")
+            XCTAssertEqual(report.report(for: "migration.state")?.outcome, .pass)
+            XCTAssertTrue(BlobMigrationKeyCache.shared.storedKeys.isEmpty, "\(scope): the keys held for locked slices are cleared")
+            XCTAssertTrue(ICloudDriveBlobMigration.isHaltedForErase)
+
+            let loop = ICloudDriveBlobMigration(albumManager: albumManager,
+                                                conditions: .init(isUnlocked: { true }, hasNetwork: { true }, isOnUnmeteredNetwork: { true },
+                                                                  hasICloudDrive: { true }))
+            let slice = await loop.runBackgroundTaskPasses()
+            XCTAssertTrue(slice.outcomes.isEmpty)
+            XCTAssertTrue(BlobMigrationKeyCache.shared.storedKeys.isEmpty,
+                          "\(scope): a slice handler run after the erase reads no keys")
+            let pass = await loop.runMigrationPass(albumID: UUID().uuidString, folder: FileManager.default.temporaryDirectory)
+            XCTAssertEqual(pass, .stopped(.erased, .init()), "\(scope): no pass starts after the erase")
+            XCTAssertFalse(loop.startMigrationPass(albumID: UUID().uuidString, folder: FileManager.default.temporaryDirectory),
+                           "\(scope): nor does a pass the album step starts")
+        }
     }
 }

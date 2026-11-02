@@ -566,7 +566,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let local = localAlbum("WasThere", key: key)
         let albumID = local.albumID!
         let registry = freshPublishRegistry()
-        registry.markPublished(albumID)
+        registry.markConfirmedOnServer(albumID)
         let store = MockCloudKitMediaStore()
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
                                                         publishRegistry: registry)
@@ -591,7 +591,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let local = localAlbum("JustCreated", key: key)
         let albumID = local.albumID!
         let registry = freshPublishRegistry()
-        registry.markPublished(albumID)
+        registry.markConfirmedOnServer(albumID)
         let store = MockCloudKitMediaStore()
         store.enforceParentAlbumExists = true
         store.seedAlbum(remoteRecord(name: "JustCreated", key: key, albumID: albumID))
@@ -622,7 +622,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let local = localAlbum("Unknown", key: key)
         let albumID = local.albumID!
         let registry = freshPublishRegistry()
-        registry.markPublished(albumID)
+        registry.markConfirmedOnServer(albumID)
         let store = MockCloudKitMediaStore()
         store.fetchAlbumError = CloudKitMediaStoreError.retry(after: 1)
         let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [local],
@@ -644,7 +644,7 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         let local = localAlbum("DeletedElsewhere", key: key)
         let albumID = local.albumID!
         let registry = freshPublishRegistry()
-        registry.markPublished(albumID)
+        registry.markConfirmedOnServer(albumID)
         let store = MockCloudKitMediaStore()
         store.fetchAlbumError = CloudKitMediaStoreError.retry(after: 1)
         store.changeSet = CloudKitChangeSet(changed: [], deleted: [],
@@ -780,6 +780,40 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
 
         XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
                        "the album is adopted once the moving device clears the flag")
+    }
+
+    /// An iCloud Drive album's move into CloudKit never hides its album: the album
+    /// step leaves the record unflagged, and the move's plan, kept apart from
+    /// whole-album plans, is no plan role. The album is adopted while media is
+    /// still landing in it.
+    func test_reconcile_adoptsAnAlbumAnICloudDriveAlbumIsMovingInto() async throws {
+        let key = makeKey(5)
+        let record = uuidRecord(name: "Vacation", key: key)
+        let store = MockCloudKitMediaStore()
+        store.seedAlbum(record)
+        let mediaID = UUID().uuidString
+        store.metadataToReturn = [CloudKitMediaMetadata(
+            descriptor: CloudKitMediaRecordDescriptor(
+                albumID: record.albumID, mediaID: mediaID,
+                recordName: CloudKitFileAccess.componentRecordName(mediaID: mediaID, type: .photo),
+                mediaType: .photo, createdAt: Date(), sizeBytes: 10, keyFingerprint: "fp"),
+            creationDeviceID: "other-device", schemaVersion: 1, recordChangeTag: "tag",
+            recordCreationDate: Date().addingTimeInterval(-60))]
+        let source = Album(name: "Vacation", storageOption: .icloud, creationDate: Date(), key: key)
+        let planStore = MigrationPlanStore(iCloudDriveMigrationFrom: source, cloudKitAlbumID: record.albumID)
+        try await planStore.save(try MigrationPlan.album(source, items: [], cloudKitAlbumID: record.albumID))
+        cleanups.append { MigrationPlanStore.removeICloudDriveMigrationPlan(cloudKitAlbumID: record.albumID) }
+        XCTAssertTrue(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: record.albumID),
+                      "precondition: an iCloud Drive album is moving into the album")
+        XCTAssertFalse(record.migrationInProgress, "precondition: the album step never flags the record")
+        XCTAssertEqual(MigrationPlanStore.planRole(forAlbumID: "\(record.albumID)_\(StorageType.cloudKit.rawValue)"), .none,
+                       "the iCloud Drive move's plan is no plan role")
+        let (reconciler, albumManager) = makeReconciler(store: store, keys: [key], albums: [])
+
+        _ = await reconciler.reconcileAlbumsAfterWalk()
+
+        XCTAssertEqual(albumManager.adoptedAlbums.map(\.albumID), [record.albumID],
+                       "the album is adopted while an iCloud Drive album is still moving into it")
     }
 
     // MARK: - Abandoned migrationInProgress flags

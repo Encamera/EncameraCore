@@ -118,9 +118,9 @@ public struct ErasureStepDescriptor: Identifiable, Equatable, Sendable {
         .init(id: "cloud.zones",          title: "Delete iCloud data",                          section: .cloud, tier: .ciphertext),
         .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud, tier: .ciphertext),
 
+        .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media, tier: .ciphertext),
         .init(id: "media.activeBackend",  title: "Delete current album media",                  section: .media, tier: .ciphertext),
         .init(id: "media.localAlbums",    title: "Delete local albums",                         section: .media, tier: .ciphertext),
-        .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media, tier: .ciphertext),
         .init(id: "media.indexes",        title: "Delete media indexes",                        section: .media, tier: .ciphertext),
         .init(id: "media.blobCache",      title: "Delete downloaded copies and pending uploads", section: .media, tier: .ciphertext),
         .init(id: "media.thumbnails",     title: "Delete thumbnails",                           section: .media),

@@ -523,40 +523,6 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         try MediaIndexStore.encrypt(data, keyBytes: key).write(to: url)
     }
 
-    private func legacyItemJSON() -> [String: Any] {
-        ["mediaID": "a", "recordName": "a#0", "mediaType": 0, "createdAt": 0,
-         "sizeBytes": 10, "state": "pending"]
-    }
-
-    func testVersionOnePlanReadsAsAbsentAndIsRemoved() async throws {
-        let url = try makeTempPlanURL()
-        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-        try FileManager.default.copyItem(at: bundledFixtureURL(version: 1), to: url)
-
-        let loaded = await MigrationPlanStore(keyBytes: Self.goldenKey, planURL: url).load()
-
-        XCTAssertNil(loaded)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path), "an unloadable version-1 checkpoint is deleted")
-    }
-
-    func testMediaMovePlanShapedFileReadsAsAbsentAndIsRemoved() async throws {
-        let key = randomKey()
-        let url = try makeTempPlanURL()
-        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-        try writeEncrypted([
-            "id": "move", "version": 1, "direction": "localToCloudKit",
-            "source": ["name": "A", "storage": "local"],
-            "destination": ["name": "B", "storage": "cloudKit"],
-            "migration": ["albumName": "A", "sourceStorage": "local", "items": [legacyItemJSON()],
-                          "createdAt": 0, "version": 1],
-        ], key: key, to: url)
-
-        let loaded = await MigrationPlanStore(keyBytes: key, planURL: url).load()
-
-        XCTAssertNil(loaded)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
-    }
-
     func testPlanWithAnInvalidStoragePairReadsAsAbsentAndIsRemoved() async throws {
         let key = randomKey()
         let url = try makeTempPlanURL()
@@ -571,23 +537,6 @@ final class CloudKitMigrationPlanTests: XCTestCase {
 
         XCTAssertNil(loaded)
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
-    }
-
-    func testPlansForRemovesTheVersionOneLayout() async throws {
-        let album = makeAlbum(storage: .local)
-        defer { removePlans(album) }
-        let hash = SHA256.hash(data: Data(album.id.utf8)).map { String(format: "%02x", $0) }.joined()
-        let root = MigrationPlanStore.directoryURL()
-        let oldAlbumPlan = root.appendingPathComponent("\(hash).encplan")
-        let oldMoveDir = root.appendingPathComponent("moves/\(hash)", isDirectory: true)
-        try writeEncrypted(["version": 1], key: album.key.keyBytes, to: oldAlbumPlan)
-        try writeEncrypted(["version": 1], key: album.key.keyBytes, to: oldMoveDir.appendingPathComponent("m.encplan"))
-
-        let plans = await MigrationPlanStore.plans(for: album)
-
-        XCTAssertTrue(plans.isEmpty)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: oldAlbumPlan.path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: oldMoveDir.path))
     }
 
     func testWrongKeyReadsAsAbsentButIsKept() async throws {
@@ -622,7 +571,9 @@ final class CloudKitMigrationPlanTests: XCTestCase {
                     mediaType: .photo,
                     createdAt: Date(timeIntervalSinceReferenceDate: 700_000_000),
                     sizeBytes: 1024,
-                    state: .verified
+                    state: .verified,
+                    priorityRequest: MigrationPriorityRequest(reason: .userAction,
+                                                              requestedAt: Date(timeIntervalSinceReferenceDate: 705_000_000))
                 ),
                 MigrationItem(
                     mediaID: "golden-video",
@@ -632,6 +583,15 @@ final class CloudKitMigrationPlanTests: XCTestCase {
                     sizeBytes: 2048,
                     state: .sourceDeleted
                 ),
+                MigrationItem(
+                    mediaID: "golden-large",
+                    recordName: "golden-large#video",
+                    mediaType: .video,
+                    createdAt: Date(timeIntervalSinceReferenceDate: 700_000_000),
+                    sizeBytes: 52_428_800,
+                    priorityRequest: MigrationPriorityRequest(reason: .viewed,
+                                                              requestedAt: Date(timeIntervalSinceReferenceDate: 706_000_000))
+                ),
             ],
             createdAt: Date(timeIntervalSinceReferenceDate: 700_000_000),
             cancelledAt: Date(timeIntervalSinceReferenceDate: 710_000_000)
@@ -640,18 +600,18 @@ final class CloudKitMigrationPlanTests: XCTestCase {
 
     /// Where the fixture lives in the source tree. Only the generator writes here:
     /// Xcode Cloud runs tests on machines without the repository checked out.
-    private func sourceFixtureURL(version: Int = MigrationPlan.currentVersion) -> URL {
+    private func sourceFixtureURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("Fixtures", isDirectory: true)
-            .appendingPathComponent("migration-plan-v\(version).encplan")
+            .appendingPathComponent("migration-plan.encplan")
     }
 
     /// The fixture as shipped in the test bundle. The app-hosted Xcode target
     /// flattens it to the bundle root; other hosts keep the Fixtures folder, and
     /// `swift test` processes it into the test target's `Bundle.module`.
-    private func bundledFixtureURL(version: Int = MigrationPlan.currentVersion) throws -> URL {
-        let name = "migration-plan-v\(version)"
+    private func bundledFixtureURL() throws -> URL {
+        let name = "migration-plan"
         let testBundle = Bundle(for: Self.self)
         let candidates = [
             testBundle.url(forResource: name, withExtension: "encplan"),
@@ -661,7 +621,7 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         return try XCTUnwrap(candidates.compactMap { $0 }.first, "Missing fixture \(name).encplan in the test bundle")
     }
 
-    /// Generates the golden fixture for the current version. Run manually with
+    /// Generates the golden fixture. Run manually with
     /// `GENERATE_GOLDEN_FIXTURE=1` to create or refresh it — the normal test reads
     /// it without regenerating.
     func testGenerateGoldenFixture() async throws {
@@ -691,6 +651,107 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         XCTAssertEqual(plan.items, goldenPlan().items)
         XCTAssertEqual(plan.cancelledAt, goldenPlan().cancelledAt)
         XCTAssertEqual(plan.version, MigrationPlan.currentVersion)
+        XCTAssertEqual(plan.items.map(\.kind), [.ciphertextOnly, .ciphertextOnly, .encrypting])
+    }
+
+    /// An item's deferral reason and `failedDownloads` are written by hand here,
+    /// not by the encoder: the raw values and keys are the format. A plan written
+    /// when these items were terminal stores them `skipped` with an
+    /// `unmovableReason`; they read as deferred, not done. An item without them
+    /// writes neither key, so every plan written before they existed keeps its
+    /// bytes.
+    func testOldPlanWithUnmovableReasonDecodesAsDeferred() throws {
+        let json = Data("""
+        [{"mediaID":"a","recordName":"a#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"skipped","unmovableReason":"unreadable"},
+         {"mediaID":"b","recordName":"b#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"skipped","unmovableReason":"neverDownloads","failedDownloads":5},
+         {"mediaID":"c","recordName":"c#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"skipped","unmovableReason":"missingKey"},
+         {"mediaID":"d","recordName":"d#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"failed","failedDownloads":2},
+         {"mediaID":"e","recordName":"e#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"skipped"},
+         {"mediaID":"f","recordName":"f#0","mediaType":0,"createdAt":0,"sizeBytes":10,"kind":"ciphertextOnly","state":"pending","unmovableReason":"recordInAnotherAlbum"}]
+        """.utf8)
+
+        let items = try JSONDecoder().decode([MigrationItem].self, from: json)
+
+        XCTAssertEqual(items.map(\.deferralReason), [.unreadable, .neverDownloads, .missingKey, nil, nil, .recordInAnotherAlbum])
+        XCTAssertEqual(items.map(\.state), [.pending, .pending, .pending, .failed, .skipped, .pending],
+                       "a terminal item with a reason reads as not done")
+        XCTAssertEqual(items.map(\.failedDownloads), [nil, 5, nil, 2, nil, nil])
+        XCTAssertEqual(items.map(\.isDeferred), [true, true, true, false, false, true],
+                       "a skip without a reason is not deferred")
+        let plan = try MigrationPlan(id: MigrationPlan.albumPlanID,
+                                     source: MigrationEndpoint(albumName: "Trip", storage: .icloud),
+                                     destination: MigrationEndpoint(albumName: "Trip", storage: .cloudKit),
+                                     scope: .album, items: items, createdAt: Date())
+        XCTAssertEqual(plan.deferredCount, 4)
+        XCTAssertEqual(plan.deferredRecordNames, ["a#0", "b#0", "c#0", "f#0"])
+
+        let written = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(items)) as? [[String: Any]])
+        XCTAssertEqual(written[1]["unmovableReason"] as? String, "neverDownloads", "the stored key is unchanged")
+        XCTAssertEqual(written[1]["state"] as? String, "pending")
+        XCTAssertEqual(written[1]["failedDownloads"] as? Int, 5)
+        XCTAssertEqual(written[5]["unmovableReason"] as? String, "recordInAnotherAlbum")
+        XCTAssertNil(written[4]["unmovableReason"], "an item without a reason writes no key")
+        XCTAssertNil(written[4]["failedDownloads"])
+    }
+
+    func testPlanWithOnlyDeferredItemsHasRemainingWork() throws {
+        var items = ["a", "b"].map {
+            MigrationItem(mediaID: $0, recordName: "\($0)#0", mediaType: .photo, createdAt: Date(), sizeBytes: 10)
+        }
+        items[0].state = .sourceDeleted
+        items[1].deferralReason = .missingKey
+        let plan = try MigrationPlan(id: MigrationPlan.albumPlanID,
+                                     source: MigrationEndpoint(albumName: "Trip", storage: .icloud),
+                                     destination: MigrationEndpoint(albumName: "Trip", storage: .cloudKit),
+                                     scope: .album, items: items, createdAt: Date())
+
+        XCTAssertTrue(plan.hasRemainingWork, "a deferred item is retried, so the plan stays pending")
+        XCTAssertFalse(plan.isComplete)
+        XCTAssertEqual(plan.deferredCount, 1)
+    }
+
+    @MainActor
+    func testMergeKeepsDeferralReason() {
+        func item(_ id: String, state: MigrationItemState = .pending, size: Int64 = 10) -> MigrationItem {
+            MigrationItem(mediaID: id, recordName: "\(id)#0", mediaType: .photo, createdAt: Date(), sizeBytes: size, state: state)
+        }
+        var deferred = item("deferred")
+        deferred.deferralReason = .neverDownloads
+        var requested = item("requested")
+        requested.deferralReason = .unreadable
+        requested.recordPriorityRequest(.viewed, at: Date())
+
+        let merged = CloudKitMigrationManager.merge(existing: [deferred, requested, item("plain")],
+                                                    enumerated: [item("deferred", size: 20), item("requested"), item("plain")])
+
+        XCTAssertEqual(merged.map(\.deferralReason), [.neverDownloads, .unreadable, nil],
+                       "a re-plan does not push a deferred item back to the front")
+        XCTAssertEqual(merged.map(\.state), [.pending, .pending, .pending])
+        XCTAssertEqual(merged[0].sizeBytes, 20, "the item is otherwise refreshed")
+        XCTAssertEqual(merged[1].priorityRequest?.reason, .viewed)
+    }
+
+    func testViewedRequestClearsEveryDeferralButRecordInAnotherAlbum() throws {
+        let reasons: [MigrationDeferralReason] = [.unreadable, .neverDownloads, .missingKey, .recordInAnotherAlbum]
+        var items = reasons.map {
+            MigrationItem(mediaID: $0.rawValue, recordName: "\($0.rawValue)#0", mediaType: .photo, createdAt: Date(), sizeBytes: 10)
+        }
+        for index in items.indices { items[index].deferralReason = reasons[index] }
+        var untouched = MigrationItem(mediaID: "other", recordName: "other#0", mediaType: .photo, createdAt: Date(), sizeBytes: 10)
+        untouched.deferralReason = .missingKey
+        var plan = try MigrationPlan(id: MigrationPlan.albumPlanID,
+                                     source: MigrationEndpoint(albumName: "Trip", storage: .icloud),
+                                     destination: MigrationEndpoint(albumName: "Trip", storage: .cloudKit),
+                                     scope: .album, items: items + [untouched], createdAt: Date())
+        let viewedAt = Date()
+
+        plan.prioritizeViewed(mediaIDs: Set(reasons.map(\.rawValue)), at: viewedAt)
+
+        XCTAssertEqual(plan.items.map(\.deferralReason), [nil, nil, nil, .recordInAnotherAlbum, .missingKey],
+                       "a decrypt disproves an unreadable file, a placeholder and a missing key, not another album's record")
+        XCTAssertEqual(plan.items.prefix(4).map(\.priorityRequest),
+                       Array(repeating: MigrationPriorityRequest(reason: .viewed, requestedAt: viewedAt), count: 4))
+        XCTAssertNil(plan.items[4].priorityRequest)
     }
 
     func testAnEndpointWrittenBeforeCreatedByMoveExistedReadsAsAdopted() throws {

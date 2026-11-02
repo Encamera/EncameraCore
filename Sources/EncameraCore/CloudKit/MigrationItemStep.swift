@@ -35,9 +35,20 @@ struct MigrationRunContext {
     let isCancelRequested: () -> Bool
     /// Records that an item failed because its key is not on this device.
     let noteMissingKey: () -> Void
+    /// Records why an item failed because its key could not be proven: no key on
+    /// this device opens it, or its bytes are not readable as encrypted media.
+    var noteKeyProofFailure: (CloudKitKeyStamp.Failure) -> Void = { _ in }
+    /// Whether an item whose record belongs to another album is deferred
+    /// (`pending` with `.recordInAnotherAlbum`) rather than `skipped`.
+    var defersRecordsInAnotherAlbum = false
     let setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void
     /// Reports how far an item's transfer has got, 0...1, from any queue.
     let reportTransferProgress: @Sendable (_ index: Int, _ fraction: Double) -> Void
+    /// Asked before a re-encryption writes plaintext and at each chunk boundary
+    /// while it runs; true abandons it with `MigrationReencryptionAbandoned`.
+    var shouldStopReencryption: @Sendable () -> Bool = { false }
+    /// Where an item's uploaded blob enters the blob cache's eviction order.
+    var cacheInsertion: (MigrationItem) -> CloudKitBlobCache.Insertion = { _ in .warm }
 }
 
 // MARK: - Step
@@ -62,11 +73,22 @@ protocol MigrationItemStep {
 }
 
 extension MigrationPlan: DebugPrintable {
-    /// Marks an item failed with an error description.
-    mutating func markFailed(_ index: Int, _ error: Error) {
+    /// Marks an item failed with an error description, a partial failure recorded
+    /// as the record's own error. Returns the failure that ends the whole run when
+    /// the error is one, a full iCloud or a lost account; nil when it fails only
+    /// the item.
+    @discardableResult
+    mutating func markFailed(_ index: Int, _ error: Error) -> MigrationFailureReason? {
+        let storeError = (error as? CloudKitMediaStoreError)?.unwrappingPartial
+        let recorded: Error = storeError ?? error
         items[index].state = .failed
-        items[index].lastError = "\(error)"
-        printDebug("item FAILED recordName=\(items[index].recordName) error=\(error)")
+        items[index].lastError = "\(recorded)"
+        printDebug("item FAILED recordName=\(items[index].recordName) error=\(recorded)")
+        switch storeError {
+        case .quotaExceeded: return .quota
+        case .accountUnavailable: return .accountUnavailable
+        default: return nil
+        }
     }
 
     /// Resets any item left mid-transfer back to `pending` so a resume re-drives it
@@ -99,20 +121,20 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
 
         // Recover an interrupted upload: confirm-or-restart rather than re-save.
         if plan.items[index].state == .uploading {
-            switch try await Self.presenceInCloudKit(item, albumID: context.cloudKitAlbumID, store: context.store) {
+            switch try await Self.presenceInCloudKit(item, context: context) {
             case .inAnotherAlbum(let owner):
-                try await Self.skipAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
+                try await Self.setAsideAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
                 return
             case .present:
                 plan.items[index].state = .uploaded
-            case .absent:
+            case .absent, .sizeMismatch:
                 plan.items[index].state = .pending
             }
             try await context.savePlan(plan)
         }
 
         // 1. Upload the existing ciphertext (no re-encryption).
-        if plan.items[index].state == .pending || plan.items[index].state == .failed {
+        upload: if plan.items[index].state == .pending || plan.items[index].state == .failed {
             // No source ciphertext means a stale index entry with nothing to migrate.
             // Skip it terminally rather than failing it forever — a single missing file
             // must never wedge the whole album short of completion.
@@ -156,7 +178,23 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             // record with this name — the same album migrated from another device
             // into a different album, say. Saving over it would re-parent it, so
             // it is left where it is and the local original stays.
-            if try await Self.skipIfOwnedByAnotherAlbum(at: index, in: &plan, context: context) { return }
+            let owner = try await Self.checkOwner(at: index, in: &plan, context: context)
+            if owner == .anotherAlbum { return }
+
+            // A legacy video whose record is already in this album (another
+            // device's upload, or an earlier run whose checkpoint was lost) is not
+            // re-encrypted: a new encryption's chunks would overwrite the ones the
+            // committed record describes. It goes straight to verification.
+            // Chunks with no record are not checked: nothing reaps uncommitted
+            // chunks and they do not name the device that wrote them, so the
+            // re-encryption overwrites them.
+            if owner == .thisAlbum, Self.needsReencryption(item, at: encURL) {
+                printDebug("item re-encryption SKIPPED recordName=\(item.recordName) — the record is already in this album, verifying")
+                plan.items[index].state = .uploaded
+                plan.items[index].lastError = nil
+                try await context.savePlan(plan)
+                break upload
+            }
 
             // Which key encrypted THIS file, proven against its own bytes. An album can
             // hold a file written under another key, so the album's key is an assumption
@@ -172,6 +210,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             } catch {
                 printDebug("item FAILED recordName=\(item.recordName) — key not established: \(error)")
                 if case .missingKey = error as? CloudKitKeyStamp.Failure { context.noteMissingKey() }
+                if let failure = error as? CloudKitKeyStamp.Failure { context.noteKeyProofFailure(failure) }
                 plan.items[index].state = .failed
                 plan.items[index].lastError = (error as? ErrorDescribable)?.displayDescription
                     ?? "could not establish which key encrypted this file"
@@ -206,15 +245,14 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             if SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL) {
                 let header = try SeekableEncryptedHeader.read(fromFileAt: encURL).header
                 chunkGeometry = (header.chunkCount, Int64(header.plaintextLength))
-            } else if item.mediaType == .video,
-                      FeatureToggle.isEnabled(feature: .cloudKitStorage),
-                      item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold) {
+            } else if Self.needsReencryption(item, at: encURL) {
                 context.setPhase(.preparing, plan, item.mediaID)
                 // Throws, failing the item with its original kept, when the ENC3
                 // output does not decrypt back to the original's plaintext.
                 let reencrypted = try await Self.reencryptToSeekable(sourceENC2: encURL,
                                                                      mediaID: item.mediaID,
-                                                                     keyBytes: proven.key.keyBytes) { fraction in
+                                                                     keyBytes: proven.key.keyBytes,
+                                                                     shouldStopReencryption: context.shouldStopReencryption) { fraction in
                     report(index, transferStart + (1 - transferStart) * reencryptShare * fraction)
                 }
                 reencryptScratch = reencrypted.scratchDirectory
@@ -243,6 +281,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             let uploadStart = transferStart + (1 - transferStart) * (reencryptScratch == nil ? 0 : reencryptShare)
             do {
                 try await Self.uploadWithRetry(upload, coordinator: context.coordinator, plan: plan, itemName: item.mediaID,
+                                               cacheInsertion: context.cacheInsertion(item),
                                                setPhase: context.setPhase) { fraction in
                     report(index, uploadStart + (1 - uploadStart) * fraction)
                 }
@@ -263,11 +302,11 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
         // 2. Verify the record is durably in CloudKit before touching the original.
         if plan.items[index].state == .uploaded {
             context.setPhase(.verifying, plan, item.mediaID)
-            switch try await Self.presenceInCloudKit(item, albumID: context.cloudKitAlbumID, store: context.store) {
+            switch try await Self.presenceInCloudKit(item, context: context) {
             case .inAnotherAlbum(let owner):
-                try await Self.skipAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
+                try await Self.setAsideAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
                 return
-            case .absent:
+            case .absent, .sizeMismatch:
                 printDebug("item VERIFY FAILED recordName=\(item.recordName) — refusing to delete the local original")
                 throw MigrationError.verificationFailed(recordName: item.recordName)
             case .present:
@@ -307,11 +346,11 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             // re-drive the upload if the record is gone.
             if !verifiedThisRun {
                 context.setPhase(.verifying, plan, item.mediaID)
-                switch try await Self.presenceInCloudKit(item, albumID: context.cloudKitAlbumID, store: context.store) {
+                switch try await Self.presenceInCloudKit(item, context: context) {
                 case .inAnotherAlbum(let owner):
-                    try await Self.skipAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
+                    try await Self.setAsideAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
                     return
-                case .absent:
+                case .absent, .sizeMismatch:
                     printDebug("item STALE VERIFICATION recordName=\(item.recordName) — record gone since the earlier run, re-driving upload")
                     plan.items[index].state = .pending
                     plan.items[index].lastError = "stale verification: record no longer in CloudKit"
@@ -342,27 +381,49 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
         }
     }
 
-    /// Marks the item `skipped` when its record exists and belongs to an album other
-    /// than the destination. `skipped` is terminal, so the run can finish, and it
-    /// never removes the source, so the local original keeps the item on this device
-    /// (and keeps its directory from being removed as drained).
-    private static func skipIfOwnedByAnotherAlbum(at index: Int,
-                                                  in plan: inout MigrationPlan,
-                                                  context: MigrationRunContext) async throws -> Bool {
-        let recordName = plan.items[index].recordName
-        guard let owner = try await context.store.confirmAlbum(recordName: recordName),
-              owner != context.cloudKitAlbumID else { return false }
-        try await skipAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
-        return true
+    /// Who owns the item's record on the server.
+    private enum RecordOwner: Equatable {
+        case none
+        case thisAlbum
+        case anotherAlbum
     }
 
-    private static func skipAsOwnedByAnotherAlbum(at index: Int,
+    /// Asks `confirmAlbum` who owns the item's record, and marks the item `skipped`
+    /// when another album does. `skipped` is terminal, so the run can finish, and
+    /// it never removes the source, so the local original keeps the item on this
+    /// device (and keeps its directory from being removed as drained).
+    private static func checkOwner(at index: Int,
+                                   in plan: inout MigrationPlan,
+                                   context: MigrationRunContext) async throws -> RecordOwner {
+        let recordName = plan.items[index].recordName
+        guard let owner = try await context.store.confirmAlbum(recordName: recordName) else { return .none }
+        guard owner != context.cloudKitAlbumID else { return .thisAlbum }
+        try await setAsideAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
+        return .anotherAlbum
+    }
+
+    /// Whether the item's upload re-encrypts it: a legacy (not ENC3) video at or
+    /// over the chunking threshold.
+    private static func needsReencryption(_ item: MigrationItem, at encURL: URL) -> Bool {
+        item.mediaType == .video
+            && FeatureToggle.isEnabled(feature: .cloudKitStorage)
+            && item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold)
+            && !SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL)
+    }
+
+    private static func setAsideAsOwnedByAnotherAlbum(at index: Int,
                                                   owner: String,
                                                   in plan: inout MigrationPlan,
                                                   context: MigrationRunContext) async throws {
-        printDebug("item SKIPPED recordName=\(plan.items[index].recordName) — the record belongs to album \(owner), not \(context.cloudKitAlbumID)")
-        plan.items[index].state = .skipped
         plan.items[index].lastError = "a record with this name belongs to another album"
+        if context.defersRecordsInAnotherAlbum {
+            printDebug("item DEFERRED recordName=\(plan.items[index].recordName) — the record belongs to album \(owner), not \(context.cloudKitAlbumID)")
+            plan.items[index].state = .pending
+            plan.items[index].deferralReason = .recordInAnotherAlbum
+        } else {
+            printDebug("item SKIPPED recordName=\(plan.items[index].recordName) — the record belongs to album \(owner), not \(context.cloudKitAlbumID)")
+            plan.items[index].state = .skipped
+        }
         try await context.savePlan(plan)
     }
 
@@ -377,12 +438,13 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                                         coordinator: CloudKitSyncCoordinator,
                                         plan: MigrationPlan,
                                         itemName: String,
+                                        cacheInsertion: CloudKitBlobCache.Insertion,
                                         setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void,
                                         progress: @escaping @Sendable (Double) -> Void) async throws {
         var attempt = 0
         while true {
             do {
-                _ = try await coordinator.upload(upload, progress: progress)
+                _ = try await coordinator.upload(upload, progress: progress, cacheInsertion: cacheInsertion)
                 return
             } catch let error as CloudKitMediaStoreError {
                 guard case .retry(let after) = CloudKitMigrationManager.unwrapPartial(error) else { throw error }
@@ -398,42 +460,16 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
 
     // MARK: - Verification
 
-    private enum RecordPresence: Equatable {
-        /// In the expected album, with the expected size.
-        case present
-        /// No record, or one whose size does not match.
-        case absent
-        /// A record under this name that another album owns. It is not this move's
-        /// copy, whatever its size.
-        case inAnotherAlbum(owner: String)
-    }
-
-    /// Whether the item's record exists in CloudKit in `albumID` with the expected
-    /// size — the verification gate that must pass before a source delete. A record
-    /// that another device has moved to another album since this run's owner check
-    /// is not a copy of this move. Uses a strongly-consistent fetch-by-record-ID (not
-    /// the eventually-consistent `fetchMetadata` query), so a record saved moments
-    /// earlier is reliably seen rather than spuriously reported missing — which would
-    /// otherwise fail the item and strand the migration.
+    /// The item's record measured against this move's album and the item's planned
+    /// size: the gate that must pass before a source delete. A size mismatch counts
+    /// as no copy. A record that another device has moved to another album since
+    /// this run's owner check is not a copy of this move.
     private static func presenceInCloudKit(_ item: MigrationItem,
-                                           albumID: String,
-                                           store: CloudKitMediaStoring) async throws -> RecordPresence {
-        guard let metadata = try await store.fetchRecordMetadata(recordName: item.recordName) else {
-            printDebug("verify MISS recordName=\(item.recordName) — record absent from CloudKit after a successful upload")
-            return .absent
-        }
-        guard metadata.albumID == albumID else {
-            printDebug("verify OTHER ALBUM recordName=\(item.recordName) expected=\(albumID) owner=\(metadata.albumID)")
-            return .inAnotherAlbum(owner: metadata.albumID)
-        }
-        // A size mismatch and an absent record both used to return a bare `false`,
-        // so a verification failure said nothing about which had happened.
-        guard metadata.sizeBytes == item.sizeBytes else {
-            printDebug("verify SIZE MISMATCH recordName=\(item.recordName) local=\(item.sizeBytes) remote=\(metadata.sizeBytes)")
-            return .absent
-        }
-        printDebug("verify ok recordName=\(item.recordName) sizeBytes=\(item.sizeBytes)")
-        return .present
+                                           context: MigrationRunContext) async throws -> CloudKitRecordPresence {
+        try await CloudKitRecordPresence.check(recordName: item.recordName,
+                                               albumID: context.cloudKitAlbumID,
+                                               sizeBytes: item.sizeBytes,
+                                               store: context.store)
     }
 
     /// Runs on the re-encrypted ENC3 file before it is verified. Tests use it to
@@ -455,21 +491,46 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
     /// altogether.
     /// `progress` runs 0...1 over the decrypt and the encrypt, half each; the
     /// verify pass after them reports nothing.
+    ///
+    /// `shouldStopReencryption` is asked before the scratch directory is made, at
+    /// every chunk of the decrypt and the encrypt, and around the verify; true
+    /// removes the scratch directory and throws `MigrationReencryptionAbandoned`.
     static func reencryptToSeekable(sourceENC2: URL,
                                     mediaID: String,
                                     keyBytes: [UInt8],
+                                    shouldStopReencryption: @escaping @Sendable () -> Bool = { false },
                                     progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws
         -> (url: URL, header: SeekableEncryptedHeader, scratchDirectory: URL) {
+        guard !shouldStopReencryption() else { throw MigrationReencryptionAbandoned() }
         let scratchDir = try MigrationReencryptScratch.makeDirectory()
         do {
             let plaintextURL = scratchDir.appendingPathComponent("\(mediaID).plain")
             defer { try? FileManager.default.removeItem(at: plaintextURL) }
+            func stopIfRequested() throws {
+                if shouldStopReencryption() { throw MigrationReencryptionAbandoned() }
+            }
 
             let encrypted = EncryptedMedia(source: .url(sourceENC2), mediaType: .video, id: mediaID)
             let handler = SecretFileHandler(keyBytes: keyBytes, source: encrypted, targetURL: plaintextURL)
-            let decryptProgress = handler.progress.sink { progress($0 * 0.5) }
-            _ = try await handler.decryptToURL()
+            // The decrypt stops at its next chunk once cancelled.
+            let decrypt = Task { try await handler.decryptToURL() }
+            let decryptProgress = handler.progress.sink { fraction in
+                progress(fraction * 0.5)
+                if shouldStopReencryption() { decrypt.cancel() }
+            }
+            do {
+                _ = try await withTaskCancellationHandler {
+                    try await decrypt.value
+                } onCancel: {
+                    decrypt.cancel()
+                }
+            } catch {
+                decryptProgress.cancel()
+                try stopIfRequested()
+                throw error
+            }
             decryptProgress.cancel()
+            try stopIfRequested()
 
             let metadata = try? await EncryptedMetadataHandler().readMetadata(from: sourceENC2, keyBytes: keyBytes)
             let metadataJSON = try metadata.map { try SeekableEncryptedFormat.encodeMetadata($0) }
@@ -477,13 +538,20 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             let destination = scratchDir.appendingPathComponent("\(mediaID).enc3")
             // Detached: the writer is synchronous and this manager is @MainActor — a
             // multi-GB encrypt must never run on the main thread.
-            let header = try await Task.detached(priority: .userInitiated) {
-                try SeekableEncryptedWriter(keyBytes: keyBytes)
-                    .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON) { fraction in
-                        progress(0.5 + fraction * 0.5)
-                    }
-            }.value
+            let header: SeekableEncryptedHeader
+            do {
+                header = try await Task.detached(priority: .userInitiated) {
+                    try SeekableEncryptedWriter(keyBytes: keyBytes)
+                        .encrypt(source: plaintextURL, destination: destination, metadata: metadataJSON,
+                                 progress: { fraction in progress(0.5 + fraction * 0.5) },
+                                 shouldStop: shouldStopReencryption)
+                }.value
+            } catch {
+                try stopIfRequested()
+                throw error
+            }
             try afterReencryptWriteForTesting?(destination)
+            try stopIfRequested()
 
             do {
                 try await Task.detached(priority: .userInitiated) {
@@ -497,6 +565,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 printDebug("re-encrypt VERIFY FAILED mediaID=\(mediaID) — keeping the original: \(error)")
                 throw error
             }
+            try stopIfRequested()
             return (destination, header, scratchDir)
         } catch {
             MigrationReencryptScratch.release(scratchDir)

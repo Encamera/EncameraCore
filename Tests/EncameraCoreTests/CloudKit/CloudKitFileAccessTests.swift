@@ -557,18 +557,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
     }
 
-    func testSaveEnsuresZoneBeforeUpload() async throws {
-        let album = makeAlbum()
-        let store = MockCloudKitMediaStore()
-        let access = await makeAccess(album: album, store: store)
-
-        let id = UUID().uuidString
-        _ = try await access.save(media: try photo(id: id, data: Data("zone".utf8)), metadata: nil, progress: { _ in })
-
-        XCTAssertGreaterThanOrEqual(store.ensureZoneCalls, 1, "Save must ensure the zone exists before uploading")
-        try? FileManager.default.removeItem(at: encURL(for: album, id: id))
-    }
-
     func testLoadRefetchesWhenChangeTagAdvances() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
@@ -634,21 +622,6 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(reloaded.underlyingMedia.first?.data, Data("freed".utf8))
         XCTAssertEqual(store.fetchBlobCount, 2, "the freed blob is fetched again from CloudKit")
         try? FileManager.default.removeItem(at: CloudKitStorageModel(album: album).baseURL)
-    }
-
-    func testSaveRecreatesZoneOnZoneNotFound() async throws {
-        let album = makeAlbum()
-        let store = MockCloudKitMediaStore()
-        store.uploadErrorOnce = CloudKitMediaStoreError.zoneNotFound
-        let access = await makeAccess(album: album, store: store)
-
-        let id = UUID().uuidString
-        _ = try await access.save(media: try photo(id: id, data: Data("z".utf8)), metadata: nil, progress: { _ in })
-        await access.drainUploads()
-
-        XCTAssertEqual(store.recreateZoneCount, 1, "A zoneNotFound upload must recreate the zone")
-        XCTAssertEqual(store.uploadCalls.count, 2, "Upload should retry once after recreating the zone")
-        try? FileManager.default.removeItem(at: encURL(for: album, id: id))
     }
 
     func testStorageModelFolderMatchesBlobCacheKey() {
@@ -2808,8 +2781,6 @@ final class RecordingCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendab
         try await base.reassignAlbum(recordNames: recordNames, toAlbumID: toAlbumID)
     }
     func confirmAlbum(recordName: String) async throws -> String? { try await base.confirmAlbum(recordName: recordName) }
-    func recreateZone() async throws { try await base.recreateZone() }
-    func ensureZoneExists() async throws { try await base.ensureZoneExists() }
     func registerZoneSubscription() async throws { try await base.registerZoneSubscription() }
     func cancelAll() { base.cancelAll() }
     func accountAvailable() async -> Bool { await base.accountAvailable() }
@@ -2838,5 +2809,593 @@ private final class PreviewAnnouncements: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return ids
+    }
+}
+
+// MARK: - Reading from the linked iCloud Drive folder
+
+/// A CloudKit album whose local marker links an iCloud Drive folder under a
+/// substituted container root. Only iCloud's placeholder state and its download
+/// (`FakeICloudDriveMaterializer`) are faked.
+extension CloudKitFileAccessTests {
+
+    private struct DriveFixture {
+        let album: Album
+        let folder: URL
+        let store: MockCloudKitMediaStore
+        let albumManager: MockAlbumManager
+        let materializer: FakeICloudDriveMaterializer
+        let access: CloudKitFileAccess
+
+        func fileURL(_ id: String, type: MediaType = .photo) -> URL {
+            folder.appendingPathComponent("\(id).\(type.encryptedFileExtension)")
+        }
+
+        /// Puts `id` in the index with its photo at `location`.
+        func index(_ id: String, at location: MediaComponentLocation) async throws {
+            _ = try await albumManager.mediaIndexStore(for: album).upsert([
+                MediaIndexEntry(id: id, hasPhotoComponent: true, hasVideoComponent: false,
+                                dateEncrypted: Date(), dateTaken: Date(), subtypeRawValue: 0,
+                                photoLocation: location)
+            ])
+        }
+
+        func load(_ id: String) async throws -> Data? {
+            let media = try InteractableMedia(underlyingMedia: [
+                EncryptedMedia(source: .url(fileURL(id)), mediaType: .photo, id: id)
+            ])
+            return try await access.loadMedia(media: media, progress: { _ in }).underlyingMedia.first?.data
+        }
+
+        func source(_ id: String) async throws -> CloudKitComponentReadSource {
+            try await access.resolveComponent(id: id, type: .photo, progress: { _ in }).source
+        }
+
+        func batches() async -> [[String]] {
+            await MainActor.run { materializer.requestedBatches }
+        }
+    }
+
+    /// - Parameters:
+    ///   - folderName: the name of the iCloud Drive album the folder belonged to.
+    ///   - albumName: the CloudKit album's name, which need not match the folder's.
+    ///   - folderMarkerAlbumID: the album the folder's own marker names; this
+    ///     album when nil.
+    private func makeDriveFixture(key: PrivateKey = PrivateKey(keyBytes: Array(repeating: UInt8(9), count: 32), creationDate: Date()),
+                                  folderName: String = "Trip-\(UUID().uuidString)",
+                                  albumName: String? = nil,
+                                  folderMarkerAlbumID: String? = nil,
+                                  linkedFolder: (@Sendable (String) -> URL?)? = nil,
+                                  viewed: ViewedSpy? = nil) async throws -> DriveFixture {
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("ck-read-drive-\(UUID().uuidString)", isDirectory: true)
+        iCloudStorageModel.testContainerRootOverride = root
+
+        let albumID = UUID().uuidString
+        let album = Album(name: albumName ?? folderName, storageOption: .cloudKit, creationDate: Date(),
+                          key: key, albumID: albumID)
+        let driveAlbum = Album(name: folderName, storageOption: .icloud, creationDate: Date(), key: key)
+        let model = iCloudStorageModel(album: driveAlbum)
+        try model.initializeDirectories()
+        let folder = model.baseURL
+        try ICloudDriveAlbumMarkerFile(albumID: folderMarkerAlbumID ?? albumID).write(toAlbumDirectory: folder)
+        try CloudKitAlbumMarker(album: album, isHidden: false).write(albumID: albumID)
+        XCTAssertTrue(try CloudKitAlbumMarker.linkICloudDriveFolder(folder, albumID: albumID))
+
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: root)
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            iCloudStorageModel.testContainerRootOverride = nil
+            ICloudPlaceholderName.testEvictedURLs = nil
+        }
+
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+        let store = MockCloudKitMediaStore()
+        let materializer = await MainActor.run { FakeICloudDriveMaterializer() }
+        var iCloudDrive = CloudKitICloudDriveFolderAccess(makeMaterializer: { materializer })
+        if let linkedFolder { iCloudDrive.linkedFolder = linkedFolder }
+        if let viewed { iCloudDrive.prioritizeViewed = { album, mediaID in viewed.record(album.albumID, mediaID) } }
+        iCloudDrive.startMigrationPass = { _, _ in }
+        let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: store,
+                                              iCloudDrive: iCloudDrive)
+        return DriveFixture(album: album, folder: folder, store: store, albumManager: albumManager,
+                            materializer: materializer, access: access)
+    }
+
+    private func writeDriveFile(_ fixture: DriveFixture, id: String, cleartext: Data) async throws {
+        try await makeENC2(album: fixture.album, id: id, data: cleartext).write(to: fixture.fileURL(id))
+    }
+
+    /// Every `.viewed` request the read path made, as (album id, media id).
+    final class ViewedSpy: @unchecked Sendable {
+        private let lock = NSLock()
+        private var made: [String] = []
+
+        var calls: [String] { lock.withLock { made } }
+
+        func record(_ albumID: String?, _ mediaID: String) {
+            lock.withLock { made.append("\(albumID ?? "-")/\(mediaID)") }
+        }
+    }
+
+    private func photoMedia(_ f: DriveFixture, _ id: String) throws -> InteractableMedia<EncryptedMedia> {
+        try InteractableMedia(underlyingMedia: [EncryptedMedia(source: .url(f.fileURL(id)), mediaType: .photo, id: id)])
+    }
+
+    private func evict(_ url: URL, in fixture: DriveFixture) async throws {
+        try await MainActor.run { try fixture.materializer.evictForTest(url) }
+    }
+
+    func testBlobCacheHitWinsOverEverything() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .cloudKit)
+        f.store.blobContents = try await makeENC2(album: f.album, id: id, data: Data("from cloudkit".utf8))
+        let fetched = try await f.load(id)
+        XCTAssertEqual(fetched, Data("from cloudkit".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 1)
+
+        try await writeDriveFile(f, id: id, cleartext: Data("from icloud drive".utf8))
+
+        let source = try await f.source(id)
+        let cached = try await f.load(id)
+        XCTAssertEqual(source, .blobCache)
+        XCTAssertEqual(cached, Data("from cloudkit".utf8), "The cached record beats the downloaded iCloud Drive file")
+        XCTAssertEqual(f.store.fetchBlobCount, 1, "A cache hit fetches nothing")
+        let batches = await f.batches()
+        XCTAssertEqual(batches, [], "A cache hit downloads nothing from iCloud Drive")
+    }
+
+    func testDownloadedICloudDriveFileBeatsUncachedCloudKitFetch() async throws {
+        let f = try await makeDriveFixture()
+        f.store.blobContents = try await makeENC2(album: f.album, id: "any", data: Data("from cloudkit".utf8))
+
+        let migrated = UUID().uuidString
+        try await f.index(migrated, at: .cloudKit)
+        try await writeDriveFile(f, id: migrated, cleartext: Data("migrated, not yet deleted".utf8))
+        let stillOnDrive = UUID().uuidString
+        try await f.index(stillOnDrive, at: .iCloudDrive)
+        try await writeDriveFile(f, id: stillOnDrive, cleartext: Data("still on icloud drive".utf8))
+
+        let migratedSource = try await f.source(migrated)
+        let migratedData = try await f.load(migrated)
+        let stillOnDriveSource = try await f.source(stillOnDrive)
+        let stillOnDriveData = try await f.load(stillOnDrive)
+
+        XCTAssertEqual(migratedSource, .iCloudDriveFile)
+        XCTAssertEqual(migratedData, Data("migrated, not yet deleted".utf8))
+        XCTAssertEqual(stillOnDriveSource, .iCloudDriveFile)
+        XCTAssertEqual(stillOnDriveData, Data("still on icloud drive".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 0, "A downloaded iCloud Drive file is read before any CloudKit fetch")
+        let batches = await f.batches()
+        XCTAssertEqual(batches, [])
+
+        let urls = try await f.access.loadMediaToURLs(
+            media: try InteractableMedia(underlyingMedia: [
+                EncryptedMedia(source: .url(f.fileURL(migrated)), mediaType: .photo, id: migrated)
+            ]),
+            progress: { _ in })
+        XCTAssertEqual(try urls.first.map { try Data(contentsOf: $0) }, Data("migrated, not yet deleted".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 0)
+    }
+
+    func testFallsBackToCloudKitFetchWhenFileNotDownloaded() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .cloudKit)
+        try await writeDriveFile(f, id: id, cleartext: Data("evicted icloud drive copy".utf8))
+        try await evict(f.fileURL(id), in: f)
+        f.store.blobContents = try await makeENC2(album: f.album, id: id, data: Data("from cloudkit".utf8))
+
+        let source = try await f.source(id)
+        let data = try await f.load(id)
+
+        XCTAssertEqual(source, .cloudKit)
+        XCTAssertEqual(data, Data("from cloudkit".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 1)
+        let batches = await f.batches()
+        XCTAssertEqual(batches, [], "CloudKit is fetched before an evicted iCloud Drive file is downloaded")
+    }
+
+    func testFallsBackToICloudDriveDownloadLast() async throws {
+        let f = try await makeDriveFixture()
+
+        // No record yet: the fetch would find nothing, so it is not attempted.
+        let stillOnDrive = UUID().uuidString
+        try await f.index(stillOnDrive, at: .iCloudDrive)
+        try await writeDriveFile(f, id: stillOnDrive, cleartext: Data("still on icloud drive".utf8))
+        try await evict(f.fileURL(stillOnDrive), in: f)
+
+        let stillOnDriveData = try await f.load(stillOnDrive)
+        XCTAssertEqual(stillOnDriveData, Data("still on icloud drive".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 0, "A component with no record is not fetched from CloudKit")
+        var batches = await f.batches()
+        XCTAssertEqual(batches, [["\(stillOnDrive).encimage"]])
+
+        try await evict(f.fileURL(stillOnDrive), in: f)
+        let downloadedAgain = try await f.source(stillOnDrive)
+        XCTAssertEqual(downloadedAgain, .iCloudDriveDownload)
+
+        // A record whose fetch fails still has its iCloud Drive file to fall back on.
+        let migrated = UUID().uuidString
+        try await f.index(migrated, at: .cloudKit)
+        try await writeDriveFile(f, id: migrated, cleartext: Data("migrated, not yet deleted".utf8))
+        try await evict(f.fileURL(migrated), in: f)
+        f.store.fetchBlobError = CloudKitMediaStoreError.underlying(URLError(.notConnectedToInternet))
+
+        let migratedData = try await f.load(migrated)
+        XCTAssertEqual(migratedData, Data("migrated, not yet deleted".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 1, "CloudKit is tried before the iCloud Drive download")
+        batches = await f.batches()
+        XCTAssertEqual(batches.last, ["\(migrated).encimage"])
+
+        // With no file there, the fetch's error stands.
+        let nowhere = UUID().uuidString
+        try await f.index(nowhere, at: .cloudKit)
+        do {
+            _ = try await f.load(nowhere)
+            XCTFail("A component in neither place must not open")
+        } catch {}
+    }
+
+    /// The fixtures are written by libsodium's secretstream directly, not by the
+    /// app's writers: ENC1 as a bare stream, ENC2 behind its metadata header.
+    /// Both hold the same 30,000 bytes, two blocks, under key bytes 0...31.
+    func testReadsLegacyENC1AndENC2FilesFromICloudDrive() async throws {
+        let key = PrivateKey(keyBytes: Array(0..<32), creationDate: Date())
+        let f = try await makeDriveFixture(key: key)
+        let expected = Data((0..<30_000).map { UInt8(($0 * 7 + 3) % 256) })
+
+        for name in ["legacy-enc1-photo", "legacy-enc2-photo"] {
+            let fixture = try XCTUnwrap(Self.legacyFixtureURL(name), "\(name).encimage is not in the test bundle")
+            let bytes = try Data(contentsOf: fixture)
+            XCTAssertEqual(Array(bytes.prefix(4)) == EncryptedFileFormat.magic, name == "legacy-enc2-photo",
+                           "\(name) must be in the format its name says")
+            let id = UUID().uuidString
+            try await f.index(id, at: .iCloudDrive)
+            try bytes.write(to: f.fileURL(id))
+
+            let inMemory = try await f.load(id)
+            XCTAssertEqual(inMemory, expected, "\(name) decrypts in memory")
+            let urls = try await f.access.loadMediaToURLs(
+                media: try InteractableMedia(underlyingMedia: [
+                    EncryptedMedia(source: .url(f.fileURL(id)), mediaType: .photo, id: id)
+                ]),
+                progress: { _ in })
+            XCTAssertEqual(try urls.first.map { try Data(contentsOf: $0) }, expected, "\(name) decrypts to a file")
+        }
+        XCTAssertEqual(f.store.fetchBlobCount, 0)
+    }
+
+    private static func legacyFixtureURL(_ name: String) -> URL? {
+        let testBundle = Bundle(for: CloudKitFileAccessTests.self)
+        return testBundle.url(forResource: name, withExtension: "encimage")
+            ?? testBundle.url(forResource: name, withExtension: "encimage", subdirectory: "Fixtures")
+            ?? Bundle.module.url(forResource: name, withExtension: "encimage", subdirectory: "Fixtures")
+    }
+
+    func testFolderFoundThroughLocalMarkerLinkAfterRename() async throws {
+        let oldName = "Trip-\(UUID().uuidString)"
+        let newName = "Renamed-\(UUID().uuidString)"
+        let f = try await makeDriveFixture(folderName: oldName, albumName: newName)
+        let id = UUID().uuidString
+        try await f.index(id, at: .iCloudDrive)
+        try await writeDriveFile(f, id: id, cleartext: Data("in the linked folder".utf8))
+
+        // The folder an iCloud Drive album with the new name would have: never read.
+        let byNewName = iCloudStorageModel(album: Album(name: newName, storageOption: .icloud,
+                                                        creationDate: Date(), key: f.album.key))
+        try FileManager.default.createDirectory(at: byNewName.baseURL, withIntermediateDirectories: true)
+        XCTAssertNotEqual(byNewName.baseURL.standardizedFileURL, f.folder.standardizedFileURL)
+        try ICloudDriveAlbumMarkerFile(albumID: f.album.albumID!).write(toAlbumDirectory: byNewName.baseURL)
+        try await makeENC2(album: f.album, id: id, data: Data("in a folder named like the album".utf8))
+            .write(to: byNewName.baseURL.appendingPathComponent("\(id).encimage"))
+
+        let data = try await f.load(id)
+        XCTAssertEqual(data, Data("in the linked folder".utf8))
+        XCTAssertEqual(f.store.fetchBlobCount, 0)
+    }
+
+    func testLinkedFolderWhoseMarkerNamesAnotherAlbumIsNotRead() async throws {
+        let f = try await makeDriveFixture(folderMarkerAlbumID: UUID().uuidString)
+        let id = UUID().uuidString
+        try await f.index(id, at: .cloudKit)
+        try await writeDriveFile(f, id: id, cleartext: Data("another album's file".utf8))
+        f.store.blobContents = try await makeENC2(album: f.album, id: id, data: Data("from cloudkit".utf8))
+
+        let source = try await f.source(id)
+        let data = try await f.load(id)
+
+        XCTAssertEqual(source, .cloudKit)
+        XCTAssertEqual(data, Data("from cloudkit".utf8))
+    }
+
+    func testCacheHitNeverLooksForTheLinkedFolder() async throws {
+        let lookups = LinkLookups()
+        let f = try await makeDriveFixture(linkedFolder: { albumID in
+            lookups.record()
+            return CloudKitAlbumMarker.linkedICloudDriveFolderURL(albumID: albumID)
+        })
+        let id = UUID().uuidString
+        try await f.index(id, at: .cloudKit)
+        f.store.blobContents = try await makeENC2(album: f.album, id: id, data: Data("from cloudkit".utf8))
+        _ = try await f.load(id)
+        let afterFetch = lookups.count
+
+        _ = try await f.load(id)
+
+        XCTAssertEqual(afterFetch, 1, "An uncached read looks for the link once")
+        XCTAssertEqual(lookups.count, afterFetch, "A cache hit never looks for the link")
+    }
+
+    func testICloudDriveEntryPreviewIsMadeFromItsFile() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .iCloudDrive)
+        try await writeDriveFile(f, id: id, cleartext: Self.tinyPNG())
+        let previewURL = CloudKitStorageModel(album: f.album).previewURLForMedia(withID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+
+        let preview = try await f.access.loadMediaPreview(for: try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(f.fileURL(id)), mediaType: .photo, id: id)
+        ]))
+
+        XCTAssertNotNil(preview.thumbnailMedia.data)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path),
+                      "The preview is saved where every storage type keeps one, keyed by media id")
+        XCTAssertEqual(f.store.fetchThumbnailCount, 0, "A component with no record has no thumbnail to fetch")
+    }
+
+    func testStreamingDefersToADownloadedICloudDriveFile() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        let chunks = InMemoryChunkedBlobStore()
+        _ = try await seedChunkedVideo(in: f.store, album: f.album, id: id, chunkStore: chunks)
+        try Data("downloaded video ciphertext".utf8).write(to: f.fileURL(id, type: .video))
+
+        let playback = try await f.access.streamingPlayback(
+            for: try InteractableMedia(underlyingMedia: [
+                EncryptedMedia(source: .url(f.fileURL(id, type: .video)), mediaType: .video, id: id)
+            ]),
+            progress: { _ in })
+
+        XCTAssertNil(playback, "A downloaded iCloud Drive file is read from disk, not streamed")
+        XCTAssertEqual(f.store.fetchRecordMetadataCount, 0)
+    }
+
+    // MARK: Previews and thumbnail repair across the move
+
+    private struct NoDriveSizes: ICloudDriveSizing {
+        var isReachable: Bool { false }
+        func logicalSizes(inAlbumDirectory directory: URL) async -> [String: Int64]? { nil }
+    }
+
+    private func scanner(for f: DriveFixture) -> ICloudDriveFolderScanner {
+        ICloudDriveFolderScanner(album: f.album,
+                                 indexStore: f.albumManager.mediaIndexStore(for: f.album),
+                                 sizeSidecar: f.albumManager.sizeSidecar(for: f.album),
+                                 sizing: NoDriveSizes(),
+                                 store: f.store,
+                                 isICloudDriveAvailable: { true })
+    }
+
+    private func photoMedia(_ f: DriveFixture, id: String) throws -> InteractableMedia<EncryptedMedia> {
+        try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(f.fileURL(id)), mediaType: .photo, id: id)
+        ])
+    }
+
+    /// Puts a record for `id` in the store as a migration upload would, without
+    /// `encThumbnail`.
+    private func uploadRecordWithoutThumbnail(_ f: DriveFixture, id: String) async throws -> String {
+        let fileURL = f.fileURL(id)
+        let ref = try await f.store.upload(
+            CloudKitMediaUpload(albumID: CloudKitFileAccess.cloudKitAlbumID(for: f.album), mediaID: id,
+                                mediaType: .photo, createdAt: Date(),
+                                sizeBytes: Int64(try Data(contentsOf: fileURL).count),
+                                encryptedFileURL: fileURL, encryptedThumbURL: nil,
+                                recordName: CloudKitFileAccess.componentRecordName(mediaID: id, type: .photo),
+                                keyFingerprint: "test"),
+            progress: { _ in })
+        return ref.recordName
+    }
+
+    private func recordCalls(_ store: MockCloudKitMediaStore, recordName: String) -> [MockCloudKitMediaStore.Call] {
+        store.callOrder.filter {
+            $0 == .attachThumbnail(recordName: recordName)
+                || $0 == .fetchRecordMetadata(recordName: recordName)
+                || $0 == .confirmAlbum(recordName: recordName)
+                || $0 == .fetchBlob(recordName: recordName)
+                || $0 == .fetchThumbnail(recordName: recordName)
+        }
+    }
+
+    func testPreviewSurvivesICloudDriveFileDeletion() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .iCloudDrive)
+        try await writeDriveFile(f, id: id, cleartext: Self.tinyPNG())
+        let previewURL = CloudKitStorageModel(album: f.album).previewURLForMedia(withID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+
+        // The item is opened while it is still on iCloud Drive, which writes its preview.
+        _ = try await f.access.loadMedia(media: try photoMedia(f, id: id), progress: { _ in })
+        await f.access.awaitThumbnailRepairs()
+        let previewBytes = try XCTUnwrap(try? Data(contentsOf: previewURL), "precondition: the open wrote a preview")
+
+        // The migration uploads the item, then deletes its iCloud Drive file before
+        // this device's sync has seen the record.
+        let recordName = f.store.addServerRecord(albumID: CloudKitFileAccess.cloudKitAlbumID(for: f.album), mediaID: id)
+        try FileManager.default.removeItem(at: f.fileURL(id))
+        let scanBeforeSync = await scanner(for: f).scan()
+        XCTAssertEqual(scanBeforeSync, .scanned(added: [], removed: []),
+                       "a component whose record exists is kept when its file goes")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path), "the scan keeps the preview")
+
+        let synced = await f.access.reconcile()
+        XCTAssertTrue(synced)
+        let entry = await f.albumManager.mediaIndexStore(for: f.album).current()?.entries.first { $0.id == id }
+        XCTAssertEqual(entry?.photoLocation, .cloudKit, "precondition: the record's arrival flipped the component")
+        let scanAfterSync = await scanner(for: f).scan()
+        XCTAssertEqual(scanAfterSync, .scanned(added: [], removed: []))
+        XCTAssertEqual(try? Data(contentsOf: previewURL), previewBytes,
+                       "neither the sync nor the scan touches the preview")
+
+        // No network from here on.
+        let offline = CloudKitMediaStoreError.underlying(URLError(.notConnectedToInternet))
+        f.store.fetchThumbnailError = offline
+        f.store.fetchBlobError = offline
+        f.store.fetchChangesError = offline
+        let callsBefore = recordCalls(f.store, recordName: recordName).count
+
+        let preview = try await f.access.loadMediaPreview(for: try photoMedia(f, id: id))
+
+        let image = preview.thumbnailMedia.data.flatMap(PlatformImage.init(data:))
+        XCTAssertNotNil(image, "the grid thumbnail is shown from the preview kept on this device")
+        XCTAssertEqual(recordCalls(f.store, recordName: recordName).count, callsBefore,
+                       "the thumbnail is served without asking CloudKit")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: f.fileURL(id).path))
+    }
+
+    func testICloudDriveReadRepairsMissingCloudKitThumbnail() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .cloudKit)
+        try await writeDriveFile(f, id: id, cleartext: Self.tinyPNG())
+        let recordName = try await uploadRecordWithoutThumbnail(f, id: id)
+        let previewURL = CloudKitStorageModel(album: f.album).previewURLForMedia(withID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+
+        let source = try await f.source(id)
+        _ = try await f.access.loadMedia(media: try photoMedia(f, id: id), progress: { _ in })
+        await f.access.awaitThumbnailRepairs()
+
+        XCTAssertEqual(source, .iCloudDriveFile, "precondition: the read is served from the iCloud Drive file")
+        XCTAssertEqual(f.store.fetchBlobCount, 0, "precondition: nothing was fetched from CloudKit")
+        XCTAssertEqual(attachCalls(f.store, recordName: recordName), 1,
+                       "the record without encThumbnail is repaired as after a CloudKit read")
+        XCTAssertEqual(f.store.attachedThumbnails[recordName], try Data(contentsOf: previewURL),
+                       "the record gets this device's preview")
+    }
+
+    func testICloudDriveReadDoesNotRepairWhenNoRecordYet() async throws {
+        let f = try await makeDriveFixture()
+        let id = UUID().uuidString
+        try await f.index(id, at: .iCloudDrive)
+        try await writeDriveFile(f, id: id, cleartext: Self.tinyPNG())
+        let recordName = CloudKitFileAccess.componentRecordName(mediaID: id, type: .photo)
+        let previewURL = CloudKitStorageModel(album: f.album).previewURLForMedia(withID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+
+        _ = try await f.access.loadMedia(media: try photoMedia(f, id: id), progress: { _ in })
+        _ = try await f.access.loadMediaToURLs(media: try photoMedia(f, id: id), progress: { _ in })
+        await f.access.awaitThumbnailRepairs()
+
+        XCTAssertEqual(recordCalls(f.store, recordName: recordName), [],
+                       "a component with no record yet is never sent to CloudKit")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path),
+                      "the open still writes this device's preview")
+    }
+}
+
+private final class LinkLookups: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    var count: Int { lock.lock(); defer { lock.unlock() }; return value }
+    func record() { lock.lock(); value += 1; lock.unlock() }
+}
+
+// MARK: - Opening an item still on iCloud Drive
+
+extension CloudKitFileAccessTests {
+
+    func testOpeningICloudDriveItemInViewerPrioritizesAsViewed() async throws {
+        let viewed = ViewedSpy()
+        let f = try await makeDriveFixture(viewed: viewed)
+        let albumID = try XCTUnwrap(f.album.albumID)
+        let downloaded = UUID().uuidString
+        try await f.index(downloaded, at: .iCloudDrive)
+        try await writeDriveFile(f, id: downloaded, cleartext: Data("downloaded".utf8))
+        let evicted = UUID().uuidString
+        try await f.index(evicted, at: .iCloudDrive)
+        try await writeDriveFile(f, id: evicted, cleartext: Data("evicted".utf8))
+        try await evict(f.fileURL(evicted), in: f)
+
+        let viewerMedia = try photoMedia(f, downloaded)
+        _ = try await f.access.loadMediaForViewer(media: viewerMedia, progress: { _ in })
+        XCTAssertEqual(viewed.calls, ["\(albumID)/\(downloaded)"], "the viewer's open of a downloaded file prioritizes it")
+
+        let playerMedia = try photoMedia(f, evicted)
+        _ = try await f.access.loadMediaToURLsForViewer(media: playerMedia, progress: { _ in })
+        XCTAssertEqual(viewed.calls, ["\(albumID)/\(downloaded)", "\(albumID)/\(evicted)"],
+                       "the player's open of a file it downloads prioritizes it too")
+    }
+
+    func testViewerOpenThatDoesNotDecryptDoesNotPrioritize() async throws {
+        let viewed = ViewedSpy()
+        let f = try await makeDriveFixture(viewed: viewed)
+        // Ciphertext no key on this device opens.
+        let foreign = UUID().uuidString
+        try await f.index(foreign, at: .iCloudDrive)
+        let otherKey = PrivateKey(keyBytes: Array(repeating: UInt8(7), count: 32), creationDate: Date())
+        try await makeENC2(key: otherKey, id: foreign, data: Data("foreign".utf8)).write(to: f.fileURL(foreign))
+        // Bytes that are not encrypted media.
+        let unreadable = UUID().uuidString
+        try await f.index(unreadable, at: .iCloudDrive)
+        try Data(repeating: 0x5A, count: 600).write(to: f.fileURL(unreadable))
+
+        for id in [foreign, unreadable] {
+            let media = try photoMedia(f, id)
+            _ = try? await f.access.loadMediaForViewer(media: media, progress: { _ in })
+            _ = try? await f.access.loadMediaToURLsForViewer(media: media, progress: { _ in })
+        }
+
+        XCTAssertEqual(viewed.calls, [], "an open counts as viewed only once its bytes decrypt")
+    }
+
+    func testGridThumbnailReadNeverPrioritizes() async throws {
+        let viewed = ViewedSpy()
+        let f = try await makeDriveFixture(viewed: viewed)
+        let id = UUID().uuidString
+        try await f.index(id, at: .iCloudDrive)
+        try await makeENC2(album: f.album, id: id, data: TestImageData.png()).write(to: f.fileURL(id))
+        let media = try photoMedia(f, id)
+
+        _ = try? await f.access.loadMediaPreview(for: media)
+        _ = await ViewerLoad.$isActive.withValue(true) {
+            try? await f.access.loadMediaPreview(for: media)
+        }
+        _ = try await f.access.loadMedia(media: media, progress: { _ in })
+
+        XCTAssertEqual(viewed.calls, [], "thumbnails, and reads outside the viewer and player, never prioritize")
+    }
+
+    func testCloudKitItemOpenDoesNotPrioritize() async throws {
+        let viewed = ViewedSpy()
+        let f = try await makeDriveFixture(viewed: viewed)
+        // Migrated, its file not yet deleted: served from the folder.
+        let leftover = UUID().uuidString
+        try await f.index(leftover, at: .cloudKit)
+        try await writeDriveFile(f, id: leftover, cleartext: Data("migrated".utf8))
+        // Migrated and gone from the folder: fetched from CloudKit.
+        let fetched = UUID().uuidString
+        try await f.index(fetched, at: .cloudKit)
+        f.store.blobContents = try await makeENC2(album: f.album, id: fetched, data: Data("from cloudkit".utf8))
+
+        for id in [leftover, fetched] {
+            let media = try photoMedia(f, id)
+            _ = try await f.access.loadMediaForViewer(media: media, progress: { _ in })
+        }
+        let leftoverSource = try await f.source(leftover)
+        XCTAssertEqual(leftoverSource, .iCloudDriveFile, "precondition: a CloudKit item read from its leftover file")
+
+        XCTAssertEqual(viewed.calls, [], "an item already in CloudKit is never prioritized")
     }
 }

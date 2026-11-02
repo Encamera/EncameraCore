@@ -21,9 +21,10 @@ final class CloudKitMediaStoreTests: XCTestCase {
 
     private func makeStore(account: CKAccountStatus = .available,
                            adapter: MockCloudKitDatabase,
-                           defaults: UserDefaults) -> CloudKitMediaStore {
+                           defaults: UserDefaults,
+                           zoneProvisioner: StubZoneProvisioner = StubZoneProvisioner()) -> CloudKitMediaStore {
         let container = CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: account),
-                                          zoneProvisioner: StubZoneProvisioner(),
+                                          zoneProvisioner: zoneProvisioner,
                                           zoneLister: StubZoneLister(),
                                           subscriptionProvisioner: StubSubscriptionProvisioner(),
                                           defaults: defaults)
@@ -803,6 +804,123 @@ final class CloudKitMediaStoreTests: XCTestCase {
         } catch {
             XCTFail("Wrong error type: \(error)")
         }
+    }
+
+    // MARK: - Zone creation
+
+    private var zoneCreatedKey: String { "cloudkit_zone_created_v1_" + CloudKitSchema.containerID }
+    private var encameraZoneID: CKRecordZone.ID { CKRecordZone.ID(zoneName: CloudKitSchema.zoneName) }
+
+    func testFirstWriteCreatesTheZoneAndLaterWritesDoNot() async throws {
+        let defaults = freshDefaults()
+        let zones = StubZoneProvisioner()
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: defaults, zoneProvisioner: zones)
+
+        _ = try await store.upload(makeUpload(mediaID: "m1"), progress: { _ in })
+        XCTAssertEqual(zones.savedZoneIDs, [encameraZoneID], "the first write creates the zone")
+        XCTAssertTrue(defaults.bool(forKey: zoneCreatedKey))
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash", encName: "Album_x",
+                                                      createdAt: Date(), isHidden: false,
+                                                      keyFingerprint: keyA.keyFingerprint))
+        _ = try await store.upload(makeUpload(mediaID: "m2"), progress: { _ in })
+        XCTAssertEqual(zones.savedZoneIDs.count, 1, "a created zone costs later writes no round trip")
+        XCTAssertEqual(adapter.saveCount, 3)
+    }
+
+    func testEveryRecordWriteCreatesAMissingZone() async throws {
+        let writes: [(String, (CloudKitMediaStore) async throws -> Void)] = [
+            ("upload", { _ = try await $0.upload(self.makeUpload(), progress: { _ in }) }),
+            ("saveAlbum", { try await $0.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash", encName: "Album_x",
+                                                                       createdAt: Date(), isHidden: false,
+                                                                       keyFingerprint: self.keyA.keyFingerprint)) }),
+            ("reassignAlbum", { _ = try await $0.reassignAlbum(recordNames: ["r1"], toAlbumID: "album-2") }),
+            ("attachThumbnail", { _ = try await $0.attachThumbnail(recordName: "r1",
+                                                                   thumbnailURL: URL(fileURLWithPath: "/tmp/enc.thumb")) })
+        ]
+        for (name, write) in writes {
+            let zones = StubZoneProvisioner()
+            let store = makeStore(adapter: MockCloudKitDatabase(), defaults: freshDefaults("\(#function)-\(name)"),
+                                  zoneProvisioner: zones)
+            try await write(store)
+            XCTAssertEqual(zones.savedZoneIDs, [encameraZoneID], "\(name) must create the zone before writing")
+        }
+    }
+
+    /// The flag is per device and the zone per account: a zone deleted from another
+    /// device leaves this device's flag set, so the write itself must recover.
+    func testWriteIntoAZoneDeletedElsewhereRecreatesItAndRetriesOnce() async throws {
+        let defaults = freshDefaults()
+        defaults.set(true, forKey: zoneCreatedKey)
+        let zones = StubZoneProvisioner()
+        let adapter = MockCloudKitDatabase()
+        adapter.saveErrorSequence = [CKErrorFactory.error(.zoneNotFound), nil]
+        let store = makeStore(adapter: adapter, defaults: defaults, zoneProvisioner: zones)
+
+        let ref = try await store.upload(makeUpload(recordName: "m1#1"), progress: { _ in })
+
+        XCTAssertEqual(ref.recordName, "m1#1")
+        XCTAssertEqual(zones.savedZoneIDs, [encameraZoneID], "the stale flag is cleared and the zone created again")
+        XCTAssertEqual(adapter.saveCount, 2, "the write is retried once in the new zone")
+        XCTAssertTrue(defaults.bool(forKey: zoneCreatedKey))
+    }
+
+    func testAZoneThatStaysMissingFailsAfterOneRetry() async throws {
+        let defaults = freshDefaults()
+        defaults.set(true, forKey: zoneCreatedKey)
+        let adapter = MockCloudKitDatabase()
+        adapter.saveError = CKErrorFactory.error(.zoneNotFound)
+        let store = makeStore(adapter: adapter, defaults: defaults)
+
+        do {
+            _ = try await store.upload(makeUpload(), progress: { _ in })
+            XCTFail("Expected zoneNotFound")
+        } catch CloudKitMediaStoreError.zoneNotFound {}
+        XCTAssertEqual(adapter.saveCount, 2)
+    }
+
+    func testAFailedZoneCreateFailsTheWriteWithoutWriting() async throws {
+        let defaults = freshDefaults()
+        let adapter = MockCloudKitDatabase()
+        let container = CloudKitContainer(accountStatusProvider: StubAccountStatusProvider(status: .available),
+                                          zoneProvisioner: FailingZoneProvisioner(),
+                                          zoneLister: StubZoneLister(),
+                                          subscriptionProvisioner: StubSubscriptionProvisioner(),
+                                          defaults: defaults)
+        let store = CloudKitMediaStore(container: container, adapter: adapter, defaults: defaults)
+
+        do {
+            _ = try await store.upload(makeUpload(), progress: { _ in })
+            XCTFail("Expected the zone create's error")
+        } catch CloudKitMediaStoreError.retry {}
+        XCTAssertEqual(adapter.saveCount, 0)
+        XCTAssertFalse(defaults.bool(forKey: zoneCreatedKey), "only a created zone may set the flag")
+    }
+
+    /// The erase reads the zone right after deleting it, and the existing-data probe
+    /// reads it to learn whether CloudKit was ever used: neither may create it.
+    func testReadsAndDeletesNeverCreateTheZone() async throws {
+        let zones = StubZoneProvisioner()
+        let adapter = MockCloudKitDatabase()
+        adapter.queryError = CKErrorFactory.error(.zoneNotFound)
+        let store = makeStore(adapter: adapter, defaults: freshDefaults(), zoneProvisioner: zones)
+
+        _ = try? await store.fetchAllAlbums()
+        _ = try? await store.fetchFingerprintCensus()
+        _ = try? await store.fetchMetadata(albumID: "album-hash", includeThumbnail: false)
+        _ = try? await store.fetchAlbum(albumID: "album-hash")
+        _ = try? await store.fetchRecordMetadata(recordName: "r1")
+        _ = try? await store.fetchChanges(since: nil)
+        try? await store.delete(recordName: "r1")
+        try? await store.deleteAlbum(albumID: "album-hash")
+
+        XCTAssertTrue(zones.savedZoneIDs.isEmpty)
+    }
+
+    private final class FailingZoneProvisioner: RecordZoneProvisioning {
+        func saveZone(_ zone: CKRecordZone) async throws { throw CKErrorFactory.error(.networkFailure) }
+        func deleteZone(_ zoneID: CKRecordZone.ID) async throws {}
     }
 
     func testZoneNotFoundInvalidatesZoneAndSubscriptionFlags() async throws {

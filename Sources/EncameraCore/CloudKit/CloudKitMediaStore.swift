@@ -72,15 +72,23 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     private let makeChunkStore: () -> ChunkedBlobStoring
     private lazy var chunkStore: ChunkedBlobStoring = makeChunkStore()
 
+    /// - Parameter networkPolicy: the policy the store's own requests and its
+    ///   chunk uploads run under, read per request; nil for the operations' own
+    ///   settings. Applies only to the adapters this store builds.
     public init(container: CloudKitContainer = .shared,
                 adapter: CloudKitDatabaseAdapter? = nil,
                 defaults: UserDefaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard,
-                chunkStore: ChunkedBlobStoring? = nil) {
+                chunkStore: ChunkedBlobStoring? = nil,
+                networkPolicy: (@Sendable () -> CloudKitNetworkPolicy)? = nil) {
         self.container = container
         self.defaults = defaults
         self.zoneID = container.zoneID
-        self.adapter = adapter ?? CKDatabaseAdapter(database: container.privateDB)
-        self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore(container: container) }
+        self.adapter = adapter ?? CKDatabaseAdapter(database: container.privateDB, networkPolicy: networkPolicy)
+        self.makeChunkStore = {
+            chunkStore ?? CloudKitChunkedBlobStore(container: container,
+                                                   adapter: CKDatabaseAdapter(database: container.privateDB,
+                                                                              networkPolicy: networkPolicy))
+        }
     }
 
     // MARK: - Account
@@ -98,7 +106,13 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             printDebug("upload FAILED recordName=\(item.recordName) — quotaExceeded injected by -CloudKitFailUploadAfter")
             throw CloudKitMediaStoreError.quotaExceeded
         }
+        return try await withZone("upload") {
+            try await uploadRecord(item, progress: progress)
+        }
+    }
 
+    private func uploadRecord(_ item: CloudKitMediaUpload,
+                              progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitMediaRef {
         // Upload the preview from a private snapshot, never the live file.
         let snapshot = item.encryptedThumbURL.flatMap { Self.snapshotForUpload($0) }
         defer {
@@ -232,6 +246,12 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     public func saveAlbum(_ album: CloudKitAlbumUpload) async throws {
         if CloudKitStoreTestHooks.failAlbumSaves { throw CloudKitMediaStoreError.retry(after: 1) }
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        try await withZone("saveAlbum") {
+            try await saveAlbumRecord(album)
+        }
+    }
+
+    private func saveAlbumRecord(_ album: CloudKitAlbumUpload) async throws {
         let recordID = CKRecord.ID(recordName: album.albumID, zoneID: zoneID)
         do {
             let existing = try await adapter.fetch(recordIDs: [recordID],
@@ -272,6 +292,12 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     /// detection.
     public func reassignAlbum(recordNames: [String], toAlbumID: String) async throws -> [String] {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        return try await withZone("reassignAlbum") {
+            try await reassignRecords(recordNames, toAlbumID: toAlbumID)
+        }
+    }
+
+    private func reassignRecords(_ recordNames: [String], toAlbumID: String) async throws -> [String] {
         // CloudKit caps a single CKModifyRecordsOperation at 400 records.
         let batchSize = 400
         var notFound: [String] = []
@@ -559,11 +585,17 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     /// save is retried once.
     public func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
         guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
-        let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let snapshot = Self.snapshotForUpload(thumbnailURL)
         defer {
             if let snapshot { try? FileManager.default.removeItem(at: snapshot) }
         }
+        return try await withZone("attachThumbnail") {
+            try await attachThumbnailAsset(recordName: recordName, assetURL: snapshot ?? thumbnailURL)
+        }
+    }
+
+    private func attachThumbnailAsset(recordName: String, assetURL: URL) async throws -> ThumbnailAttachResult {
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         let maxSaves = 2
         do {
             for save in 1...maxSaves {
@@ -579,7 +611,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                     printDebug("attachThumbnail alreadyPresent recordName=\(recordName)")
                     return .alreadyPresent
                 }
-                record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: snapshot ?? thumbnailURL)
+                record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: assetURL)
                 do {
                     let saved = try await adapter.save(records: [record],
                                                        savePolicy: .ifServerRecordUnchanged,
@@ -671,15 +703,40 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         defaults.removeObject(forKey: tokenKey)
     }
 
-    public func recreateZone() async throws {
-        container.resetZoneCreatedFlag()
-        try await container.ensureZoneExists()
-    }
-
     // MARK: - Zone provisioning
 
-    public func ensureZoneExists() async throws {
-        try await container.ensureZoneExists()
+    /// Runs a record write, with the zone created first. Every write the store
+    /// makes (`upload`, `saveAlbum`, `reassignAlbum`, `attachThumbnail`) goes
+    /// through here, so no caller ensures the zone itself.
+    ///
+    /// After the first success the create costs no round trip:
+    /// `CloudKitContainer.ensureZoneExists` returns on its persisted flag. The flag
+    /// is per device and the zone per account, so a write that finds the zone gone
+    /// (deleted from another device, or in Settings) clears the flag through
+    /// `mapAndRecord`, creates the zone again and runs once more.
+    ///
+    /// Reads, deletes and the subscription never create the zone. A zone that does
+    /// not exist holds nothing, and the erase and the existing-data probe read the
+    /// zone to learn whether it exists, so a read must not bring it back.
+    private func withZone<T>(_ operation: String, _ write: () async throws -> T) async throws -> T {
+        try await ensureZone(for: operation)
+        do {
+            return try await write()
+        } catch CloudKitMediaStoreError.zoneNotFound {
+            printDebug("\(operation) zoneNotFound zone=\(zoneID.zoneName) — creating the zone and retrying once")
+            try await ensureZone(for: operation)
+            return try await write()
+        }
+    }
+
+    private func ensureZone(for operation: String) async throws {
+        do {
+            try await container.ensureZoneExists()
+        } catch {
+            let mapped = mapCKError(error)
+            printDebug("\(operation) ensureZone FAILED zone=\(zoneID.zoneName) mapped=\(mapped) raw=\(error)")
+            throw mapped
+        }
     }
 
     // MARK: - Push subscription
@@ -704,7 +761,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
     /// Maps a raw error and, when it reports the zone as gone (deleted in
     /// Settings > iCloud, account switched or wiped), invalidates the persisted
-    /// zone-created and subscription flags — otherwise `ensureZoneExists()` and
+    /// zone-created and subscription flags — otherwise `withZone` and
     /// `registerZoneSubscription()` no-op on stale state forever and CloudKit
     /// storage stays broken until app data is cleared.
     private func mapAndRecord(_ error: Error) -> CloudKitMediaStoreError {

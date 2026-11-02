@@ -345,7 +345,8 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
         var sizes: [String: Int64] = [:]
         for item in items {
             guard let name = item.value(forAttribute: NSMetadataItemFSNameKey) as? String,
-                  let size = item.value(forAttribute: NSMetadataItemFSSizeKey) as? NSNumber else { continue }
+                  let size = item.value(forAttribute: NSMetadataItemFSSizeKey) as? NSNumber,
+                  !ICloudDriveAlbumMarkerFile.isMarkerFileName(name) else { continue }
             sizes[ICloudPlaceholderName.materializedFilename(from: name)] = size.int64Value
         }
         printDebug("logicalSizes gathered \(sizes.count) file size(s) for \(directory.lastPathComponent)")
@@ -426,7 +427,7 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
     /// the documented form is the materialized URL, but the brick path is what
     /// enumeration hands us elsewhere in the app. Try the documented form and fall
     /// back, so neither convention can silently no-op.
-    private static func requestDownload(of materializedURL: URL) throws {
+    nonisolated static func requestDownload(of materializedURL: URL) throws {
         do {
             try iCloudFileStatusUtil.startDownload(for: materializedURL)
         } catch {

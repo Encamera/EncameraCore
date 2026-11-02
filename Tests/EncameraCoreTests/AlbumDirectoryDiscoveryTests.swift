@@ -151,6 +151,38 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         XCTAssertEqual(albumManager.albumMediaCount(album: album), 1, "its media is found")
     }
 
+    /// The iCloud Drive album marker in an album folder neither hides the album
+    /// nor adds anything to it, and a folder holding nothing but the marker is an
+    /// album with no media.
+    func testMarkerFileIsNotListedCountedPreviewedOrStamped() throws {
+        let key = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let withMedia = ScratchStorageModel(album: Album(name: "met", storageOption: .local, creationDate: Date(), key: key))
+        let markerOnly = ScratchStorageModel(album: Album(name: "koti", storageOption: .local, creationDate: Date(), key: key))
+        for model in [withMedia, markerOnly] {
+            try FileManager.default.createDirectory(at: model.baseURL, withIntermediateDirectories: true)
+            let marker = ICloudDriveAlbumMarkerFile(albumID: UUID().uuidString)
+            try marker.write(toAlbumDirectory: model.baseURL)
+            let placeholder = ICloudPlaceholderName.placeholderURL(
+                forMaterialized: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: model.baseURL))
+            XCTAssertTrue(FileManager.default.createFile(atPath: placeholder.path, contents: Data([0x62])))
+        }
+        let mediaID = UUID().uuidString
+        XCTAssertTrue(FileManager.default.createFile(
+            atPath: withMedia.driveURLForMedia(withID: mediaID, type: .photo).path, contents: Data([0x01])))
+        try ICloudDriveAlbumMarkerFile(albumID: UUID().uuidString)
+            .write(toAlbumDirectory: ScratchStorageModel.albumsURL)
+
+        XCTAssertEqual(Set(ScratchStorageModel.enumerateAlbumsDirectory().map(\.lastPathComponent)),
+                       [withMedia.baseURL.lastPathComponent, markerOnly.baseURL.lastPathComponent])
+
+        let mediaExtensions = [MediaType.photo.encryptedFileExtension, MediaType.video.encryptedFileExtension]
+        XCTAssertEqual(withMedia.enumeratorForStorageDirectory().map(\.lastPathComponent),
+                       ["\(mediaID).\(MediaType.photo.encryptedFileExtension)"])
+        XCTAssertEqual(withMedia.countOfFiles(matchingFileExtension: mediaExtensions), 1)
+        XCTAssertEqual(markerOnly.enumeratorForStorageDirectory(), [])
+        XCTAssertEqual(markerOnly.countOfFiles(matchingFileExtension: mediaExtensions), 0)
+    }
+
     /// A pre-encryption album's directory name is whatever the user typed, dots
     /// included. Excluding every dotted name to keep SDK caches out made these
     /// albums vanish from the grid with their files intact.

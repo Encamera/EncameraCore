@@ -52,12 +52,12 @@ public struct CloudKitAlbumPublishRegistry: DebugPrintable {
 
     /// Record that the server confirmed this album — after a successful save, or on
     /// adopting a record the feed reported.
-    public func markPublished(_ albumID: String) {
+    public func markConfirmedOnServer(_ albumID: String) {
         Self.lock.withLock {
             var set = read()
             guard set.insert(albumID).inserted else { return }
             defaults.set(Array(set), forKey: Self.storageKey)
-            printDebug("markPublished ok albumID=\(albumID) published=\(set.count)")
+            printDebug("markConfirmedOnServer ok albumID=\(albumID) published=\(set.count)")
         }
     }
 

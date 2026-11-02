@@ -2288,6 +2288,42 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(store.resetChangeTokenCount, 1, "with every index present, the next sync keeps the cursor")
     }
 
+    /// An album whose index something other than the sync created (the iCloud
+    /// Drive folder scan of a newly adopted album) may lack records that reached
+    /// the zone before this device knew the album. A requested walk drops the
+    /// cursor and walks the whole zone like a missing index does, then the request
+    /// is answered and the next sync is a delta.
+    func testRequestedZoneWalkWalksWholeZoneForAnAlbumWithAnIndex() async throws {
+        let store = MockCloudKitMediaStore()
+        let requests = CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults())
+        let a1 = makeIndexStore()
+        let a2 = makeIndexStore()
+        let (coord, _) = CloudKitSyncCoordinator.forTesting(albums: [("a1", a1, nil), ("a2", a2, nil)],
+                                                            store: store, cache: makeCache(),
+                                                            bus: FileOperationBus(),
+                                                            deleteQueue: makeDeleteQueue(),
+                                                            zoneWalkRequests: requests)
+        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("m1", in: "a1"))])
+        try await a2.upsert([driveEntry("drive")])
+        store.hasChangeTokenValue = true
+        store.changeSet = CloudKitChangeSet(changed: [record("m1", in: "a1"), record("n1", in: "a2")], deleted: [],
+                                            token: nil, moreComing: false, snapshotComplete: true)
+
+        try await coord.sync()
+        XCTAssertEqual(store.resetChangeTokenCount, 0, "every album has an index and none is requested")
+
+        requests.request("a2")
+        try await coord.sync()
+
+        XCTAssertEqual(store.resetChangeTokenCount, 1, "the requested album has the whole zone walked")
+        let a2IDs = await ids(a2)
+        XCTAssertEqual(a2IDs, ["drive", "n1"], "the record behind the cursor lands beside the iCloud Drive item")
+        XCTAssertTrue(requests.requested().isEmpty, "the walk answers the request")
+
+        try await coord.sync()
+        XCTAssertEqual(store.resetChangeTokenCount, 1, "the next sync keeps the cursor")
+    }
+
     /// The cursor moves only once every index the walk touched has saved. A failed
     /// save leaves it where it was, so the next sync reads the same changes again.
     func testCursorNotCommittedWhenAnIndexSaveFails() async throws {
@@ -2319,4 +2355,239 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(store.registerSubscriptionCount, 1)
     }
+
+    // MARK: - iCloud Drive components
+
+    private let driveDate = Date(timeIntervalSince1970: 42)
+
+    /// An index entry with components on iCloud Drive, the way the folder scan writes them.
+    private func driveEntry(_ mediaID: String,
+                            photo: MediaComponentLocation? = .iCloudDrive,
+                            video: MediaComponentLocation? = nil) -> MediaIndexEntry {
+        MediaIndexEntry(id: mediaID,
+                        hasPhotoComponent: photo != nil,
+                        hasVideoComponent: video != nil,
+                        dateEncrypted: driveDate,
+                        dateTaken: driveDate,
+                        subtypeRawValue: 0,
+                        photoLocation: photo ?? .cloudKit,
+                        videoLocation: video ?? .cloudKit)
+    }
+
+    private func entry(_ id: String, in store: MediaIndexStore) async -> MediaIndexEntry? {
+        (await store.load()?.entries ?? []).first { $0.id == id }
+    }
+
+    /// Records every bus event's media ids, split into creates and deletes.
+    private final class BusRecorder {
+        let created = CapturedIDs()
+        let deleted = CapturedIDs()
+        private var cancellable: AnyCancellable?
+
+        init(_ bus: FileOperationBus) {
+            let created = created, deleted = deleted
+            cancellable = bus.operations.sink { operation in
+                switch operation {
+                case .create(let media): created.append(media.id)
+                case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
+                case .move, .albumCoverChanged: break
+                }
+            }
+        }
+    }
+
+    private func writePreview(forMediaID mediaID: String) throws -> URL {
+        let previewURL = CloudKitStorageModel.previewURL(forMediaID: mediaID)
+        try FileManager.default.createDirectory(at: previewURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data("thumbnail".utf8).write(to: previewURL)
+        addTeardownBlock { try? FileManager.default.removeItem(at: previewURL) }
+        return previewURL
+    }
+
+    /// Components still on iCloud Drive have no record, so a full walk that does
+    /// not return them says nothing about them: the reap leaves the index entry,
+    /// the preview and the record name alone, and tells the grid nothing.
+    func testFullZoneWalkLeavesICloudDriveComponentsAlone() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let events = BusRecorder(bus)
+        let deleteQueue = makeDeleteQueue()
+        let index = makeIndexStore()
+        let coord = CloudKitSyncCoordinator.forTesting(albumID: "a1", store: store, cache: makeCache(),
+                                                       indexStore: index, bus: bus, deleteQueue: deleteQueue)
+        try await index.upsert([driveEntry("drive"),
+                                driveEntry("driveLive", photo: .iCloudDrive, video: .iCloudDrive),
+                                CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo))])
+        let preview = try writePreview(forMediaID: "drive")
+        let livePreview = try writePreview(forMediaID: "driveLive")
+
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: [], token: nil, moreComing: false,
+                                            snapshotComplete: true)
+        try await coord.sync()
+
+        let remaining = await ids(index)
+        XCTAssertEqual(remaining, ["drive", "driveLive"], "only the CloudKit component absent from the walk is reaped")
+        let drive = await entry("drive", in: index)
+        XCTAssertEqual(drive, driveEntry("drive"), "the iCloud Drive entry is untouched")
+        let driveLive = await entry("driveLive", in: index)
+        XCTAssertEqual(driveLive, driveEntry("driveLive", photo: .iCloudDrive, video: .iCloudDrive))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: preview.path), "an iCloud Drive item keeps its preview")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: livePreview.path))
+        for name in ["drive#0", "driveLive#0", "driveLive#1"] {
+            XCTAssertFalse(deleteQueue.isKnownDeleted(name), "\(name) must not be marked deleted from the feed")
+        }
+        XCTAssertTrue(deleteQueue.isKnownDeleted("gone#0"), "the CloudKit component is still reaped")
+        XCTAssertEqual(events.deleted.values, ["gone"], "the grid hears only about the reaped CloudKit item")
+        XCTAssertEqual(events.created.values, [])
+    }
+
+    /// A record delete arriving for a component this device still holds on iCloud
+    /// Drive is not about the copy the index points at, so the component stays.
+    func testFeedDeleteSkipsICloudDriveComponent() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let events = BusRecorder(bus)
+        let deleteQueue = makeDeleteQueue()
+        let index = makeIndexStore()
+        let coord = CloudKitSyncCoordinator.forTesting(albumID: "a1", store: store, cache: makeCache(),
+                                                       indexStore: index, bus: bus, deleteQueue: deleteQueue)
+        try await index.upsert([driveEntry("drive")])
+        let preview = try writePreview(forMediaID: "drive")
+
+        store.changeSet = CloudKitChangeSet(changed: [], deleted: ["drive#0"], token: nil, moreComing: false)
+        try await coord.sync()
+
+        let drive = await entry("drive", in: index)
+        XCTAssertEqual(drive, driveEntry("drive"), "the iCloud Drive component stays in the index")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: preview.path), "its preview stays")
+        XCTAssertFalse(deleteQueue.isKnownDeleted("drive#0"), "the record name is not tombstoned")
+        XCTAssertEqual(events.deleted.values, [])
+        XCTAssertEqual(events.created.values, [])
+    }
+
+    /// A record moving into another album does not clear a component of the same
+    /// item that an album still holds on iCloud Drive.
+    func testCrossAlbumCleanupSkipsICloudDriveComponent() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let events = BusRecorder(bus)
+        let (coord, a1, a2) = makeTwoAlbumCoordinator(store: store, bus: bus)
+        try await a1.upsert([driveEntry("m1")])
+        let preview = try writePreview(forMediaID: "m1")
+
+        store.changeSet = CloudKitChangeSet(changed: [foreignMeta("m1#0", albumID: "a2", mediaID: "m1")],
+                                            deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+
+        let source = await entry("m1", in: a1)
+        XCTAssertEqual(source, driveEntry("m1"), "the iCloud Drive component stays in the source album")
+        let destination = await ids(a2)
+        XCTAssertEqual(destination, ["m1"], "the record still joins the album it names")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: preview.path))
+        XCTAssertEqual(events.deleted.values, [], "the source grid is not told the item left")
+    }
+
+    /// The change feed returning a record for a component the index holds on
+    /// iCloud Drive moves that component to CloudKit, keeping the entry's date so
+    /// the item does not jump in the grid.
+    func testFeedUpsertFlipsICloudDriveComponentToCloudKit() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, index, _) = makeCoordinator(store: store)
+        try await index.upsert([driveEntry("m1")])
+
+        store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "m1#0", mediaID: "m1", type: .photo)],
+                                            deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+
+        let flipped = await entry("m1", in: index)
+        XCTAssertEqual(flipped?.photoLocation, .cloudKit, "the arriving record moves the component to CloudKit")
+        XCTAssertEqual(flipped?.hasPhotoComponent, true)
+        XCTAssertEqual(flipped?.hasVideoComponent, false)
+        XCTAssertEqual(flipped?.dateEncrypted, driveDate, "the entry keeps its date, so the grid order holds")
+        XCTAssertEqual(flipped?.dateTaken, driveDate)
+        let all = await ids(index)
+        XCTAssertEqual(all, ["m1"], "the component flips in place, never as a second entry")
+    }
+
+    /// A Live Photo's halves move one at a time: a record for the photo half flips
+    /// only that half, and the video half stays on iCloud Drive, untouched by a
+    /// full walk that does not return it.
+    func testLivePhotoHalfFlipsIndependently() async throws {
+        let store = MockCloudKitMediaStore()
+        let deleteQueue = makeDeleteQueue()
+        let (coord, index, _) = makeCoordinator(store: store, deleteQueue: deleteQueue)
+        try await index.upsert([driveEntry("live", photo: .iCloudDrive, video: .iCloudDrive)])
+
+        store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "live#0", mediaID: "live", type: .photo)],
+                                            deleted: [], token: nil, moreComing: false, snapshotComplete: true)
+        try await coord.sync()
+
+        let afterPhoto = await entry("live", in: index)
+        XCTAssertEqual(afterPhoto, driveEntry("live", photo: .cloudKit, video: .iCloudDrive),
+                       "only the photo half flips; the video half stays on iCloud Drive")
+        XCTAssertFalse(deleteQueue.isKnownDeleted("live#1"), "the walk did not reap the video half")
+
+        store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "live#0", mediaID: "live", type: .photo),
+                                                      metaComponent(recordName: "live#1", mediaID: "live", type: .video)],
+                                            deleted: [], token: nil, moreComing: false, snapshotComplete: true)
+        try await coord.sync()
+
+        let afterVideo = await entry("live", in: index)
+        XCTAssertEqual(afterVideo, driveEntry("live", photo: .cloudKit, video: .cloudKit),
+                       "the video half flips when its record arrives, and the date never moves")
+    }
+
+    /// The missing-index guard walks the whole zone when any album lacks an index.
+    /// An album whose index is present and mixed keeps its iCloud Drive half
+    /// through that walk while the CloudKit half is refreshed from the zone.
+    func testWholeZoneRebuildKeepsICloudDriveHalfOfAMixedIndex() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, a1, a2) = makeTwoAlbumCoordinator(store: store)
+        try await a1.upsert([driveEntry("drive"),
+                             driveEntry("half", photo: .cloudKit, video: .iCloudDrive),
+                             CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo))])
+        store.hasChangeTokenValue = true
+        store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "half#0", mediaID: "half", type: .photo),
+                                                      record("n1", in: "a2")],
+                                            deleted: [], token: nil, moreComing: false, snapshotComplete: true)
+
+        try await coord.sync()
+
+        XCTAssertEqual(store.resetChangeTokenCount, 1, "a2 has no index, so the whole zone is walked")
+        let a1IDs = await ids(a1)
+        XCTAssertEqual(a1IDs, ["drive", "half"], "the walk reaps the absent CloudKit item and nothing on iCloud Drive")
+        let drive = await entry("drive", in: a1)
+        XCTAssertEqual(drive, driveEntry("drive"))
+        let half = await entry("half", in: a1)
+        XCTAssertEqual(half, driveEntry("half", photo: .cloudKit, video: .iCloudDrive))
+        let a2IDs = await ids(a2)
+        XCTAssertEqual(a2IDs, ["n1"])
+    }
+
+    /// A lost index is rebuilt by the whole-zone walk from CloudKit records only;
+    /// items still on iCloud Drive have no record, so the iCloud Drive folder scan
+    /// rebuilds that half.
+    func testRebuildAfterALostIndexRestoresOnlyTheCloudKitHalf() async throws {
+        let store = MockCloudKitMediaStore()
+        let indexURL = tempRoot.appendingPathComponent("\(UUID().uuidString).encindex")
+        let index = MediaIndexStore(keyBytes: Array(repeating: 7, count: 32), indexURL: indexURL)
+        let coord = CloudKitSyncCoordinator.forTesting(albumID: "a1", store: store, cache: makeCache(),
+                                                       indexStore: index, deleteQueue: makeDeleteQueue())
+        try await index.upsert([driveEntry("drive"),
+                                driveEntry("half", photo: .cloudKit, video: .iCloudDrive)])
+        try FileManager.default.removeItem(at: indexURL)
+        store.hasChangeTokenValue = true
+        store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "half#0", mediaID: "half", type: .photo)],
+                                            deleted: [], token: nil, moreComing: false, snapshotComplete: true)
+
+        try await coord.sync()
+
+        XCTAssertEqual(store.resetChangeTokenCount, 1, "the missing index forces a whole-zone walk")
+        let rebuilt = await index.load()?.entries ?? []
+        XCTAssertEqual(rebuilt.map(\.id), ["half"], "only items with a record come back from the zone")
+        XCTAssertEqual(rebuilt.first?.hasVideoComponent, false, "the iCloud Drive half is left for the folder scan")
+        XCTAssertEqual(rebuilt.first?.photoLocation, .cloudKit)
+    }
 }
+

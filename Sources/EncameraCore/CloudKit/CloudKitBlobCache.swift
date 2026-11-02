@@ -21,6 +21,16 @@ public actor CloudKitBlobCache: DebugPrintable {
         case fetchOnTap    // non-authoring device default: evictable on pressure
     }
 
+    /// Where a stored blob enters the eviction order.
+    public enum Insertion: Sendable, Equatable {
+        /// Most recently used, as a blob someone just opened.
+        case warm
+        /// Least recently used: evicted before every other entry, itself
+        /// included when its own store goes over the cap, so storing it never
+        /// evicts a blob already cached.
+        case cold
+    }
+
     private struct Entry: Codable {
         let changeTag: String?
         /// Path relative to `baseDir`, so the cache survives a Caches relocation.
@@ -123,14 +133,16 @@ public actor CloudKitBlobCache: DebugPrintable {
     // MARK: - Store
 
     /// Copy `sourceURL` into the cache for `recordName`, replacing any prior copy,
-    /// then enforce the size cap by LRU eviction. Returns the cached URL.
+    /// then enforce the size cap by LRU eviction. Returns the cached URL, which
+    /// for a `.cold` insertion the cap may already have evicted.
     @discardableResult
     public func store(recordName: String,
                       changeTag: String?,
                       albumID: String,
-                      from sourceURL: URL) throws -> URL {
+                      from sourceURL: URL,
+                      insertion: Insertion = .warm) throws -> URL {
         try store(recordName: recordName, changeTag: changeTag, albumID: albumID,
-                  source: sourceURL, consumingSource: false)
+                  source: sourceURL, consumingSource: false, insertion: insertion)
     }
 
     /// Same as `store(from:)`, but consumes `sourceURL`: a caller that already owns
@@ -143,14 +155,15 @@ public actor CloudKitBlobCache: DebugPrintable {
                       albumID: String,
                       moving sourceURL: URL) throws -> URL {
         try store(recordName: recordName, changeTag: changeTag, albumID: albumID,
-                  source: sourceURL, consumingSource: true)
+                  source: sourceURL, consumingSource: true, insertion: .warm)
     }
 
     private func store(recordName: String,
                        changeTag: String?,
                        albumID: String,
                        source sourceURL: URL,
-                       consumingSource: Bool) throws -> URL {
+                       consumingSource: Bool,
+                       insertion: Insertion) throws -> URL {
         let albumFolder = Self.albumFolderName(albumID)
         let albumDir = baseDir.appendingPathComponent(albumFolder, isDirectory: true)
         printDebug("store start recordName=\(recordName) changeTag=\(changeTag ?? "nil") albumFolder=\(albumFolder) source=\(sourceURL.lastPathComponent)")
@@ -191,12 +204,20 @@ public actor CloudKitBlobCache: DebugPrintable {
             printDebug("store WARNING recordName=\(recordName) could not read attributes of just-copied file=\(destURL.lastPathComponent); recording sizeBytes=0")
         }
         let size = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
+        let lastAccess: Date
+        switch insertion {
+        case .warm:
+            lastAccess = Date()
+        case .cold:
+            let oldest = index.filter { $0.key != recordName }.values.map(\.lastAccess).min() ?? Date()
+            lastAccess = oldest.addingTimeInterval(-1)
+        }
         index[recordName] = Entry(changeTag: changeTag,
                                   relativePath: "\(albumFolder)/\(recordName)",
                                   size: size,
-                                  lastAccess: Date())
-        printDebug("store ok recordName=\(recordName) sizeBytes=\(size) changeTag=\(changeTag ?? "nil") cacheTotalBytes=\(totalBytes()) entries=\(index.count)")
-        enforceCap(protecting: recordName)
+                                  lastAccess: lastAccess)
+        printDebug("store ok recordName=\(recordName) sizeBytes=\(size) changeTag=\(changeTag ?? "nil") insertion=\(insertion) cacheTotalBytes=\(totalBytes()) entries=\(index.count)")
+        enforceCap(protecting: insertion == .warm ? recordName : nil)
         persist()
         return destURL
     }

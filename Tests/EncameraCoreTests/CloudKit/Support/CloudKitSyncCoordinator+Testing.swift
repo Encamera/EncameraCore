@@ -20,7 +20,8 @@ extension CloudKitSyncCoordinator {
                            bus: FileOperationBus = .shared,
                            uploadQueue: CloudKitUploadQueue = .shared,
                            deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
-                           chunkStore: ChunkedBlobStoring? = nil) -> (CloudKitSyncCoordinator, MockAlbumManager) {
+                           chunkStore: ChunkedBlobStoring? = nil,
+                           zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults())) -> (CloudKitSyncCoordinator, MockAlbumManager) {
         let albumManager = MockAlbumManager(keyManager: DemoKeyManager())
         for album in albums {
             albumManager.addCloudKitAlbum(album.id, indexStore: album.index, sizeSidecar: album.sizeSidecar)
@@ -31,7 +32,8 @@ extension CloudKitSyncCoordinator {
                                                   bus: bus,
                                                   uploadQueue: uploadQueue,
                                                   deleteQueue: deleteQueue,
-                                                  chunkStore: chunkStore)
+                                                  chunkStore: chunkStore,
+                                                  zoneWalkRequests: zoneWalkRequests)
         return (coordinator, albumManager)
     }
 

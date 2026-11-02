@@ -19,6 +19,8 @@ public class iCloudStorageModel: DataStorageModel {
     /// Setting it also makes `DataStorageAvailabilityUtil.isStorageTypeAvailable(.icloud)`
     /// report `.available`, since the token and container lookup are the production
     /// signal for exactly the same question ("is there a container to read from").
+    /// An album finish reads a folder under it as holding no iCloud metadata
+    /// beyond its listing on disk (`ICloudDriveAlbumFolderDiskContents`).
     nonisolated(unsafe) public static var testContainerRootOverride: URL?
 
     /// Where the ubiquity container is looked up. Production asks `FileManager`;

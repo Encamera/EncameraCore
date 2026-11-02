@@ -16,6 +16,16 @@ public enum MediaIndexError: Error {
     case decryptionFailed
 }
 
+/// Where one component (photo or video) of a CloudKit album's media item is
+/// stored. Albums on other storage keep every component at the default
+/// `.cloudKit`, which the index format records as "no flag set".
+public enum MediaComponentLocation: Equatable, Sendable {
+    /// The component is an `EncMedia` record in CloudKit.
+    case cloudKit
+    /// The component is still a file in the album's iCloud Drive folder.
+    case iCloudDrive
+}
+
 /// One row of a per-album media index: the minimum needed to sort and filter a
 /// media item without opening or decrypting its file. One entry corresponds to
 /// one `InteractableMedia` — a Live Photo's photo and video components share a
@@ -35,14 +45,25 @@ public struct MediaIndexEntry: Equatable, Sendable {
     /// Cached `MediaFilterOptions` raw value describing this single item
     /// (still image / screenshot / video / live photo).
     public let subtypeRawValue: Int
+    /// Where the photo component is stored. Always `.cloudKit` when there is no
+    /// photo component.
+    public let photoLocation: MediaComponentLocation
+    /// Where the video component is stored. Always `.cloudKit` when there is no
+    /// video component.
+    public let videoLocation: MediaComponentLocation
 
+    /// A location given for a component the entry does not have is dropped to
+    /// `.cloudKit`, so two entries describing the same components compare equal
+    /// and encode identically.
     public init(
         id: String,
         hasPhotoComponent: Bool,
         hasVideoComponent: Bool,
         dateEncrypted: Date?,
         dateTaken: Date?,
-        subtypeRawValue: Int
+        subtypeRawValue: Int,
+        photoLocation: MediaComponentLocation = .cloudKit,
+        videoLocation: MediaComponentLocation = .cloudKit
     ) {
         self.id = id
         self.hasPhotoComponent = hasPhotoComponent
@@ -50,6 +71,8 @@ public struct MediaIndexEntry: Equatable, Sendable {
         self.dateEncrypted = dateEncrypted
         self.dateTaken = dateTaken
         self.subtypeRawValue = subtypeRawValue
+        self.photoLocation = hasPhotoComponent ? photoLocation : .cloudKit
+        self.videoLocation = hasVideoComponent ? videoLocation : .cloudKit
     }
 }
 
@@ -59,6 +82,11 @@ public extension MediaIndexEntry {
     /// keeping the first non-nil dates. The receiver's subtype wins. Used when a
     /// Live Photo's photo and video components are indexed separately (e.g. the
     /// video arriving after the photo) and must collapse into one entry.
+    ///
+    /// Each component's location comes from `other` when `other` carries that
+    /// component, and from the receiver otherwise: the incoming entry is the
+    /// newer report of where its components live, and it says nothing about a
+    /// component it does not carry.
     func merged(with other: MediaIndexEntry) -> MediaIndexEntry {
         MediaIndexEntry(
             id: id,
@@ -66,7 +94,26 @@ public extension MediaIndexEntry {
             hasVideoComponent: hasVideoComponent || other.hasVideoComponent,
             dateEncrypted: dateEncrypted ?? other.dateEncrypted,
             dateTaken: dateTaken ?? other.dateTaken,
-            subtypeRawValue: subtypeRawValue
+            subtypeRawValue: subtypeRawValue,
+            photoLocation: other.hasPhotoComponent ? other.photoLocation : photoLocation,
+            videoLocation: other.hasVideoComponent ? other.videoLocation : videoLocation
+        )
+    }
+
+    /// A copy with the given fields replaced and every other field kept.
+    func with(hasPhotoComponent: Bool? = nil,
+              hasVideoComponent: Bool? = nil,
+              photoLocation: MediaComponentLocation? = nil,
+              videoLocation: MediaComponentLocation? = nil) -> MediaIndexEntry {
+        MediaIndexEntry(
+            id: id,
+            hasPhotoComponent: hasPhotoComponent ?? self.hasPhotoComponent,
+            hasVideoComponent: hasVideoComponent ?? self.hasVideoComponent,
+            dateEncrypted: dateEncrypted,
+            dateTaken: dateTaken,
+            subtypeRawValue: subtypeRawValue,
+            photoLocation: photoLocation ?? self.photoLocation,
+            videoLocation: videoLocation ?? self.videoLocation
         )
     }
 }
@@ -145,9 +192,10 @@ public extension Array where Element == MediaIndexEntry {
     /// For a Live Photo, only the named component's flag is cleared and the entry
     /// survives as long as the other component remains; the entry is removed once
     /// no component is left. A bare `"mediaID"` (no `#type`) removes the whole
-    /// entry. Returns whether the entry was removed (`true`) versus merely having
-    /// a component cleared (`false`); a record name with no matching entry counts
-    /// as removed. The shared remove primitive for the per-component cloud path.
+    /// entry. The surviving component keeps its location. Returns whether the
+    /// entry was removed (`true`) versus merely having a component cleared
+    /// (`false`); a record name with no matching entry counts as removed. The
+    /// shared remove primitive for the per-component cloud path.
     @discardableResult
     mutating func removeComponent(recordName: String) -> Bool {
         let (id, type) = MediaRecordName.parse(recordName)
@@ -165,13 +213,24 @@ public extension Array where Element == MediaIndexEntry {
             remove(at: idx)
             return true
         }
-        self[idx] = MediaIndexEntry(id: existing.id,
-                                    hasPhotoComponent: hasPhoto,
-                                    hasVideoComponent: hasVideo,
-                                    dateEncrypted: existing.dateEncrypted,
-                                    dateTaken: existing.dateTaken,
-                                    subtypeRawValue: existing.subtypeRawValue)
+        self[idx] = existing.with(hasPhotoComponent: hasPhoto, hasVideoComponent: hasVideo)
         return false
+    }
+
+    /// Whether `removeComponent(recordName:)` would clear a component stored on
+    /// iCloud Drive: the named component for `"mediaID#type"`, any component of
+    /// the entry for a bare `"mediaID"`. `false` when no entry has the id.
+    func hasICloudDriveComponent(recordName: String) -> Bool {
+        let (id, type) = MediaRecordName.parse(recordName)
+        guard let entry = first(where: { $0.id == id }) else { return false }
+        let photo = entry.hasPhotoComponent && entry.photoLocation == .iCloudDrive
+        let video = entry.hasVideoComponent && entry.videoLocation == .iCloudDrive
+        switch type {
+        case .photo: return photo
+        case .video: return video
+        case nil: return photo || video
+        default: return false
+        }
     }
 
     /// Removes every entry whose id is in `ids` — the disk delete/move fast path,
@@ -193,20 +252,35 @@ public extension Array where Element == MediaIndexEntry {
 /// Layout (all multi-byte integers little-endian):
 /// ```
 ///   magic        4 bytes  "EIX1"
-///   version      UInt16
+///   version      UInt16   (2 when written; 1 is still read)
 ///   entryCount   UInt32
 ///   then `entryCount` records:
 ///     idLength       UInt8
 ///     id             idLength UTF-8 bytes
-///     flags          UInt8   (bit0 hasPhoto, bit1 hasVideo)
+///     flags          UInt8   bit0 hasPhoto
+///                            bit1 hasVideo
+///                            bit2 photo on iCloud Drive (version 2; clear = CloudKit)
+///                            bit3 video on iCloud Drive (version 2; clear = CloudKit)
+///                            bits 4-7 zero
 ///     subtype        UInt8   (MediaFilterOptions raw value)
 ///     dateEncrypted  UInt64  (Float64 bit pattern; NaN == nil)
 ///     dateTaken      UInt64  (Float64 bit pattern; NaN == nil)
 /// ```
+///
+/// Version 1 has the same layout with only bits 0 and 1 defined; its entries
+/// decode with every component at `.cloudKit` and bits 2-7 are ignored.
 enum MediaIndexCodec {
 
     static let magic: [UInt8] = Array("EIX1".utf8)
-    static let formatVersion: UInt16 = 1
+    /// The version every encode writes.
+    static let formatVersion: UInt16 = 2
+    /// Versions decode accepts.
+    static let readableVersions: Set<UInt16> = [1, 2]
+
+    private static let hasPhotoFlag: UInt8 = 1 << 0
+    private static let hasVideoFlag: UInt8 = 1 << 1
+    private static let photoOnICloudDriveFlag: UInt8 = 1 << 2
+    private static let videoOnICloudDriveFlag: UInt8 = 1 << 3
 
     static func encode(_ entries: [MediaIndexEntry]) -> Data {
         var data = Data()
@@ -219,8 +293,10 @@ enum MediaIndexCodec {
             data.append(UInt8(idBytes.count))
             data.append(contentsOf: idBytes)
             var flags: UInt8 = 0
-            if entry.hasPhotoComponent { flags |= 0b01 }
-            if entry.hasVideoComponent { flags |= 0b10 }
+            if entry.hasPhotoComponent { flags |= hasPhotoFlag }
+            if entry.hasVideoComponent { flags |= hasVideoFlag }
+            if entry.photoLocation == .iCloudDrive { flags |= photoOnICloudDriveFlag }
+            if entry.videoLocation == .iCloudDrive { flags |= videoOnICloudDriveFlag }
             data.append(flags)
             data.append(UInt8(truncatingIfNeeded: entry.subtypeRawValue))
             data.appendLittleEndian(dateBitPattern(entry.dateEncrypted))
@@ -234,9 +310,11 @@ enum MediaIndexCodec {
         guard try reader.readByteArray(magic.count) == magic else {
             throw MediaIndexError.corruptIndex
         }
-        guard try reader.readUInt16() == formatVersion else {
+        let version = try reader.readUInt16()
+        guard readableVersions.contains(version) else {
             throw MediaIndexError.unsupportedVersion
         }
+        let readsLocation = version >= 2
         let count = try reader.readUInt32()
         var entries: [MediaIndexEntry] = []
         entries.reserveCapacity(Int(count))
@@ -249,11 +327,13 @@ enum MediaIndexCodec {
             let dateTaken = dateFromBitPattern(try reader.readUInt64())
             entries.append(MediaIndexEntry(
                 id: id,
-                hasPhotoComponent: flags & 0b01 != 0,
-                hasVideoComponent: flags & 0b10 != 0,
+                hasPhotoComponent: flags & hasPhotoFlag != 0,
+                hasVideoComponent: flags & hasVideoFlag != 0,
                 dateEncrypted: dateEncrypted,
                 dateTaken: dateTaken,
-                subtypeRawValue: Int(subtype)
+                subtypeRawValue: Int(subtype),
+                photoLocation: readsLocation && flags & photoOnICloudDriveFlag != 0 ? .iCloudDrive : .cloudKit,
+                videoLocation: readsLocation && flags & videoOnICloudDriveFlag != 0 ? .iCloudDrive : .cloudKit
             ))
         }
         return entries

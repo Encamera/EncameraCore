@@ -87,19 +87,22 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     private let deleteQueue: CloudKitAlbumDeleteQueue
     private let publishRegistry: CloudKitAlbumPublishRegistry
     private let uploadQueue: CloudKitUploadQueue
+    private let flipRegistry: ICloudDriveAlbumFlipRegistry
 
     public init(store: CloudKitMediaStoring,
                 keyManager: KeyManager,
                 albumManager: AlbumManaging,
                 deleteQueue: CloudKitAlbumDeleteQueue = CloudKitAlbumDeleteQueue(),
                 publishRegistry: CloudKitAlbumPublishRegistry = CloudKitAlbumPublishRegistry(),
-                uploadQueue: CloudKitUploadQueue = .shared) {
+                uploadQueue: CloudKitUploadQueue = .shared,
+                flipRegistry: ICloudDriveAlbumFlipRegistry = .shared) {
         self.store = store
         self.keyManager = keyManager
         self.albumManager = albumManager
         self.deleteQueue = deleteQueue
         self.publishRegistry = publishRegistry
         self.uploadQueue = uploadQueue
+        self.flipRegistry = flipRegistry
     }
 
     /// Whether an iCloud account is available to reconcile against.
@@ -218,7 +221,8 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     }
 
     /// Adopts one remote album unless a delete of it is queued, it is already
-    /// materialized, a move is still filling it, or no stored key opens its name.
+    /// materialized, a move is still filling it, an iCloud Drive album migration
+    /// run will flip it in itself, or no stored key opens its name.
     private func pull(_ record: CloudKitAlbumMetadata,
                       onDeviceByID: [String: Album],
                       pendingDeletes: Set<String>,
@@ -228,7 +232,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             return .skipped
         }
 
-        publishRegistry.markPublished(record.albumID)
+        publishRegistry.markConfirmedOnServer(record.albumID)
 
         if onDeviceByID[record.albumID] != nil {
             printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=alreadyMaterialized")
@@ -237,6 +241,10 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
 
         if case .destination = MigrationPlanStore.planRole(forAlbumID: Self.cloudKitAlbumKey(record.albumID)) {
             printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=destinationOfALocalMove")
+            return .skipped
+        }
+        if flipRegistry.isHeld(record.albumID) {
+            printDebug("reconcileAlbums pull skip albumID=\(record.albumID) reason=iCloudDriveMigrationFlipsIt")
             return .skipped
         }
         if await CloudKitAlbumMembership.isBeingFilled(record, store: store) {
@@ -403,7 +411,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
             if case .quotaExceeded = mapCKError(error) { return .storageFull }
             return .failed
         }
-        publishRegistry.markPublished(albumID)
+        publishRegistry.markConfirmedOnServer(albumID)
         if let marker {
             do {
                 try CloudKitAlbumMarker.clearDirty(albumID: albumID, ifUnchangedFrom: marker)
@@ -461,7 +469,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     private func applyRemoteAlbumUpdates(_ records: [CloudKitAlbumMetadata], onDeviceByID: [String: Album]) -> Int {
         var metadataApplied = 0
         for albumMeta in records {
-            publishRegistry.markPublished(albumMeta.albumID)
+            publishRegistry.markConfirmedOnServer(albumMeta.albumID)
             guard let coverChanged = applyRemoteMetadata(albumMeta) else { continue }
             metadataApplied += 1
             // album.json already holds the new cover, so a grid reload on this

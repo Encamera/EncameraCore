@@ -2,13 +2,19 @@
 //  ICloudDriveMigrationTests.swift
 //  EncameraCoreTests
 //
-//  The engine's contract for migrating an iCloud Drive album to CloudKit.
+//  The engine's whole-album move of an iCloud Drive album to CloudKit.
 //
-//  iCloud Drive was closed as a destination without anything that actually moves
-//  the files: the prompt on the album grid led to a flow that threw. The engine now
-//  accepts an `.icloud` source and materializes evicted files a batch at a time
-//  before uploading them, so from the uploader's point of view a Drive file is
-//  indistinguishable from a local one.
+//  A user's start of an iCloud Drive album's move no longer runs this move: it
+//  runs the album step (`ICloudDriveAlbumMigrationTests`) and the blob migration
+//  (`ICloudDriveBlobMigrationTests`), which delete each file as it verifies, never
+//  set `migrationInProgress` and offer no cancel. This move still runs to resume a
+//  whole-album plan an earlier build wrote (`startWholeAlbumMove`, the launch
+//  resume), with the whole-album rules: two passes, the flag and a cancel that
+//  rolls back. These tests drive it through `startWholeAlbumMove`.
+//
+//  The engine accepts an `.icloud` source and materializes evicted files a batch
+//  at a time before uploading them, so from the uploader's point of view a Drive
+//  file is indistinguishable from a local one.
 //
 //  The failure mode these tests exist to prevent: an evicted file enumerates as a
 //  `.icloud` placeholder, so the materialized path the uploader wants does not
@@ -162,7 +168,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         h.materializer.urlsThatFailToMaterialize = Set(
             h.mediaIDs.map { encURL(album: h.album, id: $0).lastPathComponent })
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertTrue(h.store.uploadCalls.isEmpty,
                       "a file whose bytes are still in iCloud must NEVER be uploaded — that sends CloudKit a placeholder")
@@ -241,7 +247,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
     func testEvictedDriveAlbumMigratesEndToEnd() async throws {
         let h = try await makeHarness(count: 3)
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(h.store.uploadCalls.count, 3, "every evicted file reaches CloudKit exactly once")
@@ -261,7 +267,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         let plannedSizes = try await h.manager.plan(album: h.album)
             .items.reduce(into: [String: Int64]()) { $0[$1.mediaID] = $1.sizeBytes }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(h.store.uploadedItems.count, 2,
@@ -274,7 +280,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
 
     func testAlreadyMaterializedDriveAlbumMigratesToo() async throws {
         let h = try await makeHarness(count: 2, evicting: 0)
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(h.store.uploadCalls.count, 2)
@@ -287,7 +293,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         let strandedID = h.mediaIDs[1]
         h.materializer.urlsThatFailToMaterialize = [encURL(album: h.album, id: strandedID).lastPathComponent]
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         let loaded = await MigrationPlanStore(album: h.album).load()
         let plan = try XCTUnwrap(loaded, "the checkpoint must survive so the item can be retried")
@@ -312,7 +318,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         let strandedName = encURL(album: h.album, id: strandedID).lastPathComponent
         h.materializer.urlsThatFailToMaterialize = [strandedName]
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
         XCTAssertEqual(h.albumManager.finalizeCallCount, 0)
 
         h.materializer.urlsThatFailToMaterialize = []
@@ -337,7 +343,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
             try? FileManager.default.removeItem(at: ghostPlaceholder)
         }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(ghostURL),
                        "precondition: this file is genuinely gone, not merely evicted")
@@ -357,7 +363,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         ICloudDriveMigrationBatchSize.current = 2
         let h = try await makeHarness(count: 5)
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(h.materializer.batchSizes, [2, 2, 1],
@@ -370,7 +376,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         ICloudDriveMigrationBatchSize.current = 4
         let h = try await makeHarness(count: 5)
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.materializer.batchSizes, [4, 1],
                        "changing the setting must actually change the batching")
@@ -402,7 +408,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
             materializedAtBatchStart.append(onDisk.count)
         }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(materializedAtBatchStart, [0, 0],
@@ -421,7 +427,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
                          urls.filter(ICloudPlaceholderName.existsInAnyForm).count)
         }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertEqual(h.manager.state, .completed)
         XCTAssertEqual(atRemoval?.materialized, 0, "each original goes back to iCloud Drive once it verifies")
@@ -441,7 +447,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
             await h.manager.cancel(album: h.album)
         }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertFalse(h.materializer.evictedOnStop.isEmpty,
                        "the downloaded-but-unuploaded files are pushed back to iCloud Drive")
@@ -467,7 +473,7 @@ final class ICloudDriveMigrationTests: XCTestCase {
         }
         defer { cancellable.cancel() }
 
-        await h.manager.start(album: h.album)
+        await h.manager.startWholeAlbumMove(album: h.album)
 
         XCTAssertTrue(phases.contains(.materializing),
                       "downloading from iCloud Drive is real work and must be visible in the overlay")

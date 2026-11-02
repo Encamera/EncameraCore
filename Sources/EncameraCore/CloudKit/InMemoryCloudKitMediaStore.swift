@@ -445,10 +445,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
 
     public func resetChangeToken() async {}
 
-    public func recreateZone() async throws {}
-
-    public func ensureZoneExists() async throws {}
-
     public func registerZoneSubscription() async throws {}
 
     public func cancelAll() {}

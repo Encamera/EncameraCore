@@ -2,17 +2,26 @@
 //  AlbumSizeSidecar.swift
 //  EncameraCore
 //
-//  Per-album record sizes, captured from CloudKit metadata as it syncs so
-//  "how many bytes does this album hold in iCloud" is answerable offline and
-//  instantly. See `Documentation/storage-accounting-model.md` for why this is a
-//  sidecar rather than a field on `MediaIndexEntry`.
+//  Per-album component sizes, so "how many bytes does this album hold in iCloud"
+//  is answerable offline and instantly. CloudKit sync writes the sizes of
+//  `.cloudKit` components from record metadata; the iCloud Drive folder scanner
+//  writes the sizes of `.iCloudDrive` components from file metadata. See
+//  `Documentation/storage-accounting-model.md` for why this is a sidecar rather
+//  than a field on `MediaIndexEntry`.
 //
 
 import Foundation
 import CryptoKit
 
-/// Byte sizes for one album's CloudKit records, keyed by **record name**
-/// (`mediaID#<mediaTypeRawValue>`).
+/// Byte sizes for one album's media components, keyed by **record name**
+/// (`mediaID#<mediaTypeRawValue>`), wherever each component lives.
+///
+/// One key per component, so a component counts once whichever side holds it:
+/// when it moves from iCloud Drive to CloudKit, the sync's size replaces the
+/// scanner's under the same key. Which side owns a size is not stored here; it is
+/// the component's location in the album's media index, and each writer passes
+/// the index entries to `apply(updates:removals:owner:entries:)` so it never
+/// writes or removes the other side's sizes.
 ///
 /// Keyed by record name and not `mediaID` because a Live Photo is two CloudKit
 /// records with two sizes that collapse into a single `MediaIndexEntry`; keying by
@@ -85,6 +94,27 @@ public actor AlbumSizeSidecar {
         sizes
     }
 
+    /// The album's byte totals over the components in `entries`, the album's
+    /// index. A component with no recorded size counts as zero. An `.iCloudDrive`
+    /// component named in `deferred` (record names) has its move deferred, so it
+    /// counts as deferred rather than remaining.
+    public func mediaBytes(for entries: [MediaIndexEntry], deferred: Set<String> = []) -> AlbumMediaBytes {
+        var remaining: Int64 = 0
+        var deferredBytes: Int64 = 0
+        var total: Int64 = 0
+        for (recordName, location) in entries.componentLocations() {
+            guard let bytes = sizes[recordName] else { continue }
+            total += bytes
+            guard location == .iCloudDrive else { continue }
+            if deferred.contains(recordName) {
+                deferredBytes += bytes
+            } else {
+                remaining += bytes
+            }
+        }
+        return AlbumMediaBytes(remainingOnICloudDrive: remaining, total: total, deferredOnICloudDrive: deferredBytes)
+    }
+
     /// True when a sidecar file existed when this instance loaded. A file that
     /// exists and records nothing is a genuinely empty album; no file at all is an
     /// album that has never been measured.
@@ -94,19 +124,32 @@ public actor AlbumSizeSidecar {
 
     // MARK: - Write
 
-    /// Merges `updates` in, drops `removals`, and persists once.
+    /// Merges `updates` in, drops `removals`, and persists once, limited to the
+    /// sizes `owner` owns: a key whose component `entries` places at the other
+    /// location is neither written nor removed. A key with no component in
+    /// `entries` is open to either owner, so a component that has just been
+    /// removed from the index can drop its size.
     ///
     /// Merge rather than wholesale replacement: the sync path applies a *delta*, so
     /// overwriting with only the changed records would zero every record the feed
     /// did not mention. The single write at the end matches the index's own
     /// save-once-per-sync durability shape.
-    public func apply(updates: [String: Int64], removals: Set<String> = []) throws {
-        guard !updates.isEmpty || !removals.isEmpty else { return }
+    public func apply(updates: [String: Int64],
+                      removals: Set<String>,
+                      owner: MediaComponentLocation,
+                      entries: [MediaIndexEntry]) throws {
+        let locations = entries.componentLocations()
+        let ownedByOther = { (recordName: String) -> Bool in
+            locations[recordName].map { $0 != owner } ?? false
+        }
+        let ownedUpdates = updates.filter { !ownedByOther($0.key) }
+        let ownedRemovals = removals.filter { !ownedByOther($0) }
+        guard !ownedUpdates.isEmpty || !ownedRemovals.isEmpty else { return }
         var merged = sizes
-        for (recordName, bytes) in updates {
+        for (recordName, bytes) in ownedUpdates {
             merged[recordName] = max(0, bytes)
         }
-        for recordName in removals {
+        for recordName in ownedRemovals {
             merged[recordName] = nil
         }
         try commit(merged)
@@ -142,5 +185,38 @@ public actor AlbumSizeSidecar {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
+    }
+}
+
+/// One album's media bytes, split by where each component lives.
+public struct AlbumMediaBytes: Equatable, Sendable {
+    /// Bytes of the components still on iCloud Drive, waiting to move to CloudKit.
+    /// Deferred components are not counted.
+    public let remainingOnICloudDrive: Int64
+    /// Bytes of every component, on either side, each counted once.
+    public let total: Int64
+    /// Bytes of the components on iCloud Drive whose move is deferred.
+    public let deferredOnICloudDrive: Int64
+
+    public init(remainingOnICloudDrive: Int64, total: Int64, deferredOnICloudDrive: Int64 = 0) {
+        self.remainingOnICloudDrive = remainingOnICloudDrive
+        self.total = total
+        self.deferredOnICloudDrive = deferredOnICloudDrive
+    }
+}
+
+private extension Array where Element == MediaIndexEntry {
+    /// Each component's location, keyed by its record name.
+    func componentLocations() -> [String: MediaComponentLocation] {
+        var locations: [String: MediaComponentLocation] = [:]
+        for entry in self {
+            if entry.hasPhotoComponent {
+                locations[MediaRecordName.componentRecordName(mediaID: entry.id, type: .photo)] = entry.photoLocation
+            }
+            if entry.hasVideoComponent {
+                locations[MediaRecordName.componentRecordName(mediaID: entry.id, type: .video)] = entry.videoLocation
+            }
+        }
+        return locations
     }
 }

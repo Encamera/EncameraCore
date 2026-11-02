@@ -92,6 +92,14 @@ extension CloudKitMediaStoreError {
         }
     }
 
+    /// Whether the server rejected a save's record shape: `invalidArguments`,
+    /// which on a save means the Production schema was never deployed for a type
+    /// or field this build writes. Not recoverable on the device.
+    public var isUndeployedSchema: Bool {
+        guard case .underlying(let error) = unwrappingPartial, let ckError = error as? CKError else { return false }
+        return ckError.code == .invalidArguments
+    }
+
     private enum CollapsibleKind: Hashable {
         case notFound, conflict, quotaExceeded, accountUnavailable, zoneNotFound, changeTokenExpired
     }

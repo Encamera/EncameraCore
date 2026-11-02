@@ -57,6 +57,11 @@ public protocol AlbumManaging {
     /// instead of mutating the filesystem behind its back. `record` is the album's
     /// `EncAlbum` record and `key` the key proven to open its `encName`.
     func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey)
+    /// Adopts the album as `adoptCloudKitAlbum(record:key:)` does, with
+    /// `album.json` linked to the album's iCloud Drive folder `folder` in the same
+    /// write, so the album list switches from the folder to the CloudKit album at
+    /// once.
+    func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey, linkingICloudDriveFolder folder: URL?)
     var lockedAlbums: [LockedAlbumPlaceholder] { get }
 
     /// Rescans the filesystem and broadcasts the updated album list.
@@ -124,6 +129,21 @@ public extension AlbumManaging {
     func sizeSidecar(forAlbumID albumID: String) -> AlbumSizeSidecar? {
         AlbumStoreRegistry.shared.existingSizeSidecar(forCloudKitAlbumID: albumID)
             ?? cloudKitAlbum(withID: albumID).map { sizeSidecar(for: $0) }
+    }
+
+    /// The album's media bytes still on iCloud Drive and in total, from its index
+    /// and size sidecar. Each component counts once, on the side the index places it.
+    /// Components the album's iCloud Drive migration plan defers are not
+    /// remaining.
+    func mediaBytes(for album: Album) async -> AlbumMediaBytes {
+        let entries = await mediaIndexStore(for: album).current()?.entries ?? []
+        var deferred: Set<String> = []
+        if album.storageOption == .cloudKit, let albumID = album.albumID,
+           MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: albumID),
+           let plan = await MigrationPlanStore(iCloudDriveMigrationFrom: album, cloudKitAlbumID: albumID).load() {
+            deferred = plan.deferredRecordNames
+        }
+        return await sizeSidecar(for: album).mediaBytes(for: entries, deferred: deferred)
     }
 
     /// The CloudKit album on this device whose record id is `albumID`, hidden or not.
@@ -195,6 +215,11 @@ public extension AlbumManaging {
 
     /// Default no-op so lightweight test/demo conformers need not implement it.
     func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey) {}
+
+    /// Default: adopts without a link, for conformers that do not write markers.
+    func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey, linkingICloudDriveFolder folder: URL?) {
+        adoptCloudKitAlbum(record: record, key: key)
+    }
 
     /// Default empty: conformers that don't track locked albums return none.
     var lockedAlbums: [LockedAlbumPlaceholder] { [] }

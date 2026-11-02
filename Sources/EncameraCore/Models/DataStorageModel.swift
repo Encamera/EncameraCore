@@ -64,6 +64,10 @@ extension DataStorageModel {
                 return false
             }
 
+            if ICloudDriveAlbumMarkerFile.isMarkerFile(url) {
+                return false
+            }
+
             for excludeString in exclude {
                 if url.path.contains(excludeString) {
                     return false
@@ -153,21 +157,44 @@ extension DataStorageModel {
         return thumbnailDirectory
     }
     
-    /// Whether this album has already been migrated to CloudKit, i.e. this device
-    /// holds a CloudKit album whose `album.json` names it (same name, same key). The
-    /// CloudKit album's id is not derivable from the name, so the markers are
-    /// scanned. `finalizeMigrationToCloudKit` writes the marker when the move
-    /// completes, so it is the signal that the source copy is drained and must not
-    /// be revived. Always false for a `.cloudKit` model, which IS the destination.
+    /// Whether this iCloud Drive album folder belongs to a CloudKit album and must
+    /// be left alone: never re-created, and never listed as an album of its own.
+    /// Always false for any other storage.
+    ///
+    /// The folder is one of two things:
+    ///
+    /// - The linked folder of a CloudKit album (`isLinkedICloudDriveFolder`): the
+    ///   album's `album.json` links it, and it holds the album's media not yet in
+    ///   CloudKit. It is not drained, whatever it holds.
+    /// - The drained source of a finished whole-album move: this device holds a
+    ///   CloudKit album with its name and key that does not link it
+    ///   (`isDrainedICloudDriveSource`). `finalizeMigrationToCloudKit` writes that
+    ///   `album.json` when the move completes.
     var hasMigratedToCloudKit: Bool {
         guard storageType == .icloud else { return false }
+        return isLinkedICloudDriveFolder || isDrainedICloudDriveSource
+    }
+
+    /// Whether this is an iCloud Drive album folder a CloudKit album's
+    /// `album.json` links. The album list shows the CloudKit album in its place.
+    var isLinkedICloudDriveFolder: Bool {
+        guard storageType == .icloud else { return false }
+        return CloudKitAlbumMarker.albumID(linkingICloudDriveFolder: baseURL) != nil
+    }
+
+    /// Whether this is an iCloud Drive album folder drained by a finished move to
+    /// CloudKit: this device holds a CloudKit album with its name and key, and that
+    /// album does not link the folder. A linked folder is never drained.
+    var isDrainedICloudDriveSource: Bool {
+        guard storageType == .icloud, !isLinkedICloudDriveFolder else { return false }
         return CloudKitAlbumMarker.albumID(matching: album) != nil
     }
 
     /// Whether this local album is the drained source of a finished move to
     /// CloudKit: its directory is gone and this device holds a CloudKit album with
     /// its name and key, with no move back to this device running or planned (that
-    /// move's destination is the same local album).
+    /// move's destination is the same local album). Never true for an iCloud Drive
+    /// folder, whose drained case is `isDrainedICloudDriveSource`.
     var isDrainedSourceOfCloudKitMove: Bool {
         guard storageType == .local,
               !FileManager.default.fileExists(atPath: baseURL.path),
@@ -191,6 +218,10 @@ extension DataStorageModel {
         for directory in directories {
             if FileManager.default.fileExists(atPath: directory) == false {
                 if directory == baseURL.path {
+                    if isLinkedICloudDriveFolder {
+                        printDebug("refusing to re-create linked iCloud Drive folder storage=\(storageType.rawValue) dir=\(baseURL.lastPathComponent)")
+                        continue
+                    }
                     if hasMigratedToCloudKit {
                         printDebug("refusing to re-create drained source directory storage=\(storageType.rawValue) dir=\(baseURL.lastPathComponent)")
                         continue

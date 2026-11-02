@@ -791,7 +791,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
         await manager.start(album: album)
 
-        XCTAssertEqual(store.ensureZoneCalls, 1, "the run must have reached the preflight the cancel lands in")
+        XCTAssertGreaterThanOrEqual(store.accountAvailableCalls, 1, "the run must have reached the preflight the cancel lands in")
         let persisted = await MigrationPlanStore(album: album).load()
         XCTAssertNil(persisted, "the cancel, not an unrelated abort, must be what stopped the run: it deletes the plan")
         XCTAssertEqual(albumManager.finalizeCallCount, 0,
@@ -1174,6 +1174,10 @@ final class CloudKitMigrationManagerTests: XCTestCase {
 
     // MARK: - iCloud Drive (legacy) source
 
+    // These run the whole-album move of an iCloud Drive album, which only resumes
+    // a whole-album plan an earlier build wrote. A user's start runs the album
+    // step instead (`ICloudDriveAlbumMigrationTests.testUserStartRoutesToNewFlow`).
+
     /// Points `iCloudStorageModel` at a scratch directory for the duration of a test.
     /// Neither the simulator nor a unit-test host has a ubiquity container, so without
     /// this the `.icloud` source path cannot be executed at all — `rootURL` traps.
@@ -1224,7 +1228,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             defer { cleanup(album) }
 
             let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
-            await manager.start(album: album)
+            await manager.startWholeAlbumMove(album: album)
 
             XCTAssertEqual(store.uploadCalls.count, 2, "items upload...")
             let loaded = await MigrationPlanStore(album: album).load()
@@ -1239,7 +1243,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             if case .failed = manager.state {} else { XCTFail("expected a failed run, got \(manager.state)") }
 
             store.reflectUploadsInMetadata = true
-            await manager.start(album: album)
+            await manager.startWholeAlbumMove(album: album)
 
             XCTAssertEqual(manager.state, .completed)
             for id in ids {
@@ -1274,7 +1278,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
             XCTAssertEqual(pending.map(\.source.albumID), [album.id],
                            "the interrupted iCloud Drive migration is surfaced for resume on launch")
 
-            await manager.start(album: album)
+            await manager.startWholeAlbumMove(album: album)
 
             XCTAssertEqual(manager.state, .completed)
             XCTAssertEqual(store.uploadCalls.count, 1,
@@ -2198,7 +2202,7 @@ extension CloudKitMigrationManagerTests {
     /// as an iCloud Drive album any more.
     func testUpgradeOfALegacyAlbumMergesIntoAnExistingSameNameSameKeyCloudKitAlbum() async throws {
         try await withSameNamedCloudKitAlbum(itemCount: 2) { album, existingID, manager, albumManager, store, oracle in
-            await manager.start(album: album)
+            await manager.startWholeAlbumMove(album: album)
 
             XCTAssertEqual(manager.state, .completed)
             XCTAssertEqual(store.uploadCalls.count, 2, "every legacy item is moved")
@@ -2216,7 +2220,7 @@ extension CloudKitMigrationManagerTests {
     /// keeps listing it and the upgrade is offered again.
     func testUpgradeOfAnEmptyLegacyAlbumIntoAnExistingSameNameCloudKitAlbumRemovesTheSource() async throws {
         try await withSameNamedCloudKitAlbum(itemCount: 0) { album, existingID, manager, albumManager, store, oracle in
-            await manager.start(album: album)
+            await manager.startWholeAlbumMove(album: album)
 
             XCTAssertTrue(store.uploadCalls.isEmpty)
             XCTAssertEqual(albumManager.finalizeCallCount, 0, "the existing CloudKit album is not re-finalized")
@@ -2330,7 +2334,7 @@ extension CloudKitMigrationManagerTests {
             try? FileManager.default.removeItem(at: localURL)
         }
         try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
-        try await AlbumSizeSidecar(album: cloudAlbum).apply(updates: ["stale#0": 1])
+        try await AlbumSizeSidecar(album: cloudAlbum).replace(with: ["stale#0": 1])
         try await AlbumCoverSidecar(album: cloudAlbum).setCoverMediaID("cover")
         let id = UUID().uuidString
         store.changeSet = CloudKitChangeSet(
@@ -3112,7 +3116,7 @@ extension CloudKitMigrationManagerTests {
             try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: cloudAlbum))
         }
         try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
-        try await AlbumSizeSidecar(album: cloudAlbum).apply(updates: ["kept#0": 1])
+        try await AlbumSizeSidecar(album: cloudAlbum).replace(with: ["kept#0": 1])
         let remainingID = UUID().uuidString
         _ = try await MediaIndexStore(album: cloudAlbum).upsert([
             MediaIndexEntry(id: remainingID, hasPhotoComponent: true, hasVideoComponent: false,

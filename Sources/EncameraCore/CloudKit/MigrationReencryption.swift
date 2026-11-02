@@ -24,12 +24,21 @@ public enum MigrationReencryptScratch {
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var active: Set<String> = []
+    nonisolated(unsafe) private static var madeForTesting: ((URL) -> Void)?
+
+    /// Called with every scratch directory made, from the thread that made it.
+    /// Tests use it to see whether a re-encryption wrote plaintext.
+    static var onMakeDirectoryForTesting: ((URL) -> Void)? {
+        get { lock.withLock { madeForTesting } }
+        set { lock.withLock { madeForTesting = newValue } }
+    }
 
     /// Creates a fresh scratch directory under `root` and marks it in use.
     static func makeDirectory(in root: URL = FileManager.default.temporaryDirectory) throws -> URL {
         let directory = root.appendingPathComponent("\(directoryPrefix)\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         lock.withLock { _ = active.insert(directory.standardizedFileURL.path) }
+        onMakeDirectoryForTesting?(directory)
         return directory
     }
 
@@ -55,6 +64,13 @@ public enum MigrationReencryptScratch {
         }
         return removed
     }
+}
+
+/// A re-encryption stopped because it was told to before writing more
+/// plaintext: before its scratch directory was made, or at a chunk boundary. The
+/// scratch directory is already gone when this is thrown.
+public struct MigrationReencryptionAbandoned: Error, Equatable {
+    public init() {}
 }
 
 // MARK: - Verification

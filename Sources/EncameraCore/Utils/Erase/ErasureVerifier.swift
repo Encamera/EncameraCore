@@ -125,6 +125,7 @@ public struct DefaultErasureVerifier: ErasureVerifying, DebugPrintable {
         }
 
         if scope.includes(.ciphertext) {
+            offenders.append(contentsOf: DefaultLocalDataVerifier.linkedICloudDriveFolders().map { "linkedICloudDriveFolder:\($0)" })
             offenders.append(contentsOf: survivingContainerPaths(limit: containerPathLimit))
         }
         return offenders
@@ -307,11 +308,15 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
         return .residue("album files", names: names, hint: .files)
     }
 
+    /// The linked iCloud Drive folders, then the ubiquity container's Documents
+    /// tree. A substituted iCloud Drive root stands in for the container, which
+    /// is then not read.
     public func verifyICloudDriveMedia() -> ErasureVerdict {
-        guard let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
-            return .pass("no ubiquity container")
+        var names = Self.linkedICloudDriveFolders().map { "linked/\($0)" }
+        if iCloudStorageModel.testContainerRootOverride == nil,
+           let ubiquity = FileManager.default.url(forUbiquityContainerIdentifier: nil) {
+            names += Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive/\($0)" }
         }
-        let names = Self.files(under: ubiquity.appendingPathComponent("Documents")).map { "iCloudDrive/\($0)" }
         return .residue("iCloud Drive files", names: names, hint: .files)
     }
 
@@ -439,6 +444,24 @@ public struct DefaultLocalDataVerifier: LocalDataVerifying, DebugPrintable {
         UserDefaultKey.pendingCloudDataWipe.rawValue,
         UserDefaultKey.pendingDefaultsWipe.rawValue,
     ]
+
+    /// Root-relative paths of the linked iCloud Drive folders still on this
+    /// device: each folder a local marker links, and each iCloud Drive album
+    /// folder holding a marker file in any form. Empty without iCloud Drive.
+    static func linkedICloudDriveFolders() -> [String] {
+        guard iCloudStorageModel.isRootAvailable else { return [] }
+        let fileManager = FileManager.default
+        var folders = CloudKitAlbumMarker.all()
+            .compactMap { $0.marker.linkedICloudDriveFolderURL() }
+            .filter { fileManager.fileExists(atPath: $0.path) }
+        folders += iCloudStorageModel.enumerateAlbumsDirectory().filter { folder in
+            if case .absent = ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder) { return false }
+            return true
+        }
+        let root = iCloudStorageModel.rootURL.standardizedFileURL.path + "/"
+        return Set(folders.map { $0.standardizedFileURL.path }).sorted()
+            .map { $0.hasPrefix(root) ? String($0.dropFirst(root.count)) : $0 }
+    }
 
     /// Relative paths of every regular file under `directory`. A missing or
     /// empty directory yields nothing.

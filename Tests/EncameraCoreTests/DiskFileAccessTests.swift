@@ -548,6 +548,65 @@ final class DiskFileAccessTests: XCTestCase {
         XCTAssertEqual(after - baseline, 1)
     }
 
+    /// An album folder holding the iCloud Drive album marker beside its media:
+    /// the gallery, the counts and the preview source see only the media, and key
+    /// stamping leaves the marker untouched.
+    func testMarkerFileIsNotListedCountedPreviewedOrStamped() async throws {
+        let keyManager = DemoKeyManager(keys: [keyA])
+        keyManager.currentKey = keyA
+        let album = Album(name: "DiskFileAccessTests-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: keyA)
+        let albumManager = DemoAlbumManager()
+        albumManager.keyManager = keyManager
+        let model = LocalStorageModel(album: album)
+        try FileManager.default.createDirectory(at: model.baseURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: model.baseURL) }
+
+        let diskAccess = DiskFileAccess()
+        let baselineTotal = await diskAccess.totalStoredMediaCount()
+
+        let photoID = UUID().uuidString
+        let photoURL = model.driveURLForMedia(withID: photoID, type: .photo)
+        let cleartext = CleartextMedia(source: plaintext, mediaType: .photo, id: photoID)
+        _ = try await SecretFileHandlerV2(keyBytes: keyA.keyBytes, source: cleartext, targetURL: photoURL)
+            .encryptWithMetadata(EncryptedFileMetadata())
+
+        try ICloudDriveAlbumMarkerFile(albumID: UUID().uuidString).write(toAlbumDirectory: model.baseURL)
+        let markerURL = ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: model.baseURL)
+        let markerBytes = try Data(contentsOf: markerURL)
+        let markerPlaceholder = ICloudPlaceholderName.placeholderURL(forMaterialized: markerURL)
+        XCTAssertTrue(FileManager.default.createFile(atPath: markerPlaceholder.path, contents: Data([0x62])))
+
+        // Listing.
+        XCTAssertEqual(model.enumeratorForStorageDirectory().map(\.lastPathComponent), [photoURL.lastPathComponent],
+                       "an unfiltered walk of the album folder skips the marker in both forms")
+        await diskAccess.configure(for: album, albumManager: albumManager)
+        let listed: [EncryptedMedia] = await diskAccess.enumerateMedia()
+        XCTAssertEqual(listed.map(\.id), [photoID])
+
+        let facade = InteractableMediaFileAccess()
+        await facade.configure(for: album, albumManager: albumManager)
+        let gallery: [InteractableMedia<EncryptedMedia>] = await facade.enumerateMedia()
+        XCTAssertEqual(gallery.map(\.id), [photoID])
+
+        // Counts.
+        XCTAssertEqual(model.countOfFiles(matchingFileExtension: [MediaType.photo.encryptedFileExtension,
+                                                                  MediaType.video.encryptedFileExtension]), 1)
+        let total = await diskAccess.totalStoredMediaCount()
+        XCTAssertEqual(total - baselineTotal, 1)
+        let undownloaded = await facade.undownloadedMediaCount()
+        XCTAssertEqual(undownloaded, 0)
+
+        // Previews are made from the metadata listing.
+        let withMetadata = await diskAccess.enumerateEncryptedMediaWithMetadata()
+        XCTAssertEqual(withMetadata.map(\.media.id), [photoID])
+
+        // Stamping.
+        try await facade.setKeyUUIDForExistingFiles()
+        XCTAssertEqual(try ExtendedAttributesUtil.getKeyUUID(for: photoURL), keyA.uuid, "the media was stamped")
+        XCTAssertNil(try ExtendedAttributesUtil.getKeyUUID(for: markerURL), "the marker was not")
+        XCTAssertEqual(try Data(contentsOf: markerURL), markerBytes)
+    }
+
     func testTotalStoredMediaCountCountsLivePhotoOnce() async throws {
         let fileManager = FileManager.default
         let testRoot = LocalStorageModel.albumsURL

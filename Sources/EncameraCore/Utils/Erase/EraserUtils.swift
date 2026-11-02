@@ -12,11 +12,14 @@ import Foundation
 /// "enter existing passcode", so nothing short of that gets a user past it.
 public enum ErasureScope {
     /// Pre-auth reset from the lock screen and onboarding: everything except the
-    /// encrypted media (`ErasureTier.reset`). The user gets the media back by
+    /// encrypted media (`ErasureTier.reset`), which includes the linked iCloud
+    /// Drive folders of partly migrated albums. The user gets the media back by
     /// entering their key phrases in onboarding.
     case reset
     /// Settings "Erase All Data", behind an unlock: the reset plus the encrypted
-    /// media, locally and in iCloud (`ErasureTier.ciphertext`).
+    /// media, locally and in iCloud (`ErasureTier.ciphertext`), including every
+    /// linked iCloud Drive folder, which holds the only copy of the items not yet
+    /// in CloudKit.
     case allData
 
     public var screenName: String {
@@ -63,15 +66,20 @@ public protocol LocalDataErasing {
     /// `deleteAllCloudData`.
     func shutdownCloudKitSync() async
     /// Halts in-flight CloudKit migrations (no further checkpoints or CloudKit
-    /// ops) and removes the on-disk migration checkpoints.
+    /// ops) and the iCloud Drive blob migration, which no pass or slice restarts
+    /// in the process, clears the keys it holds in memory, and removes every
+    /// on-disk migration plan: local moves and iCloud Drive albums alike.
     func eraseMigrationState() async
     /// Active backend cleanup (also clears that backend's in-memory caches).
     func eraseActiveBackendMedia() async
     /// Global sweep across every storage type, independent of the active album.
     /// Excludes iCloud Drive — that is handled by `eraseICloudDriveMedia`.
     func eraseAllLocalMediaFiles()
-    /// iCloud Drive album files and the ubiquity container's Documents tree.
-    func eraseICloudDriveMedia()
+    /// Every linked iCloud Drive folder of a CloudKit album, with its marker
+    /// file and plan, then the iCloud Drive album files and the ubiquity
+    /// container's Documents tree. Runs before the other media steps: the local
+    /// markers it finds linked folders through go with the local albums.
+    func eraseICloudDriveMedia() async
     /// Per-album encrypted media indexes.
     func eraseMediaIndexes()
     /// Local CloudKit blob cache (encrypted, evictable copies).
@@ -113,6 +121,11 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     func eraseMigrationState() async {
         await MainActor.run { CloudKitMigrationManager.requestAbortAll() }
+        await ICloudDriveBlobMigration.haltForErase()
+        for entry in CloudKitAlbumMarker.all() {
+            MigrationPlanRemovals.shared.recordRemovedPlan(
+                at: MigrationPlanStore.iCloudDriveMigrationPlanURL(cloudKitAlbumID: entry.albumID))
+        }
         do {
             try MigrationPlanStore.clearAllPlans()
         } catch {
@@ -144,17 +157,21 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
         }
     }
 
-    func eraseICloudDriveMedia() {
-        guard let ubiquityRoot = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
-            printDebug("EraserUtils: ubiquity container unavailable — cannot clean iCloud Drive")
-            return
-        }
+    func eraseICloudDriveMedia() async {
+        await ICloudDriveAlbumDeletion.shared.removeEveryLinkedFolder()
         if case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) {
             do {
                 try StorageType.icloud.modelForType.deleteAllFiles()
             } catch {
                 printDebug("EraserUtils: could not delete iCloud Drive album files: \(error)")
             }
+        }
+        // A substituted iCloud Drive root stands in for the container, which is
+        // then never touched.
+        guard iCloudStorageModel.testContainerRootOverride == nil,
+              let ubiquityRoot = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
+            printDebug("EraserUtils: ubiquity container unavailable — cannot clean iCloud Drive")
+            return
         }
         let documents = ubiquityRoot.appendingPathComponent("Documents")
         let albums = documents.appendingPathComponent("albums")
@@ -346,6 +363,9 @@ public struct EraserUtils {
     /// Steps owned by the app target, run after the media sweep and before the
     /// residual sweep, keychain and defaults wipes so nothing they write survives.
     private let appLayerSteps: [ErasureStep]
+    /// Cancels the background processing requests the app scheduled, so no
+    /// slice wakes a migration after the wipe. Runs first, before any step erases.
+    private let cancelPendingBackgroundSlices: @Sendable () -> Void
 
     public init(keyManager: KeyManager,
                 fileAccess: FileAccess,
@@ -353,7 +373,8 @@ public struct EraserUtils {
                 cloudKitEraser: CloudDataErasing = CloudKitContainer.shared,
                 localEraser: LocalDataErasing? = nil,
                 localVerifier: LocalDataVerifying? = nil,
-                appLayerSteps: [ErasureStep] = []) {
+                appLayerSteps: [ErasureStep] = [],
+                cancelPendingBackgroundSlices: @escaping @Sendable () -> Void = {}) {
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.erasureScope = erasureScope
@@ -361,6 +382,7 @@ public struct EraserUtils {
         self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess)
         self.localVerifier = localVerifier ?? DefaultLocalDataVerifier(keyManager: keyManager, fileAccess: fileAccess)
         self.appLayerSteps = appLayerSteps
+        self.cancelPendingBackgroundSlices = cancelPendingBackgroundSlices
     }
 
     /// Every step this scope reports, in run order: the scope's catalog with the
@@ -390,10 +412,13 @@ public struct EraserUtils {
     /// encrypted media, its indexes, the blob cache, the upload queue and the
     /// CloudKit zone. `.allData` adds all of those.
     ///
-    /// In-flight migrations are halted FIRST so nothing keeps writing checkpoints
-    /// or issuing CloudKit operations; the CloudKit checks run before the
-    /// residual sweep, which removes `Library/Caches/CloudKit` and breaks every
-    /// later CloudKit read; the keychain wipe runs after the media so deleting the
+    /// Pending background slices are cancelled and in-flight migrations, the
+    /// iCloud Drive blob migration included, are halted FIRST so nothing keeps
+    /// writing checkpoints or issuing CloudKit operations. `.allData` removes the
+    /// linked iCloud Drive folders of partly migrated albums before the local
+    /// albums, whose markers link them; a `.reset` leaves the folders alone. The
+    /// CloudKit checks run before the residual sweep, which removes
+    /// `Library/Caches/CloudKit` and breaks every later CloudKit read; the keychain wipe runs after the media so deleting the
     /// keys orphans nothing. A `pendingCloudDataWipe` marker from an earlier run
     /// survives both scopes.
     public func erase(progress: @escaping @Sendable (ErasureStepReport) -> Void) async -> ErasureReport {
@@ -425,7 +450,10 @@ public struct EraserUtils {
         }
 
         await perform("migration.state",
-                      erase: { await localEraser.eraseMigrationState() },
+                      erase: {
+                          cancelPendingBackgroundSlices()
+                          await localEraser.eraseMigrationState()
+                      },
                       verify: { await localVerifier.verifyMigrationState() })
         await perform("sync.shutdown",
                       erase: { await localEraser.shutdownCloudKitSync() },
@@ -471,15 +499,15 @@ public struct EraserUtils {
                 }
             }
 
+            await perform("media.iCloudDrive",
+                          erase: { await localEraser.eraseICloudDriveMedia() },
+                          verify: { localVerifier.verifyICloudDriveMedia() })
             await perform("media.activeBackend",
                           erase: { await localEraser.eraseActiveBackendMedia() },
                           verify: { await localVerifier.verifyActiveBackendMedia() })
             await perform("media.localAlbums",
                           erase: { localEraser.eraseAllLocalMediaFiles() },
                           verify: { localVerifier.verifyLocalMediaFiles() })
-            await perform("media.iCloudDrive",
-                          erase: { localEraser.eraseICloudDriveMedia() },
-                          verify: { localVerifier.verifyICloudDriveMedia() })
             await perform("media.indexes",
                           erase: { localEraser.eraseMediaIndexes() },
                           verify: { localVerifier.verifyMediaIndexes() })

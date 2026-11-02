@@ -25,6 +25,33 @@ public struct DeletedRecord: Equatable, Sendable {
     }
 }
 
+/// How a run's CloudKit requests use the network, set on each operation's
+/// `CKOperation.Configuration`.
+public enum CloudKitNetworkPolicy: Equatable, Sendable {
+    /// Work nobody is waiting on: utility QoS, Wi-Fi only.
+    case background
+    /// Work the user is watching: user-initiated QoS, still Wi-Fi only. Speed-up
+    /// mode only raises the priority; the migration never uses cellular.
+    case speedUp
+
+    public var qualityOfService: QualityOfService {
+        switch self {
+        case .background: return .utility
+        case .speedUp: return .userInitiated
+        }
+    }
+
+    /// Always false: every step of the migration waits for Wi-Fi.
+    public var allowsCellularAccess: Bool { false }
+
+    /// Sets this policy on the operation's configuration, replacing the
+    /// quality of service the request asked for.
+    func apply(to operation: CKOperation) {
+        operation.configuration.qualityOfService = qualityOfService
+        operation.configuration.allowsCellularAccess = allowsCellularAccess
+    }
+}
+
 public struct ZoneChangesResult {
     public let changed: [CKRecord]
     public let deleted: [DeletedRecord]
@@ -118,13 +145,33 @@ public extension CloudKitDatabaseAdapter {
 /// Wraps a real `CKDatabase`, executing each call as a `CKOperation`.
 public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
 
-    private let database: CKDatabase
+    private let enqueue: (CKDatabaseOperation) -> Void
+    /// Read as each operation is dispatched. Nil leaves every operation's own
+    /// quality of service and the configuration's default cellular access.
+    private let networkPolicy: (@Sendable () -> CloudKitNetworkPolicy)?
 
     private let lock = NSLock()
     private var inFlight: [CKOperation] = []
 
-    public init(database: CKDatabase) {
-        self.database = database
+    /// - Parameter networkPolicy: the policy each operation runs under, read
+    ///   when it is dispatched; nil for the operations' own settings.
+    public convenience init(database: CKDatabase,
+                            networkPolicy: (@Sendable () -> CloudKitNetworkPolicy)? = nil) {
+        self.init(networkPolicy: networkPolicy, enqueue: { database.add($0) })
+    }
+
+    /// `enqueue` receives every configured operation in place of a database.
+    init(networkPolicy: (@Sendable () -> CloudKitNetworkPolicy)?,
+         enqueue: @escaping (CKDatabaseOperation) -> Void) {
+        self.networkPolicy = networkPolicy
+        self.enqueue = enqueue
+    }
+
+    /// Applies the network policy, tracks the operation and hands it to CloudKit.
+    private func dispatch(_ operation: CKDatabaseOperation) {
+        networkPolicy?().apply(to: operation)
+        track(operation)
+        enqueue(operation)
     }
 
     // MARK: Save / delete
@@ -167,8 +214,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                     continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 
@@ -205,8 +251,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 case .failure(let error): continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 
@@ -248,8 +293,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 case .failure(let error): continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 
@@ -369,8 +413,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 case .failure(let error): continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 
@@ -431,8 +474,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                     continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 
@@ -450,8 +492,7 @@ public final class CKDatabaseAdapter: CloudKitDatabaseAdapter, DebugPrintable {
                 case .failure(let error): continuation.resume(throwing: error)
                 }
             }
-            self.track(operation)
-            self.database.add(operation)
+            self.dispatch(operation)
         }
     }
 

@@ -71,6 +71,34 @@ final class UndownloadedMediaCountTests: XCTestCase {
         XCTAssertEqual(enumerated.pathExtension, "icloud")
     }
 
+    /// An evicted iCloud Drive album marker is a `.icloud` placeholder too, but
+    /// not media: the count and the listings it is built on skip it.
+    func testMarkerFileIsNotListedCountedPreviewedOrStamped() async throws {
+        let key = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+        let album = Album(name: "UndownloadedMediaCountTests-\(UUID().uuidString)", storageOption: .local,
+                          creationDate: Date(), key: key)
+        let model = LocalStorageModel(album: album)
+        try FileManager.default.createDirectory(at: model.baseURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: model.baseURL) }
+
+        let evictedID = UUID().uuidString
+        let evictedMedia = model.baseURL.appendingPathComponent(".\(evictedID).encimage.icloud")
+        XCTAssertTrue(FileManager.default.createFile(atPath: evictedMedia.path, contents: Data()))
+        let evictedMarker = ICloudPlaceholderName.placeholderURL(
+            forMaterialized: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: model.baseURL))
+        XCTAssertTrue(FileManager.default.createFile(atPath: evictedMarker.path, contents: Data()))
+
+        XCTAssertEqual(model.enumeratorForStorageDirectory().map(\.lastPathComponent), [evictedMedia.lastPathComponent])
+        XCTAssertEqual(model.enumeratorForStorageDirectory(fileExtensionFilter: ["encimage", "encvideo"])
+            .map(\.lastPathComponent), [evictedMedia.lastPathComponent])
+
+        let albumManager = DemoAlbumManager()
+        let access = InteractableMediaFileAccess()
+        await access.configure(for: album, albumManager: albumManager)
+        let undownloaded = await access.undownloadedMediaCount()
+        XCTAssertEqual(undownloaded, 1)
+    }
+
     /// `EncryptedMedia(source:.url(...), generateID: false)` must derive the
     /// real media id from a placeholder URL the same way it does for a
     /// downloaded file, so `currentMediaURLsByID()` groups both sides under

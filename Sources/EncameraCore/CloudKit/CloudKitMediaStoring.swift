@@ -338,6 +338,15 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     }
 }
 
+extension CloudKitAlbumMetadata {
+    /// The order that picks one album among several candidates for the same album:
+    /// the earliest `createdAt` first, then the smaller `albumID`. It is total over
+    /// distinct records, so every device given the same records picks the same one.
+    public static func precedes(_ lhs: CloudKitAlbumMetadata, _ rhs: CloudKitAlbumMetadata) -> Bool {
+        (lhs.createdAt, lhs.albumID) < (rhs.createdAt, rhs.albumID)
+    }
+}
+
 /// The result of a delta sync since a server change token.
 ///
 /// The zone holds both record types, so one fetch carries both: `changed` /
@@ -490,14 +499,6 @@ public protocol CloudKitMediaStoring: Sendable {
     /// `nil` when the record does not exist. The default reads
     /// `fetchRecordMetadata`. A requirement, so a test double can answer it.
     func confirmAlbum(recordName: String) async throws -> String?
-
-    /// Force-recreate the custom zone (after `zoneNotFound`): clears the cached
-    /// "zone created" flag and re-issues the create.
-    func recreateZone() async throws
-
-    /// Idempotently ensure the custom record zone exists before any record I/O.
-    /// Routed through the store so tests/mocks never touch a live container.
-    func ensureZoneExists() async throws
 
     /// Idempotently register the zone push subscription (silent content-available)
     /// so other devices' changes arrive by push. No-op when the account is missing.

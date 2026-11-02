@@ -39,6 +39,32 @@ final class CloudKitBlobCacheTests: XCTestCase {
         return url
     }
 
+    /// A cold store that goes over the cap evicts itself, never an entry
+    /// already cached, and a later store over the cap takes cold entries first.
+    func testColdInsertionEvictsItselfBeforeAnyCachedEntry() async throws {
+        let cache = makeCache(maxBytes: 100)
+        for name in ["viewed-1", "viewed-2"] {
+            try await cache.store(recordName: name, changeTag: nil, albumID: "album", from: sourceFile(bytes: 40))
+        }
+        try await cache.store(recordName: "cold-fits", changeTag: nil, albumID: "album",
+                              from: sourceFile(bytes: 20), insertion: .cold)
+        try await cache.store(recordName: "cold-over", changeTag: nil, albumID: "album",
+                              from: sourceFile(bytes: 20), insertion: .cold)
+
+        let afterCold = await ["viewed-1", "viewed-2", "cold-fits", "cold-over"].asyncFilter {
+            await cache.cachedSize(recordName: $0, changeTag: nil) != nil
+        }
+        XCTAssertEqual(afterCold, ["viewed-1", "viewed-2", "cold-fits"],
+                       "the cold store over the cap evicts only itself")
+
+        try await cache.store(recordName: "viewed-3", changeTag: nil, albumID: "album", from: sourceFile(bytes: 20))
+
+        let afterWarm = await ["viewed-1", "viewed-2", "cold-fits", "viewed-3"].asyncFilter {
+            await cache.cachedSize(recordName: $0, changeTag: nil) != nil
+        }
+        XCTAssertEqual(afterWarm, ["viewed-1", "viewed-2", "viewed-3"], "the cold entry goes before viewed ones")
+    }
+
     func testStoreOfBlobLargerThanCapDoesNotEvictItself() async throws {
         let cache = makeCache(maxBytes: 100)
         let url = try await cache.store(recordName: "big",
@@ -527,5 +553,13 @@ final class CloudKitBlobCacheTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: markers.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: cacheRoot.path))
+    }
+}
+
+private extension Array {
+    func asyncFilter(_ isIncluded: (Element) async -> Bool) async -> [Element] {
+        var kept: [Element] = []
+        for element in self where await isIncluded(element) { kept.append(element) }
+        return kept
     }
 }

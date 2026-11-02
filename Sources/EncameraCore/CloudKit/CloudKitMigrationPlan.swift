@@ -11,7 +11,6 @@
 //
 
 import Foundation
-import CryptoKit
 
 // MARK: - Item state machine
 
@@ -37,6 +36,84 @@ public enum MigrationItemState: String, Codable, Sendable {
     public var isDone: Bool { self == .sourceDeleted || self == .skipped }
 }
 
+// MARK: - Queue inputs
+
+/// What migrating an item from iCloud Drive costs, worked out once at plan time
+/// from its media type and size so ordering never reads a file. Every iCloud
+/// Drive file is ENC2: a video at or over `SeekableEncryptedFormat.threshold` is
+/// re-encrypted into the seekable format before upload, and everything else
+/// uploads its ciphertext as it is.
+///
+/// Downloading the encrypted file needs no key and may happen at any time, locked
+/// or unlocked; disk space is left to the system, and an evicted file simply
+/// counts as not processed yet. Re-encryption writes plaintext to a scratch
+/// directory, so it runs only while the phone is unlocked, as a best effort: if
+/// the phone locks partway through, the scratch output is wiped and the item
+/// restarts at the next unlock. `BlobMigrationOrder` therefore never returns an
+/// encrypting item while the phone is locked.
+///
+/// The kind is an ordering input only. The upload step makes its own re-encrypt
+/// decision from the file it reads.
+public enum MigrationItemKind: String, Codable, Sendable, Equatable {
+    /// Uploads its existing ciphertext; needs no key and no plaintext.
+    case ciphertextOnly
+    /// Re-encrypted before upload; writes plaintext scratch, so unlocked only.
+    case encrypting
+
+    public init(mediaType: MediaType, sizeBytes: Int64) {
+        self = mediaType == .video && sizeBytes >= Int64(SeekableEncryptedFormat.threshold)
+            ? .encrypting : .ciphertextOnly
+    }
+}
+
+/// Why the user asked for an item to migrate ahead of the rest. Each reason is one
+/// tier of `BlobMigrationOrder`, ranked in declaration order: a new reason is a new
+/// case and a new tier, not new queue code.
+public enum MigrationPriorityReason: String, Codable, Sendable, Equatable, CaseIterable {
+    /// An operation is waiting on the item: a move to another album, an edit, or
+    /// making it the cover. Leaves a deferred item deferred.
+    case userAction
+    /// The user opened the item in the viewer or player, and its bytes decrypted.
+    /// The request also clears a deferral the decrypt disproves
+    /// (`MigrationPlan.prioritizeViewed`); a record in another album stays deferred.
+    case viewed
+
+    /// Lower ranks run first.
+    var rank: Int { Self.allCases.firstIndex(of: self) ?? Self.allCases.count }
+}
+
+/// A user request recorded on a plan item by `prioritize`, persisted with the plan
+/// so the order survives a relaunch.
+public struct MigrationPriorityRequest: Codable, Sendable, Equatable {
+    public let reason: MigrationPriorityReason
+    public let requestedAt: Date
+
+    public init(reason: MigrationPriorityReason, requestedAt: Date) {
+        self.reason = reason
+        self.requestedAt = requestedAt
+    }
+}
+
+/// Why an item's move from its iCloud Drive file into CloudKit is deferred. A
+/// deferred item is not done: it stays `pending`, keeps its reason across
+/// re-plans, and is retried in the last tier of `BlobMigrationOrder`, which runs
+/// only on Wi-Fi. Its file stays in the folder and its index component stays
+/// `.iCloudDrive`, so it is still read from iCloud Drive meanwhile. The raw values
+/// are stored in plan files.
+public enum MigrationDeferralReason: String, Codable, Sendable, Equatable {
+    /// The file's bytes do not parse as encrypted media, or the key its stamp
+    /// names is held and does not open it.
+    case unreadable
+    /// The file stayed an iCloud Drive placeholder through the blob migration's
+    /// bound of failed downloads made while the device had a network
+    /// (`ICloudDriveBlobMigration.defaultMaxFailedDownloads` unless set).
+    case neverDownloads
+    /// Well-formed ciphertext that no key on this device opens.
+    case missingKey
+    /// A record with the item's name belongs to another CloudKit album.
+    case recordInAnotherAlbum
+}
+
 // MARK: - Work item
 
 /// One media component (a photo, or one half of a Live Photo) to migrate. The
@@ -53,8 +130,9 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     public let recordName: String
     public let mediaType: MediaType
     /// Capture/encryption date captured from the local index entry at plan time, used
-    /// for the record's `createdAt` so gallery ordering survives the move.
-    public let createdAt: Date
+    /// for the record's `createdAt` so gallery ordering survives the move. The iCloud
+    /// Drive blob migration sets it again from the album's index before the upload.
+    public var createdAt: Date
     public var sizeBytes: Int64
     public var state: MigrationItemState
     /// Long-lived `CKOperation` id — a best-effort resume hint; correctness comes from
@@ -70,6 +148,18 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     /// An original rewritten since (a rotation, say) is not what CloudKit holds, so
     /// the removal pass keeps it.
     public var verifiedModificationDate: Date?
+    /// Whether migrating the item re-encrypts it, set once from `mediaType` and the
+    /// planned `sizeBytes`. A later size update leaves it as planned.
+    public let kind: MigrationItemKind
+    /// The user's request to migrate this item ahead of the rest, stamped only by
+    /// `prioritize`. Nil for an item nobody asked for.
+    public var priorityRequest: MigrationPriorityRequest?
+    /// Why the item's move is deferred to the last tier. Nil for every other item.
+    public var deferralReason: MigrationDeferralReason?
+    /// How many downloads of the item's evicted iCloud Drive file failed in a row
+    /// while the device was on Wi-Fi. Nil until one fails; cleared by a download
+    /// that succeeds.
+    public var failedDownloads: Int?
 
     public init(mediaID: String,
                 recordName: String,
@@ -78,7 +168,8 @@ public struct MigrationItem: Codable, Sendable, Equatable {
                 sizeBytes: Int64,
                 state: MigrationItemState = .pending,
                 operationID: String? = nil,
-                lastError: String? = nil) {
+                lastError: String? = nil,
+                priorityRequest: MigrationPriorityRequest? = nil) {
         self.mediaID = mediaID
         self.recordName = recordName
         self.mediaType = mediaType
@@ -87,6 +178,75 @@ public struct MigrationItem: Codable, Sendable, Equatable {
         self.state = state
         self.operationID = operationID
         self.lastError = lastError
+        self.kind = MigrationItemKind(mediaType: mediaType, sizeBytes: sizeBytes)
+        self.priorityRequest = priorityRequest
+    }
+
+    /// Whether the item is deferred: not done, and retried last, on Wi-Fi.
+    public var isDeferred: Bool { deferralReason != nil && !state.isDone }
+
+    private enum CodingKeys: String, CodingKey {
+        case mediaID, recordName, mediaType, createdAt, sizeBytes, state, operationID, lastError
+        case verifiedSizeBytes, verifiedModificationDate, kind, priorityRequest, failedDownloads
+        case deferralReason = "unmovableReason"
+    }
+
+    /// Reads an item. One written while a reason ended the item `skipped` reads
+    /// as deferred: `pending` with its reason.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mediaID = try container.decode(String.self, forKey: .mediaID)
+        recordName = try container.decode(String.self, forKey: .recordName)
+        mediaType = try container.decode(MediaType.self, forKey: .mediaType)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        sizeBytes = try container.decode(Int64.self, forKey: .sizeBytes)
+        state = try container.decode(MigrationItemState.self, forKey: .state)
+        operationID = try container.decodeIfPresent(String.self, forKey: .operationID)
+        lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+        verifiedSizeBytes = try container.decodeIfPresent(Int64.self, forKey: .verifiedSizeBytes)
+        verifiedModificationDate = try container.decodeIfPresent(Date.self, forKey: .verifiedModificationDate)
+        kind = try container.decode(MigrationItemKind.self, forKey: .kind)
+        priorityRequest = try container.decodeIfPresent(MigrationPriorityRequest.self, forKey: .priorityRequest)
+        deferralReason = try container.decodeIfPresent(MigrationDeferralReason.self, forKey: .deferralReason)
+        failedDownloads = try container.decodeIfPresent(Int.self, forKey: .failedDownloads)
+        if deferralReason != nil, state == .skipped { state = .pending }
+    }
+
+    /// Records a request for this item. A request never lowers the item's tier: a
+    /// lower-ranked reason is ignored and a higher-ranked one replaces the stamp. A
+    /// repeat `.userAction` keeps its first time, so user requests run in the order
+    /// they were first made; a repeat `.viewed` takes the new time, so the most
+    /// recent view counts.
+    public mutating func recordPriorityRequest(_ reason: MigrationPriorityReason, at date: Date) {
+        if let existing = priorityRequest {
+            if existing.reason.rank < reason.rank { return }
+            if existing.reason == reason, reason == .userAction { return }
+        }
+        priorityRequest = MigrationPriorityRequest(reason: reason, requestedAt: date)
+    }
+
+    /// The `createdAt` a media item's record gets: its capture date, else its
+    /// encryption date, else the album's creation date.
+    public static func createdAt(dateTaken: Date?, dateEncrypted: Date?, albumCreationDate: Date) -> Date {
+        dateTaken ?? dateEncrypted ?? albumCreationDate
+    }
+
+    /// Records the download of the item's evicted file at `url`: its size once
+    /// downloaded, the error otherwise. `result` is the materializer's result for
+    /// `url`, nil when it reported none. Returns whether the file downloaded.
+    @discardableResult
+    mutating func recordMaterialization(_ result: Result<URL, Error>?, of url: URL) -> Bool {
+        switch result {
+        case .success:
+            if let size = url.fileSizeBytes() { sizeBytes = size }
+            lastError = nil
+            return true
+        case .failure(let error):
+            lastError = "\(error)"
+        case .none:
+            lastError = "iCloud Drive did not report a result for this file"
+        }
+        return false
     }
 }
 
@@ -239,7 +399,7 @@ public enum MigrationPlanError: Error, Equatable {
 /// flight, `uploaded` the bytes at the destination, `verified` the destination copy
 /// confirmed, and `sourceDeleted` the source copy removed.
 public struct MigrationPlan: Codable, Sendable {
-    public static let currentVersion = 2
+    public static let currentVersion = 1
     /// The id of every album-scope plan. One album-scope plan per source album.
     public static let albumPlanID = "album"
 
@@ -303,7 +463,7 @@ public struct MigrationPlan: Codable, Sendable {
                       scope: try container.decode(MigrationScope.self, forKey: .scope),
                       items: try container.decode([MigrationItem].self, forKey: .items),
                       createdAt: try container.decode(Date.self, forKey: .createdAt),
-                      version: version,
+                      version: Self.currentVersion,
                       cancelledAt: try container.decodeIfPresent(Date.self, forKey: .cancelledAt),
                       lastFailure: try container.decodeIfPresent(MigrationLastFailure.self, forKey: .lastFailure))
     }
@@ -404,6 +564,50 @@ public struct MigrationPlan: Codable, Sendable {
         return try Self.items(source: source, destination: destination, items: items, id: id)
     }
 
+    // MARK: Priority
+
+    /// Stamps every item of the given media with `reason` at `date`, both halves of
+    /// a Live Photo together (see `MigrationItem.recordPriorityRequest`). The only
+    /// way a plan's order changes; `MigrationPlanStore.prioritize` checkpoints it.
+    public mutating func prioritize(mediaIDs: Set<String>, reason: MigrationPriorityReason, at date: Date) {
+        for index in items.indices where mediaIDs.contains(items[index].mediaID) {
+            items[index].recordPriorityRequest(reason, at: date)
+        }
+    }
+
+    /// Stamps every item of the given media with `.viewed` at `date`, as
+    /// `prioritize`, for an open in the viewer or player that decrypted them, and
+    /// clears every deferral the decrypt disproves: the bytes were downloaded,
+    /// readable and opened by a key this device holds. A record in another album
+    /// stays deferred, since decrypting does not change who owns it. A cleared
+    /// item rejoins the ordinary tiers under its `.viewed` stamp.
+    /// `MigrationPlanStore.prioritizeViewed` checkpoints it.
+    public mutating func prioritizeViewed(mediaIDs: Set<String>, at date: Date) {
+        prioritize(mediaIDs: mediaIDs, reason: .viewed, at: date)
+        for index in items.indices where mediaIDs.contains(items[index].mediaID) {
+            if items[index].deferralReason != .recordInAnotherAlbum { items[index].deferralReason = nil }
+        }
+    }
+
+    /// Applies a request `MigrationPlanStore.prioritize` recorded: a `.viewed`
+    /// request is an open that decrypted the media (`prioritizeViewed`), any other
+    /// only stamps its reason.
+    mutating func applyPriorityRequest(mediaIDs: Set<String>, reason: MigrationPriorityReason, at date: Date) {
+        if reason == .viewed {
+            prioritizeViewed(mediaIDs: mediaIDs, at: date)
+        } else {
+            prioritize(mediaIDs: mediaIDs, reason: reason, at: date)
+        }
+    }
+
+    // MARK: Removal
+
+    /// Drops every item of the given media, both halves of a Live Photo together,
+    /// so nothing migrates them. `MigrationPlanStore.remove(mediaIDs:)` checkpoints it.
+    public mutating func remove(mediaIDs: Set<String>) {
+        items.removeAll { mediaIDs.contains($0.mediaID) }
+    }
+
 // MARK: Progress
 
     /// Total bytes across every item — the denominator for byte-weighted progress.
@@ -477,6 +681,10 @@ public struct MigrationPlan: Codable, Sendable {
     /// Items whose source copy is gone.
     public var sourceDeletedCount: Int { items.filter { $0.state == .sourceDeleted }.count }
     public var skippedCount: Int { items.filter { $0.state == .skipped }.count }
+    /// Deferred items, still on iCloud Drive: "N items can't be moved right now".
+    public var deferredCount: Int { items.filter(\.isDeferred).count }
+    /// The record names of the deferred items.
+    public var deferredRecordNames: Set<String> { Set(items.filter(\.isDeferred).map(\.recordName)) }
 
     /// Whether every item is fully done (`sourceDeleted`).
     public var isComplete: Bool { !items.isEmpty && items.allSatisfy { $0.state.isDone } }
@@ -521,7 +729,7 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
             plan = try JSONDecoder().decode(Plan.self, from: plaintext)
         } catch {
             printDebug("load DISCARD file=\(planURL.lastPathComponent) plaintext=\(plaintext.count)b — decrypted but did not decode as \(Plan.self): \(error)")
-            try? FileManager.default.removeItem(at: planURL)
+            try? MigrationPlanFileUtil.remove(planURL)
             return nil
         }
         printDebug("load ok file=\(planURL.lastPathComponent) plaintext=\(plaintext.count)b")
@@ -538,14 +746,29 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
     /// from backup. Returns the size written.
     @discardableResult
     static func write(_ plan: Plan, to url: URL, keyBytes: [UInt8]) throws -> Int {
+        if Plan.self == MigrationPlan.self, MigrationPlanRemovals.shared.isRemovedPlan(at: url) {
+            printDebug("save skip file=\(url.lastPathComponent) — the plan's album was deleted")
+            return 0
+        }
+        var plan = plan
+        if var migrationPlan = plan as? MigrationPlan {
+            let removed = MigrationPlanRemovals.shared.mediaIDs(removedFromPlanAt: url)
+            if !removed.isEmpty, migrationPlan.items.contains(where: { removed.contains($0.mediaID) }) {
+                migrationPlan.remove(mediaIDs: removed)
+            }
+            for request in MigrationPlanPriorityRequests.shared.requests(madeOnPlanAt: url) {
+                migrationPlan.applyPriorityRequest(mediaIDs: request.mediaIDs, reason: request.reason, at: request.date)
+            }
+            plan = migrationPlan as? Plan ?? plan
+        }
         let plaintext = try JSONEncoder().encode(plan)
         let encrypted = try MediaIndexStore.encrypt(plaintext, keyBytes: keyBytes)
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
+        try MigrationPlanFileUtil.createDirectory(holding: url)
         try encrypted.write(to: url, options: .atomic)
-        excludeFromBackup(url)
+        MigrationPlanFileUtil.excludeFromBackup(url)
         if let plan = plan as? MigrationPlan {
             MigrationPlanStore.recordDestination(of: plan, planURL: url)
+            MigrationPlanStore.recordRemainingWork(of: plan, planURL: url)
         }
         return encrypted.count
     }
@@ -561,9 +784,10 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
     /// Removes the plan file (after the operation completes or is fully reverted).
     public func delete() {
         do {
-            try FileManager.default.removeItem(at: planURL)
+            try MigrationPlanFileUtil.remove(planURL)
             if Plan.self == MigrationPlan.self {
                 MigrationPlanStore.removeDestinationMarker(besidePlanAt: planURL)
+                try? FileManager.default.removeItem(at: MigrationPlanStore.noRemainingWorkMarkerURL(besidePlanAt: planURL))
             }
             printDebug("delete ok file=\(planURL.lastPathComponent)")
         } catch {
@@ -573,16 +797,7 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
 
     /// Whether a plan file currently exists on disk.
     public func exists() -> Bool {
-        FileManager.default.fileExists(atPath: planURL.path)
-    }
-
-    // MARK: - Backup exclusion
-
-    private static func excludeFromBackup(_ url: URL) {
-        var url = url
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try? url.setResourceValues(values)
+        MigrationPlanFileUtil.exists(planURL)
     }
 }
 
@@ -603,6 +818,61 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
         self.init(sourceAlbum: album, planID: MigrationPlan.albumPlanID)
     }
 
+    // MARK: Priority
+
+    /// Records a user request for `items` and checkpoints the plan: stamps every
+    /// plan item sharing a `mediaID` with one of them (so a Live Photo's halves go
+    /// together) with `reason` and `date`, a `.viewed` request clearing the
+    /// deferrals its decrypt disproves (`MigrationPlan.applyPriorityRequest`).
+    /// Returns the saved plan, or nil when there is no plan. Nothing else reorders
+    /// a plan's items.
+    ///
+    /// Every later save of this plan file in this process stamps the request again,
+    /// whoever makes it, so a writer holding a copy it loaded before the request (a
+    /// blob migration pass part-way through another item, an album step merging
+    /// the folder into the plan it read) cannot drop it.
+    @discardableResult
+    public func prioritize(_ items: [MigrationItem],
+                           reason: MigrationPriorityReason,
+                           at date: Date = Date()) throws -> MigrationPlan? {
+        let mediaIDs = Set(items.map(\.mediaID))
+        guard var plan = load() else { return nil }
+        MigrationPlanPriorityRequests.shared.record(mediaIDs, reason: reason, at: date, onPlanAt: planURL)
+        plan.applyPriorityRequest(mediaIDs: mediaIDs, reason: reason, at: date)
+        try save(plan)
+        return plan
+    }
+
+    /// Records an open in the viewer or player that decrypted `items`: a `.viewed`
+    /// `prioritize`, which also clears the deferrals the decrypt disproves.
+    ///
+    /// Every later save of this plan file in this process clears them again, so a
+    /// writer holding a copy loaded before the open cannot defer the items again.
+    /// A retry that defers one of them later in the process is cleared by its own
+    /// save too, and the item stays in the ordinary tiers until the next launch.
+    @discardableResult
+    public func prioritizeViewed(_ items: [MigrationItem], at date: Date = Date()) throws -> MigrationPlan? {
+        try prioritize(items, reason: .viewed, at: date)
+    }
+
+    // MARK: Removal
+
+    /// Drops every plan item of the given media and checkpoints the plan, for media
+    /// the user deleted. Returns the saved plan, or nil when there is no plan.
+    ///
+    /// Every later save of this plan file in this process drops them too, whoever
+    /// makes it, so a writer holding a copy it loaded before the removal (a blob
+    /// migration pass part-way through an item, an album step merging the folder
+    /// into the plan it read) cannot write them back.
+    @discardableResult
+    public func remove(mediaIDs: Set<String>) throws -> MigrationPlan? {
+        MigrationPlanRemovals.shared.record(mediaIDs, removedFromPlanAt: planURL)
+        guard var plan = load() else { return nil }
+        plan.remove(mediaIDs: mediaIDs)
+        try save(plan)
+        return plan
+    }
+
     // MARK: Last failure
 
     /// Stamps the checkpoint with how its run failed. No-op when there is no plan.
@@ -621,22 +891,19 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
 
     // MARK: File location
 
-    /// `~/Library/Application Support/CloudKitMigration/` — local, never synced,
-    /// excluded from backup.
+    /// `~/Library/Application Support/CloudKitMigration/`.
     static func directoryURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return base.appendingPathComponent("CloudKitMigration", isDirectory: true)
+        MigrationPlanFileUtil.rootDirectory
     }
 
     /// `CloudKitMigration/<sha256(album.id)>/`. `album.id` includes the storage, so
     /// an album's forward and reverse plans never share a directory.
     static func directoryURL(forSource album: Album) -> URL {
-        directoryURL().appendingPathComponent(sourceHash(album), isDirectory: true)
+        MigrationPlanFileUtil.sourceDirectory(albumID: album.id)
     }
 
     static func planURL(sourceAlbum: Album, planID: String) -> URL {
-        directoryURL(forSource: sourceAlbum).appendingPathComponent("\(planID).encplan")
+        MigrationPlanFileUtil.planURL(in: directoryURL(forSource: sourceAlbum), planID: planID)
     }
 
     /// The album-scope plan's location for `album`.
@@ -644,27 +911,80 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
         planURL(sourceAlbum: album, planID: MigrationPlan.albumPlanID)
     }
 
-    private static func sourceHash(_ album: Album) -> String {
-        sourceHash(albumID: album.id)
+    // MARK: iCloud Drive album migration
+
+    /// The store for the plan of an iCloud Drive album migration into the CloudKit
+    /// album `cloudKitAlbumID`, encrypted with `album`'s key: the album-scope plan
+    /// moving the iCloud Drive album `album` into that CloudKit album item by item.
+    ///
+    /// Kept apart from the whole-album move's plans and keyed by the CloudKit album
+    /// id, which a rename of either album does not change. `plans(for:)`,
+    /// `hasPlans(for:)` and `planRole(forAlbumID:)` do not see it, so the launch
+    /// resume never runs it as a whole-album move.
+    public init(iCloudDriveMigrationFrom album: Album, cloudKitAlbumID: String) {
+        self.init(keyBytes: album.key.keyBytes,
+                  planURL: Self.iCloudDriveMigrationPlanURL(cloudKitAlbumID: cloudKitAlbumID))
+    }
+
+    /// `CloudKitMigration/ICloudDriveAlbums/`, which holds one directory per
+    /// CloudKit album an iCloud Drive album migrates into.
+    static func iCloudDriveMigrationDirectoryURL() -> URL {
+        MigrationPlanFileUtil.iCloudDriveAlbumsDirectory
+    }
+
+    /// `CloudKitMigration/ICloudDriveAlbums/<sha256("<albumID>_cloudKit")>/album.encplan`.
+    static func iCloudDriveMigrationPlanURL(cloudKitAlbumID: String) -> URL {
+        MigrationPlanFileUtil.albumPlanURL(in: MigrationPlanFileUtil.iCloudDriveAlbumDirectory(cloudKitAlbumID: cloudKitAlbumID))
+    }
+
+    /// The empty file beside an iCloud Drive album migration plan that has no item
+    /// left to work on (`hasRemainingWork` false), so whether the plan still has
+    /// work is known without its key. Written and removed with every save.
+    static func noRemainingWorkMarkerURL(besidePlanAt planURL: URL) -> URL {
+        planURL.deletingLastPathComponent().appendingPathComponent("no-remaining-work")
+    }
+
+    /// Writes or removes the no-remaining-work marker beside `plan` saved at
+    /// `planURL`, for an iCloud Drive album migration plan only.
+    static func recordRemainingWork(of plan: MigrationPlan, planURL: URL) {
+        let albumsDirectory = planURL.deletingLastPathComponent().deletingLastPathComponent()
+        guard albumsDirectory.standardizedFileURL.path == iCloudDriveMigrationDirectoryURL().standardizedFileURL.path else { return }
+        let marker = noRemainingWorkMarkerURL(besidePlanAt: planURL)
+        if plan.hasRemainingWork {
+            try? FileManager.default.removeItem(at: marker)
+        } else if !FileManager.default.fileExists(atPath: marker.path) {
+            FileManager.default.createFile(atPath: marker.path, contents: Data())
+        }
+    }
+
+    /// Whether the iCloud Drive album migration plan at `planURL` has an item left
+    /// to work on. Decrypts nothing.
+    static func iCloudDriveMigrationPlanHasRemainingWork(at planURL: URL) -> Bool {
+        FileManager.default.fileExists(atPath: planURL.path)
+            && !FileManager.default.fileExists(atPath: noRemainingWorkMarkerURL(besidePlanAt: planURL).path)
+    }
+
+    /// Whether an iCloud Drive album migration plan names the CloudKit album
+    /// `cloudKitAlbumID`. Decrypts nothing.
+    public static func hasICloudDriveMigrationPlan(cloudKitAlbumID: String) -> Bool {
+        MigrationPlanFileUtil.exists(iCloudDriveMigrationPlanURL(cloudKitAlbumID: cloudKitAlbumID))
+    }
+
+    /// Removes the iCloud Drive album migration plan naming the CloudKit album
+    /// `cloudKitAlbumID`, with its directory. Needs no key.
+    public static func removeICloudDriveMigrationPlan(cloudKitAlbumID: String) {
+        MigrationPlanFileUtil.removeIfPresent(MigrationPlanFileUtil.iCloudDriveAlbumDirectory(cloudKitAlbumID: cloudKitAlbumID))
     }
 
     /// The plan directory name for the album whose `Album.id` is `albumID`.
     static func sourceHash(albumID: String) -> String {
-        SHA256.hash(data: Data(albumID.utf8)).map { String(format: "%02x", $0) }.joined()
+        MigrationPlanFileUtil.directoryName(albumID: albumID)
     }
 
-    /// Every readable plan whose source is `album`, both scopes. Also removes this
-    /// album's checkpoints from the version-1 layout (`<hash>.encplan` and
-    /// `moves/<hash>/`), which no longer load.
+    /// Every readable plan whose source is `album`, both scopes.
     public static func plans(for album: Album) async -> [MigrationPlan] {
-        removeLegacyCheckpoints(for: album)
-        let dir = directoryURL(forSource: album)
-        guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else {
-            return []
-        }
         var plans: [MigrationPlan] = []
-        for file in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            where file.pathExtension == "encplan" {
+        for file in MigrationPlanFileUtil.planFiles(in: directoryURL(forSource: album)) {
             if let plan = await MigrationPlanStore(keyBytes: album.key.keyBytes, planURL: file).load() {
                 plans.append(plan)
             }
@@ -676,8 +996,7 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     /// check that decrypts nothing, for callers that only need to know whether to
     /// look further.
     public static func hasPlans(for album: Album) -> Bool {
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: directoryURL(forSource: album).path)) ?? []
-        return files.contains { $0.hasSuffix(".encplan") }
+        !MigrationPlanFileUtil.planFiles(in: directoryURL(forSource: album)).isEmpty
     }
 
     // MARK: Rename
@@ -693,25 +1012,22 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     @discardableResult
     static func carryPlans(acrossRenameOf oldAlbum: Album, to newAlbum: Album,
                            otherAlbums: [Album]) throws -> [MigrationPlan] {
-        let fileManager = FileManager.default
         var carried: [MigrationPlan] = []
         let oldDirectory = directoryURL(forSource: oldAlbum)
         let newDirectory = directoryURL(forSource: newAlbum)
-        for file in planFiles(in: oldDirectory) {
+        for file in MigrationPlanFileUtil.planFiles(in: oldDirectory) {
             guard let plan = read(at: file, keyBytes: oldAlbum.key.keyBytes),
                   let renamed = try plan.renamingAlbum(oldAlbum.id, to: newAlbum.name) else { continue }
-            try write(renamed, to: newDirectory.appendingPathComponent(file.lastPathComponent),
+            try write(renamed, to: MigrationPlanFileUtil.planURL(file, movedTo: newDirectory),
                       keyBytes: newAlbum.key.keyBytes)
-            try fileManager.removeItem(at: file)
+            try MigrationPlanFileUtil.remove(file)
             removeDestinationMarker(besidePlanAt: file)
             carried.append(renamed)
         }
-        if (try? fileManager.contentsOfDirectory(atPath: oldDirectory.path))?.isEmpty == true {
-            try? fileManager.removeItem(at: oldDirectory)
-        }
+        MigrationPlanFileUtil.removeIfEmpty(oldDirectory)
 
         for album in otherAlbums where album.id != oldAlbum.id && album.id != newAlbum.id {
-            for file in planFiles(in: directoryURL(forSource: album)) {
+            for file in MigrationPlanFileUtil.planFiles(in: directoryURL(forSource: album)) {
                 guard let plan = read(at: file, keyBytes: album.key.keyBytes),
                       plan.destination.albumID == oldAlbum.id,
                       let renamed = try plan.renamingAlbum(oldAlbum.id, to: newAlbum.name) else { continue }
@@ -721,26 +1037,90 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
         return carried
     }
 
-    private static func planFiles(in directory: URL) -> [URL] {
-        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
-        return files.filter { $0.pathExtension == "encplan" }
-    }
-
-    private static func removeLegacyCheckpoints(for album: Album) {
-        let hash = sourceHash(album)
-        let root = directoryURL()
-        try? FileManager.default.removeItem(at: root.appendingPathComponent("\(hash).encplan"))
-        try? FileManager.default.removeItem(at: root.appendingPathComponent("moves", isDirectory: true)
-            .appendingPathComponent(hash, isDirectory: true))
-    }
-
     /// Deletes every on-disk migration checkpoint (the encrypted per-file
     /// migration ledgers). Used by the erase flows so user-generated migration
     /// state does not survive a wipe.
     public static func clearAllPlans() throws {
         let dir = directoryURL()
-        if FileManager.default.fileExists(atPath: dir.path) {
-            try FileManager.default.removeItem(at: dir)
+        if MigrationPlanFileUtil.exists(dir) {
+            try MigrationPlanFileUtil.remove(dir)
         }
+    }
+}
+
+// MARK: - Removed media
+
+/// The media removed from each plan file in this process
+/// (`MigrationPlanStore.remove(mediaIDs:)`), which every save of that file drops,
+/// and the plan files of deleted albums, which no save writes again. Held in
+/// memory only: a copy of a plan loaded before a removal lives no longer than the
+/// process, and media and album ids are never reused.
+final class MigrationPlanRemovals: @unchecked Sendable {
+
+    static let shared = MigrationPlanRemovals()
+
+    private let lock = NSLock()
+    private var removed: [String: Set<String>] = [:]
+    private var removedPlans: Set<String> = []
+
+    func recordRemovedPlan(at planURL: URL) {
+        lock.withLock { _ = removedPlans.insert(Self.key(planURL)) }
+    }
+
+    func isRemovedPlan(at planURL: URL) -> Bool {
+        lock.withLock { removedPlans.contains(Self.key(planURL)) }
+    }
+
+    func record(_ mediaIDs: Set<String>, removedFromPlanAt planURL: URL) {
+        guard !mediaIDs.isEmpty else { return }
+        lock.withLock { removed[Self.key(planURL), default: []].formUnion(mediaIDs) }
+    }
+
+    func mediaIDs(removedFromPlanAt planURL: URL) -> Set<String> {
+        lock.withLock { removed[Self.key(planURL)] ?? [] }
+    }
+
+    private static func key(_ planURL: URL) -> String {
+        planURL.standardizedFileURL.path
+    }
+}
+
+// MARK: - Priority requests
+
+/// The requests `MigrationPlanStore.prioritize` and `prioritizeViewed` made on
+/// each plan file in this process, which every save of that file applies again
+/// (`MigrationPlan.applyPriorityRequest`), a `.viewed` request clearing the
+/// deferrals its decrypt disproved again too.
+/// Stamping is idempotent and never lowers an item's tier
+/// (`MigrationItem.recordPriorityRequest`), so a save of a copy that already
+/// carries a request, or a later one, keeps what it has. Held in memory only: a
+/// copy of a plan loaded before a request lives no longer than the process, and
+/// the request itself is in the file it saved.
+final class MigrationPlanPriorityRequests: @unchecked Sendable {
+
+    struct Request: Equatable {
+        let mediaIDs: Set<String>
+        let reason: MigrationPriorityReason
+        let date: Date
+    }
+
+    static let shared = MigrationPlanPriorityRequests()
+
+    private let lock = NSLock()
+    private var requests: [String: [Request]] = [:]
+
+    func record(_ mediaIDs: Set<String>, reason: MigrationPriorityReason, at date: Date, onPlanAt planURL: URL) {
+        guard !mediaIDs.isEmpty else { return }
+        lock.withLock {
+            requests[Self.key(planURL), default: []].append(Request(mediaIDs: mediaIDs, reason: reason, date: date))
+        }
+    }
+
+    func requests(madeOnPlanAt planURL: URL) -> [Request] {
+        lock.withLock { requests[Self.key(planURL)] ?? [] }
+    }
+
+    private static func key(_ planURL: URL) -> String {
+        planURL.standardizedFileURL.path
     }
 }

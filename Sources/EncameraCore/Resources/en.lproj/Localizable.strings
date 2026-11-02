@@ -931,7 +931,7 @@
 /* ./Encamera/AlbumManagement/AlbumDetailView.swift - Move a local album to iCloud (CloudKit) */
 "CloudKitMigration.AlertTitle" = "Move this album to iCloud?";
 "CloudKitMigration.AlertMessage" = "This uploads %@ items (%@) to iCloud and can take about %@. Stay on Wi-Fi and keep Encamera open — you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
-"CloudKitMigration.DriveAlertMessage" = "Connect to fast Wi-Fi before you start. Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection, and much longer on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
+"CloudKitMigration.DriveAlertMessage" = "Moving %@ items (%@) off iCloud Drive downloads them to this device and then uploads them to iCloud, so every file travels twice — about %@ on a good connection. The move runs only on Wi-Fi and waits while you're on cellular. Keep Encamera open; you can switch apps, but don't force-quit. Your files stay end-to-end encrypted.";
 "CloudKitMigration.AlertConfirm" = "Move to iCloud";
 "CloudKitMigration.AlertCancel" = "Not now";
 "CloudKitMigration.MoveToLocalAlertTitle" = "Move this album to This Device?";
@@ -948,6 +948,8 @@
 "CloudKitMigration.AccountUnavailableMessage" = "Sign in to iCloud in Settings, then resume the move.";
 "CloudKitMigration.SchemaNotDeployedTitle" = "iCloud can't accept this album yet";
 "CloudKitMigration.SchemaNotDeployedMessage" = "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.";
+"CloudKitMigration.WaitingForWiFiTitle" = "Waiting for Wi-Fi";
+"CloudKitMigration.WaitingForWiFiMessage" = "This album moves to iCloud once your iPhone is on Wi-Fi. You don't need to start the move again.";
 "CloudKitMigration.FailedTitle" = "The move to iCloud didn't finish";
 "CloudKitMigration.FailedToLocalTitle" = "The move to this device didn't finish";
 "CloudKitMigration.FailedMessage" = "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.";
@@ -996,6 +998,21 @@
 "CloudKitMigration.OverlayKeepOpen" = "Keep Encamera open. You can switch apps, but don't force-quit. You may need to be connected to Wi-Fi for this to complete, depending on your system settings.";
 "CloudKitMigration.OverlayCancel" = "Stop the move";
 "CloudKitMigration.OverlayCancelUnavailable" = "Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.";
+
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift */
+"CloudKitMigration.MigrationBannerMovingTitle" = "Moving to iCloud";
+"CloudKitMigration.MigrationBannerPausedTitle" = "Move to iCloud paused";
+"CloudKitMigration.MigrationBannerProgress" = "%@ of %@ moved";
+"CloudKitMigration.MigrationBannerPausedLowPowerMode" = "Paused while Low Power Mode is on.";
+"CloudKitMigration.MigrationBannerPausedThermal" = "Paused while your iPhone cools down.";
+"CloudKitMigration.MigrationBannerPausedAccountUnavailable" = "Paused until you sign in to iCloud in Settings.";
+"CloudKitMigration.MigrationBannerPausedSchemaNotDeployed" = "Paused until iCloud is ready for this version of Encamera. Make sure Encamera is up to date.";
+"CloudKitMigration.MigrationBannerPausedWaitingForWiFi" = "Paused until your iPhone is on Wi-Fi.";
+"CloudKitMigration.MigrationBannerQuotaTitle" = "iCloud storage full, paused";
+"CloudKitMigration.MigrationBannerQuotaSpaceNeeded" = "This album needs about %@ more iCloud storage to finish moving.";
+"CloudKitMigration.MigrationBannerQuotaSpaceUnknown" = "Free up iCloud storage to finish moving this album.";
+"CloudKitMigration.MigrationBannerQuotaOpenSettings" = "Open Settings";
+"CloudKitMigration.MigrationBannerFailedCount" = "%@ %@ can't be moved right now";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";

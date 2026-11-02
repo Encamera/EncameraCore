@@ -129,6 +129,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// absent. See `albumFromReadableContents`.
     let lockedContentProbes = LockedAlbumContentProbeCache()
 
+    /// Removes a deleted CloudKit album's iCloud Drive folder, plan, pass and watch.
+    var iCloudDriveAlbumDeletion: ICloudDriveAlbumDeletion = .shared
+
     /// Albums found on disk whose key is not on this device, as of the last scan.
     /// A directory album whose media a held key opens is listed instead, even when
     /// its name cannot be read (see `albumFromReadableContents`).
@@ -232,17 +235,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .local)
             }
-        var iCloudAlbums: [Album] = []
-        if DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .icloud) == .available {
-            iCloudAlbums = iCloudStorageModel.enumerateAlbumsDirectory()
-                .compactMap { url -> Album? in
-                    return mapToAlbum(url, .icloud)
-                }
-        }
         var hiddenCloudKitAlbumIDs = Set<String>()
+        var linkedFolderAlbumIDs: [String: String] = [:]
         let cloudKitAlbums = CloudKitAlbumMarker.all().compactMap { entry -> Album? in
             let album = self.cloudKitAlbum(albumID: entry.albumID, marker: entry.marker, storedKeys: storedKeys)
             if entry.marker.isHidden { hiddenCloudKitAlbumIDs.insert(entry.albumID) }
+            if album != nil, let path = entry.marker.iCloudDriveFolderPath {
+                linkedFolderAlbumIDs[path] = entry.albumID
+            }
             if album == nil {
                 lockedPlaceholders.append(LockedAlbumPlaceholder(
                     encryptedDirectoryName: entry.marker.encName,
@@ -253,6 +253,18 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
             return album
         }
+        let listedCloudKitAlbumIDs = Set(cloudKitAlbums.compactMap(\.albumID))
+        // A folder whose marker names an album deleted here is what is left of
+        // that album, not an album of its own.
+        let deletion = iCloudDriveAlbumDeletion
+        let deletedAlbumIDs = deletion.deletedAlbums.all()
+        let iCloudAlbums = ICloudDriveAlbumFolderWalk.albumFolders()
+            .filter { !Self.isICloudDriveHalf(folder: $0, ofListedCloudKitAlbumIDs: listedCloudKitAlbumIDs,
+                                              linkedFolderAlbumIDs: linkedFolderAlbumIDs) }
+            .filter { !deletion.isDeletedAlbumFolder($0, deletedAlbumIDs: deletedAlbumIDs) }
+            .compactMap { url -> Album? in
+                return mapToAlbum(url, .icloud)
+            }
         lockedAlbumCount = lockedPlaceholders.count
         lockedAlbums = lockedPlaceholders
         return Set(Self.excludingMoveBackTwins(localAlbums, cloudKitAlbums: cloudKitAlbums))
@@ -266,6 +278,39 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 return !isAlbumHidden(album)
             }
             .sorted(by: { $0.creationDate < $1.creationDate })
+    }
+
+    /// Whether the iCloud Drive album folder `folder` is the iCloud Drive half of
+    /// a CloudKit album in the list: its marker file names that album, or the
+    /// album's `album.json` links the folder and the marker cannot be read here
+    /// right now (evicted, or in conflict with a version naming the album). Such a
+    /// folder holds the album's media not yet in CloudKit and is not listed as an
+    /// album of its own. Any other folder, including one whose marker names an
+    /// album not adopted or not openable here, is listed as a plain iCloud Drive
+    /// album, so a folder leaves the list only together with the CloudKit album
+    /// taking its place.
+    ///
+    /// - Parameter linkedFolderAlbumIDs: the listed CloudKit albums by the
+    ///   root-relative path of the folder each links
+    ///   (`CloudKitAlbumMarker.iCloudDriveFolderPath`).
+    static func isICloudDriveHalf(folder: URL,
+                                  ofListedCloudKitAlbumIDs listedIDs: Set<String>,
+                                  linkedFolderAlbumIDs: [String: String] = [:]) -> Bool {
+        guard !listedIDs.isEmpty else { return false }
+        let marker = ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder)
+        let adoptionState = ICloudDriveAlbumAdoptionState.classify(marker: marker,
+                                                                    isAdopted: { listedIDs.contains($0) })
+        guard adoptionState.listsFolderAsPlainAlbum else { return true }
+        guard let path = CloudKitAlbumMarker.iCloudDriveFolderPath(for: folder),
+              let linkingAlbumID = linkedFolderAlbumIDs[path] else { return false }
+        switch marker {
+        case .evicted:
+            return true
+        case .conflicted(let versions):
+            return versions.contains { $0.albumID == linkingAlbumID }
+        case .absent, .unreadable, .present:
+            return false
+        }
     }
 
     /// Leaves out the local album a move back to this device is filling. Its
@@ -359,10 +404,28 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// when any move is running on it: the move's items live on both sides until it
     /// finalizes, and a CloudKit album's record takes every media record already
     /// moved into it with it.
+    ///
+    /// A CloudKit album partly still in its linked iCloud Drive folder is not in a
+    /// move: its delete goes ahead while its blob migration runs, and while a
+    /// paused whole-album move into it from that folder waits (`isPausedMoveIntoLinkedAlbum`).
+    /// The delete removes the records, the `EncAlbum`, the folder with its marker
+    /// file and the migration plans together; see `ICloudDriveAlbumDeletion` for
+    /// the order. It throws `ICloudDriveItemDeleteError.folderUnavailable`,
+    /// touching nothing, when the album has a component on iCloud Drive and the
+    /// folder cannot be verified.
     public func delete(album: Album) throws {
-        if Self.isInAMove(album) {
+        if Self.refusesDelete(album) {
             printDebug("delete REFUSED album=\(album.id) — a move names the album")
             throw AlbumError.moveInProgress
+        }
+        let deletion = iCloudDriveAlbumDeletion
+        var iCloudDriveFolder: URL?
+        if album.storageOption == .cloudKit, let albumID = album.albumID {
+            iCloudDriveFolder = try deletion.folderToRemove(for: album)
+            if Self.isPausedMoveIntoLinkedAlbum(album) {
+                MigrationPlanStore.removeWholeAlbumPlans(intoAlbumID: album.id)
+            }
+            deletion.markDeleted(albumID: albumID)
         }
         let fileManager = FileManager.default
         let albumURL = album.storageURL
@@ -375,7 +438,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         dropAlbumStores(album)
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
-            deleteCloudKitAlbumRecord(album)
+            deleteCloudKitAlbumRecord(album, iCloudDriveFolder: iCloudDriveFolder)
         } else {
             removeNameKeyedAlbumSettings(albumName: album.name)
         }
@@ -401,6 +464,25 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             || CloudKitMigrationManager.isActive(albumID: album.id)
     }
 
+    /// Whether a move refuses `album`'s delete: any move but a paused one into a
+    /// CloudKit album from the iCloud Drive folder it links.
+    static func refusesDelete(_ album: Album) -> Bool {
+        isInAMove(album) && !isPausedMoveIntoLinkedAlbum(album)
+    }
+
+    /// Whether the only move naming the CloudKit album `album` is a whole-album
+    /// move into it, not running, from an iCloud Drive folder it links
+    /// (`CloudKitMigrationManager.isMoveFromLinkedICloudDriveFolder`). That move
+    /// has nothing to roll back to and the album's delete takes its plan with it.
+    static func isPausedMoveIntoLinkedAlbum(_ album: Album) -> Bool {
+        guard album.storageOption == .cloudKit,
+              !CloudKitMigrationManager.isActive(albumID: album.id),
+              case .destination(.toCloudKit, isRunning: false) = MigrationPlanStore.planRole(forAlbumID: album.id) else {
+            return false
+        }
+        return CloudKitMigrationManager.isMoveFromLinkedICloudDriveFolder(source: nil, destinationCloudKitAlbumID: album.albumID)
+    }
+
     /// Local-only album removal for the reconciler: cleans up the filesystem,
     /// synced-store entries, and CloudKit discovery artefacts without touching the
     /// remote `EncAlbum` record or enqueueing chunk reclaim — the device that
@@ -413,11 +495,26 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             try? fileManager.removeItem(at: albumURL)
         }
 
+        // The album's iCloud Drive folder goes on every device, so a remnant still
+        // syncing here never shows as a plain iCloud Drive album.
+        var iCloudDriveFolder: URL?
+        if album.storageOption == .cloudKit, let albumID = album.albumID {
+            iCloudDriveFolder = try? iCloudDriveAlbumDeletion.folderToRemove(for: album)
+            iCloudDriveAlbumDeletion.markDeleted(albumID: albumID)
+        }
+
         wipeImportHistory(album.id)
         dropAlbumStores(album)
 
         if album.storageOption == .cloudKit {
             removeCloudKitAlbumLocalState(album)
+            if let albumID = album.albumID {
+                let deletion = iCloudDriveAlbumDeletion
+                deletion.track(albumID: albumID, Task {
+                    await deletion.removeICloudDriveHalf(albumID: albumID, folder: iCloudDriveFolder)
+                    Self.removeCloudKitAlbumIndexFiles(album)
+                })
+            }
         } else {
             removeNameKeyedAlbumSettings(albumName: album.name)
         }
@@ -425,6 +522,15 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumOperationSubject.send(.albumDeleted(album: album))
         broadcastAlbumsUpdated()
         fixUpCurrentAlbum(deletedAlbum: album)
+    }
+
+    /// Removes a deleted CloudKit album's index and size sidecar again, with the
+    /// stores held for them: a blob migration item or folder scan in flight when
+    /// the album went can have written them back.
+    private static func removeCloudKitAlbumIndexFiles(_ album: Album) {
+        AlbumStoreRegistry.shared.drop(albumWithID: album.id)
+        try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        try? FileManager.default.removeItem(at: AlbumSizeSidecar.sidecarURL(for: album))
     }
 
     /// Removes what this device holds for a CloudKit album besides its blob cache:
@@ -545,7 +651,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         let store = CloudKitStoreProvider.makeStore(albumID)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }
-            CloudKitAlbumPublishRegistry().markPublished(albumID)
+            CloudKitAlbumPublishRegistry().markConfirmedOnServer(albumID)
             do {
                 try CloudKitAlbumMarker.clearDirty(albumID: albumID, ifUnchangedFrom: marker)
             } catch {
@@ -571,14 +677,22 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// keeps reconciling such albums with the flag off — a flag gate here would let
     /// the reconciler resurrect a flag-off delete (nothing queued, record still
     /// live). Both paths share the same predicate: `.cloudKit` albums always sync.
-    private func deleteCloudKitAlbumRecord(_ album: Album) {
+    ///
+    /// The album's iCloud Drive half goes first
+    /// (`ICloudDriveAlbumDeletion.removeICloudDriveHalf`): a blob migration item in
+    /// flight lands its record and chunks before the members are listed, so the
+    /// cascade and the chunk reclaim take it too.
+    private func deleteCloudKitAlbumRecord(_ album: Album, iCloudDriveFolder: URL?) {
         guard album.storageOption == .cloudKit,
               let albumID = album.albumID else { return }
         let queue = CloudKitAlbumDeleteQueue()
         queue.enqueue(albumID)
         let publishRegistry = CloudKitAlbumPublishRegistry()
         let store = CloudKitStoreProvider.makeStore(albumID)
-        Task {
+        let deletion = iCloudDriveAlbumDeletion
+        deletion.track(albumID: albumID, Task {
+            await deletion.removeICloudDriveHalf(albumID: albumID, folder: iCloudDriveFolder)
+            Self.removeCloudKitAlbumIndexFiles(album)
             // Queue the chunked members' blob-zone reclaim BEFORE the album
             // record goes: the `.deleteSelf` cascade covers every `EncMedia` and
             // its assets, but chunk records live in a different zone with no
@@ -621,7 +735,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             } catch {
                 // Left queued — the album reconciler retries on its next pass.
             }
-        }
+        })
     }
 
     /// `AlbumManaging.adoptCloudKitAlbum`: materialize an album the reconciler
@@ -632,14 +746,25 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// `album.json` takes the record's `encName` byte for byte, so the album this
     /// device shows is the one the record names, under the record's id.
     public func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey) {
+        adoptCloudKitAlbum(record: record, key: key, linkingICloudDriveFolder: nil)
+    }
+
+    /// The link goes into the same `album.json` write that adopts the album. The
+    /// album list hides an iCloud Drive folder whose marker file names a listed
+    /// CloudKit album, so that one write is what replaces the folder with the
+    /// CloudKit album in the list.
+    public func adoptCloudKitAlbum(record: CloudKitAlbumMetadata, key: PrivateKey, linkingICloudDriveFolder folder: URL?) {
         let album = Album(encryptedName: record.encName, storageOption: .cloudKit,
                           creationDate: record.createdAt, key: key, albumID: record.albumID)
-        let marker = CloudKitAlbumMarker(encName: record.encName,
+        var marker = CloudKitAlbumMarker(encName: record.encName,
                                          createdAt: record.createdAt,
                                          isHidden: record.isHidden,
                                          coverMediaID: record.coverMediaID,
                                          keyFingerprint: key.keyFingerprint,
                                          dirty: false)
+        if let folder {
+            marker.linkICloudDriveFolder(folder)
+        }
         do {
             try marker.write(albumID: record.albumID)
         } catch {
@@ -1102,6 +1227,11 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// with it (`MigrationPlanStore.carryPlans`). A CloudKit album keeps its id and
     /// everything keyed by it: only `encName` in `album.json` changes, and the record
     /// is saved from it in the background (see `updateCloudKitAlbumMarker`).
+    ///
+    /// A CloudKit album partly still in its linked iCloud Drive folder is renamed
+    /// the same way, while its blob migration runs: the folder keeps its name, so
+    /// older builds go on showing a stable folder, and its marker file, which names
+    /// the album by id, links it either way.
     ///
     /// Throws `.albumExists` when any other album on this device, hidden or not and in
     /// any storage, already has the name, and `.moveInProgress` while a storage move

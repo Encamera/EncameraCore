@@ -481,9 +481,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     var albumsMissingFromQuery: Set<String> = []
     /// Thrown by every `fetchAlbum`, as when the device is offline or throttled.
     var fetchAlbumError: Error?
+    /// Suspends `fetchAlbum` until the test releases it. See `AsyncGate`.
+    var fetchAlbumGate: AsyncGate?
 
     func fetchAlbum(albumID: String) async throws -> CloudKitAlbumMetadata? {
         log(.fetchAlbum(albumID: albumID))
+        if let fetchAlbumGate { await fetchAlbumGate.enter() }
         if let fetchAlbumError { throw fetchAlbumError }
         return locked { _albums[albumID] }
     }
@@ -558,7 +561,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
 
     private(set) var committedTokenCount = 0
     private(set) var resetChangeTokenCount = 0
-    private(set) var recreateZoneCount = 0
     var hasChangeTokenValue = false
     func loadChangeToken() async -> CKServerChangeToken? { nil }
     func hasChangeToken() async -> Bool { hasChangeTokenValue }
@@ -566,12 +568,6 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         locked { committedTokenCount += 1 }
     }
     func resetChangeToken() async { locked { resetChangeTokenCount += 1 } }
-    func recreateZone() async throws { locked { recreateZoneCount += 1 } }
-
-    private(set) var ensureZoneCalls = 0
-    func ensureZoneExists() async throws {
-        locked { ensureZoneCalls += 1 }
-    }
 
     var registerSubscriptionError: Error?
     private var _registerSubscriptionAttempts = 0
@@ -591,8 +587,10 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// user cancel — into the pre-run preflight window between planning and the
     /// item loop.
     var accountAvailableGate: (@Sendable () async -> Void)?
+    private(set) var accountAvailableCalls = 0
 
     func accountAvailable() async -> Bool {
+        locked { accountAvailableCalls += 1 }
         if let gate = accountAvailableGate { await gate() }
         return accountAvailableValue
     }

@@ -437,12 +437,16 @@ public struct SeekableEncryptedWriter {
 
     /// Encrypts `source` to `destination`, streaming a chunk at a time so a 4 GB
     /// video never costs more than one chunk of resident memory.
+    /// - Parameter shouldStop: asked before each chunk; true throws
+    ///   `CancellationError`, leaving `destination` partly written for the caller
+    ///   to remove.
     /// - Returns: the header that was written, whose geometry describes the result.
     @discardableResult
     public func encrypt(source: URL,
                         destination: URL,
                         metadata: Data? = nil,
-                        progress: ((Double) -> Void)? = nil) throws -> SeekableEncryptedHeader {
+                        progress: ((Double) -> Void)? = nil,
+                        shouldStop: (() -> Bool)? = nil) throws -> SeekableEncryptedHeader {
         let attrs = try FileManager.default.attributesOfItem(atPath: source.path)
         let plaintextLength = (attrs[.size] as? NSNumber)?.intValue ?? 0
 
@@ -482,6 +486,7 @@ public struct SeekableEncryptedWriter {
         try writer.write(contentsOf: header.encoded())
 
         for index in 0..<chunkCount {
+            if shouldStop?() == true { throw CancellationError() }
             try autoreleasepool {
                 let want = header.geometry.plaintextSize(ofChunk: index)
                 let plaintext = try reader.read(upToCount: want) ?? Data()

@@ -5,15 +5,19 @@
 //  The CloudKit branch of the app's file access. Reuses the EXISTING crypto and
 //  preview pipeline (`DiskFileAccess.createPreview`) unchanged — only the transport
 //  differs (decision doc §6). Save encrypts with `SecretFileHandlerV2` (metadata-
-//  bearing, so V2) then uploads; load lazily fetches the blob then decrypts with the
+//  bearing, so V2) then uploads; load finds the ciphertext (`resolveComponent`: the
+//  blob cache, a downloaded file in the album's linked iCloud Drive folder, a lazy
+//  CloudKit fetch, then an iCloud Drive download) and decrypts it with the
 //  format-agnostic `SecretFileHandler`; enumeration comes from the coordinator's
 //  synced `MediaIndexStore`; delete removes the record outright and the change
-//  feed carries that to every other device.
+//  feed carries that to every other device, or, for a component still on iCloud
+//  Drive, removes its file from the linked folder, which iCloud Drive carries.
 //  `InteractableMediaFileAccess` routes here for `.cloudKit` albums behind the flag.
 //
 //  Reads MUST use `SecretFileHandler`, never `SecretFileHandlerV2`:
 //  migration uploads the on-disk ciphertext verbatim, so a `.cloudKit` album can hold
-//  V1-format blobs from a user's legacy library. `SecretFileHandlerV2` throws on V1;
+//  V1-format blobs from a user's legacy library, and its iCloud Drive folder holds
+//  that library's files as they are. `SecretFileHandlerV2` throws on V1;
 //  `SecretFileHandler` sniffs the V2 magic and reads both, exactly as the local
 //  `DiskFileAccess` read path does. What is stored stays byte-for-byte what was on
 //  disk — the reader adapts to the data, the data is never rewritten to suit it.
@@ -25,22 +29,6 @@ import UIKit
 #endif
 import Combine
 import AVFoundation
-
-/// Supplies the `CloudKitMediaStoring` implementation. Production returns the real
-/// store; UI tests bind a deterministic in-memory mock via `UITestSupport`.
-public enum CloudKitStoreProvider {
-    /// `purpose` names the caller, for a test double that wants to tell callers
-    /// apart. It has no effect on the store: every store shares the zone's one
-    /// change cursor.
-    ///
-    /// Binding a new factory drops the shared coordinator, so the next one is built
-    /// on the store this factory makes.
-    nonisolated(unsafe) public static var makeStore: @Sendable (_ purpose: String) -> CloudKitMediaStoring = { _ in
-        CloudKitMediaStore()
-    } {
-        didSet { CloudKitSyncCoordinator.resetShared() }
-    }
-}
 
 public extension Notification.Name {
     /// Posted when opening media wrote a preview it had none of on this device,
@@ -56,12 +44,54 @@ public extension Notification {
     internal static let previewMediaIDKey = "mediaID"
 }
 
+/// Where a read found a component's ciphertext, in the order a read tries them.
+public enum CloudKitComponentReadSource: Equatable, Sendable {
+    /// This device's copy of the record: the blob cache, or a capture still
+    /// waiting to upload.
+    case blobCache
+    /// The file in the album's linked iCloud Drive folder, already downloaded.
+    case iCloudDriveFile
+    /// A CloudKit fetch.
+    case cloudKit
+    /// The file in the album's linked iCloud Drive folder, downloaded for this read.
+    case iCloudDriveDownload
+
+    /// Whether the bytes came from the album's iCloud Drive folder.
+    public var isICloudDrive: Bool {
+        self == .iCloudDriveFile || self == .iCloudDriveDownload
+    }
+}
+
+/// Why a CloudKit album's delete deleted nothing.
+public enum ICloudDriveItemDeleteError: Error, Equatable {
+    /// A component to delete is on iCloud Drive, and the album's linked folder
+    /// cannot be reached or its marker does not name the album.
+    case folderUnavailable(ICloudDriveFolderScanSkipReason)
+}
+
+/// Why a write to an item still on iCloud Drive did nothing.
+public enum ICloudDriveItemWriteError: Error, Equatable {
+    /// Some components of the item are in CloudKit and some are still on iCloud
+    /// Drive: a Live Photo whose halves are between uploads. Trying again once
+    /// the other half lands succeeds.
+    case partlyInCloudKit
+}
+
+/// A component's ciphertext on this device, and where the read found it.
+
+public struct CloudKitResolvedComponent: Equatable, Sendable {
+    public let url: URL
+    public let source: CloudKitComponentReadSource
+    /// The index places the component on iCloud Drive: it has no record yet.
+    public var isStillOnICloudDrive = false
+}
+
 public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     /// Stable per-process suite name for test-mode delete bookkeeping so every
     /// test-mode instance shares a single queue (mirroring the app-group suite
     /// that production instances share) and the suite can be cleaned up by PID.
-    private static let testDeleteSuiteName = "ck-delete-test-\(ProcessInfo.processInfo.processIdentifier)"
+    static let testDeleteSuiteName = "ck-delete-test-\(ProcessInfo.processInfo.processIdentifier)"
 
     private let album: Album
     private let albumID: String
@@ -87,6 +117,14 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Transport for streamed chunks. `nil` means the CloudKit store, built
     /// per session; tests hand in an in-memory one.
     private let chunkStore: ChunkedBlobStoring?
+    /// Reaches the album's linked iCloud Drive folder.
+    private let iCloudDrive: CloudKitICloudDriveFolderAccess
+    /// Ends the album's move into CloudKit through `ICloudDriveAlbumFinish`.
+    private let finishAlbum: @MainActor (_ folder: URL, _ plan: MigrationPlan) async -> Void
+    /// Starts a blob migration pass for the album unless one is running.
+    private let startMigrationPass: @MainActor () async -> Void
+    /// The bytes each component holds, in CloudKit or on iCloud Drive.
+    private let sizeSidecar: AlbumSizeSidecar
     /// The album's CloudKit id: the `albumID` on every record this album owns, and
     /// what the coordinator routes those records by.
     static func cloudKitAlbumID(for album: Album) -> String {
@@ -101,12 +139,16 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     ///   its own upload queue, blob cache, delete queue and coordinator, which
     ///   reaches every album through `albumManager` like the shared one does.
     ///   Without one, the instance uses the app-wide shared coordinator.
+    /// - Parameter iCloudDrive: how reads and deletes reach the album's linked
+    ///   iCloud Drive folder.
     public init(album: Album,
                 albumManager: AlbumManaging,
                 store: CloudKitMediaStoring? = nil,
-                chunkStore: ChunkedBlobStoring? = nil) async {
+                chunkStore: ChunkedBlobStoring? = nil,
+                iCloudDrive: CloudKitICloudDriveFolderAccess = CloudKitICloudDriveFolderAccess()) async {
         self.album = album
         self.chunkStore = chunkStore
+        self.iCloudDrive = iCloudDrive
         self.keyBytes = album.key.keyBytes
         self.keyManager = albumManager.keyManager
         self.keyResolver = CloudKitRecordKeyResolver(albumKey: album.key, keyManager: albumManager.keyManager)
@@ -114,6 +156,13 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         self.albumID = albumID
         self.directoryModel = CloudKitStorageModel(album: album)
         self.indexStore = albumManager.mediaIndexStore(for: album)
+        self.sizeSidecar = albumManager.sizeSidecar(for: album)
+        let makeAlbumFinish = iCloudDrive.makeAlbumFinish
+        self.finishAlbum = { folder, plan in
+            await makeAlbumFinish(albumManager).finish(albumID: albumID, folder: folder, plan: plan, cloudKitAlbum: album)
+        }
+        let startPass = iCloudDrive.startMigrationPass
+        self.startMigrationPass = { await startPass(albumManager, albumID) }
         if let store {
             self.store = store
             let isolatedQueue = CloudKitUploadQueue(
@@ -155,21 +204,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Lifecycle
 
-    /// Ensures the custom zone exists and does an initial delta sync of the zone,
-    /// which registers the push subscription. Safe to call repeatedly; no-ops when
-    /// the account is unavailable. Push-driven re-sync is handled app-wide by
+    /// Does an initial delta sync of the zone, which registers the push
+    /// subscription. Safe to call repeatedly. Push-driven re-sync is handled app-wide by
     /// `CloudKitAlbumsSync` (which covers inactive albums too), not per-instance here.
     public func start() async {
         printDebug("start begin albumID=\(albumID)")
-        if await store.accountAvailable() {
-            do {
-                try await store.ensureZoneExists()
-            } catch {
-                printDebug("start ensureZoneExists FAILED albumID=\(albumID) raw=\(error)")
-            }
-        } else {
-            printDebug("start skip albumID=\(albumID) reason=accountUnavailable — zone not ensured")
-        }
         await uploader.kick()
         do {
             try await coordinator.sync()
@@ -181,19 +220,30 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Save (encrypt then upload)
 
+    /// Saves media to CloudKit. Media with a component still on iCloud Drive (an
+    /// edit) is saved over it: see `saveRetiringICloudDriveCopy`.
     public func save(media: InteractableMedia<CleartextMedia>,
                      metadata: EncryptedFileMetadata?,
                      progress: @escaping @Sendable (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         try refuseIfAlbumIsMovingToLocal("save")
-        if await store.accountAvailable() {
-            do {
-                try await store.ensureZoneExists()
-            } catch {
-                printDebug("save ensureZoneExists FAILED albumID=\(albumID) raw=\(error); continuing — the upload will surface the real error")
-            }
-        } else {
-            printDebug("save WARNING albumID=\(albumID) account unavailable at save time; zone not ensured")
+        guard await hasICloudDriveComponent(media) else {
+            return try await saveToCloudKit(media, metadata: metadata, progress: progress)
         }
+        await ICloudDriveBlobMigration.holdPasses(albumID: albumID)
+        let result: Result<InteractableMedia<EncryptedMedia>?, Error>
+        do {
+            result = .success(try await saveRetiringICloudDriveCopy(media, metadata: metadata, progress: progress))
+        } catch {
+            result = .failure(error)
+        }
+        await ICloudDriveBlobMigration.releasePasses(albumID: albumID)
+        await startMigrationPass()
+        return try result.get()
+    }
+
+    private func saveToCloudKit(_ media: InteractableMedia<CleartextMedia>,
+                                metadata: EncryptedFileMetadata?,
+                                progress: @escaping @Sendable (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         printDebug("save start albumID=\(albumID) components=\(media.underlyingMedia.count) mediaType=\(media.mediaType)")
         // A Live Photo's components share one thumbnail file, keyed by media id.
         // It belongs to the photo: saving the photo first means the video's
@@ -219,6 +269,79 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
         printDebug("save ok albumID=\(albumID) components=\(encrypted.count)")
         return try InteractableMedia(underlyingMedia: encrypted)
+    }
+
+    // MARK: - Save over an item still on iCloud Drive
+
+    /// Saves an edit of media still on iCloud Drive to CloudKit, as any save,
+    /// then retires its iCloud Drive copy: the media leaves the album's
+    /// migration plan, its components move to `.cloudKit` in the index and their
+    /// files leave the linked folder. The record name is not claimed deleted and
+    /// the preview stays, since the saved record is the media now.
+    ///
+    /// Runs with the album's passes held, so none uploads the old file over the
+    /// edit. Media that landed while the pass in flight finished is saved like
+    /// any other. A crash between the save and the plan removal leaves the old
+    /// file planned beside the queued edit.
+    ///
+    /// - Throws: `ICloudDriveItemWriteError.partlyInCloudKit` when only some
+    ///   components are still on iCloud Drive, and
+    ///   `ICloudDriveItemDeleteError.folderUnavailable` when the album's linked
+    ///   folder cannot be verified, both before anything is saved.
+    private func saveRetiringICloudDriveCopy(_ media: InteractableMedia<CleartextMedia>,
+                                             metadata: EncryptedFileMetadata?,
+                                             progress: @escaping @Sendable (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
+        var onICloudDrive: [CleartextMedia] = []
+        for item in media.underlyingMedia where await componentLocation(id: item.id, type: item.mediaType) == .iCloudDrive {
+            onICloudDrive.append(item)
+        }
+        guard !onICloudDrive.isEmpty else { return try await saveToCloudKit(media, metadata: metadata, progress: progress) }
+        guard onICloudDrive.count == media.underlyingMedia.count else {
+            printDebug("save REFUSED albumID=\(albumID) mediaID=\(media.id) — only some components are still on iCloud Drive")
+            throw ICloudDriveItemWriteError.partlyInCloudKit
+        }
+        let folder: URL
+        switch verifiedICloudDriveFolder() {
+        case .success(let verified): folder = verified
+        case .failure(let skip):
+            printDebug("save REFUSED albumID=\(albumID) mediaID=\(media.id) reason=\(skip.reason)")
+            throw ICloudDriveItemDeleteError.folderUnavailable(skip.reason)
+        }
+
+        let saved = try await saveToCloudKit(media, metadata: metadata, progress: progress)
+
+        _ = await removeFromICloudDriveMigrationPlan([media.id])
+        let recordNames = Set(onICloudDrive.map { Self.componentRecordName(mediaID: $0.id, type: $0.mediaType) })
+        do {
+            let entries = await indexStore.current()?.entries ?? []
+            try await sizeSidecar.apply(updates: [:], removals: recordNames, owner: .iCloudDrive, entries: entries)
+            try await indexStore.apply { entries in
+                guard let position = entries.firstIndex(where: { $0.id == media.id }) else { return }
+                var entry = entries[position]
+                for item in onICloudDrive {
+                    entry = item.mediaType == .photo ? entry.with(photoLocation: .cloudKit) : entry.with(videoLocation: .cloudKit)
+                }
+                entries[position] = entry
+            }
+        } catch {
+            printDebug("save retire FAILED albumID=\(albumID) mediaID=\(media.id) raw=\(error)")
+        }
+        for item in onICloudDrive {
+            do {
+                try removeICloudDriveFile(id: item.id, type: item.mediaType, in: folder)
+            } catch {
+                printDebug("save WARNING mediaID=\(item.id) — its iCloud Drive file could not be removed raw=\(error)")
+            }
+        }
+        printDebug("save ok albumID=\(albumID) mediaID=\(media.id) — retired its iCloud Drive copy")
+        return saved
+    }
+
+    private func hasICloudDriveComponent(_ media: InteractableMedia<CleartextMedia>) async -> Bool {
+        for item in media.underlyingMedia where await componentLocation(id: item.id, type: item.mediaType) == .iCloudDrive {
+            return true
+        }
+        return false
     }
 
     /// Keeps new media out of an album whose move back to this device is running:
@@ -326,7 +449,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         var decrypted: [CleartextMedia] = []
         for item in media.underlyingMedia {
             try Task.checkCancellation()
-            let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
+            let resolved = try await resolveComponent(id: item.id, type: item.mediaType, progress: progress)
+            let local = resolved.url
             let key = try await key(forCiphertextAt: local, id: item.id, type: item.mediaType)
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
@@ -340,6 +464,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 cleartext = try await handler.decryptToURL()
             }
             decrypted.append(cleartext)
+            if resolved.isStillOnICloudDrive { await noteViewedOnICloudDrive(mediaID: item.id) }
         }
         progress(.loaded)
         let opened = try InteractableMedia(underlyingMedia: decrypted)
@@ -353,7 +478,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         var decrypted: [CleartextMedia] = []
         for item in media.underlyingMedia {
             try Task.checkCancellation()
-            let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: progress)
+            let resolved = try await resolveComponent(id: item.id, type: item.mediaType, progress: progress)
+            let local = resolved.url
             let key = try await key(forCiphertextAt: local, id: item.id, type: item.mediaType)
             progress(.decrypting(progress: 0))
             let encMedia = EncryptedMedia(source: .url(local), mediaType: item.mediaType, id: item.id)
@@ -361,6 +487,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             let handler = SecretFileHandler(keyBytes: key.keyBytes, source: encMedia, targetURL: target)
             let cleartext = try await handler.decryptToURL()
             decrypted.append(cleartext)
+            if resolved.isStillOnICloudDrive { await noteViewedOnICloudDrive(mediaID: item.id) }
             if let url = cleartext.url { urls.append(url) }
         }
         progress(.loaded)
@@ -373,8 +500,9 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// Streaming playback for a chunked CloudKit video: stock `AVPlayerItem` over
     /// the resource loader, chunks fetched on demand through the persistent chunk
     /// cache. `nil` for anything better served by the materialize path — photos,
-    /// monolithic records, and items whose bytes are still local (pending upload
-    /// or a fully cached blob), where decrypt-from-disk beats the network.
+    /// monolithic records, items whose bytes are still local (pending upload, a
+    /// fully cached blob or a downloaded iCloud Drive file), where decrypt-from-disk
+    /// beats the network, and items still on iCloud Drive, which have no record.
     ///
     /// The first chunk is fetched here, before there is a player to wait on it.
     /// AVFoundation fails an item whose first loading request has produced no
@@ -399,6 +527,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         if await uploadQueue.pendingFileURL(recordName: recordName) != nil { return nil }
         let expectedTag = await coordinator.currentChangeTag(recordName: recordName)
         if await blobCache.cachedURL(recordName: recordName, changeTag: expectedTag) != nil { return nil }
+        if let driveFile = iCloudDriveFileURL(id: component.id, type: .video) {
+            if iCloudDrive.isDownloaded(driveFile) { return nil }
+            if iCloudDrive.existsInAnyForm(driveFile), await componentLocation(id: component.id, type: .video) == .iCloudDrive {
+                return nil
+            }
+        }
 
         guard let info = try await coordinator.chunkedBlobInfo(recordName: recordName),
               let headerBytes = info.encHeader else {
@@ -463,24 +597,143 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                                    probe: FirstBlockProbe(url: url))
     }
 
-    /// Resolves the current encrypted blob for `id` via the coordinator's
-    /// change-tag-aware cache: a server-side re-upload (new tag) invalidates the
-    /// stale copy and refetches, so we never decrypt outdated content. We decrypt
-    /// directly from the cache URL rather than keeping a separate untracked copy.
-    private func ensureLocalCiphertext(id: String,
-                                       type: MediaType,
-                                       progress: @escaping @Sendable (FileLoadingStatus) -> Void) async throws -> URL {
+    /// The component's ciphertext on this device, found in this order:
+    ///
+    /// 1. this device's copy of the record (blob cache or upload queue);
+    /// 2. the file in the album's linked iCloud Drive folder, if already downloaded;
+    /// 3. a CloudKit fetch, through the coordinator's change-tag-aware cache, so a
+    ///    server-side re-upload replaces a stale copy;
+    /// 4. a download of the iCloud Drive file.
+    ///
+    /// An uncached CloudKit fetch is the slow path, so a downloaded iCloud Drive
+    /// file is read before it. The fetch is skipped for a component the index
+    /// places on iCloud Drive while its file is there: it has no record yet. When
+    /// the fetch fails and the file is there, the download is the fallback.
+    ///
+    /// The folder is the one the album's local marker links to, once the folder's
+    /// own marker names this album. An album with no link never looks on iCloud
+    /// Drive, and a read served by step 1 never looks for the link.
+    func resolveComponent(id: String,
+                          type: MediaType,
+                          progress: @escaping @Sendable (FileLoadingStatus) -> Void) async throws -> CloudKitResolvedComponent {
         let recordName = Self.componentRecordName(mediaID: id, type: type)
         progress(.downloading(progress: 0))
+        if let resident = await coordinator.residentBlobURL(recordName: recordName) {
+            progress(.downloading(progress: 1))
+            return served(recordName: recordName, url: resident, source: .blobCache)
+        }
+
+        let driveFile = iCloudDriveFileURL(id: id, type: type)
+        if let driveFile, iCloudDrive.isDownloaded(driveFile) {
+            progress(.downloading(progress: 1))
+            let isStillOnICloudDrive = await componentLocation(id: id, type: type) == .iCloudDrive
+            return served(recordName: recordName, url: driveFile, source: .iCloudDriveFile,
+                          isStillOnICloudDrive: isStillOnICloudDrive)
+        }
+        let driveFileExists = driveFile.map(iCloudDrive.existsInAnyForm) ?? false
+        var hasNoRecordYet = false
+        if driveFileExists {
+            hasNoRecordYet = await componentLocation(id: id, type: type) == .iCloudDrive
+        }
+
+        if !hasNoRecordYet {
+            do {
+                let url = try await coordinator.ensureBlobLocal(recordName: recordName, albumID: albumID) { fraction in
+                    progress(.downloading(progress: fraction))
+                }
+                return served(recordName: recordName, url: url, source: .cloudKit)
+            } catch {
+                guard driveFileExists, !(error is CancellationError) else {
+                    printDebug("resolveComponent FAILED recordName=\(recordName) albumID=\(albumID) source=cloudKit raw=\(error)")
+                    throw error
+                }
+                printDebug("resolveComponent cloudKit FAILED recordName=\(recordName) raw=\(error) — downloading the iCloud Drive file")
+            }
+        }
+
+        guard let driveFile, driveFileExists else {
+            printDebug("resolveComponent FAILED recordName=\(recordName) albumID=\(albumID) — no record and no iCloud Drive file")
+            throw CloudKitMediaStoreError.notFound
+        }
+        try Task.checkCancellation()
         do {
-            let url = try await coordinator.ensureBlobLocal(recordName: recordName, albumID: albumID) { fraction in
+            let url = try await downloadICloudDriveFile(driveFile) { fraction in
                 progress(.downloading(progress: fraction))
             }
-            printDebug("ensureLocalCiphertext ok recordName=\(recordName) file=\(url.lastPathComponent)")
-            return url
+            return served(recordName: recordName, url: url, source: .iCloudDriveDownload,
+                          isStillOnICloudDrive: hasNoRecordYet)
         } catch {
-            printDebug("ensureLocalCiphertext FAILED recordName=\(recordName) albumID=\(albumID) raw=\(error)")
+            printDebug("resolveComponent FAILED recordName=\(recordName) albumID=\(albumID) source=iCloudDriveDownload raw=\(error)")
             throw error
+        }
+    }
+
+    /// A viewer or player open just decrypted a component with no record yet,
+    /// read from the album's iCloud Drive folder, so its bytes are on this device:
+    /// the media moves ahead of the album's other items still to migrate
+    /// (`ViewerLoad`), the decrypt disproves a deferral of its move that a held
+    /// key or readable bytes would have prevented (`MigrationPlanStore.prioritizeViewed`),
+    /// and a pass starts unless one is running, so the item reaches CloudKit now.
+    /// An open that does not decrypt, and every other read, a grid thumbnail's
+    /// included, leave the order alone. The open does not wait for the move.
+    private func noteViewedOnICloudDrive(mediaID: String) async {
+        guard ViewerLoad.isActive else { return }
+        printDebug("viewer open decrypted mediaID=\(mediaID) — still on iCloud Drive, prioritized")
+        await iCloudDrive.prioritizeViewed(album, mediaID)
+        await startMigrationPass()
+    }
+
+    private func served(recordName: String, url: URL, source: CloudKitComponentReadSource,
+                        isStillOnICloudDrive: Bool = false) -> CloudKitResolvedComponent {
+        printDebug("resolveComponent ok recordName=\(recordName) source=\(source) file=\(url.lastPathComponent)")
+        return CloudKitResolvedComponent(url: url, source: source, isStillOnICloudDrive: isStillOnICloudDrive)
+    }
+
+    /// Where the index places the component, or nil when the index has no such
+    /// component.
+    private func componentLocation(id: String, type: MediaType) async -> MediaComponentLocation? {
+        guard let entry = await indexStore.current()?.entries.first(where: { $0.id == id }) else { return nil }
+        switch type {
+        case .photo: return entry.hasPhotoComponent ? entry.photoLocation : nil
+        case .video: return entry.hasVideoComponent ? entry.videoLocation : nil
+        default: return nil
+        }
+    }
+
+    /// The component's file in the album's linked iCloud Drive folder, named
+    /// `<mediaID>.<ext>` as iCloud Drive albums name their files. Nil when
+    /// iCloud Drive is unavailable, the album has no link, or the linked folder's
+    /// marker does not name this album. The file itself is not checked.
+    private func iCloudDriveFileURL(id: String, type: MediaType) -> URL? {
+        let verified = ICloudDriveFolderScanner.verifiedFolder(albumID: albumID,
+                                                               isICloudDriveAvailable: iCloudDrive.isICloudDriveAvailable,
+                                                               linkedFolder: iCloudDrive.linkedFolder,
+                                                               markerConflictVersions: iCloudDrive.markerConflictVersions)
+        switch verified {
+        case .success(let folder):
+            return folder.appendingPathComponent("\(id).\(type.encryptedFileExtension)", isDirectory: false)
+        case .failure(let skip):
+            if skip.reason != .noLinkedFolder && skip.reason != .iCloudDriveUnavailable {
+                printDebug("iCloudDriveFileURL skip albumID=\(albumID) reason=\(skip.reason)")
+            }
+            return nil
+        }
+    }
+
+    /// Downloads an evicted iCloud Drive file in place and returns its URL.
+    private func downloadICloudDriveFile(_ url: URL,
+                                         progress: @escaping @Sendable (Double) -> Void) async throws -> URL {
+        let makeMaterializer = iCloudDrive.makeMaterializer
+        let outcome = await Task { @MainActor in
+            let results = await makeMaterializer().materialize([url],
+                                                               inAlbumDirectory: url.deletingLastPathComponent(),
+                                                               onProgress: progress)
+            return results[url].map { result in result.mapError { $0 as NSError } }
+        }.value
+        switch outcome {
+        case .success(let downloaded): return downloaded
+        case .failure(let error): throw error
+        case nil: throw CloudKitMediaStoreError.notFound
         }
     }
 
@@ -488,13 +741,23 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     /// A thumbnail never changes once created, so any file on disk is served as
     /// is — including the one `saveSingle` wrote before the upload. CloudKit is
-    /// only asked when there is no local file.
+    /// only asked when there is no local file. A component still on iCloud Drive
+    /// has no record, so its preview is made from its file in the linked folder,
+    /// as an iCloud Drive album makes one.
     public func loadMediaPreview(for media: InteractableMedia<some MediaDescribing>) async throws -> PreviewModel {
         let source = media.thumbnailSource!
         let previewURL = directoryModel.previewURLForMedia(withID: source.id)
         let recordName = Self.componentRecordName(mediaID: source.id, type: source.mediaType)
         if FileManager.default.fileExists(atPath: previewURL.path) {
             printDebug("loadMediaPreview thumbnail hit recordName=\(recordName) source=localFile")
+        } else if await componentLocation(id: source.id, type: source.mediaType) == .iCloudDrive,
+                  let driveFile = iCloudDriveFileURL(id: source.id, type: source.mediaType),
+                  iCloudDrive.existsInAnyForm(driveFile) {
+            printDebug("loadMediaPreview create recordName=\(recordName) source=iCloudDriveFile")
+            let driveMedia = EncryptedMedia(source: .url(driveFile), mediaType: source.mediaType, id: source.id)
+            var preview = try await previewAccess.loadMediaPreview(for: driveMedia)
+            preview.isLivePhoto = media.mediaType == .livePhoto
+            return preview
         } else {
             printDebug("loadMediaPreview fetch recordName=\(recordName) reason=missingLocalFile")
             do {
@@ -535,11 +798,56 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     // MARK: - Delete (hard delete + cross-device propagation)
 
+    /// Deletes each component where the index places it. A `.cloudKit` component's
+    /// record goes through the coordinator's delete queue. A `.iCloudDrive`
+    /// component has no record: its file is removed from the album's linked
+    /// iCloud Drive folder in every form, then its index component, size and,
+    /// once no component of the media is left, its preview. A `.cloudKit`
+    /// component whose file is still in the folder loses that file too, so a
+    /// folder scan never indexes the deleted media again.
+    ///
+    /// The media leave the album's iCloud Drive migration plan before any file is
+    /// removed, so a blob migration pass never uploads them. A delete that leaves
+    /// the plan nothing to move ends the album's move (`ICloudDriveAlbumFinish`),
+    /// unless a pass is running, which ends it when it finishes.
+    ///
+    /// - Throws: `ICloudDriveItemDeleteError.folderUnavailable`, before anything is
+    ///   deleted, when a component is on iCloud Drive and the folder cannot be
+    ///   reached or its marker does not name the album.
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
+        var onICloudDrive: Set<String> = []
+        for interactable in media {
+            for item in interactable.underlyingMedia
+            where await componentLocation(id: item.id, type: item.mediaType) == .iCloudDrive {
+                onICloudDrive.insert(Self.componentRecordName(mediaID: item.id, type: item.mediaType))
+            }
+        }
+        let folder: URL?
+        switch verifiedICloudDriveFolder() {
+        case .success(let verified): folder = verified
+        case .failure(let skip):
+            guard onICloudDrive.isEmpty else {
+                printDebug("delete REFUSED albumID=\(albumID) onICloudDrive=\(onICloudDrive.count) reason=\(skip.reason)")
+                throw ICloudDriveItemDeleteError.folderUnavailable(skip.reason)
+            }
+            folder = nil
+        }
+        let deletedIDs = Set(media.flatMap { $0.underlyingMedia.map(\.id) })
+        let plan = await removeFromICloudDriveMigrationPlan(deletedIDs)
+
+        var removedFromFolder = false
         for interactable in media {
             for item in interactable.underlyingMedia {
                 let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
                 printDebug("delete start recordName=\(recordName) albumID=\(albumID)")
+
+                if let folder, onICloudDrive.contains(recordName) {
+                    try removeICloudDriveFile(id: item.id, type: item.mediaType, in: folder)
+                    removedFromFolder = true
+                    try await coordinator.removeICloudDriveComponent(recordName: recordName, albumID: albumID)
+                    printDebug("delete ok recordName=\(recordName) location=iCloudDrive")
+                    continue
+                }
 
                 // Drop any durable copy still waiting to upload first, so a
                 // delete cannot leave an orphan in the holding folder that the
@@ -562,8 +870,62 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                     let existed = FileManager.default.fileExists(atPath: localURL.path)
                     printDebug("delete ok recordName=\(recordName) localCopyRemoved=false stillPresent=\(existed) raw=\(error)")
                 }
+                if let folder {
+                    do {
+                        if try removeICloudDriveFile(id: item.id, type: item.mediaType, in: folder) {
+                            removedFromFolder = true
+                        }
+                    } catch {
+                        printDebug("delete WARNING recordName=\(recordName) — its iCloud Drive file could not be removed raw=\(error)")
+                    }
+                }
             }
         }
+
+        if removedFromFolder, let folder, let plan, !plan.hasRemainingWork {
+            await Self.finishUnlessPassRuns(albumID: albumID, folder: folder, plan: plan, finish: finishAlbum)
+        }
+    }
+
+    /// The album's linked iCloud Drive folder, once its own marker names the album.
+    private func verifiedICloudDriveFolder() -> Result<URL, ICloudDriveFolderScanner.Skip> {
+        ICloudDriveFolderScanner.verifiedFolder(albumID: albumID,
+                                                isICloudDriveAvailable: iCloudDrive.isICloudDriveAvailable,
+                                                linkedFolder: iCloudDrive.linkedFolder,
+                                                markerConflictVersions: iCloudDrive.markerConflictVersions)
+    }
+
+    /// Removes the component's file from `folder` in every form, without
+    /// downloading an evicted one. Returns whether there was a file to remove.
+    @discardableResult
+    private func removeICloudDriveFile(id: String, type: MediaType, in folder: URL) throws -> Bool {
+        let url = folder.appendingPathComponent("\(id).\(type.encryptedFileExtension)", isDirectory: false)
+        let forms = iCloudDrive.fileSystem.existingForms(of: url)
+        for form in forms {
+            _ = try iCloudDrive.fileSystem.coordinatedRemove(form, expectedSize: nil)
+        }
+        return !forms.isEmpty
+    }
+
+    /// Drops the media from the album's iCloud Drive migration plan. Returns the
+    /// plan as saved, or nil when the album has none or it could not be saved.
+    private func removeFromICloudDriveMigrationPlan(_ mediaIDs: Set<String>) async -> MigrationPlan? {
+        guard MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: albumID) else { return nil }
+        do {
+            return try await MigrationPlanStore(iCloudDriveMigrationFrom: album, cloudKitAlbumID: albumID)
+                .remove(mediaIDs: mediaIDs)
+        } catch {
+            printDebug("delete planRemove FAILED albumID=\(albumID) mediaIDs=\(mediaIDs.count) raw=\(error)")
+            return nil
+        }
+    }
+
+    /// Ends the album's move, unless a blob migration pass is running for it.
+    @MainActor
+    private static func finishUnlessPassRuns(albumID: String, folder: URL, plan: MigrationPlan,
+                                             finish: @MainActor (URL, MigrationPlan) async -> Void) async {
+        guard !ICloudDriveBlobMigration.isRunning(albumID: albumID) else { return }
+        await finish(folder, plan)
     }
 
     /// Runs the background uploader until the queue has had a full chance to
@@ -610,20 +972,65 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         return repair
     }
 
-    /// Starts the repair for media an open just decrypted. The thumbnail is the
-    /// thumbnail source's (a Live Photo's photo), and it goes onto every
-    /// component record, since all of them carry the shared thumbnail.
+    /// Starts the repair for media an open just decrypted, wherever the read
+    /// found the bytes: a read served from the iCloud Drive file of an item that
+    /// has since reached CloudKit repairs its record like a CloudKit read. The
+    /// thumbnail is the thumbnail source's (a Live Photo's photo), and it goes onto
+    /// every component record, since all of them carry the shared thumbnail. A
+    /// component the index marks `.iCloudDrive` has no record, so it is never
+    /// written to; with no record at all, only the local preview is made.
     private func repairThumbnailIfMissing<T: MediaDescribing>(for media: InteractableMedia<T>,
                                                               decrypted: InteractableMedia<CleartextMedia>) {
         guard let source = decrypted.thumbnailSource else { return }
-        let recordNames = media.underlyingMedia.map {
-            Self.componentRecordName(mediaID: $0.id, type: $0.mediaType)
-        }
+        let components = media.underlyingMedia.map { (id: $0.id, type: $0.mediaType) }
         trackThumbnailRepair {
+            let recordNames = await self.recordNamesWithRecords(components)
+            guard !recordNames.isEmpty else {
+                await self.ensurePreview(mediaID: source.id) {
+                    try await self.createPreview(fromOpened: source)
+                }
+                return
+            }
             await self.attachThumbnailIfMissing(mediaID: source.id, recordNames: recordNames) {
                 try await self.createPreview(fromOpened: source)
             }
         }
+    }
+
+    /// The record names of `components`, leaving out those the index marks
+    /// `.iCloudDrive`: those have no record yet.
+    private func recordNamesWithRecords(_ components: [(id: String, type: MediaType)]) async -> [String] {
+        var recordNames: [String] = []
+        for component in components {
+            let recordName = Self.componentRecordName(mediaID: component.id, type: component.type)
+            if await componentLocation(id: component.id, type: component.type) == .iCloudDrive {
+                printDebug("thumbnailRepair skip recordName=\(recordName) reason=noRecordYet")
+            } else {
+                recordNames.append(recordName)
+            }
+        }
+        return recordNames
+    }
+
+    /// Makes the preview with `makePreview` when there is no preview file, and
+    /// announces it. Returns whether a preview file exists afterwards.
+    @discardableResult
+    private func ensurePreview(mediaID: String, makePreview: () async throws -> Void) async -> Bool {
+        let previewURL = directoryModel.previewURLForMedia(withID: mediaID)
+        guard !FileManager.default.fileExists(atPath: previewURL.path) else { return true }
+        do {
+            try await makePreview()
+        } catch {
+            printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) raw=\(error)")
+            return false
+        }
+        guard FileManager.default.fileExists(atPath: previewURL.path) else {
+            printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) — no preview file after creating it")
+            return false
+        }
+        NotificationCenter.default.post(name: .mediaPreviewDidChange, object: nil,
+                                        userInfo: [Notification.previewMediaIDKey: mediaID])
+        return true
     }
 
     /// Writes this device's preview onto each of `recordNames` that lacks a
@@ -652,21 +1059,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
         guard !candidates.isEmpty else { return }
 
+        guard await ensurePreview(mediaID: mediaID, makePreview: makePreview) else { return }
         let previewURL = directoryModel.previewURLForMedia(withID: mediaID)
-        if !FileManager.default.fileExists(atPath: previewURL.path) {
-            do {
-                try await makePreview()
-            } catch {
-                printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) raw=\(error)")
-                return
-            }
-            guard FileManager.default.fileExists(atPath: previewURL.path) else {
-                printDebug("thumbnailRepair preview FAILED mediaID=\(mediaID) — no preview file after creating it")
-                return
-            }
-            NotificationCenter.default.post(name: .mediaPreviewDidChange, object: nil,
-                                            userInfo: [Notification.previewMediaIDKey: mediaID])
-        }
 
         for recordName in candidates {
             do {
@@ -926,7 +1320,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             }
             return try metadata(ofChunkedHeader: headerBytes, recordName: recordName, fingerprintHint: info.keyFingerprint)
         }
-        let local = try await ensureLocalCiphertext(id: item.id, type: item.mediaType, progress: { _ in })
+        let local = try await resolveComponent(id: item.id, type: item.mediaType, progress: { _ in }).url
         return try await metadata(ofCiphertextAt: local, id: item.id, type: item.mediaType)
     }
 

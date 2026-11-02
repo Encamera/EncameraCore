@@ -120,6 +120,12 @@ public actor DiskFileAccess: DebugPrintable {
         await configure(for: album, albumManager: albumManager)
     }
 
+    /// An instance that only reads file metadata with `key`, for callers that hold
+    /// an album's key but no directory to configure.
+    init(key: PrivateKey) {
+        self.key = key
+    }
+
     public func configure(for album: Album, albumManager: AlbumManaging) async {
         self.key = album.key
         self.album = album
@@ -264,6 +270,9 @@ public actor DiskFileAccess: DebugPrintable {
                 let name = fileURL.lastPathComponent
                 if name == ".Trash" || name == AppConstants.previewDirectory || name == "thumbs" {
                     enumerator.skipDescendants()
+                    continue
+                }
+                if ICloudDriveAlbumMarkerFile.isMarkerFileName(name) {
                     continue
                 }
 

@@ -197,4 +197,31 @@ final class ICloudDriveLegacyContractTests: XCTestCase {
         XCTAssertNotEqual(DataStorageAvailabilityUtil.preselectedStorageSetting?.storageType, .icloud,
                           "and must never be the preselected default")
     }
+
+    // MARK: - The album marker file stays invisible to released builds
+
+    /// The encrypted file extensions released builds (2.10.0 and earlier) treat
+    /// as album content. Spelled out rather than read from `MediaType`, because
+    /// the shipped binaries keep these values even if this build's change.
+    private static let legacyMediaExtensions: Set<String> = ["encimage", "encvideo", "encpreview", "unknown"]
+
+    /// Released builds keep reading and writing iCloud Drive album folders while
+    /// the CloudKit migration runs, and they know nothing about the album marker
+    /// file. They pick album content by splitting a file name on "." and matching
+    /// the second non-empty piece against the media extensions, which is also how
+    /// an evicted `.<name>.icloud` placeholder is matched. As long as no piece of
+    /// the marker's name, materialized or evicted, is a media extension, those
+    /// builds never list, count, preview, key-stamp or import it.
+    func testMarkerFileNameIsOutsideLegacyMediaExtensions() {
+        XCTAssertEqual(ICloudDriveAlbumMarkerFile.fileName, ".encamera-cloudkit-album.json")
+        XCTAssertEqual(ICloudDriveAlbumMarkerFile.placeholderFileName, "..encamera-cloudkit-album.json.icloud")
+
+        for name in [ICloudDriveAlbumMarkerFile.fileName, ICloudDriveAlbumMarkerFile.placeholderFileName] {
+            let pieces = name.split(separator: ".").map { $0.lowercased() }
+            XCTAssertGreaterThan(pieces.count, 1, "\(name) has an extension")
+            XCTAssertEqual(pieces[1], "json", "the piece released builds match on for \(name)")
+            XCTAssertTrue(Set(pieces).isDisjoint(with: Self.legacyMediaExtensions),
+                          "\(name) must not carry a media extension released builds recognize")
+        }
+    }
 }
