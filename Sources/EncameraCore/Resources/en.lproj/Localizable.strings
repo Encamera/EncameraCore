@@ -1502,10 +1502,8 @@
 "CloudKitUpgrade.LaterMessage" = "You'll still be able to use Encamera, but your existing library won't benefit from the improved sync experience until you complete the upgrade.";
 "CloudKitUpgrade.LaterMaybeLater" = "Maybe later";
 "CloudKitUpgrade.LaterUpdateNow" = "Update now";
-"CloudKitUpgrade.ProgressTitle" = "Upgrading album %@ of %@";
-"CloudKitUpgrade.TimeLeft" = "About %@ left";
-"CloudKitUpgrade.AlmostDone" = "Almost done";
-"CloudKitUpgrade.KeepOpen" = "Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.";
+"CloudKitUpgrade.BackgroundTitle" = "Your albums are upgrading";
+"CloudKitUpgrade.BackgroundBody" = "The upgrade runs while Encamera is open, so keep the app open to finish sooner. Each album shows its progress in a banner at the top.";
 "CloudKitUpgrade.CompleteTitle" = "Upgrade complete";
 "CloudKitUpgrade.CompleteBody" = "Your photos will now sync faster and more reliably across your devices.";
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";

@@ -1485,8 +1485,10 @@ public enum L10n {
     }
     /// Albums included
     public static let albumsIncludedTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumsIncludedTitle", fallback: "Albums included")
-    /// Almost done
-    public static let almostDone = L10n.tr("Localizable", "CloudKitUpgrade.AlmostDone", fallback: "Almost done")
+    /// The upgrade runs while Encamera is open, so keep the app open to finish sooner. Each album shows its progress in a banner at the top.
+    public static let backgroundBody = L10n.tr("Localizable", "CloudKitUpgrade.BackgroundBody", fallback: "The upgrade runs while Encamera is open, so keep the app open to finish sooner. Each album shows its progress in a banner at the top.")
+    /// Your albums are upgrading
+    public static let backgroundTitle = L10n.tr("Localizable", "CloudKitUpgrade.BackgroundTitle", fallback: "Your albums are upgrading")
     /// Your photos will now sync faster and more reliably across your devices.
     public static let completeBody = L10n.tr("Localizable", "CloudKitUpgrade.CompleteBody", fallback: "Your photos will now sync faster and more reliably across your devices.")
     /// Upgrade complete
@@ -1505,8 +1507,6 @@ public enum L10n {
     public static let introSecurity = L10n.tr("Localizable", "CloudKitUpgrade.IntroSecurity", fallback: "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
     /// ./Encamera/Onboarding/CloudKitUpgrade - One-time upgrade of all iCloud Drive albums to CloudKit
     public static let introTitle = L10n.tr("Localizable", "CloudKitUpgrade.IntroTitle", fallback: "Faster, more reliable iCloud sync")
-    /// Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.
-    public static let keepOpen = L10n.tr("Localizable", "CloudKitUpgrade.KeepOpen", fallback: "Keep Encamera open until the upgrade finishes. You can switch apps, but don't force quit.")
     /// Maybe later
     public static let laterMaybeLater = L10n.tr("Localizable", "CloudKitUpgrade.LaterMaybeLater", fallback: "Maybe later")
     /// You'll still be able to use Encamera, but your existing library won't benefit from the improved sync experience until you complete the upgrade.
@@ -1517,16 +1517,8 @@ public enum L10n {
     public static let laterUpdateNow = L10n.tr("Localizable", "CloudKitUpgrade.LaterUpdateNow", fallback: "Update now")
     /// Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.
     public static let otherDevicesNeedUpdate = L10n.tr("Localizable", "CloudKitUpgrade.OtherDevicesNeedUpdate", fallback: "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.")
-    /// Upgrading album %@ of %@
-    public static func progressTitle(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitUpgrade.ProgressTitle", String(describing: p1), String(describing: p2), fallback: "Upgrading album %@ of %@")
-    }
     /// See how it works
     public static let seeHowItWorks = L10n.tr("Localizable", "CloudKitUpgrade.SeeHowItWorks", fallback: "See how it works")
-    /// About %@ left
-    public static func timeLeft(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitUpgrade.TimeLeft", String(describing: p1), fallback: "About %@ left")
-    }
   }
   public enum Common {
     /// Cancel
