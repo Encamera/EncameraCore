@@ -83,7 +83,9 @@ public actor InteractableMediaFileAccess: FileAccess {
             return try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
         }
 
-        let media: [InteractableMedia<EncryptedMedia>] = await enumerateMedia()
+        // Newest first by encryption date, as the gallery orders it; the
+        // permission check below counts back from the newest item.
+        let media = await enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: false)).map(\.media)
         guard !media.isEmpty else {
             return nil
         }

@@ -259,6 +259,41 @@ final class MediaBackendStrategyTests: XCTestCase {
         XCTAssertGreaterThan(store.fetchThumbnailCount, 0, "Cloud cover resolution must fetch the eager thumbnail from CloudKit")
     }
 
+    // MARK: - Default cover
+
+    func testDefaultCoverForCloudAlbumIsNewestEncryptedItem() async throws {
+        let album = makeAlbum(storage: .cloudKit)
+        let manager = makeManager(for: album)
+        let store = MockCloudKitMediaStore()
+        store.fetchThumbnailError = FileAccessError.couldNotLoadMedia
+        let cloud = await CloudKitFileAccess(album: album, albumManager: manager, store: store)
+
+        // Arrival order, oldest first, as a migration or a first full sync leaves it.
+        let base = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        let entries = ["oldest", "middle", "newest"].enumerated().map { offset, id in
+            MediaIndexEntry(id: id,
+                            hasPhotoComponent: true,
+                            hasVideoComponent: false,
+                            dateEncrypted: base.addingTimeInterval(Double(offset) * 86_400),
+                            dateTaken: base.addingTimeInterval(Double(offset) * 86_400),
+                            subtypeRawValue: MediaFilterOptions.stillImage.rawValue)
+        }
+        try await manager.mediaIndexStore(for: album).replace(with: entries)
+
+        let access = InteractableMediaFileAccess()
+        await access._testSetBackend(cloud, album: album)
+        await access.configure(for: album, albumManager: manager)
+
+        _ = try await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        let thumbnailFetches = store.callOrder.filter {
+            if case .fetchThumbnail = $0 { return true } else { return false }
+        }
+        XCTAssertEqual(thumbnailFetches.first,
+                       .fetchThumbnail(recordName: CloudKitFileAccess.componentRecordName(mediaID: "newest", type: .photo)),
+                       "With no chosen cover, the album tries its newest item first, as the gallery orders it")
+    }
+
     // MARK: - Conformance
 
     func testMediaBackendConformance() async {
@@ -270,4 +305,10 @@ final class MediaBackendStrategyTests: XCTestCase {
         XCTAssertTrue(mock is MediaBackendMock)
         XCTAssertTrue(facadeAsBackend is InteractableMediaFileAccess)
     }
+}
+
+private struct AllowAllPermissions: PurchasedPermissionManaging {
+    func isAllowedAccess(feature: AppFeature) -> Bool { true }
+    var hasEntitlement: Bool { true }
+    func hasLifetimeUnlimitedSubscription() async -> Bool { true }
 }
