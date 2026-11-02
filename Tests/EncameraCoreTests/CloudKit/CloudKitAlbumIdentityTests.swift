@@ -773,6 +773,26 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertFalse(harness.store.callOrder.contains { isSaveAlbum($0, source.albumID!) })
     }
 
+    /// The hidden-albums list covers both places a hidden flag lives: `album.json`
+    /// for a CloudKit album, and the name-keyed synced store for a local one.
+    func testHiddenAlbumsListsHiddenCloudKitAndLocalAlbumsOnly() throws {
+        let harness = try makeMetadataHarness(isHidden: true)
+        let manager = harness.manager
+        let hiddenLocal = try manager.create(name: "HiddenLocal-\(UUID().uuidString)", storageOption: .local)
+        let visibleLocal = try manager.create(name: "VisibleLocal-\(UUID().uuidString)", storageOption: .local)
+        defer {
+            try? FileManager.default.removeItem(at: hiddenLocal.storageURL)
+            try? FileManager.default.removeItem(at: visibleLocal.storageURL)
+        }
+        manager.setIsAlbumHidden(true, album: hiddenLocal)
+
+        let hidden = manager.hiddenAlbums()
+
+        XCTAssertTrue(hidden.contains { $0.albumID == harness.album.albumID }, "the hidden CloudKit album is listed")
+        XCTAssertTrue(hidden.contains { $0.id == hiddenLocal.id }, "the hidden local album is listed")
+        XCTAssertFalse(hidden.contains { $0.id == visibleLocal.id }, "a visible album is not listed")
+    }
+
     /// A local album keeps its cover in `AlbumsSyncedStore`, under its name.
     @MainActor
     func testMovingALocalAlbumsCoverItemToAnotherLocalAlbumFallsBackToTheDefaultCover() async throws {

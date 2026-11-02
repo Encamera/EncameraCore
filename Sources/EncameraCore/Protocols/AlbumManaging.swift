@@ -230,4 +230,13 @@ public extension AlbumManaging {
         guard getAlbumCoverImageId(album: album) == mediaID else { return }
         resetAlbumCover(album: album)
     }
+
+    /// Every hidden album on this device, whatever its storage: a CloudKit album's
+    /// hidden flag lives in its `album.json`, a local or iCloud Drive album's in the
+    /// name-keyed synced store. Sorted by name.
+    func hiddenAlbums() -> [Album] {
+        fetchAlbumsFromSources(includingHidden: true)
+            .filter { isAlbumHidden($0) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
 }
