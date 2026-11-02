@@ -135,7 +135,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
 
     func eraseActiveBackendMedia() async {
         do {
-            try await fileAccess.deleteAllMedia()
+            try await fileAccess.discardAllMediaForErase()
         } catch {
             printDebug("EraserUtils: could not delete active backend media: \(error)")
         }

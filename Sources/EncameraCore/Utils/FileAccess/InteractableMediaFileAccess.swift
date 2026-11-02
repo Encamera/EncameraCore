@@ -176,6 +176,14 @@ public actor InteractableMediaFileAccess: FileAccess {
         }
     }
 
+    public func discardAllMediaForErase() async throws {
+        if let backend {
+            try await backend.discardAllMediaForErase()
+        } else {
+            try await DiskFileAccess().deleteAllMedia()
+        }
+    }
+
     public func setKeyUUIDForExistingFiles() async throws {
         try await requireBackend().setKeyUUIDForExistingFiles()
     }

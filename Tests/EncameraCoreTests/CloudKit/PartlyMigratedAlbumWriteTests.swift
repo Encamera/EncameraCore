@@ -750,6 +750,26 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: prepared.folder.path), "once reachable, it goes")
     }
 
+    func testEraseDiscardEmptiesTheIndexAfterTheLinkedFolderIsGone() async throws {
+        let prepared = try await prepareAlbum(count: 2)
+        let access = await makeAccess(prepared)
+        // Erase All Data removes every linked folder before the album's own step.
+        _ = await albumDeletion.removeEveryLinkedFolder()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: prepared.folder.path), "precondition: the folder is gone")
+        do {
+            try await access.deleteAllMedia()
+            XCTFail("precondition: a per-item delete of iCloud Drive items without their folder is refused")
+        } catch ICloudDriveItemDeleteError.folderUnavailable {}
+
+        try await access.discardAllMediaForErase()
+
+        let remaining = await access.enumerate()
+        XCTAssertEqual(remaining.map(\.id), [], "the album lists no media")
+        let stored = await entries(prepared)
+        XCTAssertEqual(stored, [], "the stored index is empty")
+        XCTAssertEqual(store.deleteCalls, [], "the zone delete already took the records; none is deleted per item")
+    }
+
     func testDeletedPartlyMigratedAlbumDoesNotReturnOnRelaunch() async throws {
         let prepared = try await prepareAlbum(count: 2)
         let markerFile = try Data(contentsOf: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: prepared.folder))

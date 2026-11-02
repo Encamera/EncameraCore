@@ -254,6 +254,12 @@ public protocol MediaBackend: FileReader, FileWriter {
     /// silent delete, which is what the separate `delete` path is for.
     func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws
 
+    /// Erase All Data's step for the configured album. Runs after the erase has
+    /// already deleted the CloudKit zones and every linked iCloud Drive folder,
+    /// so a backend whose media lives there only drops its local record of it.
+    /// Defaults to `deleteAllMedia`.
+    func discardAllMediaForErase() async throws
+
     /// The item's encrypted metadata, as the lightbox's info sheet shows it.
     ///
     /// The key is resolved per item, the way opening the item resolves it: an item
@@ -292,4 +298,8 @@ extension FileAccess {
 
 public extension MediaBackend {
     var indexSyncIsNetworkBound: Bool { false }
+
+    func discardAllMediaForErase() async throws {
+        try await deleteAllMedia()
+    }
 }

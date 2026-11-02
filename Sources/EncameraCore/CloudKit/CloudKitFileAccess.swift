@@ -1181,6 +1181,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         printDebug("deleteAllMedia ok albumID=\(albumID) items=\(all.count)")
     }
 
+    /// Empties the album's index without per-item deletes. The erase has already
+    /// deleted the zones and the album's linked iCloud Drive folder; a per-item
+    /// delete here would be refused for every component still on iCloud Drive.
+    public func discardAllMediaForErase() async throws {
+        let count = (await indexStore.current())?.entries.count ?? 0
+        try await indexStore.replace(with: [])
+        printDebug("discardAllMediaForErase ok albumID=\(albumID) items=\(count)")
+    }
+
     public func enumerate() async -> [InteractableMedia<EncryptedMedia>] {
         let entries = (await indexStore.current())?.entries ?? []
         return entries.compactMap { materialize($0) }.sorted {
