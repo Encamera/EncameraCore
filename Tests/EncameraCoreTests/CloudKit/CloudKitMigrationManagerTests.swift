@@ -1011,10 +1011,9 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testFinalizeWritesDiscoveryMarkerAndRemovesSource() throws {
-        // Finalize pushes the album record via the global store provider, and with
-        // `cloudKitStorage` defaulting ON in DEBUG the real provider constructs a
-        // live CKContainer — which aborts the bare xctest process (no CloudKit
-        // entitlement). Bind the in-memory mock for the duration of this test.
+        // Finalize pushes the album record via the global store provider, and the
+        // real provider constructs a live CKContainer — which aborts the bare
+        // xctest process (no CloudKit entitlement). Bind the in-memory mock for the duration of this test.
         let priorMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
         defer { CloudKitStoreProvider.makeStore = priorMakeStore }
@@ -1086,9 +1085,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     // MARK: - iCloud Drive deprecation is unconditional
 
     func testCreateICloudDriveAlbumThrowsInAllBuildConfigurations() throws {
-        let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
 
         let keyManager = DemoKeyManager()
         keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
@@ -1104,9 +1100,6 @@ final class CloudKitMigrationManagerTests: XCTestCase {
     }
 
     func testMoveToICloudDriveThrowsInAllBuildConfigurations() async throws {
-        let prior = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: prior) }
 
         let keyManager = DemoKeyManager()
         keyManager.currentKey = PrivateKey(keyBytes: randomKey(), creationDate: Date())
@@ -2058,11 +2051,8 @@ extension CloudKitMigrationManagerTests {
                                         cloudStore: MockKeyValueStore())
         let priorMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in store }
-        let priorToggle = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         addTeardownBlock {
             CloudKitStoreProvider.makeStore = priorMakeStore
-            FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: priorToggle)
         }
         let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: dataStore)
         return TransportHarness(engine: CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store }),
@@ -2597,9 +2587,6 @@ extension CloudKitMigrationManagerTests {
     }
 
     private func withCloudKitStorageEnabled(_ body: () async throws -> Void) async rethrows {
-        let original = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: original) }
         try await body()
     }
 

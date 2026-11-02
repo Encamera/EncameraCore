@@ -28,7 +28,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
     private var touchedAlbumIDs: Set<String> = []
     private var deviceResourceState: FakeDeviceResourceState!
     private var blobCache: CloudKitBlobCache!
-    private var cloudKitStorageWasEnabled = false
     private var folderContents: FakeFolderContents!
     private var folderWatches: ICloudDriveFolderWatches!
     private var changeSources: [FakeFolderChangeSource] = []
@@ -52,7 +51,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         spy = VerifiedDeleteSpy()
         deviceResourceState = FakeDeviceResourceState()
         blobCache = CloudKitBlobCache(baseDir: scratch.appendingPathComponent("blob-cache", isDirectory: true))
-        cloudKitStorageWasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
         folderContents = FakeFolderContents()
         folderWatches = ICloudDriveFolderWatches()
         changeSources = []
@@ -68,7 +66,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
             MigrationPlanStore.removeICloudDriveMigrationPlan(cloudKitAlbumID: albumID)
         }
         touchedAlbumIDs = []
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: cloudKitStorageWasEnabled)
         iCloudStorageModel.testContainerRootOverride = nil
         ICloudPlaceholderName.testEvictedURLs = nil
         try? FileManager.default.removeItem(at: containerRoot)
@@ -570,7 +567,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
     }
 
     private func prepareLegacyVideo(store: CloudKitMediaStoring? = nil) async throws -> LegacyVideo {
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         let videoID = UUID().uuidString
         var plaintext = Data(count: SeekableEncryptedFormat.threshold + 1024 * 1024)
         plaintext.withUnsafeMutableBytes { _ = SecRandomCopyBytes(kSecRandomDefault, $0.count, $0.baseAddress!) }
@@ -937,9 +933,11 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertEqual(plan.items.map(\.state), [.pending, .pending], "the items stay pending, not failed")
         XCTAssertEqual(plan.lastFailure?.category, .quota)
 
-        // Still browsable and editable while paused. The rename's record save is
-        // left out: it would reach the real CloudKit container.
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
+        // Still browsable and editable while paused. The rename's record save goes
+        // to an in-memory store so it never reaches the real CloudKit container.
+        let previousMakeStore = CloudKitStoreProvider.makeStore
+        CloudKitStoreProvider.makeStore = { _ in InMemoryCloudKitMediaStore() }
+        defer { CloudKitStoreProvider.makeStore = previousMakeStore }
         XCTAssertTrue(albumManager.fetchAlbumsFromSources().contains { $0.id == cloudKitAlbum.id }, "the album is listed")
         for id in ids {
             let read = try await readSource(prepared, id)

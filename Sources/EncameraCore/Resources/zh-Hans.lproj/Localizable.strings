@@ -719,7 +719,6 @@
 "PaywallView.TermsOfService" = "服务条款";
 "AlbumDetailView.SortFilter.LivePhotos" = "实况照片";
 "PaywallView.Benefit.ChangeAppIcon" = "更换应用图标";
-"FeatureToggles.NewPaywallDescription" = "使用重新设计的付费墙替代经典购买界面";
 "PaywallView.BuiltByNames" = "Alex & Mihai";
 "PaywallView.EverythingYouGet" = "开通高级版可享受的全部功能";
 "Settings.BannersCleared" = "横幅广告已清除";
@@ -735,7 +734,6 @@
 "PaywallView.AlbumPreview.EightItems" = "8项";
 "AlbumDetailView.ClearFilters" = "清除筛选";
 "PaywallView.OneTimePayment" = "一次性付款";
-"FeatureToggles.NewPaywall" = "新付费墙";
 "PaywallView.PrivacyPolicy" = "隐私政策";
 "PaywallView.UnlimitedStorage" = "无限存储";
 "PaywallView.Benefit.ChangeAppIconDescription" = "让Encamera看起来像一个普通的应用";

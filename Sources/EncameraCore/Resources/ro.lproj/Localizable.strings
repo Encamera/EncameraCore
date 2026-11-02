@@ -739,7 +739,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PaywallView.TermsOfService" = "Termeni de utilizare";
 "AlbumDetailView.SortFilter.LivePhotos" = "Fotografii live";
 "PaywallView.Benefit.ChangeAppIcon" = "Schimbă pictograma aplicației";
-"FeatureToggles.NewPaywallDescription" = "Folosește noul ecran de plată în locul celui clasic de achiziție";
 "PaywallView.BuiltByNames" = "Alex & Mihai";
 "PaywallView.EverythingYouGet" = "Tot ce primești\ncu Premium";
 "Settings.BannersCleared" = "Bannere eliminate";
@@ -755,7 +754,6 @@ Este important să salvezi această cheie în caz că îți pierzi dispozitivul.
 "PaywallView.AlbumPreview.EightItems" = "8 articole";
 "AlbumDetailView.ClearFilters" = "Șterge filtrele";
 "PaywallView.OneTimePayment" = "PLATĂ UNICĂ";
-"FeatureToggles.NewPaywall" = "Nou paywall";
 "PaywallView.PrivacyPolicy" = "Politica de confidențialitate";
 "PaywallView.UnlimitedStorage" = "Stocare nelimitată";
 "PaywallView.Benefit.ChangeAppIconDescription" = "Fă ca Encamera să arate ca o aplicație normală";

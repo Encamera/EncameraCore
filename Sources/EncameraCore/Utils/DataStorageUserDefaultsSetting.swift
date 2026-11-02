@@ -40,10 +40,10 @@ public struct DataStorageAvailabilityUtil {
         case .local:
             return .available
         case .cloudKit:
-            guard FeatureToggle.isEnabled(feature: .cloudKitStorage) else {
-                return .unavailable(reason: "CloudKit storage is not enabled")
-            }
             let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-UITestMode"), arguments.contains("-CloudKitAccountUnavailable") {
+                return .unavailable(reason: L10n.noICloudAccountFoundOnThisDevice)
+            }
             let accountForcedAvailable = arguments.contains("-UITestMode")
                 && arguments.contains("-CloudKitAccountAvailable")
             if !accountForcedAvailable, FileManager.default.ubiquityIdentityToken == nil {

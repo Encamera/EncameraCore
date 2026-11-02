@@ -32,7 +32,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
     private var keyCache: BlobMigrationKeyCache!
     private var notifications: NotificationCenter!
     private var touchedAlbumIDs: Set<String> = []
-    private var cloudKitStorageWasEnabled = false
     private var debugLogWasCapturing = false
 
     override func setUpWithError() throws {
@@ -52,8 +51,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
         materializer = FakeICloudDriveMaterializer()
         keyCache = BlobMigrationKeyCache()
         notifications = NotificationCenter()
-        cloudKitStorageWasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         debugLogWasCapturing = DebugLogBuffer.shared.isCapturing
         MigrationReencryptScratch.sweepLeftovers()
     }
@@ -66,7 +63,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
             MigrationPlanStore.removeICloudDriveMigrationPlan(cloudKitAlbumID: albumID)
         }
         touchedAlbumIDs = []
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: cloudKitStorageWasEnabled)
         DebugLogBuffer.shared.setCapturing(debugLogWasCapturing)
         iCloudStorageModel.testContainerRootOverride = nil
         ICloudPlaceholderName.testEvictedURLs = nil

@@ -31,11 +31,8 @@ final class CloudKitMigrationRenameTests: XCTestCase {
         let boundStore = store!
         let priorMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in boundStore }
-        let priorToggle = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         addTeardownBlock {
             CloudKitStoreProvider.makeStore = priorMakeStore
-            FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: priorToggle)
         }
     }
 

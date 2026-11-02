@@ -498,9 +498,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
 
     func testWiFiReturnStartsSkippedAlbumStep() async throws {
         let drive = try await makeDriveAlbum()
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let onWiFi = WiFiFlag()
         let center = NotificationCenter()
         let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true },
@@ -538,9 +535,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
 
     func testWiFiReturnRerunsAlbumStepAUserMoveSkipped() async throws {
         let drive = try await makeDriveAlbum()
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let onWiFi = WiFiFlag()
         onWiFi.value = true
         let center = NotificationCenter()
@@ -565,9 +559,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
 
     func testOfflineSkipWaitsForWiFi() async throws {
         let drive = try await makeDriveAlbum()
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { false },
                                                         isOnUnmeteredNetwork: { false }),
                                       albumFolders: { [drive.folder] })

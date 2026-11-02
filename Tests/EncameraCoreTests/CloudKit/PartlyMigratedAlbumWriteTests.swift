@@ -48,7 +48,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
     private var deletedAlbumsSuite: String!
     private var albumDeletion: ICloudDriveAlbumDeletion!
     private var previousMakeStore: (@Sendable (String) -> CloudKitMediaStoring)!
-    private var previousCloudKitStorage = false
     private var touchedAlbumIDs: Set<String> = []
 
     override func setUpWithError() throws {
@@ -81,7 +80,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
         previousMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in store }
         CloudKitSyncCoordinator.resetShared()
-        previousCloudKitStorage = FeatureToggle.isEnabled(feature: .cloudKitStorage)
     }
 
     override func tearDownWithError() throws {
@@ -93,7 +91,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
         touchedAlbumIDs = []
         CloudKitStoreProvider.makeStore = previousMakeStore
         CloudKitSyncCoordinator.resetShared()
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: previousCloudKitStorage)
         UserDefaults().removePersistentDomain(forName: deletedAlbumsSuite)
         iCloudStorageModel.testContainerRootOverride = nil
         ICloudPlaceholderName.testEvictedURLs = nil
@@ -592,7 +589,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
     }
 
     func testRenameDuringMigrationChangesRecordAndMarkerOnly() async throws {
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         let prepared = try await prepareAlbum(count: 2)
         let folderBefore = try folderSnapshot(prepared)
         let markerFileBefore = try Data(contentsOf: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: prepared.folder))
@@ -642,7 +638,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
     }
 
     func testHideAndCoverDuringMigrationAreAllowed() async throws {
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         let prepared = try await prepareAlbum(count: 2)
         let access = await makeAccess(prepared)
         let cover = try await savePhoto(access)

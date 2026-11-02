@@ -1889,10 +1889,6 @@ public enum L10n {
     public static let appIconSelection = L10n.tr("Localizable", "FeatureToggles.AppIconSelection", fallback: "App Icon Selection")
     /// Enable custom app icon selection
     public static let appIconSelectionDescription = L10n.tr("Localizable", "FeatureToggles.AppIconSelectionDescription", fallback: "Enable custom app icon selection")
-    /// CloudKit Storage
-    public static let cloudKitStorage = L10n.tr("Localizable", "FeatureToggles.CloudKitStorage", fallback: "CloudKit Storage")
-    /// Use CloudKit instead of iCloud Drive for cloud albums (in development)
-    public static let cloudKitStorageDescription = L10n.tr("Localizable", "FeatureToggles.CloudKitStorageDescription", fallback: "Use CloudKit instead of iCloud Drive for cloud albums (in development)")
     /// Debug Remote Content
     public static let debugRemoteContent = L10n.tr("Localizable", "FeatureToggles.DebugRemoteContent", fallback: "Debug Remote Content")
     /// Enable debugging for remote CMS content
@@ -1921,10 +1917,6 @@ public enum L10n {
     public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Hide album from main view
     public static let hideAlbumDescription = L10n.tr("Localizable", "FeatureToggles.HideAlbumDescription", fallback: "Hide album from main view")
-    /// New Paywall
-    public static let newPaywall = L10n.tr("Localizable", "FeatureToggles.NewPaywall", fallback: "New Paywall")
-    /// Use the redesigned paywall instead of the classic purchase screen
-    public static let newPaywallDescription = L10n.tr("Localizable", "FeatureToggles.NewPaywallDescription", fallback: "Use the redesigned paywall instead of the classic purchase screen")
     /// Recovery Key
     public static let recoveryPhrase = L10n.tr("Localizable", "FeatureToggles.RecoveryPhrase", fallback: "Recovery Key")
     /// Enable recovery key feature

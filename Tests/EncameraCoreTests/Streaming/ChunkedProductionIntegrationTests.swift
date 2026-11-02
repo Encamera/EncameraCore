@@ -85,14 +85,14 @@ final class ChunkedProductionIntegrationTests: XCTestCase {
 
     func testChunkingPolicyMatrix() {
         let threshold = Int64(SeekableEncryptedFormat.threshold)
-        XCTAssertTrue(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold, storageType: .cloudKit))
-        XCTAssertTrue(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold + 1, storageType: .local))
-        XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold - 1, storageType: .cloudKit))
-        XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .photo, plaintextLength: threshold * 4, storageType: .cloudKit))
+        XCTAssertTrue(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .video, plaintextLength: threshold, storageType: .cloudKit))
+        XCTAssertTrue(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .video, plaintextLength: threshold + 1, storageType: .local))
+        XCTAssertFalse(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .video, plaintextLength: threshold - 1, storageType: .cloudKit))
+        XCTAssertFalse(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .photo, plaintextLength: threshold * 4, storageType: .cloudKit))
         // iCloud Drive is excluded: an ENC3 file synced to a device on an older
         // app version would be unreadable there.
-        XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold * 4, storageType: .icloud))
-        XCTAssertFalse(VideoChunkingPolicy.appliesIgnoringToggle(mediaType: .video, plaintextLength: threshold * 4, storageType: nil))
+        XCTAssertFalse(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .video, plaintextLength: threshold * 4, storageType: .icloud))
+        XCTAssertFalse(VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: .video, plaintextLength: threshold * 4, storageType: nil))
     }
 
     // MARK: - uploadChunks (the production upload)

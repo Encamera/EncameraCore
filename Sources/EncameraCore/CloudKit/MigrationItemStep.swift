@@ -406,7 +406,6 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
     /// over the chunking threshold.
     private static func needsReencryption(_ item: MigrationItem, at encURL: URL) -> Bool {
         item.mediaType == .video
-            && FeatureToggle.isEnabled(feature: .cloudKitStorage)
             && item.sizeBytes >= Int64(SeekableEncryptedFormat.threshold)
             && !SeekableEncryptedHeader.isSeekableFormat(fileURL: encURL)
     }

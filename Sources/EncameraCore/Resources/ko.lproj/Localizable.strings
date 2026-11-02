@@ -742,7 +742,6 @@
 "PaywallView.TermsOfService" = "서비스 약관";
 "AlbumDetailView.SortFilter.LivePhotos" = "라이브 포토";
 "PaywallView.Benefit.ChangeAppIcon" = "앱 아이콘 변경";
-"FeatureToggles.NewPaywallDescription" = "기존 구매 화면 대신 새로 디자인된 결제 화면 사용";
 "PaywallView.BuiltByNames" = "알렉스 & 미하이";
 "PaywallView.EverythingYouGet" = "프리미엄에서\n얻을 수 있는 모든 것";
 "Settings.BannersCleared" = "배너 제거됨";
@@ -758,7 +757,6 @@
 "PaywallView.AlbumPreview.EightItems" = "8개 항목";
 "AlbumDetailView.ClearFilters" = "필터 초기화";
 "PaywallView.OneTimePayment" = "일회성 결제";
-"FeatureToggles.NewPaywall" = "새 결제벽";
 "PaywallView.PrivacyPolicy" = "개인정보 처리방침";
 "PaywallView.UnlimitedStorage" = "무제한 저장 공간";
 "PaywallView.Benefit.ChangeAppIconDescription" = "Encamera를 일반 앱처럼 보이게 하세요";

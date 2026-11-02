@@ -20,8 +20,7 @@
 //  marker monitor starts. Once any album step has skipped for want of Wi-Fi
 //  (`ICloudDriveAlbumMigration.didWaitForWiFi`), whether this actor's run or a
 //  user's move, the migration runs again at the next
-//  `NetworkMonitor.pathDidChange`. It is gated on the
-//  `cloudKitStorage` feature and never awaited by launch.
+//  `NetworkMonitor.pathDidChange`. It is never awaited by launch.
 //
 //  The walk itself is not held for Wi-Fi. On a device that has the folder, album
 //  sync adopts the `EncAlbum` on its own and the album list then hides the
@@ -248,8 +247,8 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     @discardableResult
     public func migrateICloudDriveAlbums() async -> Bool {
         guard let makeICloudDriveAlbumMigration else { return false }
-        guard isReadyToSync(), FeatureToggle.isEnabled(feature: .cloudKitStorage) else {
-            printDebug("migrateICloudDriveAlbums skip reason=\(isReadyToSync() ? "featureOff" : "awaitingCredentialRestore")")
+        guard isReadyToSync() else {
+            printDebug("migrateICloudDriveAlbums skip reason=awaitingCredentialRestore")
             return false
         }
         if let active = activeAlbumMigration {
@@ -297,14 +296,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
 
         let hasCloudKitAlbums = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .contains { $0.storageOption == .cloudKit }
-        let featureEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        guard featureEnabled || hasCloudKitAlbums else {
-            printDebug("performSyncAll skip reason=cloudKitPlaneInactive featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
-            albumsNeedingPrivateKey = 0
-            await LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
-            return
-        }
-        printDebug("performSyncAll start featureEnabled=\(featureEnabled) hasCloudKitAlbums=\(hasCloudKitAlbums)")
+        printDebug("performSyncAll start hasCloudKitAlbums=\(hasCloudKitAlbums)")
 
         // The reconcile still runs without a local CloudKit album (it adopts
         // albums other devices created), but only a check against an available

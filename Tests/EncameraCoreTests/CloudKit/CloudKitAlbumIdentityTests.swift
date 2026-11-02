@@ -373,11 +373,8 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         let store = MockCloudKitMediaStore()
         let priorMakeStore = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in store }
-        let priorToggle = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
         addTeardownBlock {
             CloudKitStoreProvider.makeStore = priorMakeStore
-            FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: priorToggle)
         }
         return MetadataHarness(manager: AlbumManager(keyManager: keyManager, syncedDataStore: dataStore),
                                store: store,

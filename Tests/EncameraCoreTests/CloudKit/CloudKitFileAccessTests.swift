@@ -367,17 +367,6 @@ final class CloudKitFileAccessTests: XCTestCase {
 
     // MARK: - Availability / regression guards
 
-    func testCloudKitUnavailableWhenFlagOff() {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
-
-        let availability = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: .cloudKit)
-        guard case .unavailable = availability else {
-            return XCTFail("cloudKit must be unavailable when the flag is off")
-        }
-    }
-
     func testLocalAndICloudModelsUnchanged() {
         XCTAssertTrue(StorageType.local.modelForType == LocalStorageModel.self)
         XCTAssertTrue(StorageType.icloud.modelForType == iCloudStorageModel.self)
@@ -474,14 +463,11 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
     }
 
-    func testCloudKitAlbumRoutesToCloudEvenWhenFlagOff() async throws {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
+    func testCloudKitAlbumRoutesToCloud() async throws {
         let shared = InMemoryCloudKitMediaStore()
         let previousProvider = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in shared }
         defer {
-            FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled)
             CloudKitStoreProvider.makeStore = previousProvider
         }
 
@@ -709,19 +695,12 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
     }
 
-    /// The delete path must NOT be gated on the `cloudKitStorage` flag:
-    /// `CloudKitAlbumsSync` keeps reconciling existing `.cloudKit` albums with the
-    /// flag off, so a flag-gated delete would queue nothing and the reconciler would
-    /// resurrect the album on the very device that deleted it.
-    func testDeleteRemovesCloudKitAlbumRecordEvenWhenFlagOff() async throws {
+    func testDeleteRemovesCloudKitAlbumRecord() async throws {
         let shared = InMemoryCloudKitMediaStore()
         let prev = CloudKitStoreProvider.makeStore
         CloudKitStoreProvider.makeStore = { _ in shared }
         defer { CloudKitStoreProvider.makeStore = prev }
 
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
 
         let album = makeAlbum()
         let hash = try XCTUnwrap(album.albumID)
@@ -745,7 +724,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
         let remaining = try await shared.fetchAllAlbums().filter { $0.albumID == hash }
         XCTAssertTrue(remaining.isEmpty,
-                      "Deleting a .cloudKit album with the flag off must still remove its EncAlbum record")
+                      "Deleting a .cloudKit album must remove its EncAlbum record")
     }
 
     /// A `syncAll` that joins an in-flight run may have missed the fetch/reconcile
@@ -2282,9 +2261,6 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     func testStreamingAChunkedVideoRepairsTheRecordThumbnail() async throws {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
         try await writeMovieAboveChunkingThreshold(to: movieURL)
         defer { try? FileManager.default.removeItem(at: movieURL) }
@@ -2325,9 +2301,6 @@ final class CloudKitFileAccessTests: XCTestCase {
     }
 
     func testStreamingAChunkedVideoWithoutAPreviewAnnouncesTheRepairedOne() async throws {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
         try await writeMovieAboveChunkingThreshold(to: movieURL)
         defer { try? FileManager.default.removeItem(at: movieURL) }
@@ -2475,9 +2448,6 @@ final class CloudKitFileAccessTests: XCTestCase {
     private func saveChunkedVideoWithPreviewGoneAtDrain(
         writeMovie: (URL) async throws -> Void
     ) async throws -> (saved: SavedWithoutThumbnail, recordName: String) {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-        addTeardownBlock { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
         let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("nothumb-chunked-\(UUID().uuidString).mov")
         try await writeMovie(movieURL)
         addTeardownBlock { try? FileManager.default.removeItem(at: movieURL) }

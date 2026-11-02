@@ -739,7 +739,6 @@
 "PaywallView.TermsOfService" = "利用規約";
 "AlbumDetailView.SortFilter.LivePhotos" = "ライブフォト";
 "PaywallView.Benefit.ChangeAppIcon" = "アプリアイコンを変更";
-"FeatureToggles.NewPaywallDescription" = "従来の購入画面の代わりに再設計されたペイウォールを使用する";
 "PaywallView.BuiltByNames" = "アレックス＆ミハイ";
 "PaywallView.EverythingYouGet" = "プレミアムで\n手に入るすべて";
 "Settings.BannersCleared" = "バナーをクリアしました";
@@ -755,7 +754,6 @@
 "PaywallView.AlbumPreview.EightItems" = "8項目";
 "AlbumDetailView.ClearFilters" = "フィルターをクリア";
 "PaywallView.OneTimePayment" = "一括払い";
-"FeatureToggles.NewPaywall" = "新しいペイウォール";
 "PaywallView.PrivacyPolicy" = "プライバシーポリシー";
 "PaywallView.UnlimitedStorage" = "無制限ストレージ";
 "PaywallView.Benefit.ChangeAppIconDescription" = "Encameraを普通のアプリのように見せる";

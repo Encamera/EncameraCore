@@ -872,7 +872,6 @@
 "PaywallView.TermsOfService" = "Términos de servicio";
 "AlbumDetailView.SortFilter.LivePhotos" = "Fotos en vivo";
 "PaywallView.Benefit.ChangeAppIcon" = "Cambiar ícono de la aplicación";
-"FeatureToggles.NewPaywallDescription" = "Usar la pantalla de pago rediseñada en lugar de la clásica pantalla de compra";
 "PaywallView.BuiltByNames" = "Alex y Mihai";
 "PaywallView.EverythingYouGet" = "Todo lo que obtienes\ncon Premium";
 "Settings.BannersCleared" = "Banners eliminados";
@@ -888,7 +887,6 @@
 "PaywallView.AlbumPreview.EightItems" = "8 artículos";
 "AlbumDetailView.ClearFilters" = "Borrar filtros";
 "PaywallView.OneTimePayment" = "PAGO ÚNICO";
-"FeatureToggles.NewPaywall" = "Nuevo muro de pago";
 "PaywallView.PrivacyPolicy" = "Política de privacidad";
 "PaywallView.UnlimitedStorage" = "Almacenamiento ilimitado";
 "PaywallView.Benefit.ChangeAppIconDescription" = "Haz que Encamera parezca una aplicación normal";

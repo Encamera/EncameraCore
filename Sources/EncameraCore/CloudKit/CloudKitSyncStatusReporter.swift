@@ -119,7 +119,7 @@ public final class CloudKitSyncStatusReporter: ObservableObject {
     }
 
     /// Called only once a reconcile has decided it really will talk to CloudKit
-    /// — a pass that short-circuits on the feature flag, the credential wait, a
+    /// — a pass that short-circuits on the credential wait, a
     /// missing iCloud account or the absence of any CloudKit album never
     /// reports, so it neither flashes the bar nor claims a sync.
     public func reportCheckStarted() {

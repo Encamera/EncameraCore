@@ -375,50 +375,6 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0)
     }
 
-    /// The CloudKit plane going inactive has to clear the banner too. `report`
-    /// is the only writer of the observable, and it sits below the skip guard,
-    /// so a count from a flag-on period used to stand for the rest of the
-    /// process — naming albums the reconciler had stopped looking for.
-    @MainActor
-    func testLockedOutCountClearsWhenTheCloudKitPlaneGoesInactive() async {
-        let wasEnabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        defer { FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: wasEnabled) }
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: true)
-
-        LockedAlbumsReporter.shared.report(lockedAlbumCount: 0)
-
-        let keyManager = DemoKeyManager()
-        keyManager.storedKeysValue = [makeKey(1)]
-        keyManager.currentKey = keyManager.storedKeysValue.first
-        let albumManager = MockAlbumManager(keyManager: keyManager)
-        albumManager.albumsOnDisk = []
-
-        let store = MockCloudKitMediaStore()
-        store.seedAlbum(remoteRecord(name: "Remote", key: makeKey(9)))
-        let queue = freshDeleteQueue()
-        let registry = freshPublishRegistry()
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false, makeReconciler: { manager in
-            CloudKitAlbumReconciler(store: store,
-                                    keyManager: manager.keyManager,
-                                    albumManager: manager,
-                                    deleteQueue: queue,
-                                    publishRegistry: registry)
-        })
-
-        await sync.syncAll()
-        var reported = await sync.albumsNeedingPrivateKey
-        XCTAssertEqual(reported, 1, "the unreadable remote album is counted while the plane is active")
-        XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 1)
-
-        FeatureToggle.setEnabled(feature: .cloudKitStorage, enabled: false)
-        await sync.syncAll()
-
-        reported = await sync.albumsNeedingPrivateKey
-        XCTAssertEqual(reported, 0)
-        XCTAssertEqual(LockedAlbumsReporter.shared.lockedAlbumCount, 0,
-                       "a skipped run must not leave the grid claiming albums are locked out")
-    }
-
     func test_reconcile_noOpWhenAccountUnavailable() async {
         let key = makeKey(5)
         let local = localAlbum("Offline", key: key)

@@ -724,7 +724,6 @@
 "PaywallView.TermsOfService" = "شروط الخدمة";
 "AlbumDetailView.SortFilter.LivePhotos" = "الصور الحية";
 "PaywallView.Benefit.ChangeAppIcon" = "تغيير أيقونة التطبيق";
-"FeatureToggles.NewPaywallDescription" = "استخدم شاشة الدفع المعاد تصميمها بدلاً من شاشة الشراء الكلاسيكية";
 "PaywallView.BuiltByNames" = "أليكس وميهاي";
 "PaywallView.EverythingYouGet" = "كل ما تحصل عليه\nمع البريميوم";
 "Settings.BannersCleared" = "تمت إزالة اللافتات";
@@ -740,7 +739,6 @@
 "PaywallView.AlbumPreview.EightItems" = "8 عناصر";
 "AlbumDetailView.ClearFilters" = "مسح الفلاتر";
 "PaywallView.OneTimePayment" = "دفع لمرة واحدة";
-"FeatureToggles.NewPaywall" = "جدار دفع جديد";
 "PaywallView.PrivacyPolicy" = "سياسة الخصوصية";
 "PaywallView.UnlimitedStorage" = "تخزين غير محدود";
 "PaywallView.Benefit.ChangeAppIconDescription" = "اجعل تطبيق Encamera يبدو كتطبيق عادي";

@@ -13,26 +13,11 @@ import Foundation
 public enum VideoChunkingPolicy {
 
     /// The one rule: `mediaType == .video` AND plaintext size ≥ the ENC3
-    /// threshold AND the album's backend supports ENC3 AND `cloudKitStorage` is
-    /// on. Photos, Live Photo movie components (~2-4 MB), and small videos are
-    /// untouched by construction.
-    ///
-    /// The chunked format exists to make CloudKit videos streamable, so it rides
-    /// the same toggle rather than carrying one of its own.
+    /// threshold AND the album's backend supports ENC3. Photos, Live Photo movie
+    /// components (~2-4 MB), and small videos are untouched by construction.
     public static func shouldWriteSeekableFormat(mediaType: MediaType,
                                                  plaintextLength: Int64,
                                                  storageType: StorageType?) -> Bool {
-        guard FeatureToggle.isEnabled(feature: .cloudKitStorage) else { return false }
-        return appliesIgnoringToggle(mediaType: mediaType,
-                                     plaintextLength: plaintextLength,
-                                     storageType: storageType)
-    }
-
-    /// The toggle-independent half, split out so the matrix is unit-testable
-    /// without mutating shared UserDefaults.
-    static func appliesIgnoringToggle(mediaType: MediaType,
-                                      plaintextLength: Int64,
-                                      storageType: StorageType?) -> Bool {
         guard mediaType == .video else { return false }
         guard plaintextLength >= Int64(SeekableEncryptedFormat.threshold) else { return false }
         switch storageType {

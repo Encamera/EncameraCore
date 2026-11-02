@@ -12,9 +12,8 @@ public enum AlbumError: Error, CustomStringConvertible, Equatable {
     case albumExists
     case albumNotFoundAtSourceLocation
     case noCurrentKeySet
-    /// iCloud Drive album storage is deprecated. Once the CloudKit feature flag is on,
-    /// no new `.icloud` albums may be created or moved into — CloudKit is the only
-    /// cloud-backed option going forward.
+    /// iCloud Drive album storage is deprecated: no new `.icloud` albums may be
+    /// created or moved into — CloudKit is the only cloud-backed option.
     case iCloudDriveDeprecated
     /// Moving an album to CloudKit is a resumable, long-running upload — it must go
     /// through `CloudKitMigrationManager`, never the synchronous `moveAlbum`.
@@ -629,13 +628,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// since; a failed one leaves it for `CloudKitAlbumReconciler` to retry. No-op for
     /// non-CloudKit albums, albums with no marker, and when CloudKit is unavailable
     /// (the store guards on account status, so the `try?` discards that error).
-    ///
-    /// Gated on the `cloudKitStorage` feature: `EncAlbum` records only matter when the
-    /// CloudKit plane is active, and the gate keeps a real `CloudKitMediaStore` (which
-    /// touches the live container) from being constructed in flag-off contexts.
     private func pushCloudKitAlbumRecord(_ album: Album) {
-        guard FeatureToggle.isEnabled(feature: .cloudKitStorage),
-              album.storageOption == .cloudKit,
+        guard album.storageOption == .cloudKit,
               let albumID = album.albumID,
               let marker = CloudKitAlbumMarker.read(albumID: albumID) else { return }
         let pushed = Album(encryptedName: marker.encName, storageOption: .cloudKit,
@@ -671,12 +665,6 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// The record's media parent to it with `.deleteSelf`, so this reclaims their
     /// blobs too — which the old soft delete never did, because `.deleteSelf`
     /// cascades on a real delete only.
-    ///
-    /// Deliberately NOT gated on the `cloudKitStorage` feature: a `.cloudKit` album
-    /// only exists from a flag-on period, and `CloudKitAlbumsSync.performSyncAll`
-    /// keeps reconciling such albums with the flag off — a flag gate here would let
-    /// the reconciler resurrect a flag-off delete (nothing queued, record still
-    /// live). Both paths share the same predicate: `.cloudKit` albums always sync.
     ///
     /// The album's iCloud Drive half goes first
     /// (`ICloudDriveAlbumDeletion.removeICloudDriveHalf`): a blob migration item in

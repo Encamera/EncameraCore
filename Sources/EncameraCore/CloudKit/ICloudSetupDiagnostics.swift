@@ -205,7 +205,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         .init(id: "ck.userRecord",           title: "CloudKit user record",               section: .account),
         .init(id: "drive.ubiquityContainer", title: "iCloud Drive container",             section: .account),
 
-        .init(id: "app.cloudKitToggle",      title: "CloudKit storage feature toggle",    section: .appConfig),
         .init(id: "app.storageAvailability", title: "App's own iCloud availability verdict", section: .appConfig),
         .init(id: "app.encryptionKey",       title: "Encryption key available",           section: .appConfig),
         .init(id: "app.entitlement",         title: "Premium entitlement",                section: .appConfig),
@@ -281,7 +280,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         await emit(await userRecordProbe(accountUsable: accountUsable))
         await emit(await ubiquityContainerProbe())
 
-        await emit(cloudKitToggleProbe())
         await emit(storageAvailabilityProbe())
         await emit(encryptionKeyProbe())
         await emit(await entitlementProbe())
@@ -639,61 +637,6 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
 
     // MARK: - Section: App Configuration
 
-    /// Reports the effective toggle AND the value a build of this configuration
-    /// would use with no override.
-    ///
-    /// Reporting only the effective value is actively misleading here: a debug
-    /// build defaults it ON and a UI test forces it ON, so the probe would say
-    /// "ON" on the very device whose release build has it OFF. The build default
-    /// is what a shipped app actually does, so it gets stated explicitly and an
-    /// explicit override is called out as an override.
-    private func cloudKitToggleProbe() -> ICloudDiagnosticProbe {
-        let enabled = FeatureToggle.isEnabled(feature: .cloudKitStorage)
-        let hasOverride: Bool = UserDefaultUtils
-            .boolNullable(forKey: .featureToggle(feature: .cloudKitStorage)) != nil
-        let buildDefault = Feature.cloudKitStorage.defaultValue ?? false
-
-        var detail = """
-        effective=\(enabled)
-        explicitOverridePresent=\(hasOverride)
-        buildDefault=\(buildDefault)
-        """
-        #if DEBUG
-        detail += "\nbuildConfiguration=Debug — cloudKitStorage.defaultValue is true here"
-        #else
-        detail += "\nbuildConfiguration=Release — cloudKitStorage.defaultValue is nil, so isEnabled() falls back to FALSE"
-        #endif
-        detail += "\n\nWith this OFF, DataStorageAvailabilityUtil reports .cloudKit unavailable and the "
-            + "storage picker never offers iCloud — regardless of account state. iCloud Drive is "
-            + "separately and unconditionally deprecated for new albums, so a build with this off has "
-            + "NO iCloud destination at all."
-
-        if !enabled {
-            return ICloudDiagnosticProbe(
-                id: "app.cloudKitToggle",
-                title: "CloudKit storage feature toggle",
-                section: .appConfig,
-                outcome: .fail,
-                summary: "cloudKitStorage is OFF — iCloud is not offered as a storage destination",
-                detail: detail)
-        }
-        if !buildDefault && hasOverride {
-            return ICloudDiagnosticProbe(
-                id: "app.cloudKitToggle",
-                title: "CloudKit storage feature toggle",
-                section: .appConfig,
-                outcome: .warn,
-                summary: "ON, but only via an explicit override — a build of this configuration defaults it OFF",
-                detail: detail)
-        }
-        return ICloudDiagnosticProbe(id: "app.cloudKitToggle",
-                                     title: "CloudKit storage feature toggle",
-                                     section: .appConfig,
-                                     outcome: .pass,
-                                     summary: "cloudKitStorage is ON (build default)",
-                                     detail: detail)
-    }
-
     /// What the app itself currently believes. Reported next to the raw account
     /// signals on purpose: when this says "available" while `ck.accountStatus`
     /// says otherwise, that gap IS the bug — the app offers iCloud and then every
@@ -708,7 +651,7 @@ public final class ICloudSetupDiagnostics: DebugPrintable {
         isStorageTypeOfferedForNewAlbums(.cloudKit)=\(cloudKitOffered)
         isStorageTypeAvailable(.icloud/Drive)=\(driveAvailable)
 
-        NOTE: this verdict is derived ONLY from the feature toggle and
+        NOTE: this verdict is derived ONLY from
         FileManager.ubiquityIdentityToken != nil. It does NOT consult CKAccountStatus,
         iCloud storage quota, or the per-app iCloud switch — so it can report
         'available' on a device that cannot actually save.
