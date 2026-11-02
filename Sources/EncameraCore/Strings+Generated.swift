@@ -2473,6 +2473,18 @@ public enum L10n {
     }
   }
   public enum Onboarding {
+    public enum DataLocation {
+      /// Synced across your Apple devices
+      public static let iCloudLabel = L10n.tr("Localizable", "Onboarding.DataLocation.iCloudLabel", fallback: "Synced across your Apple devices")
+      /// Choose where your encrypted photos and videos live, as well as your keys and credentials
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.DataLocation.subtitle", fallback: "Choose where your encrypted photos and videos live, as well as your keys and credentials")
+      /// Stored only on this device
+      public static let thisIPhoneLabel = L10n.tr("Localizable", "Onboarding.DataLocation.thisIPhoneLabel", fallback: "Stored only on this device")
+      /// This iPhone
+      public static let thisIPhoneTitle = L10n.tr("Localizable", "Onboarding.DataLocation.thisIPhoneTitle", fallback: "This iPhone")
+      /// Data location choice
+      public static let title = L10n.tr("Localizable", "Onboarding.DataLocation.title", fallback: "Where should your data be stored?")
+    }
     public enum Encryption {
       /// Before it's stored on your device or in iCloud
       public static let row1 = L10n.tr("Localizable", "Onboarding.Encryption.row1", fallback: "Before it's stored on your device or in iCloud")
@@ -2548,18 +2560,6 @@ public enum L10n {
       public static let notSignedInMessage = L10n.tr("Localizable", "Onboarding.RestorePurchases.NotSignedInMessage", fallback: "Sign in to the App Store in Settings, then try restoring again. You can continue setting up Encamera in the meantime.")
       /// Not signed in to the App Store
       public static let notSignedInTitle = L10n.tr("Localizable", "Onboarding.RestorePurchases.NotSignedInTitle", fallback: "Not signed in to the App Store")
-    }
-    public enum Storage {
-      /// Synced across your Apple devices
-      public static let iCloudLabel = L10n.tr("Localizable", "Onboarding.Storage.iCloudLabel", fallback: "Synced across your Apple devices")
-      /// Choose where your encrypted photos and videos live
-      public static let subtitle = L10n.tr("Localizable", "Onboarding.Storage.subtitle", fallback: "Choose where your encrypted photos and videos live")
-      /// Stored only on this device
-      public static let thisIPhoneLabel = L10n.tr("Localizable", "Onboarding.Storage.thisIPhoneLabel", fallback: "Stored only on this device")
-      /// This iPhone
-      public static let thisIPhoneTitle = L10n.tr("Localizable", "Onboarding.Storage.thisIPhoneTitle", fallback: "This iPhone")
-      /// Storage choice
-      public static let title = L10n.tr("Localizable", "Onboarding.Storage.title", fallback: "Where should your files be stored?")
     }
     public enum Story {
       /// Let's start

@@ -1550,12 +1550,12 @@
 "Onboarding.Encryption.row2" = "Only you can unlock your encrypted files";
 "Onboarding.Encryption.row3" = "Your recovery key is the only way to recover them if you lose access";
 
-/* Storage choice */
-"Onboarding.Storage.title" = "Where should your files be stored?";
-"Onboarding.Storage.subtitle" = "Choose where your encrypted photos and videos live";
-"Onboarding.Storage.iCloudLabel" = "Synced across your Apple devices";
-"Onboarding.Storage.thisIPhoneTitle" = "This iPhone";
-"Onboarding.Storage.thisIPhoneLabel" = "Stored only on this device";
+/* Data location choice */
+"Onboarding.DataLocation.title" = "Where should your data be stored?";
+"Onboarding.DataLocation.subtitle" = "Choose where your encrypted photos and videos live, as well as your keys and credentials";
+"Onboarding.DataLocation.iCloudLabel" = "Synced across your Apple devices";
+"Onboarding.DataLocation.thisIPhoneTitle" = "This iPhone";
+"Onboarding.DataLocation.thisIPhoneLabel" = "Stored only on this device";
 
 /* Ready */
 "Onboarding.Ready.title" = "You're ready to use Encamera";
