@@ -1008,6 +1008,7 @@
 "CloudKitMigration.MigrationBannerPausedAccountUnavailable" = "Paused until you sign in to iCloud in Settings.";
 "CloudKitMigration.MigrationBannerPausedSchemaNotDeployed" = "Paused until iCloud is ready for this version of Encamera. Make sure Encamera is up to date.";
 "CloudKitMigration.MigrationBannerPausedWaitingForWiFi" = "Paused until your iPhone is on Wi-Fi.";
+"CloudKitMigration.MigrationScreenKeepsAwake" = "Your iPhone stays awake while this screen is open and items are moving.";
 "CloudKitMigration.MigrationBannerQuotaTitle" = "iCloud storage full, paused";
 "CloudKitMigration.MigrationBannerQuotaSpaceNeeded" = "This album needs about %@ more iCloud storage to finish moving.";
 "CloudKitMigration.MigrationBannerQuotaSpaceUnknown" = "Free up iCloud storage to finish moving this album.";

@@ -1373,6 +1373,8 @@ public enum L10n {
     public static let migrationBannerQuotaSpaceUnknown = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceUnknown", fallback: "Free up iCloud storage to finish moving this album.")
     /// iCloud storage full, paused
     public static let migrationBannerQuotaTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaTitle", fallback: "iCloud storage full, paused")
+    /// Your iPhone stays awake while this screen is open and items are moving.
+    public static let migrationScreenKeepsAwake = L10n.tr("Localizable", "CloudKitMigration.MigrationScreenKeepsAwake", fallback: "Your iPhone stays awake while this screen is open and items are moving.")
     /// Move to This Device
     public static let moveToLocalAlertConfirm = L10n.tr("Localizable", "CloudKitMigration.MoveToLocalAlertConfirm", fallback: "Move to This Device")
     /// This downloads %@ %@ (%@) to this iPhone and then removes them from iCloud. The album will be removed from your other devices. Keep Encamera open until it finishes. Once the iCloud copies are being removed, the move can't be stopped.
