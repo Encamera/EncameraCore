@@ -63,7 +63,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         CloudKitSchema.EncAlbum.encName,
         CloudKitSchema.EncAlbum.isHidden,
         CloudKitSchema.EncAlbum.keyFingerprint,
-        CloudKitSchema.EncAlbum.coverMediaRef
+        CloudKitSchema.EncAlbum.coverMediaID
     ]
 
     /// Transport for chunked blobs (`EncBlobChunk` records in the blob zone).
@@ -266,13 +266,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             if let migrationInProgress = album.migrationInProgress {
                 record[CloudKitSchema.EncAlbum.migrationInProgress] = Int64(migrationInProgress ? 1 : 0) as CKRecordValue
             }
-            if let coverMediaID = album.coverMediaID {
-                let coverRecordName = MediaRecordName.componentRecordName(mediaID: coverMediaID, type: .photo)
-                let coverRecordID = CKRecord.ID(recordName: coverRecordName, zoneID: zoneID)
-                record[CloudKitSchema.EncAlbum.coverMediaRef] = CKRecord.Reference(recordID: coverRecordID, action: .none)
-            } else {
-                record[CloudKitSchema.EncAlbum.coverMediaRef] = nil
-            }
+            record[CloudKitSchema.EncAlbum.coverMediaID] = album.coverMediaID as CKRecordValue?
             _ = try await adapter.save(records: [record],
                                        savePolicy: .ifServerRecordUnchanged,
                                        perRecordProgress: { _, _ in })
@@ -461,12 +455,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let schemaVersion = (record[CloudKitSchema.EncAlbum.schemaVersion] as? Int64) ?? CloudKitSchema.currentSchemaVersion
         let keyFingerprint = record[CloudKitSchema.EncAlbum.keyFingerprint] as? String
         let migrationInProgress = ((record[CloudKitSchema.EncAlbum.migrationInProgress] as? Int64) ?? 0) != 0
-        let coverMediaID: String?
-        if let ref = record[CloudKitSchema.EncAlbum.coverMediaRef] as? CKRecord.Reference {
-            coverMediaID = MediaRecordName.mediaID(from: ref.recordID.recordName)
-        } else {
-            coverMediaID = nil
-        }
+        let coverMediaID = record[CloudKitSchema.EncAlbum.coverMediaID] as? String
         return CloudKitAlbumMetadata(albumID: record.recordID.recordName,
                                      encName: encName,
                                      createdAt: createdAt,

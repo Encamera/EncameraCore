@@ -641,7 +641,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                          createdAt: marker.createdAt,
                                          isHidden: marker.isHidden,
                                          keyFingerprint: albumFingerprint,
-                                         coverMediaID: marker.recordCoverMediaID)
+                                         coverMediaID: marker.coverMediaID)
         let store = CloudKitStoreProvider.makeStore(albumID)
         Task {
             guard (try? await store.saveAlbum(upload)) != nil else { return }

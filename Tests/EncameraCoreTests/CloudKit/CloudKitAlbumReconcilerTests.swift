@@ -1287,23 +1287,58 @@ final class CloudKitAlbumReconcilerTests: XCTestCase {
         XCTAssertEqual(saved.coverMediaID, "cover-5")
     }
 
-    func testADisabledCoverIsPushedAsNoCoverAndSurvivesTheRecordEcho() async throws {
+    func testADisabledCoverIsPushedAsTheDisabledSentinelAndSurvivesTheRecordEcho() async throws {
         let key = makeKey(5)
-        let album = try materializedAlbum("NoCover", key: key, coverMediaID: "none", dirty: true)
+        let album = try materializedAlbum("NoCover", key: key, coverMediaID: CloudKitAlbumMarker.disabledCoverID,
+                                          dirty: true)
         let store = MockCloudKitMediaStore()
         let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
 
         _ = await reconciler.reconcileAlbumsAfterWalk()
 
         XCTAssertEqual(store.savedAlbumCalls.count, 1)
-        XCTAssertNil(store.savedAlbumCalls.first?.coverMediaID)
+        XCTAssertEqual(store.savedAlbumCalls.first?.coverMediaID, CloudKitAlbumMarker.disabledCoverID,
+                       "the record carries the turned-off cover to other devices")
         XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.dirty, false)
 
-        store.changeSet = changeFeed(changedAlbums: [record(for: album, coverMediaID: nil)])
+        store.changeSet = changeFeed(changedAlbums: [record(for: album,
+                                                            coverMediaID: CloudKitAlbumMarker.disabledCoverID)])
         _ = await reconciler.reconcileAlbumsAfterWalk()
 
-        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID, "none",
-                       "the record's missing cover does not turn a disabled cover back on")
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID,
+                       CloudKitAlbumMarker.disabledCoverID)
+    }
+
+    /// Another device turns the cover off: this device turns it off too.
+    func testARemoteDisabledCoverTurnsTheCoverOff() async throws {
+        let key = makeKey(5)
+        let album = try materializedAlbum("RemoteOff", key: key, coverMediaID: "old-cover")
+        let store = MockCloudKitMediaStore()
+        let off = record(for: album, coverMediaID: CloudKitAlbumMarker.disabledCoverID)
+        store.changeSet = changeFeed(changedAlbums: [off])
+        store.seedAlbum(off)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
+
+        _ = await reconciler.reconcileAlbumsAfterWalk()
+
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID,
+                       CloudKitAlbumMarker.disabledCoverID)
+    }
+
+    /// Another device resets a turned-off cover: this device goes back to picking
+    /// its own cover rather than keeping it off.
+    func testARemoteCoverResetTurnsADisabledCoverBackOn() async throws {
+        let key = makeKey(5)
+        let album = try materializedAlbum("RemoteOn", key: key, coverMediaID: CloudKitAlbumMarker.disabledCoverID)
+        let store = MockCloudKitMediaStore()
+        let reset = record(for: album, coverMediaID: nil)
+        store.changeSet = changeFeed(changedAlbums: [reset])
+        store.seedAlbum(reset)
+        let (reconciler, _) = makeReconciler(store: store, keys: [key], albums: [album])
+
+        _ = await reconciler.reconcileAlbumsAfterWalk()
+
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: album.albumID!)?.coverMediaID)
     }
 
     func testACleanAlbumPresentRemotelyIsNotPushed() async throws {

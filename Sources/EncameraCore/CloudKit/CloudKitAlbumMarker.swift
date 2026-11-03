@@ -98,12 +98,6 @@ public struct CloudKitAlbumMarker: Codable, Equatable, Sendable {
         return fields
     }
 
-    /// The cover the album record carries. The record references a media record, so
-    /// a disabled cover goes as no cover; it stays disabled on this device only.
-    public var recordCoverMediaID: String? {
-        coverMediaID == Self.disabledCoverID ? nil : coverMediaID
-    }
-
     /// Characters an album id keeps verbatim in its directory name. A UUID is
     /// entirely within this set; anything else (a base64 record name can hold `/`,
     /// `+` and `=`) is percent-encoded so every id maps to exactly one directory.

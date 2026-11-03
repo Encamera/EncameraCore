@@ -1537,17 +1537,16 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
                                        createdAt: marker.createdAt,
                                        isHidden: marker.isHidden,
                                        keyFingerprint: keyFingerprint,
-                                       coverMediaID: marker.recordCoverMediaID,
+                                       coverMediaID: marker.coverMediaID,
                                        migrationInProgress: migrationInProgress)
         }
         let settings = scope == .album ? source : album
-        let cover = albumManager.getAlbumCoverImageId(album: settings)
         return CloudKitAlbumUpload(albumID: albumID,
                                    encName: album.encryptedPathComponent,
                                    createdAt: album.creationDate,
                                    isHidden: albumManager.isAlbumHidden(settings),
                                    keyFingerprint: keyFingerprint,
-                                   coverMediaID: cover == CloudKitAlbumMarker.disabledCoverID ? nil : cover,
+                                   coverMediaID: albumManager.getAlbumCoverImageId(album: settings),
                                    migrationInProgress: migrationInProgress)
     }
 

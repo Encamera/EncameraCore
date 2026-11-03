@@ -2441,6 +2441,28 @@ extension CloudKitMigrationManagerTests {
                      "the local album's AlbumsSyncedStore entry is removed")
     }
 
+    func testALocalAlbumWithItsCoverTurnedOffMovedToCloudKitCarriesItToTheRecord() async throws {
+        let store = MockCloudKitMediaStore()
+        store.reflectUploadsInMetadata = true
+        let harness = makeTransportHarness(store: store)
+        let album = Album(name: "nocover-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: harness.key)
+        defer { cleanup(album) }
+        _ = try await seedLocalAlbum(count: 1, albumManager: harness.albumManager, album: album)
+        harness.albumManager.removeAlbumCover(album: album)
+        XCTAssertTrue(harness.albumManager.isAlbumCoverImageDisabled(album: album), "precondition")
+
+        await harness.engine.start(album: album)
+
+        XCTAssertEqual(harness.engine.state, .completed)
+        let cloudAlbum = try XCTUnwrap(harness.engine.destinationAlbum)
+        let albumID = try XCTUnwrap(cloudAlbum.albumID)
+        defer { cleanupCloudKitAlbum(albumID: albumID, key: harness.key, name: album.name) }
+        XCTAssertTrue(harness.albumManager.isAlbumCoverImageDisabled(album: cloudAlbum))
+        let recordSave = try XCTUnwrap(store.savedAlbumCalls.first)
+        XCTAssertEqual(recordSave.coverMediaID, CloudKitAlbumMarker.disabledCoverID,
+                       "the record carries the turned-off cover from the start")
+    }
+
     func testAMoveBackToLocalRestoresTheHiddenFlagAndCoverIntoTheSyncedStore() async throws {
         let store = MockCloudKitMediaStore()
         let harness = makeTransportHarness(store: store)

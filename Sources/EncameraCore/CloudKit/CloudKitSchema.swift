@@ -105,10 +105,13 @@ public enum CloudKitSchema {
         /// album needs can be named without reading a media record. Same "absent means
         /// unknown" contract as above.
         public static let keyFingerprint = "keyFingerprint"   // String
-        /// `CKRecord.Reference` to the `EncMedia` record the user chose as the
-        /// album's cover image. Action `.none` — deleting the cover photo must not
-        /// cascade-delete the album. Absent on records that predate this field or
-        /// when no explicit cover is set.
+        /// The album's cover: the `mediaID` of the item the user chose, or
+        /// `CloudKitAlbumMarker.disabledCoverID` when the user turned the cover off.
+        /// Absent when the album picks its own cover.
+        public static let coverMediaID   = "coverMediaID"    // String
+        /// Legacy, orphaned. A `CKRecord.Reference` to the cover's `EncMedia` record,
+        /// which could not say the cover is turned off. No build writes or reads it;
+        /// it stays because Production never drops a field.
         public static let coverMediaRef  = "coverMediaRef"   // CKRecord.Reference(.none) -> EncMedia
         /// 1 while a whole-album move to CloudKit is still filling the album, 0 once
         /// the moving device has finalized it. Another device leaves a flagged album

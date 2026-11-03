@@ -402,7 +402,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
                                          createdAt: pushed.creationDate,
                                          isHidden: marker?.isHidden ?? false,
                                          keyFingerprint: albumFingerprint,
-                                         coverMediaID: marker?.recordCoverMediaID)
+                                         coverMediaID: marker?.coverMediaID)
         printDebug("reconcileAlbums push start albumID=\(albumID) reason=\(reason) isHidden=\(upload.isHidden)")
         do {
             try await store.saveAlbum(upload)
@@ -486,9 +486,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
     /// Returns nil when nothing was written: no marker on this device, or nothing
     /// changed. A dirty marker keeps the fields its pending local change touched,
     /// which the push step saves over the record, and takes the record's value for
-    /// every other field, so that push does not revert another device's change. A
-    /// record without a cover leaves a cover this device turned off as it is, since
-    /// the record cannot carry that state.
+    /// every other field, so that push does not revert another device's change.
     private func applyRemoteMetadata(_ record: CloudKitAlbumMetadata) -> Bool? {
         guard let marker = CloudKitAlbumMarker.read(albumID: record.albumID) else { return nil }
         let pending = marker.pendingFields
@@ -498,10 +496,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         }
         let nameChanged = !pending.contains(.name) && marker.encName != record.encName
         let hiddenChanged = !pending.contains(.hidden) && marker.isHidden != record.isHidden
-        let remoteCover = (record.coverMediaID == nil && marker.coverMediaID == CloudKitAlbumMarker.disabledCoverID)
-            ? marker.coverMediaID
-            : record.coverMediaID
-        let coverChanged = !pending.contains(.cover) && marker.coverMediaID != remoteCover
+        let coverChanged = !pending.contains(.cover) && marker.coverMediaID != record.coverMediaID
         guard nameChanged || hiddenChanged || coverChanged else { return nil }
         var updated = marker
         if nameChanged || !marker.dirty {
@@ -512,7 +507,7 @@ public final class CloudKitAlbumReconciler: @unchecked Sendable, DebugPrintable 
         }
         if !marker.dirty { updated.createdAt = record.createdAt }
         if hiddenChanged { updated.isHidden = record.isHidden }
-        if coverChanged { updated.coverMediaID = remoteCover }
+        if coverChanged { updated.coverMediaID = record.coverMediaID }
         do {
             try updated.write(albumID: record.albumID)
         } catch {

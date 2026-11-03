@@ -263,8 +263,9 @@ public struct CloudKitAlbumUpload: Sendable {
     /// `PrivateKey.keyFingerprint` of the album's key — the key its encrypted name is
     /// written with, and the key a device needs to recognise this album at all.
     public let keyFingerprint: String
-    /// The `mediaID` of the media item chosen as the album's cover image, or `nil`
-    /// when no explicit cover is set (fall back to most-recent).
+    /// The `mediaID` of the media item chosen as the album's cover image,
+    /// `CloudKitAlbumMarker.disabledCoverID` when the cover is turned off, or `nil`
+    /// when the album picks its own cover.
     public let coverMediaID: String?
     /// `EncAlbum.migrationInProgress` to write: `true` while a whole-album move to
     /// CloudKit fills the album, `false` when it finalizes. `nil` leaves the
@@ -305,8 +306,8 @@ public struct CloudKitAlbumMetadata: Sendable, Equatable {
     /// "no key").
     public let keyFingerprint: String?
     public let recordChangeTag: String?
-    /// The `mediaID` of the cover image, extracted from `EncAlbum.coverMediaRef`.
-    /// `nil` when the record carries no reference (pre-existing or unset).
+    /// `EncAlbum.coverMediaID`: a media id, `CloudKitAlbumMarker.disabledCoverID`,
+    /// or `nil` when the album picks its own cover.
     public let coverMediaID: String?
     /// `EncAlbum.migrationInProgress`: a move on some device is still filling the
     /// album, so a device that has not adopted it yet must not.

@@ -440,8 +440,8 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         try assertNameKeyedSettingsUntouched(harness)
     }
 
-    /// A turned-off cover stays `"none"` for callers and in album.json, and goes to the
-    /// record as no cover; a reset clears it.
+    /// A turned-off cover is `"none"` for callers, in album.json and on the record;
+    /// a reset clears all three.
     func testRemovingAndResettingACloudKitAlbumCoverKeepTheNoneSentinel() async throws {
         let harness = try makeMetadataHarness(coverMediaID: "cover-1")
         let albumID = harness.album.albumID!
@@ -453,7 +453,8 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertTrue(harness.manager.isAlbumCoverImageDisabled(album: harness.album))
         let removedSaved = await waitUntil { harness.store.savedAlbumCalls.count == 1 }
         XCTAssertTrue(removedSaved)
-        XCTAssertNil(harness.store.savedAlbumCalls.first?.coverMediaID, "the record cannot reference a disabled cover")
+        XCTAssertEqual(harness.store.savedAlbumCalls.first?.coverMediaID, "none",
+                       "the record carries the turned-off cover to other devices")
         _ = await waitUntil { CloudKitAlbumMarker.read(albumID: albumID)?.dirty == false }
 
         harness.manager.resetAlbumCover(album: harness.album)

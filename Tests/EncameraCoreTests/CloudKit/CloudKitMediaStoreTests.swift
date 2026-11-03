@@ -348,6 +348,12 @@ final class CloudKitMediaStoreTests: XCTestCase {
         }
     }
 
+    /// An album record off the change feed without its cover reads as "picks its own
+    /// cover", which would undo a cover chosen or turned off on another device.
+    func testTheChangeFeedRequestsTheAlbumCover() {
+        XCTAssertTrue(CloudKitMediaStore.changeFeedKeys.contains(CloudKitSchema.EncAlbum.coverMediaID))
+    }
+
     /// The lazy-blob guarantee, restated for the list that just grew: the header is
     /// framing and belongs here, the payload asset never does.
     func testChunkFieldsDoNotDragTheBlobAssetAlong() {
@@ -473,6 +479,56 @@ final class CloudKitMediaStoreTests: XCTestCase {
         let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
         XCTAssertEqual(saved.recordType, CloudKitSchema.EncAlbum.recordType)
         XCTAssertEqual(saved[CloudKitSchema.EncAlbum.keyFingerprint] as? String, keyA.keyFingerprint)
+    }
+
+    /// The record holds the cover as the same string album.json does: a media id,
+    /// or the turned-off sentinel.
+    func testSaveAlbumWritesTheCoverAsAString() async throws {
+        for cover in ["cover-1", CloudKitAlbumMarker.disabledCoverID] {
+            let mock = MockCloudKitDatabase()
+            let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+            try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash", encName: "cipher",
+                                                          createdAt: Date(timeIntervalSince1970: 100),
+                                                          isHidden: false, keyFingerprint: keyA.keyFingerprint,
+                                                          coverMediaID: cover))
+
+            let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+            XCTAssertEqual(saved[CloudKitSchema.EncAlbum.coverMediaID] as? String, cover)
+            XCTAssertNil(saved[CloudKitSchema.EncAlbum.coverMediaRef], "the legacy reference is never written")
+        }
+    }
+
+    func testSaveAlbumWithoutACoverClearsTheRecordsCover() async throws {
+        let mock = MockCloudKitDatabase()
+        let existing = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType,
+                                recordID: CKRecord.ID(recordName: "album-hash", zoneID: CloudKitTestFactory.zoneID))
+        existing[CloudKitSchema.EncAlbum.coverMediaID] = CloudKitAlbumMarker.disabledCoverID as CKRecordValue
+        mock.stubbedFetchRecords = [existing.recordID: existing]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        try await store.saveAlbum(CloudKitAlbumUpload(albumID: "album-hash", encName: "cipher",
+                                                      createdAt: Date(timeIntervalSince1970: 100),
+                                                      isHidden: false, keyFingerprint: keyA.keyFingerprint,
+                                                      coverMediaID: nil))
+
+        let saved = try XCTUnwrap(mock.savedRecordBatches.first?.first)
+        XCTAssertNil(saved[CloudKitSchema.EncAlbum.coverMediaID])
+    }
+
+    func testFetchAlbumReadsTheCoverString() async throws {
+        let mock = MockCloudKitDatabase()
+        let record = CKRecord(recordType: CloudKitSchema.EncAlbum.recordType,
+                              recordID: CKRecord.ID(recordName: "album", zoneID: CloudKitTestFactory.zoneID))
+        record[CloudKitSchema.EncAlbum.encName] = "cipher" as CKRecordValue
+        record[CloudKitSchema.EncAlbum.createdAt] = Date(timeIntervalSince1970: 100) as CKRecordValue
+        record[CloudKitSchema.EncAlbum.coverMediaID] = CloudKitAlbumMarker.disabledCoverID as CKRecordValue
+        mock.stubbedFetchRecords = [record.recordID: record]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let fetched = try await store.fetchAlbum(albumID: "album")
+
+        XCTAssertEqual(fetched?.coverMediaID, CloudKitAlbumMarker.disabledCoverID)
     }
 
 
