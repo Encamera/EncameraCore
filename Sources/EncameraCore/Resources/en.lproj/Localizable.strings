@@ -74,8 +74,6 @@
 "Leave a Review" = "Leave a Review";
 "Password successfully changed" = "Password successfully changed";
 "GetPremium" = "Get Premium";
-"PremiumUnlockTheseBenefits" = "Unlimited albums and iCloud storage";
-"PromoPremiumUnlockTheseBenefits" = "Unlimited albums and iCloud storage\n and TWO MONTHS FREE";
 "BlackFridayTitle" = "BLACK FRIDAY IS HERE!";
 "BlackFridaySubtitle" = "Don't miss out! Deal ends soon!";
 "Restore Purchases" = "Restore Purchases";
@@ -322,7 +320,6 @@
 "Select a place to keep media for this key." = "Select a place to keep media for this key.";
 /* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
 "Family Shareable" = "Family Shareable";
-"Free Trial" = "Free Trial";
 /* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
 "Encrypt Everything" = "Encrypt Everything";
 "Unlock" = "Unlock";
@@ -352,12 +349,10 @@
 "Biometrics unavailable" = "Biometrics unavailable";
 "Unlock with %@" = "Unlock with %@";
 /* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
-"Upgrade to view unlimited photos" = "Upgrade to view unlimited photos";
 "Photo limit reached" = "Photo limit reached";
 "ModalUpgradeText" = "Upgrade to premium to unlock unlimited photos";
 "Upgrade to Premium" = "Upgrade to Premium";
 "Back to album" = "Back to album";
-"Tap to Upgrade" = "Tap to Upgrade";
 /* Picture taken overlay*/
 "CoolPicture" = "That's a cool picture!";
 "WhereToFindYourPictures" = "You will find all of your photos and videos grouped in the \"Albums\"";
@@ -456,8 +451,6 @@
 "BillingFrequency.PerWeek" = "per week";
 "BillingFrequency.LifetimeUnlimited" = "Unlimited Updates";
 "BillingFrequency.LifetimeLimited" = "1 Year of Updates";
-/* ./Encamera/Store/ProductPrice.swift */
-"ProductPrice.SalePercentageOff" = "%d%% OFF";
 /* ./Encamera/Store/SubscriptionView.swift */
 "UnlimitedStorageFeatureRowTitle" = "Unlimited storage for photos & videos";
 "UnlimitedAlbumsFeatureRowTitle" = "Unlimited albums for your memories";
@@ -467,29 +460,18 @@
 "Support privacy-focused development." = "Support privacy-focused development.";
 "Restore Purchases" = "Restore Purchases";
 "Enter Promo Code" = "Enter Promo Code";
-"UnlockUnlimitedForFree" = "Unlock Unlimited for Free!";
-"Start trial offer" = "Free Trial";
-"FreeTrialTerms" = "7 days free, then %@";
-"PromoFreeTrialTerms" = "60 days free, then %@";
 
-"NoCommitmentCancelAnytime" = "No commitment, cancel anytime";
 "MostPopular" = "MOST POPULAR";
 "Subscribe" = "Subscribe";
 /* ./Encamera/Store/SubscriptionOptionView.swift */
 "Subscribed" = "Subscribed";
-"SaveAmount %@ $@" = "SAVE %@";
-"SavePercent %@" = "SAVE %@";
 /* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
 "**Purchased: %@**" = "**Purchased: %@**";
 "Thank you for your support!" = "Thank you for your support!";
 "premium" = "premium";
 "Subscription" = "Subscription";
-"One-Time Purchase" = "One-Time Purchase";
 /* ./Encamera/Store/PurchaseUpgradeView.swift */
-"Start trial offer" = "Start free trial";
 "Subscribe" = "Subscribe";
-"Upgrade Today!" = "Upgrade Today!";
-"Tap to Upgrade" = "Tap to Upgrade";
 "Take a Photo!" = "Take a Photo!";
 "Your Keys" = "Your Keys";
 "KeyTutorialText" = "Non explicabo officia aut odit ex eum ipsum libero.";
@@ -601,68 +583,20 @@
 "TakeSurveyButtonText" = "Take Survey";
 "BiometricMethod.DisabledTitle" = "%@ is Disabled";
 "BiometricMethod.DisabledOpenSettings" = "You have disabled %1$@ for Encamera. Enable it in Settings to login with %1$@.";
-"PurchaseProduct" = "Purchase";
-"SelectProduct" = "Select a Product";
 "BuyOnceUseForever" = "Buy once. Use forever.";
 "PurchaseScreen.LoadingSubscriptions" = "Loading subscriptions...";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "Unable to load subscriptions";
 "PurchaseScreen.Retry" = "Retry";
-"PurchaseView.UnlockBenefits" = "Unlock all of these benefits:";
-"PurchaseView.YourBenefits" = "Your Premium benefits:";
-"PurchaseView.BenefitModel.UnlimitedStorage" = "Unlimited storage for photos & videos";
-"PurchaseView.BenefitModel.UnlimitedAlbums" = "Unlimited albums for your memories";
-"PurchaseView.BenefitModel.iCloudStorage" = "iCloud storage & backup";
-"PurchaseView.BenefitModel.ChangeAppIcon" = "Change app icon";
-"PurchaseView.BenefitModel.BackupKeychain" = "Backup keychain to iCloud";
-"PurchaseView.BenefitModel.HiddenAlbums" = "Hidden albums";
-"PurchaseView.BenefitModel.ComingSoon" = "Coming Soon";
 
 // MARK: - PaywallView
 "PaywallView.Premium" = "Premium";
-"PaywallView.Unlock" = "UNLOCK";
-"PaywallView.UnlimitedStorage" = "Unlimited Storage";
-"PaywallView.SelectPlan" = "Select the right plan for you";
-"PaywallView.CheckBenefits" = "Check benefits";
 "PaywallView.CurrentPlan" = "CURRENT PLAN";
-"PaywallView.BiggestSaving" = "BIGGEST SAVING";
-"PaywallView.MostFlexible" = "MOST FLEXIBLE";
-"PaywallView.OneTimePayment" = "ONE-TIME PAYMENT";
-"PaywallView.BestValue" = "BEST VALUE";
-"PaywallView.UnlimitedAnnualDescription" = "Ideal for users seeking continuous protection with the best annual savings";
 "PaywallView.UnlimitedAnnualSubtext" = "Billed yearly";
-"PaywallView.UnlimitedAnnualSubtextWithMonthlyPrice" = "%@ per month, billed yearly";
-"PaywallView.UnlimitedMonthlyDescription" = "Great for users who value flexibility and month-to-month freedom";
-"PaywallView.UnlimitedMonthlySubtext" = "Billed monthly, 7 day free trial";
-"PaywallView.LifetimeLimitedDescription" = "One-time payment for unlimited storage plus updates for one year only";
-"PaywallView.LifetimeLimitedSubtext" = "Pay once, use forever";
-"PaywallView.LifetimeUnlimitedDescription" = "Ultimate choice for users who demand complete protection that lasts forever";
-"PaywallView.LifetimeUnlimitedSubtext" = "Pay once, updates forever";
 "PaywallView.GetButton" = "Get %@";
-"PaywallView.EverythingYouGet" = "Everything you get\nwith Premium";
-"PaywallView.Benefit.UnlimitedStorage" = "Unlimited Storage";
-"PaywallView.Benefit.UnlimitedStorageDescription" = "Keep every photo and video, forever";
-"PaywallView.Benefit.UnlimitedAlbums" = "Unlimited Albums";
-"PaywallView.Benefit.UnlimitedAlbumsDescription" = "Organize memories without any limits";
-"PaywallView.Benefit.iCloudKeychainBackup" = "iCloud Keychain Backup";
-"PaywallView.Benefit.iCloudKeychainBackupDescription" = "Your encryption key stored on iCloud";
-"PaywallView.Benefit.ChangeAppIcon" = "Change App Icon";
-"PaywallView.Benefit.ChangeAppIconDescription" = "Make Encamera looks like a normal app";
-"PaywallView.Benefit.HiddenAlbums" = "Hidden Albums";
-"PaywallView.Benefit.HiddenAlbumsDescription" = "Keep private memories out of sight";
-"PaywallView.BuiltByPeople" = "Committed to your privacy.";
-"PaywallView.BackToPlans" = "Back to plans";
 "PaywallView.RestorePurchase" = "Restore Purchase";
 "PaywallView.PrivacyPolicy" = "Privacy Policy";
-"PaywallView.TermsOfService" = "Terms of Service";
 "PaywallView.AppName" = "Encamera";
-"PaywallView.BuiltByNames" = "Alex & Mihai";
-"PaywallView.AlbumPreview.PrivatePics" = "Private 🔒";
-"PaywallView.AlbumPreview.EightItems" = "8 items";
-"PaywallView.AlbumPreview.OurTrips" = "Our Trips";
-"PaywallView.AlbumPreview.SixteenItems" = "16 items";
 
-"ThanksForPurchasingLifetime" = "Thanks for purchasing a lifetime license!";
-"ThanksForPurchasingLifetimeSubtitle" = "You rock and you will unlock new benefits soon.";
 "ImportKeyPhrase" = "Import Recovery Key";
 "CopyPhrase" = "Copy Recovery Key to Clipboard";
 "CopyPhraseInstructions" = "Write down or copy these words in the right order and save them somewhere safe.\n\nThis recovery key is used to generate the encryption key that encrypts your media.\n\nIt's important to save your recovery key in case you lose your device.";

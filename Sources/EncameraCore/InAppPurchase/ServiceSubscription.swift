@@ -23,22 +23,6 @@ public struct SubscriptionSavings: Equatable {
         self.subscriptionPeriodUnitFormatStyle = subscriptionPeriodUnitFormatStyle
     }
 
-    public var formattedTotalSavings:  String {
-        return L10n.saveAmount(totalSavings.formatted(priceFormatStyle))
-    }
-
-    public var formattedPercentSavings: String {
-        let fullPrice = monthlyPrice * 12 + totalSavings
-        guard fullPrice > 0 else { return "" }
-        let percent = (totalSavings / fullPrice * 100) as NSDecimalNumber
-        let rounded = percent.rounding(accordingToBehavior: NSDecimalNumberHandler(
-            roundingMode: .plain, scale: 0,
-            raiseOnExactness: false, raiseOnOverflow: false,
-            raiseOnUnderflow: false, raiseOnDivideByZero: false
-        ))
-        return L10n.savePercent("\(rounded.intValue)%")
-    }
-
     public var formattedMonthlyPrice: String {
         let currency = monthlyPrice.formatted(priceFormatStyle)
         if let format = subscriptionPeriodUnitFormatStyle {

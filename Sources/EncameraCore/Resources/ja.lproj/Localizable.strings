@@ -27,7 +27,6 @@
 "AuthenticationMethod.TextDescription.PinCode" = "暗証番号";
 "ProtectionLevel.Strong" = "強力な保護";
 "Enter Promo Code" = "プロモコードを入力";
-"Tap to Upgrade" = "アップグレードするにはタップ";
 "Touch ID" = "Touch ID";
 "GetPremium" = "プレミアムにする";
 "CustomPhotoPicker.SwipeInstruction" = "長押ししてスワイプすると複数の写真を選択できます";
@@ -49,7 +48,6 @@
 "Notification.ImageSaveReminder.Body" = "Encameraを気に入っていただけたら嬉しいです。ぜひレビューにご協力ください。ここをタップ！";
 "Subscribe" = "購読する";
 "AlbumSelectionModal.Move" = "移動";
-"PurchaseView.BenefitModel.UnlimitedStorage" = "写真と動画の無制限ストレージ";
 "SetPinCode" = "PINコードを設定";
 "Why Encrypt Media?" = "なぜメディアを暗号化するのか？";
 "AlbumDetailView.MoveMedia" = "メディアを移動";
@@ -67,7 +65,6 @@
 "AlbumDetailView.Select" = "メディアを選択";
 "Settings.PurchasesRestored" = "購入が復元されました！";
 "SettingsView.UnknownError" = "不明なエラー";
-"PromoPremiumUnlockTheseBenefits" = "無制限のアルバムとiCloudストレージ\nさらに2か月間無料";
 "SplashScreen.Subline" = "思い出を守ろう";
 "UseCameraToTakePhotos" = "内蔵カメラを使って写真や動画を撮影しましょう。";
 "OnboardingPermissionsCameraAccess" = "カメラへのアクセス";
@@ -84,7 +81,6 @@
 "FeedbackView.Subheading" = "皆様のフィードバックは私たちにとって非常に重要であり、より良い製品を作るための助けとなります。ご協力ありがとうございます！";
 "GlobalImportProgress.ImportingProgress" = "%@ / %@ をインポート中";
 "PasswordSetSuccessfully" = "パスワードの設定が完了しました";
-"PurchaseView.BenefitModel.ComingSoon" = "近日公開";
 "Congratulations!" = "おめでとうございます！";
 "Error.Alert.Title" = "エラー";
 "TakeSurveyTitle" = "3か月無料で利用しますか？";
@@ -144,19 +140,16 @@
 "SetAPasswordWarning" = "アプリにアクセスするためのパスワードを設定してください。後から復元できないため、安全な場所に保管してください。";
 "Back to album" = "アルバムに戻る";
 "Share Image" = "画像を共有";
-"FreeTrialTerms" = "7日間無料、その後%@";
 "ShareKeyExplanation" = "暗号化キーを信頼できる相手と共有してください。
 
 このキーを共有すると、その相手はあなたがこのキーで暗号化したメディアを復号できます。";
 "AlbumDetailView.DeleteSelectedMedia" = "%@を削除しますか？";
 "Password is valid." = "パスワードは有効です。";
 "SaveToiCloudDrive" = "iCloud Driveに保存";
-"Upgrade to view unlimited photos" = "無制限の写真を見るにはアップグレードしてください";
 "Or" = "または";
 "ProtectionLevel.Low" = "低い保護";
 "PhotoPickerWrapper.ContinueLimited" = "限定アクセスで続行";
 "FeedbackRequest" = "Encameraはユーザーの行動を一切追跡せず、あなたに関する情報も収集しないため、アプリの改善には皆様からのフィードバックが頼りです。";
-"Free Trial" = "無料トライアル";
 "Fast and convenient" = "迅速で便利";
 "ModalUpgradeText" = "プレミアムにアップグレードして無制限の写真をアンロック";
 "Privacy Policy" = "プライバシーポリシー";
@@ -170,7 +163,6 @@
 "Import from files" = "ファイルからインポート";
 "Back Up Key" = "キーをバックアップ";
 "DeleteAlbum" = "アルバムを削除";
-"PurchaseProduct" = "購入";
 "TaskDetailCard.StatusCompleted" = "完了";
 "Save Key" = "キーを保存";
 "Roadmap" = "ロードマップと機能リクエスト";
@@ -187,7 +179,6 @@
 "NotificationBanner.LeaveAReview.Body" = "Encameraを気に入っていただけたら、レビューで応援してください！";
 "Rename" = "名前を変更";
 "EnterYourPassword" = "パスワードを入力してください";
-"PurchaseView.BenefitModel.ChangeAppIcon" = "アプリアイコンを変更";
 "AskForReview.EnjoyingTheApp" = "アプリを楽しんでいますか？";
 "Subscribed" = "登録済み";
 "VIDEO" = "ビデオ";
@@ -232,7 +223,6 @@
 "RepeatPinCode" = "パスコードを再入力";
 "FailedToSavePassword" = "パスワードの保存に失敗しました";
 "Notification.ImportImages.Prompt" = "セキュリティのために、さらに画像をインポートするようユーザーに促しています。";
-"PurchaseView.BenefitModel.iCloudStorage" = "iCloudストレージとバックアップ";
 "No file access available." = "ファイルにアクセスできません。";
 "Accept" = "承認";
 "Active" = "アクティブ";
@@ -256,7 +246,6 @@
 "No key available." = "利用可能なキーがありません。";
 "TakeSurveyButtonText" = "アンケートに答える";
 "Use %@?" = "%@を使用しますか？";
-"SelectProduct" = "製品を選択";
 "IRemember" = "パスコードを覚えています";
 "MakeSureYouRememberYourPin" = "必ずPINコードを覚えておいてください！";
 "UnlimitedAlbumsFeatureRowTitle" = "思い出のための無制限アルバム";
@@ -291,7 +280,6 @@
 "KeyTutorialText" = "非公開の公式な説明や、彼自身の自由な説明はありません。";
 "Password is too short, <%@" = "パスワードが短すぎます、<%@";
 "AddPhotosToThisAlbum" = "このアルバムに写真を追加する";
-"SaveAmount %@ $@" = "保存 %@";
 "HideAlbumsTutorial.Subheading2" = "非表示アルバムにアクセスするには、検索バーでアルバム名を検索してください。";
 "New Password" = "新しいパスワード";
 "ProgressView.Decrypting" = "復号中：%.0f%%";
@@ -306,7 +294,6 @@
 "StorageExplanationHeader" = "私の写真はどこに保存されていますか？";
 "PhotoPickerWrapper.SwipeDescription" = "スワイプ一回で複数の写真を選択";
 "HideAlbumsTutorial.Subheading4" = "アルバムを非表示にするには、アルバムを開いて三点メニューをタップし、「アルバムを非表示」を選択してください。";
-"ThanksForPurchasingLifetimeSubtitle" = "あなたは素晴らしいです。まもなく新しい特典がアンロックされます。";
 "PhotoPickerWrapper.FasterImportDescription" = "写真をもっと素早くインポート";
 "FaceIDOnlyAlert.Message" = "Face IDのみに切り替えると、現在のPIN/パスワードが消去されます。今後はFace IDのみでアプリのロックを解除できます。";
 "MediaSelectionTray.MoveToAlbum" = "アルバムに移動";
@@ -324,11 +311,9 @@
 "StorageSettingsSubheading" = "この鍵で暗号化されたファイルのメディアをどこに保存しますか？
 各鍵ごとに独自のディレクトリにデータが保存されます。
 ";
-"PremiumUnlockTheseBenefits" = "無制限のアルバムとiCloudストレージ";
 "AuthenticationMethod.ConfirmDisablePassword" = "本当に%@を無効にしますか？これを行うと、保存されているパスワードが消去されます。";
 "LoginMethodDescription" = "プライベートアルバムへのアクセス方法を選択してください。";
 "PhotoPickerWrapper.UpgradeTitle" = "フルフォトアクセスにアップグレード";
-"ThanksForPurchasingLifetime" = "生涯ライセンスをご購入いただきありがとうございます！";
 "HideAlbumsTutorial.Heading2" = "非表示アルバムにアクセス";
 "UnlockWithPin" = "ロック解除";
 "Enable %@ to quickly and securely gain access to the app." = "%@を有効にして、アプリに素早く安全にアクセスしましょう。";
@@ -339,7 +324,6 @@
 "Enable Face ID" = "Face IDを有効にする";
 "Hold to erase" = "長押しで消去";
 "OK" = "OK";
-"PromoFreeTrialTerms" = "60日間無料、その後は%@";
 "NotificationBanner.Reddit.Title" = "Redditを使っていますか？";
 "NoAlbum" = "アルバムなし";
 "LetsGo" = "行こう！";
@@ -349,7 +333,6 @@
 "AuthenticationMethod.Cancel" = "キャンセル";
 "Storage Settings" = "ストレージ設定";
 "PostPurchaseView.ThanksForYourPurchase" = "ご購入ありがとうございます！";
-"One-Time Purchase" = "一度きりの購入";
 "Save Key to iCloud" = "キーをiCloudに保存";
 "AddPhotos" = "写真を追加";
 "Biometrics unavailable" = "生体認証が利用できません";
@@ -357,10 +340,8 @@
 "OpenSettings" = "設定を開く";
 "PhotoPickerWrapper.UpgradeToFullAccess" = "フルアクセスにアップグレード";
 "AlbumNotFoundAtSourceLocation" = "ソースの場所にアルバムが見つかりませんでした。ファイルアプリで存在することを確認してください。";
-"PurchaseView.UnlockBenefits" = "これらすべての特典をアンロック：";
 "BackUpKeysHeader" = "その鍵をバックアップしましょう！";
 "MultipleKeysForMultiplePurposesExplanation" = "用途ごとに複数の鍵を持つことができます。例えば「書類用」と「個人用」などです。";
-"Start trial offer" = "無料トライアルを開始";
 "ProtectionLevel.Moderate" = "中程度の保護";
 "DeleteImported" = "画像を削除しますか？";
 "CustomPhotoPicker.PhotoAccessRequired" = "写真へのアクセスが必要です";
@@ -379,12 +360,10 @@
 "EmptyAlbumTakeAPictureSubtitle" = "カメラを開いて写真を撮ってください";
 "Notification.InactiveUserReminder.Title" = "あなたの画像が危険にさらされている可能性があります 🚨";
 "Paste the private key here." = "ここに秘密鍵を貼り付けてください。";
-"UnlockUnlimitedForFree" = "無料でアンリミテッドを解除！";
 "CustomPhotoPicker.Add" = "追加";
 "%@ must be set" = "%@ を設定する必要があります";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6桁のPIN";
 "Settings" = "設定";
-"Upgrade Today!" = "今すぐアップグレード！";
 "Saved to Device" = "デバイスに保存しました";
 "Change Key Album" = "別の保存先アルバムを選択したい";
 "Delete this image?" = "この画像を削除しますか？";
@@ -400,7 +379,6 @@
 "TaskDetailCard.GrantAccessMessage" = "インポートした写真を削除するには、設定で写真ライブラリへのアクセスを許可してください。";
 "ProfileSetup" = "プロフィール設定";
 "ImportingPleaseWait" = "インポート中...お待ちください";
-"PurchaseView.BenefitModel.HiddenAlbums" = "非表示アルバム";
 "CannotClearMessage" = "パスコードを解除できません。これを行うにはFace IDを有効にする必要があります。";
 "AlbumsTitle" = "アルバム";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "フォトライブラリから削除しますか？";
@@ -437,7 +415,6 @@
 " icon on the top left of the screen." = "画面左上のアイコン。";
 "Password incorrect" = "パスワードが正しくありません";
 "SetPinCodeSubtitle" = "このPINはアプリに安全にアクセスするために使用されます。忘れないようにしてください！";
-"PurchaseView.BenefitModel.UnlimitedAlbums" = "思い出のための無制限アルバム";
 "MediaSelectionTray.ItemSelected" = "選択済み";
 "FeedbackView.PlaceholderText" = "改善できる点はありますか？";
 "OnboardingPermissionsMicrophoneAccessSubheading" = "動画にのみ必要です";
@@ -453,7 +430,6 @@
 "ViewAlbums" = "アルバムを見る";
 "DeleteAlbumForever" = "このアルバムとそれに関連するすべてのメディアを完全に削除しますか？";
 "Subscription" = "サブスクリプション";
-"NoCommitmentCancelAnytime" = "契約の縛りなし、いつでもキャンセル可能";
 "Scan with Encamera app" = "Encameraアプリでスキャン";
 "FinishedSubtitle" = "最初のアルバムを作成しましょう";
 "AuthenticationView.ForgotPassword" = "パスワードをお忘れですか？アプリをリセット";
@@ -469,7 +445,6 @@
 "Key Entry" = "キー入力";
 "HideAlbumsTutorial.Subheading3" = "非表示アルバムの名前はアルバム一覧に表示されないため、必ず覚えておいてください。";
 "EmptyAlbumTakeAPictureActionTitle" = "写真を撮る";
-"PurchaseView.YourBenefits" = "あなたのプレミアム特典：";
 "Keep your encrypted data safe by using %@." = "%@を使って暗号化されたデータを安全に保ちましょう。";
 "Choose your login method" = "ログイン方法を選択してください";
 "Key Management" = "鍵管理";
@@ -513,7 +488,6 @@
 "Notification.PremiumPage.Navigation" = "プレミアムプラン購入ページへ移動しています。";
 "TaskDetailCard.Resume" = "再開";
 "OnboardingCarousel.SubheadingText1" = "すべての写真と動画を即座に暗号化します。他の誰にも見られません。私たちでさえも。";
-"PurchaseView.BenefitModel.BackupKeychain" = "キーチェーンをiCloudにバックアップ";
 "Missing camera access" = "カメラへのアクセスがありません";
 "Leave a Review" = "レビューを書く";
 "ProgressView.StartingDownload" = "ダウンロードを開始しています...";
@@ -555,7 +529,6 @@
 "Common.Cancel" = "キャンセル";
 "FeatureToggles.EnableTestRevenueCatDescription" = "RevenueCatテストモードを有効にする";
 "Common.Confirm" = "確認";
-"ProductPrice.SalePercentageOff" = "%d%%オフ";
 "PurchaseScreen.LoadingSubscriptions" = "購読を読み込んでいます...";
 "CMS.NoBannersAvailable" = "利用可能なプロモーションバナーはありません";
 "CMS.NetworkError" = "プロモーションコンテンツを読み込めません。キャッシュされたデータを使用します。";
@@ -715,64 +688,28 @@
 "Decryption error: %@" = "復号化エラー: %@。まだアプリを最新バージョンにアップデートしていない場合は、アップデートしてください。";
 "FileLoading.CellularWarning" = "モバイルデータ通信を使用しています。大きなファイルはiCloudからのダウンロードに時間がかかる場合があります。";
 
-"PaywallView.LifetimeUnlimitedSubtext" = "一度のお支払いで、永続的にアップデート";
 "AlbumDetailView.NoMediaFound" = "メディアが見つかりません";
-"PaywallView.UnlimitedMonthlyDescription" = "柔軟性と月ごとの自由を重視するユーザーに最適";
-"PaywallView.MostFlexible" = "最も柔軟";
 "StorageOption.Storage" = "%@ ストレージ";
-"PaywallView.LifetimeLimitedSubtext" = "一度支払えば永遠に利用可能";
 "AlbumDetailView.SortFilter.FilterByType" = "タイプで絞り込む";
-"PaywallView.BackToPlans" = "プランに戻る";
-"PaywallView.SelectPlan" = "あなたに合ったプランを選択してください";
 "PaywallView.UnlimitedAnnualSubtext" = "年額請求";
-"PaywallView.LifetimeLimitedDescription" = "1回限りの支払いで無制限のストレージと1年間のアップデート付き";
-"PaywallView.UnlimitedAnnualDescription" = "年間で最もお得に継続的な保護を求めるユーザーに最適";
 "PaywallView.Premium" = "プレミアム";
-"PaywallView.AlbumPreview.SixteenItems" = "16件";
-"PaywallView.UnlimitedMonthlySubtext" = "月額請求、7日間の無料トライアル";
 "PaywallView.AppName" = "Encamera";
-"PaywallView.BiggestSaving" = "最大の節約";
 "Settings.PurchasesRestoreFailed" = "購入の復元に失敗しました";
 "Settings.PurchasesRestoreFailedMessage" = "ご購入の復元ができませんでした。再度お試しいただくか、サポートまでご連絡ください。";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "追加日：古い順";
-"PaywallView.CheckBenefits" = "特典を確認";
-"PaywallView.TermsOfService" = "利用規約";
 "AlbumDetailView.SortFilter.LivePhotos" = "ライブフォト";
-"PaywallView.Benefit.ChangeAppIcon" = "アプリアイコンを変更";
-"PaywallView.BuiltByNames" = "アレックス＆ミハイ";
-"PaywallView.EverythingYouGet" = "プレミアムで\n手に入るすべて";
 "Settings.BannersCleared" = "バナーをクリアしました";
-"PaywallView.BuiltByPeople" = "あなたのプライバシーを守ります。";
-"PaywallView.Benefit.UnlimitedStorage" = "無制限ストレージ";
-"PaywallView.AlbumPreview.OurTrips" = "私たちの旅行";
 "PaywallView.CurrentPlan" = "現在のプラン";
-"PaywallView.BestValue" = "最もお得";
 "PaywallView.RestorePurchase" = "購入を復元";
 "LocalDevice" = "ローカルデバイス";
-"PaywallView.Unlock" = "アンロック";
-"SavePercent %@" = "節約 %@";
-"PaywallView.AlbumPreview.EightItems" = "8項目";
 "AlbumDetailView.ClearFilters" = "フィルターをクリア";
-"PaywallView.OneTimePayment" = "一括払い";
 "PaywallView.PrivacyPolicy" = "プライバシーポリシー";
-"PaywallView.UnlimitedStorage" = "無制限ストレージ";
-"PaywallView.Benefit.ChangeAppIconDescription" = "Encameraを普通のアプリのように見せる";
-"PaywallView.LifetimeUnlimitedDescription" = "永遠に続く完全な保護を求めるユーザーの究極の選択";
-"PaywallView.Benefit.HiddenAlbumsDescription" = "プライベートな思い出を見えない場所に保管";
 "Settings.ClearDismissedBanners" = "バナーをリセット";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "追加日：新しい順";
-"PaywallView.Benefit.HiddenAlbums" = "非表示アルバム";
-"PaywallView.Benefit.UnlimitedAlbumsDescription" = "思い出を制限なく整理";
 "PaywallView.GetButton" = "%@を入手";
-"PaywallView.Benefit.iCloudKeychainBackupDescription" = "あなたの暗号化キーはiCloudに保存されます";
 "AlbumDetailView.SortFilter.DateCapturedOldest" = "取得日：古い順";
-"PaywallView.UnlimitedAnnualSubtextWithMonthlyPrice" = "月額%@、年払い";
-"PaywallView.AlbumPreview.PrivatePics" = "非公開 🔒";
 "Settings.BannersClearedMessage" = "すべての非表示バナーがリセットされ、再び表示されます。";
 "PendingImport.CancelConfirmMessage" = "この操作でこのメディアのインポートがキャンセルされます。続行しますか？";
-"PaywallView.Benefit.UnlimitedStorageDescription" = "すべての写真とビデオを永遠に保存";
-"PaywallView.Benefit.UnlimitedAlbums" = "無制限のアルバム";
-"PaywallView.Benefit.iCloudKeychainBackup" = "iCloudキーチェーンのバックアップ";
 "AlbumDetailView.SortFilter.DateCapturedNewest" = "撮影日：新しい順";
 
 "ICloudError.NotAvailableWiFi" = "このファイルはiCloudに保存されており、ダウンロードできませんでした。iCloudの接続を確認して、再試行してください。";

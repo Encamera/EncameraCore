@@ -58,7 +58,6 @@
 "Leave a Review" = "Dejar un comentario";
 "Password successfully changed" = "Contraseña cambiada con éxito";
 "GetPremium" = "Obtener Premium";
-"PremiumUnlockTheseBenefits" = "Desbloquea todos estos increíbles beneficios hoy";
 "Restore Purchases" = "Restaurar Compras";
 "Settings" = "Ajustes";
 "Privacy Policy" = "Política de Privacidad";
@@ -187,7 +186,6 @@
 
 /* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
 "Family Shareable" = "Compartible con la Familia";
-"Free Trial" = "Prueba Gratuita"; 
 
 /* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
 "Encrypt Everything" = "Cifrar todo";
@@ -217,12 +215,10 @@
 "Unlock with %@" = "Desbloquear con %@"; 
 
 /* ./Encamera/InAppPurchase/PurchasePhotoSubscriptionOverlay.swift */
-"Upgrade to view unlimited photos" = "Actualiza para ver fotos ilimitadas";
 "Photo limit reached" = "Límite de fotos alcanzado";
 "ModalUpgradeText" = "Actualiza a premium para desbloquear fotos ilimitadas";
 "Upgrade to Premium" = "Actualizar a Premium";
 "Back to album" = "Volver al álbum";
-"Tap to Upgrade" = "Toca para Actualizar"; 
 
 /* Picture taken overlay */
 "CoolPicture" = "¡Esa es una foto genial!";
@@ -319,10 +315,6 @@
 "Support privacy-focused development." = "Apoya el desarrollo enfocado en la privacidad.";
 "Restore Purchases" = "Restaurar Compras";
 "Enter Promo Code" = "Introducir Código Promocional";
-"UnlockUnlimitedForFree" = "¡Desbloquea Ilimitado Gratis!";
-"Start trial offer" = "Comenzar la oferta de prueba";
-"FreeTrialTerms" = "7 días gratis, luego %@";
-"NoCommitmentCancelAnytime" = "Sin compromiso, cancela en cualquier momento";
 "MostPopular" = "MÁS POPULAR";
 "Subscribe" = "Suscribirse"; 
 
@@ -335,13 +327,9 @@
 "Thank you for your support!" = "¡Gracias por tu apoyo!";
 "premium" = "premium";
 "Subscription" = "Suscripción";
-"One-Time Purchase" = "Compra Única"; 
 
 /* ./Encamera/Store/PurchaseUpgradeView.swift */
-"Start trial offer" = "Iniciar oferta de prueba";
 "Subscribe" = "Suscribirse";
-"Upgrade Today!" = "¡Actualiza hoy!";
-"Tap to Upgrade" = "Toca para actualizar";
 "Take a Photo!" = "¡Toma una foto!";
 "Your Keys" = "Tus Claves";
 "KeyTutorialText" = "No explicaremos los deberes ni por qué se odian entre sí para librarse.";
@@ -380,7 +368,6 @@
 
 
 "IncorrectPinCode" = "Código PIN incorrecto. Por favor, inténtelo de nuevo.";
-"ThanksForPurchasingLifetimeSubtitle" = "Eres genial y pronto desbloquearás nuevos beneficios.";
 "SettingsFaceIdDisabled" = "El Face ID está desactivado";
 "EmptyAlbumImportPhotosActionTitle" = "Importar Imágenes";
 "FinishedReadyToUseEncamera" = "¡Estás listo para usar\nEncamera!";
@@ -401,7 +388,6 @@
 "PostPurchaseView.Subtext2" = "Mientras tanto, agradeceríamos mucho si pudieras ayudarnos con una reseña en la App Store";
 "FinishedOnboardingTitle" = "¡Estás listo para usar Encamera!";
 "Enable Face ID" = "Habilitar Face ID";
-"SaveAmount %@ $@" = "GUARDAR %@";
 "SetPinCode" = "Establecer código PIN";
 "EmptyAlbumTakeAPictureSubtitle" = "Abre tu cámara y toma una foto";
 "EmptyAlbumTakeAPictureActionTitle" = "Toma una foto";
@@ -418,14 +404,11 @@
 "Use PIN instead" = "Usar PIN en su lugar";
 "RepeatPinCode" = "Repetir Código PIN";
 "EmptyAlbumImportPhotosSubtitle" = "Importar fotos de tu carrete";
-"PurchaseProduct" = "Compra";
 "IForgot" = "Olvidé";
 "TakeSurveyButtonText" = "Realizar encuesta";
 "PinCodeMismatch" = "Los códigos PIN no son iguales";
-"ThanksForPurchasingLifetime" = "¡Gracias por comprar una licencia de por vida!";
 "LoginMethodDescription" = "Elige cómo deseas acceder a tus álbumes privados.";
 "SettingsFaceIdOpenSettings" = "Has desactivado Face ID para Encamera. Actívalo en Ajustes para iniciar sesión con Face ID.";
-"SelectProduct" = "Seleccione un Producto";
 "PostPurchaseView.Subtext1" = "Usted es uno de los primeros partidarios de Encamera y le agradecemos por el apoyo.";
 "MakeSureYouRememberYourPin" = "¡Asegúrese de recordar su código PIN!";
 "Notification.WidgetSetup.Guidance" = "Guía al usuario para añadir un widget a la pantalla de bloqueo.";
@@ -471,9 +454,7 @@
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
 "No" = "No";
-"PromoPremiumUnlockTheseBenefits" = "Álbumes ilimitados y almacenamiento en iCloud\n y DOS MESES GRATIS";
 "AlbumDetailView.RenameAlbum" = "Renombrar álbum";
-"PromoFreeTrialTerms" = "60 días gratis, luego %@";
 "AskForReview.AskMeLater" = "Pregúntame más tarde";
 "MediaSelectionTray.MoveMedia" = "Mover";
 "FeedbackView.WeAppreciateIt" = "Agradecemos tus comentarios";
@@ -502,16 +483,7 @@
 "AlbumDetailView.HideAlbumAlertMessage" = "¿Estás seguro de que deseas ocultar este álbum? DEBES recordar el nombre de este álbum para acceder a él nuevamente.";
 
 "LetsGo" = "¡Vamos!";
-"PurchaseView.BenefitModel.BackupKeychain" = "Copia de seguridad del llavero en iCloud";
-"PurchaseView.BenefitModel.ComingSoon" = "Próximamente";
-"PurchaseView.BenefitModel.UnlimitedStorage" = "Almacenamiento ilimitado para fotos y videos";
-"PurchaseView.BenefitModel.UnlimitedAlbums" = "Álbumes ilimitados para tus recuerdos";
-"PurchaseView.BenefitModel.HiddenAlbums" = "Álbumes ocultos";
-"PurchaseView.BenefitModel.ChangeAppIcon" = "Cambiar el ícono de la aplicación";
-"PurchaseView.BenefitModel.iCloudStorage" = "Almacenamiento y copia de seguridad de iCloud";
 "Settings.BackupKeyToiCloud" = "Sincronizar Key con iCloud";
-"PurchaseView.UnlockBenefits" = "Desbloquea todos estos beneficios:";
-"PurchaseView.YourBenefits" = "Tus beneficios Premium:";
 "Settings.GiveInstantFeedback" = "Dar retroalimentación instantánea";
 "AlbumDetailView.Select" = "Seleccionar medios";
 "Settings.PurchasesRestoredMessage" = "Cualquier compra válida que hayas realizado ha sido restaurada.";
@@ -688,7 +660,6 @@
 "Common.Cancel" = "Cancelar";
 "FeatureToggles.EnableTestRevenueCatDescription" = "Activar el modo de prueba de RevenueCat";
 "Common.Confirm" = "Confirmar";
-"ProductPrice.SalePercentageOff" = "%d%% DE DESCUENTO";
 "PurchaseScreen.LoadingSubscriptions" = "Cargando suscripciones...";
 "CMS.NoBannersAvailable" = "No hay banners promocionales disponibles";
 "CMS.NetworkError" = "No se puede cargar el contenido promocional. Usando datos en caché.";
@@ -848,64 +819,28 @@
 "Decryption error: %@" = "Error de descifrado: %@. Por favor, actualiza la aplicación a la última versión si aún no lo has hecho.";
 "FileLoading.CellularWarning" = "Estás usando datos móviles. Los archivos grandes pueden tardar más en descargarse desde iCloud.";
 
-"PaywallView.LifetimeUnlimitedSubtext" = "Paga una vez, actualizaciones para siempre";
 "AlbumDetailView.NoMediaFound" = "No se encontraron medios";
-"PaywallView.UnlimitedMonthlyDescription" = "Ideal para usuarios que valoran la flexibilidad y la libertad mes a mes";
-"PaywallView.MostFlexible" = "MÁS FLEXIBLE";
 "StorageOption.Storage" = "%@ Almacenamiento";
-"PaywallView.LifetimeLimitedSubtext" = "Paga una vez, úsalo para siempre";
 "AlbumDetailView.SortFilter.FilterByType" = "Filtrar por tipo";
-"PaywallView.BackToPlans" = "Volver a los planes";
-"PaywallView.SelectPlan" = "Selecciona el plan adecuado para ti";
 "PaywallView.UnlimitedAnnualSubtext" = "Facturado anualmente";
-"PaywallView.LifetimeLimitedDescription" = "Pago único por almacenamiento ilimitado más actualizaciones solo durante un año";
-"PaywallView.UnlimitedAnnualDescription" = "Ideal para usuarios que buscan protección continua con el mejor ahorro anual";
 "PaywallView.Premium" = "Premium";
-"PaywallView.AlbumPreview.SixteenItems" = "16 artículos";
-"PaywallView.UnlimitedMonthlySubtext" = "Facturado mensualmente, prueba gratuita de 7 días";
 "PaywallView.AppName" = "Encamera";
-"PaywallView.BiggestSaving" = "MAYOR AHORRO";
 "Settings.PurchasesRestoreFailed" = "No se pudieron restaurar las compras";
 "Settings.PurchasesRestoreFailedMessage" = "No se pudieron restaurar tus compras. Por favor, inténtalo de nuevo o contacta con soporte.";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "Fecha de incorporación: más antiguas primero";
-"PaywallView.CheckBenefits" = "Ver beneficios";
-"PaywallView.TermsOfService" = "Términos de servicio";
 "AlbumDetailView.SortFilter.LivePhotos" = "Fotos en vivo";
-"PaywallView.Benefit.ChangeAppIcon" = "Cambiar ícono de la aplicación";
-"PaywallView.BuiltByNames" = "Alex y Mihai";
-"PaywallView.EverythingYouGet" = "Todo lo que obtienes\ncon Premium";
 "Settings.BannersCleared" = "Banners eliminados";
-"PaywallView.BuiltByPeople" = "Comprometidos con tu privacidad.";
-"PaywallView.Benefit.UnlimitedStorage" = "Almacenamiento ilimitado";
-"PaywallView.AlbumPreview.OurTrips" = "Nuestros viajes";
 "PaywallView.CurrentPlan" = "PLAN ACTUAL";
-"PaywallView.BestValue" = "MEJOR VALOR";
 "PaywallView.RestorePurchase" = "Restaurar compra";
 "LocalDevice" = "dispositivo local";
-"PaywallView.Unlock" = "DESBLOQUEAR";
-"SavePercent %@" = "AHORRA %@";
-"PaywallView.AlbumPreview.EightItems" = "8 artículos";
 "AlbumDetailView.ClearFilters" = "Borrar filtros";
-"PaywallView.OneTimePayment" = "PAGO ÚNICO";
 "PaywallView.PrivacyPolicy" = "Política de privacidad";
-"PaywallView.UnlimitedStorage" = "Almacenamiento ilimitado";
-"PaywallView.Benefit.ChangeAppIconDescription" = "Haz que Encamera parezca una aplicación normal";
-"PaywallView.LifetimeUnlimitedDescription" = "La mejor opción para usuarios que exigen protección completa y permanente";
-"PaywallView.Benefit.HiddenAlbumsDescription" = "Mantén los recuerdos privados fuera de la vista";
 "Settings.ClearDismissedBanners" = "Restablecer banners";
 "AlbumDetailView.SortFilter.DateAddedNewest" = "Fecha de añadido: Más recientes primero";
-"PaywallView.Benefit.HiddenAlbums" = "Álbumes ocultos";
-"PaywallView.Benefit.UnlimitedAlbumsDescription" = "Organiza recuerdos sin ningún límite";
 "PaywallView.GetButton" = "Obtener %@";
-"PaywallView.Benefit.iCloudKeychainBackupDescription" = "Tu clave de cifrado almacenada en iCloud";
 "AlbumDetailView.SortFilter.DateCapturedOldest" = "Fecha de captura: más antiguas primero";
-"PaywallView.UnlimitedAnnualSubtextWithMonthlyPrice" = "%@ por mes, facturado anualmente";
-"PaywallView.AlbumPreview.PrivatePics" = "Privado 🔒";
 "Settings.BannersClearedMessage" = "Todos los banners descartados han sido restablecidos y volverán a aparecer.";
 "PendingImport.CancelConfirmMessage" = "Esto cancelará la importación de este medio. ¿Quieres continuar?";
-"PaywallView.Benefit.UnlimitedStorageDescription" = "Guarda cada foto y video, para siempre";
-"PaywallView.Benefit.UnlimitedAlbums" = "Álbumes ilimitados";
-"PaywallView.Benefit.iCloudKeychainBackup" = "Copia de seguridad de iCloud Keychain";
 "AlbumDetailView.SortFilter.DateCapturedNewest" = "Fecha de captura: más recientes primero";
 
 "ICloudError.NotAvailableWiFi" = "Este archivo está almacenado en iCloud y no se pudo descargar. Verifica tu conexión a iCloud y vuelve a intentarlo.";
