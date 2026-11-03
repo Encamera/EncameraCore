@@ -1601,12 +1601,18 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.DisableICloudBackupAndSyncDrawer.Title", fallback: "Turn off iCloud sync?")
     }
     public enum FirstCaptureExplainerDrawer {
-      /// This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.
-      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body", fallback: "This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.")
+      /// The %@ you just took isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.
+      public static func body(_ p1: Any) -> String {
+        return L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body", String(describing: p1), fallback: "The %@ you just took isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.")
+      }
       /// Got it
       public static let gotIt = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.GotIt", fallback: "Got it")
+      /// photo
+      public static let photo = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Photo", fallback: "photo")
       /// Only in Encamera
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Title", fallback: "Only in Encamera")
+      /// video
+      public static let video = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Video", fallback: "video")
     }
     public enum KeyBackupDrawer {
       /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall the app.

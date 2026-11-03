@@ -1065,8 +1065,10 @@
 "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Save" = "Save recovery key";
 "EncameraDrawerFactory.RecoveryKeyPromptDrawer.Later" = "Maybe later";
 "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Title" = "Only in Encamera";
-"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body" = "This photo isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Body" = "The %@ you just took isn't in your Camera Roll. It's encrypted and can only be opened in Encamera. Taking photos here keeps them out of your Camera Roll, iCloud Photos and other apps.";
 "EncameraDrawerFactory.FirstCaptureExplainerDrawer.GotIt" = "Got it";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Photo" = "photo";
+"EncameraDrawerFactory.FirstCaptureExplainerDrawer.Video" = "video";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Title" = "Have you saved your recovery key?";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm" = "I've saved my key";
