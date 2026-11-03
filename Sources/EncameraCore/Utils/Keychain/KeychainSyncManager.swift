@@ -45,6 +45,9 @@ public actor KeychainSyncManager: DebugPrintable {
     private let privateKeyManager: PrivateKeyManager
     private let passwordManager: KeychainPasswordManager
     private let backupStatusManager: KeychainBackupStatusManager
+    /// False while the app is locked. The adoption pass still runs then, but
+    /// no key is loaded until the user unlocks.
+    private let canSelectKey: @Sendable () -> Bool
 
     /// The flag value the last clean pass acted on. Compared whole, not just on
     /// `enabled`, so a second enable from another device after a disable is
@@ -55,20 +58,24 @@ public actor KeychainSyncManager: DebugPrintable {
 
     init(privateKeyManager: PrivateKeyManager,
          passwordManager: KeychainPasswordManager,
-         backupStatusManager: KeychainBackupStatusManager) {
+         backupStatusManager: KeychainBackupStatusManager,
+         canSelectKey: @escaping @Sendable () -> Bool) {
         self.privateKeyManager = privateKeyManager
         self.passwordManager = passwordManager
         self.backupStatusManager = backupStatusManager
+        self.canSelectKey = canSelectKey
     }
 
     /// Reads the backup flag and, if it changed to enabled, runs the adoption
-    /// pass. Then, when no key is current, selects one of the keys that have
-    /// arrived: that runs on every pass, because key items usually arrive after
-    /// the flag. Cheap when nothing changed: a few keychain reads.
+    /// pass. Then, when no key is current and the app is unlocked, selects one
+    /// of the keys that have arrived: that runs on every pass, because key
+    /// items usually arrive after the flag. Cheap when nothing changed: a few
+    /// keychain reads.
     @discardableResult
     public func syncKeychainItems() -> KeychainSyncPassOutcome {
         let outcome = adoptAccountCredentialsIfFlagChanged()
         if privateKeyManager.currentKey == nil,
+           canSelectKey(),
            let key = privateKeyManager.selectActiveKeyIfNeeded() {
             printDebug("selected arrived key \(key.keyFingerprint) as the current key")
         }

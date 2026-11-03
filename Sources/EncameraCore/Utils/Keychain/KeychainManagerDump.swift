@@ -53,6 +53,7 @@ extension KeychainDumping where Self: KeychainManager {
     /// decoded to a display string. Read-only — never mutates the keychain.
     /// Backs the debug Keychain Inspector view.
     public func dumpAllKeychainEntries() -> [KeychainDumpEntry] {
+        guard authenticationGate.isOpen else { return [] }
         let classes: [(secClass: CFString, name: String)] = [
             (kSecClassGenericPassword, "Generic Password"),
             (kSecClassInternetPassword, "Internet Password"),

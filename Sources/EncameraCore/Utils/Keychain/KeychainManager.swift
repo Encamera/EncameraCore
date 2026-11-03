@@ -67,6 +67,10 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     // MARK: - Internal Properties
 
     let keychainWrapper: KeychainWrapperProtocol
+    /// Open while the user has the app unlocked. Secrets and key loading are
+    /// refused while it is closed; existence checks and the passcode check
+    /// itself stay available, since the lock screen and launch routing need them.
+    let authenticationGate = AuthenticationGate()
 
     // MARK: - Private Properties
 
@@ -96,15 +100,19 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         self.migrationManager = KeychainMigrationManager(keychainWrapper: keychainWrapper,
                                                          privateKeyManager: privateKeyManager,
                                                          passwordManager: passwordManager)
+        let authenticationGate = self.authenticationGate
         self.keychainSyncManager = KeychainSyncManager(privateKeyManager: privateKeyManager,
                                                        passwordManager: passwordManager,
-                                                       backupStatusManager: backupStatusManager)
+                                                       backupStatusManager: backupStatusManager,
+                                                       canSelectKey: { authenticationGate.isOpen })
         self.eraseManager = KeychainEraseManager(keychainWrapper: keychainWrapper,
                                                  privateKeyManager: privateKeyManager,
                                                  multiDeviceManager: multiDeviceManager,
                                                  passwordManager: passwordManager)
         self.isAuthenticated.sink { [weak self] newValue in
-            guard let self = self, newValue == true else { return }
+            guard let self = self else { return }
+            self.authenticationGate.isOpen = newValue
+            guard newValue else { return }
             do {
                 try self.privateKeyManager.getActiveKeyAndSet()
             } catch {
@@ -215,11 +223,12 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     /// non-synchronizable on the old device). Never writes the passphrase item,
     /// so a synced passphrase can't be overwritten or flipped local-only here.
     @discardableResult public func restoreDefaultKeyFromPassphraseIfNeeded() throws -> Bool {
+        try requireAuthenticated()
         guard passwordExists() else {
             printDebug("restore: skipping — no password hash present")
             return false
         }
-        guard ((try? storedKeys()) ?? []).isEmpty else {
+        guard ((try? privateKeyManager.storedKeys()) ?? []).isEmpty else {
             printDebug("restore: skipping — a key is already present")
             return false
         }
@@ -240,7 +249,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func retrieveKeyPassphrases() throws -> [KeyPassphrase] {
-        try privateKeyManager.retrieveKeyPassphrases()
+        try requireAuthenticated()
+        return try privateKeyManager.retrieveKeyPassphrases()
     }
 
     public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
@@ -278,7 +288,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
 
     @discardableResult
     public func selectActiveKeyIfNeeded() -> PrivateKey? {
-        privateKeyManager.selectActiveKeyIfNeeded()
+        guard authenticationGate.isOpen else { return currentKey }
+        return privateKeyManager.selectActiveKeyIfNeeded()
     }
 
     func getActiveKey() throws -> PrivateKey {
@@ -320,7 +331,8 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
     }
 
     public func getPasswordHash() throws -> Data {
-        try passwordManager.getPasswordHash()
+        try requireAuthenticated()
+        return try passwordManager.getPasswordHash()
     }
 
     public func setPasswordHash(hash: Data) throws {
@@ -449,6 +461,13 @@ extension KeychainManager {
 
 private extension KeychainManager {
 
+    func requireAuthenticated() throws {
+        guard authenticationGate.isOpen else {
+            printDebug("refused: the app is locked")
+            throw KeyManagerError.notAuthenticated
+        }
+    }
+
     // MARK: - Key Restore
 
     /// Heals key state after authentication when the active key can't be loaded.
@@ -490,6 +509,18 @@ private extension KeychainManager {
             return nil
         }
         return item as? Data
+    }
+}
+
+/// Whether the app is unlocked, as last published to `KeychainManager`.
+/// Read from `KeychainSyncManager`'s actor as well as the main thread.
+final class AuthenticationGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var open = false
+
+    var isOpen: Bool {
+        get { lock.withLock { open } }
+        set { lock.withLock { open = newValue } }
     }
 }
 

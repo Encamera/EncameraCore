@@ -22,6 +22,9 @@ public enum KeyManagerError: ErrorDescribable {
     case dictionaryTooSmall
     case keyUpdateFailed
     case keyDeletionFailed
+    /// A secret was requested, or a key asked to load, before the user
+    /// unlocked the app.
+    case notAuthenticated
     /// `backupKeychainToiCloud` could not put every credential item into the
     /// requested sync state. `actual` is the state the items were observed to
     /// be in afterwards, which is what the UI must show — never `attempted`.
@@ -52,6 +55,8 @@ public enum KeyManagerError: ErrorDescribable {
             return "Key update failed"
         case .keyDeletionFailed:
             return "Key deletion failed"
+        case .notAuthenticated:
+            return "Not authenticated"
         case .syncFlipFailed:
             return L10n.Settings.ICloudBackupAndSync.flipFailed
         }
@@ -73,7 +78,8 @@ extension KeyManagerError: Equatable {
              (.dictionaryLoadError, .dictionaryLoadError),
              (.dictionaryTooSmall, .dictionaryTooSmall),
              (.keyUpdateFailed, .keyUpdateFailed),
-             (.keyDeletionFailed, .keyDeletionFailed):
+             (.keyDeletionFailed, .keyDeletionFailed),
+             (.notAuthenticated, .notAuthenticated):
             return true
         case (.unhandledError(let lhsError), .unhandledError(let rhsError)):
             return lhsError == rhsError
