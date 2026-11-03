@@ -19,6 +19,14 @@ import UIKit
 public struct MediaMetadataExtractor {
     
     public init() {}
+
+    /// Whether imports should read the source's metadata and embed it in the
+    /// encrypted file. Defaults to on; turning it off leaves files already
+    /// imported untouched.
+    public static var isImportMetadataEnabled: Bool {
+        get { UserDefaultUtils.boolNullable(forKey: .importMediaMetadata) ?? true }
+        set { UserDefaultUtils.set(newValue, forKey: .importMediaMetadata) }
+    }
     
     // MARK: - PHAsset Extraction
     

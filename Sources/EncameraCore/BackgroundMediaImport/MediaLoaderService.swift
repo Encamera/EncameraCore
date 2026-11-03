@@ -102,6 +102,13 @@ public class MediaLoaderService: DebugPrintable {
         switch result {
         case .phAsset(let asset):
             let (media, slowMotion) = try await loadMediaFromAsset(asset, progress: progress)
+            guard MediaMetadataExtractor.isImportMetadataEnabled else {
+                // The slow-motion ramp is playback data, not capture metadata:
+                // without it the video plays back at the wrong speed.
+                return LoadedMediaItem(media: media,
+                                       metadata: slowMotion.map { Self.playbackOnlyMetadata(duration: asset.duration, slowMotion: $0) },
+                                       assetIdentifier: asset.localIdentifier)
+            }
             var metadata = await metadataExtractor.extractMetadata(from: asset)
             if let originalFilename = media.compactMap(\.originalFilename).first {
                 metadata.originalFilename = originalFilename
@@ -114,6 +121,9 @@ public class MediaLoaderService: DebugPrintable {
             
         case .phPickerResult(let pickerResult):
             let media = try await loadMediaAsync(result: pickerResult, progress: progress)
+            guard MediaMetadataExtractor.isImportMetadataEnabled else {
+                return LoadedMediaItem(media: media, metadata: nil, assetIdentifier: pickerResult.assetIdentifier)
+            }
             var metadata: EncryptedFileMetadata?
             if let assetId = pickerResult.assetIdentifier {
                 let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
@@ -131,6 +141,15 @@ public class MediaLoaderService: DebugPrintable {
         }
     }
     
+    /// Metadata carrying only what playback needs, for imports made with
+    /// metadata extraction turned off.
+    static func playbackOnlyMetadata(duration: TimeInterval, slowMotion: SlowMotionRamp) -> EncryptedFileMetadata {
+        var metadata = EncryptedFileMetadata()
+        metadata.video = .init(duration: duration)
+        metadata.video?.slowMotion = slowMotion
+        return metadata
+    }
+
     /// Legacy method for backwards compatibility - returns tuple format
     public func loadSingleMediaTuple(from result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
         let loaded = try await loadSingleMedia(from: result)

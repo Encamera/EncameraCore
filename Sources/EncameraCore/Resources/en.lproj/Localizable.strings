@@ -681,6 +681,7 @@
 "Settings.HiddenAlbumsModal.AlbumsCount" = "%@ ALBUMS";
 "Settings.ShowHiddenAlbumsInCameraPicker" = "Hidden Albums in Camera";
 "Settings.LoopVideos" = "Loop Videos";
+"Settings.ImportMediaMetadata" = "Import Photo Metadata";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
 "MediaSelectionTray.MoveMedia" = "Move";

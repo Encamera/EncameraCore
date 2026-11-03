@@ -748,7 +748,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         logSourceFileStatus(for: mediaGroup)
         
         var metadata: EncryptedFileMetadata?
-        if let firstMedia = mediaGroup.first, let url = firstMedia.url {
+        if MediaMetadataExtractor.isImportMetadataEnabled, let firstMedia = mediaGroup.first, let url = firstMedia.url {
             let extractor = MediaMetadataExtractor()
             metadata = await extractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
             if let originalFilename = firstMedia.originalFilename {

@@ -2872,6 +2872,8 @@ public enum L10n {
     public static let hiddenAlbums = L10n.tr("Localizable", "Settings.HiddenAlbums", fallback: "Hidden Albums")
     /// iCloud Backup & Sync
     public static let iCloudBackupAndSync = L10n.tr("Localizable", "Settings.ICloudBackupAndSync", fallback: "iCloud Backup & Sync")
+    /// Import Photo Metadata
+    public static let importMediaMetadata = L10n.tr("Localizable", "Settings.ImportMediaMetadata", fallback: "Import Photo Metadata")
     /// Loop Videos
     public static let loopVideos = L10n.tr("Localizable", "Settings.LoopVideos", fallback: "Loop Videos")
     /// Purchases restored!

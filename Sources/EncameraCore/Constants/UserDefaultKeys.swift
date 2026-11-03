@@ -35,6 +35,9 @@ public enum UserDefaultKey {
     case gridSortOption
     case showHiddenAlbumsInCameraPicker
     case loopVideos
+    /// Whether imports read capture metadata (date, location, camera, etc.)
+    /// and embed it in the encrypted file. Unset means on.
+    case importMediaMetadata
     case hasBeenShownHideAlbumTutorial
     case keyBackupPromptLastShown
     case recoveryKeyPromptState
@@ -146,6 +149,7 @@ public enum UserDefaultKey {
              .selectedVideoQuality,
              .showHiddenAlbumsInCameraPicker,
              .loopVideos,
+             .importMediaMetadata,
              .keyMigration,
              .passphraseMigration,
              .passwordHashMigration,
