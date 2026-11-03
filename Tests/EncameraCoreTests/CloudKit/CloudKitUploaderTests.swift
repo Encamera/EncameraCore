@@ -259,3 +259,26 @@ final class CloudKitUploaderTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: upload.encryptedFileURL.path))
     }
 }
+
+// MARK: - Cancelled captures
+
+extension CloudKitUploaderTests {
+
+    /// A pass sends from the snapshot it took when it started. A capture cancelled
+    /// after that snapshot (a move back to this device moved it into the local
+    /// album) never reaches the store.
+    func testCaptureCancelledAfterSnapshotIsNotSent() async throws {
+        let first = try await enqueueCapture()
+        let cancelled = try await enqueueCapture()
+        let queue = self.queue!
+        store.onUploadStarted = {
+            await queue.cancel(recordName: cancelled.recordName)
+        }
+
+        await drain()
+
+        XCTAssertEqual(store.uploadCalls, [first.mediaID], "only the capture still queued is sent")
+        let stillQueued = await pending(cancelled.recordName)
+        XCTAssertNil(stillQueued)
+    }
+}

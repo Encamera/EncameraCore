@@ -1098,6 +1098,52 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                        "An item still waiting to upload must survive the reap that took the orphan")
     }
 
+    /// A capture a stopped move back to this device moved out of the upload queue
+    /// has no record and is no longer queued, yet the local album the move is
+    /// filling reads its preview. A full resync keeps its index entry and preview
+    /// while the move's plan names it, and still reaps a true orphan.
+    func testReapExemptsCapturesMovedOutOfTheUploadQueueByAStoredMoveToLocal() async throws {
+        let store = MockCloudKitMediaStore()
+        let index = makeIndexStore()
+        let movedID = "moved-\(UUID().uuidString)"
+        let coord = CloudKitSyncCoordinator.forTesting(albumID: "a1",
+                                            store: store,
+                                            cache: makeCache(),
+                                            indexStore: index,
+                                            bus: FileOperationBus(),
+                                            uploadQueue: CloudKitUploadQueue(baseDir: tempRoot.appendingPathComponent("q-\(UUID().uuidString)")),
+                                            deleteQueue: makeDeleteQueue(),
+                                            movedCaptures: { [(mediaID: movedID, mediaType: .photo)] })
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+        try await index.upsert([MediaIndexEntry(id: movedID,
+                                                hasPhotoComponent: true,
+                                                hasVideoComponent: false,
+                                                dateEncrypted: Date(),
+                                                dateTaken: Date(),
+                                                subtypeRawValue: 0),
+                                MediaIndexEntry(id: "orphan",
+                                                hasPhotoComponent: true,
+                                                hasVideoComponent: false,
+                                                dateEncrypted: Date(),
+                                                dateTaken: Date(),
+                                                subtypeRawValue: 0)])
+        let preview = CloudKitStorageModel.previewURL(forMediaID: movedID)
+        try FileManager.default.createDirectory(at: preview.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("preview".utf8).write(to: preview)
+        defer { try? FileManager.default.removeItem(at: preview) }
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1")], deleted: [],
+                                            token: nil, moreComing: false, snapshotComplete: true)
+        try await coord.sync()
+
+        let afterReap = await ids(index)
+        XCTAssertEqual(afterReap.sorted(), ["m1", movedID].sorted(),
+                       "the moved capture survives the reap that took the orphan")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: preview.path), "its shared preview is kept")
+    }
+
     /// The coordinator is an actor, so a capture's upload can run to completion
     /// while a from-scratch fetch is suspended. The fetch's snapshot predates the
     /// save and the queue no longer lists the capture by the time the reap runs, so

@@ -21,7 +21,8 @@ extension CloudKitSyncCoordinator {
                            uploadQueue: CloudKitUploadQueue = .shared,
                            deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
                            chunkStore: ChunkedBlobStoring? = nil,
-                           zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults())) -> (CloudKitSyncCoordinator, MockAlbumManager) {
+                           zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults()),
+                           movedCaptures: CloudKitSyncCoordinator.MovedCaptureSource? = nil) -> (CloudKitSyncCoordinator, MockAlbumManager) {
         let albumManager = MockAlbumManager(keyManager: DemoKeyManager())
         for album in albums {
             albumManager.addCloudKitAlbum(album.id, indexStore: album.index, sizeSidecar: album.sizeSidecar)
@@ -33,7 +34,8 @@ extension CloudKitSyncCoordinator {
                                                   uploadQueue: uploadQueue,
                                                   deleteQueue: deleteQueue,
                                                   chunkStore: chunkStore,
-                                                  zoneWalkRequests: zoneWalkRequests)
+                                                  zoneWalkRequests: zoneWalkRequests,
+                                                  movedCaptures: movedCaptures)
         return (coordinator, albumManager)
     }
 
@@ -47,9 +49,10 @@ extension CloudKitSyncCoordinator {
                            bus: FileOperationBus = .shared,
                            uploadQueue: CloudKitUploadQueue = .shared,
                            deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
-                           chunkStore: ChunkedBlobStoring? = nil) -> CloudKitSyncCoordinator {
+                           chunkStore: ChunkedBlobStoring? = nil,
+                           movedCaptures: CloudKitSyncCoordinator.MovedCaptureSource? = nil) -> CloudKitSyncCoordinator {
         forTesting(albums: [(albumID, indexStore, sizeSidecar)],
                    store: store, cache: cache, bus: bus, uploadQueue: uploadQueue,
-                   deleteQueue: deleteQueue, chunkStore: chunkStore).0
+                   deleteQueue: deleteQueue, chunkStore: chunkStore, movedCaptures: movedCaptures).0
     }
 }

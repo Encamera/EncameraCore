@@ -201,6 +201,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Captures written to this device but not yet in CloudKit. Consulted before
     /// the cache on every read, so a just-taken photo opens immediately.
     private let uploadQueue: CloudKitUploadQueue
+    /// The components a stopped move back to this device moved out of the upload
+    /// queue, which the reap exempts like the captures still waiting there.
+    public typealias MovedCaptureSource = @Sendable () async -> [(mediaID: String, mediaType: MediaType)]
+    /// Overrides where moved captures are read from; nil reads every stored
+    /// move-to-local plan of the CloudKit albums on this device.
+    private let movedCaptureSource: MovedCaptureSource?
     /// Chunk geometry per record, learned from delta sync, from uploads this
     /// session, and from fetch-by-id. A zero `chunkCount` records "the server says
     /// this record is monolithic"; no entry at all means nothing has looked yet,
@@ -301,7 +307,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 uploadQueue: CloudKitUploadQueue = .shared,
                 deleteQueue: CloudKitMediaDeleteQueue = CloudKitMediaDeleteQueue(),
                 chunkStore: ChunkedBlobStoring? = nil,
-                zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests()) {
+                zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests(),
+                movedCaptures: MovedCaptureSource? = nil) {
         self.store = store
         self.cache = cache
         self.albumManagerBox = AlbumManagerBox(albumManager)
@@ -309,6 +316,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         self.uploadQueue = uploadQueue
         self.deleteQueue = deleteQueue
         self.zoneWalkRequests = zoneWalkRequests
+        self.movedCaptureSource = movedCaptures
         self.makeChunkStore = { chunkStore ?? CloudKitChunkedBlobStore() }
     }
 
@@ -520,7 +528,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// its bytes ever left the device. That covers items pending when the fetch
     /// started (`pendingUploadBeforeFetch`) as well as now: an upload that
     /// completes while the fetch is suspended has left the queue but may be
-    /// missing from a snapshot taken before its save landed.
+    /// missing from a snapshot taken before its save landed. A capture a move back
+    /// to this device moved out of the queue into its local album is exempt too
+    /// while the move's plan is stored: it has no record either, and its preview
+    /// is the one the local album reads. It is read once, just before the reap:
+    /// only a move changes it, and a move runs under a coordinator of its own.
     ///
     /// Components stored on iCloud Drive are never reaped. They have no record
     /// yet, so their absence from the zone says nothing; the iCloud Drive folder
@@ -528,9 +540,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///
     /// A reaped record is marked without a claim, so it reads as deleted until a
     /// later fetch returns it, and then becomes readable again.
-    private func reap(_ album: inout AlbumApply, pendingUpload: Set<MediaComponent>) async {
+    private func reap(_ album: inout AlbumApply,
+                      pendingUpload: Set<MediaComponent>,
+                      movedOutOfUploadQueue: Set<MediaComponent>) async {
         var reaped = 0
         var exempt = 0
+        var exemptMoved = 0
         var onICloudDrive = 0
 
         for entry in album.entries {
@@ -556,6 +571,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                     printDebug("reap skip mediaID=\(component.mediaID) mediaType=\(component.mediaType) reason=pendingUpload")
                     continue
                 }
+                guard !movedOutOfUploadQueue.contains(component) else {
+                    exemptMoved += 1
+                    printDebug("reap skip mediaID=\(component.mediaID) mediaType=\(component.mediaType) reason=movedOutOfUploadQueue")
+                    continue
+                }
                 let recordName = MediaRecordName.componentRecordName(mediaID: component.mediaID,
                                                                      type: component.mediaType)
                 let entryRemoved = album.entries.removeComponent(recordName: recordName)
@@ -574,7 +594,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             }
         }
 
-        printDebug("reap done albumID=\(album.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) exemptOnICloudDrive=\(onICloudDrive) seen=\(album.seen.count) entriesRemaining=\(album.entries.count)")
+        printDebug("reap done albumID=\(album.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) exemptMovedOutOfUploadQueue=\(exemptMoved) exemptOnICloudDrive=\(onICloudDrive) seen=\(album.seen.count) entriesRemaining=\(album.entries.count)")
     }
 
     /// The components waiting in the upload queue, in the form the reap compares.
@@ -582,6 +602,26 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         Set(await uploadQueue.all().map {
             MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType)
         })
+    }
+
+    /// The components every stored move back to this device moved out of the
+    /// upload queue into its local album, in the form the reap compares.
+    private func capturesMovedOutOfUploadQueue() async -> Set<MediaComponent> {
+        let moved: [(mediaID: String, mediaType: MediaType)]
+        if let movedCaptureSource {
+            moved = await movedCaptureSource()
+        } else {
+            let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
+                .filter { $0.storageOption == .cloudKit && MigrationPlanStore.hasPlans(for: $0) }
+            var fromPlans: [(mediaID: String, mediaType: MediaType)] = []
+            for album in albums {
+                for plan in await MigrationPlanStore.plans(for: album) where plan.direction == .toLocal {
+                    fromPlans += plan.items.filter { $0.movedOutOfUploadQueue != nil }.map { ($0.mediaID, $0.mediaType) }
+                }
+            }
+            moved = fromPlans
+        }
+        return Set(moved.map { MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType) })
     }
 
     /// The ids of the CloudKit albums on this device.
@@ -781,9 +821,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         let reaps = startedWithoutToken && snapshotComplete
         if reaps {
             let pendingUpload = pendingUploadBeforeFetch.union(await pendingUploadComponents())
+            let movedOutOfUploadQueue = await capturesMovedOutOfUploadQueue()
             for albumID in albums.keys.sorted() {
                 guard var album = albums[albumID] else { continue }
-                await reap(&album, pendingUpload: pendingUpload)
+                await reap(&album, pendingUpload: pendingUpload, movedOutOfUploadQueue: movedOutOfUploadQueue)
                 albums[albumID] = album
             }
         } else if startedWithoutToken {

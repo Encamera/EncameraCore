@@ -660,6 +660,59 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         }
     }
 
+    /// Brings home every not-yet-done item still waiting in this device's upload
+    /// queue, before anything is downloaded. Each one's queue file is copied into
+    /// the destination and verified byte for byte against it; the item is then
+    /// checkpointed `verified` with its `movedOutOfUploadQueue`, and only after
+    /// that is its queue entry cancelled, which deletes the queue file. A capture
+    /// no longer queued is never sent by the uploader.
+    ///
+    /// An item checkpointed as moved whose entry is still queued (the app was
+    /// killed before the cancel) only has its entry cancelled, once its copy still
+    /// has the size it verified at. A copy that cannot be placed or does not match
+    /// leaves the item as it was, for its transfer to retry. Returns the indices
+    /// this pass moved and verified.
+    func moveCapturesOutOfUploadQueue(in plan: inout MigrationPlan, context: MigrationRunContext) async throws -> Set<Int> {
+        guard let destinationModel = context.destinationModel else { return [] }
+        var moved = Set<Int>()
+        for index in plan.items.indices where !plan.items[index].state.isDone {
+            let item = plan.items[index]
+            guard let queued = await context.uploadQueue.pendingItem(recordName: item.recordName) else { continue }
+            let destinationURL = destinationModel.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
+
+            if item.state == .verified || item.state == .removalPending {
+                guard item.movedOutOfUploadQueue != nil,
+                      let verifiedSize = item.verifiedSizeBytes,
+                      destinationURL.fileSizeBytes() == verifiedSize else { continue }
+                await context.uploadQueue.cancel(recordName: item.recordName)
+                printDebug("move out of upload queue: cancelled the entry of a capture already moved recordName=\(item.recordName)")
+                continue
+            }
+
+            guard let queuedURL = await context.uploadQueue.pendingFileURL(recordName: item.recordName) else { continue }
+            context.setPhase(.downloading, plan, item.mediaID)
+            do {
+                try Self.placeCopy(of: queuedURL, at: destinationURL)
+            } catch {
+                printDebug("move out of upload queue COPY FAILED recordName=\(item.recordName) — left for the transfer: \(error)")
+                continue
+            }
+            guard FileManager.default.contentsEqual(atPath: destinationURL.path, andPath: queuedURL.path) else {
+                printDebug("move out of upload queue VERIFY FAILED recordName=\(item.recordName) — the copy differs from the queue file, left for the transfer")
+                continue
+            }
+            plan.items[index].state = .verified
+            plan.items[index].lastError = nil
+            plan.items[index].verifiedSizeBytes = destinationURL.fileSizeBytes()
+            plan.items[index].movedOutOfUploadQueue = MigrationMovedCapture(chunkCount: queued.chunkCount)
+            try await context.savePlan(plan)
+            await context.uploadQueue.cancel(recordName: item.recordName)
+            moved.insert(index)
+            printDebug("move out of upload queue ok recordName=\(item.recordName) bytes=\(plan.items[index].verifiedSizeBytes ?? -1) chunkCount=\(queued.chunkCount)")
+        }
+        return moved
+    }
+
     /// Puts a copy of `source` at `destination`. A file already there is only
     /// swapped out once the full copy exists beside it, so a copy that fails
     /// leaves it as it was.
@@ -716,11 +769,13 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         // The check runs under the removal phase, not `.verifying`: it is part of
         // removing this record, and on a resumed removal pass a phase flip per item
         // makes "Removing X of Y" flicker to "Verifying in iCloud", which describes
-        // the opposite direction.
+        // the opposite direction. A capture moved out of the upload queue is always compared with the size
+        // it verified at: the queue file it was checked against is gone, and the
+        // server has no record to compare with.
         context.setPhase(.removingRemoteCopy, plan, item.mediaID)
         var matches: Bool? = false
         if let destinationURL = context.destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType) {
-            if verifiedThisRun, let verifiedSize = item.verifiedSizeBytes {
+            if verifiedThisRun || item.movedOutOfUploadQueue != nil, let verifiedSize = item.verifiedSizeBytes {
                 matches = destinationURL.fileSizeBytes() == verifiedSize
             } else {
                 matches = try await Self.localCopy(at: destinationURL, matchesSourceOf: item, context: context)
@@ -736,11 +791,22 @@ struct CloudKitToLocalStep: MigrationItemStep, DebugPrintable {
         }
         let started = Date()
         let outcome: CloudKitRemoveOutcome
-        // A capture still waiting to upload has its durable file as the source copy.
-        // Its local copy is verified, so the queue entry goes, and with it the
-        // upload that would otherwise land in an album about to be deleted. One that
-        // reached the server in the meantime is removed like any other record.
-        if let queued = await context.uploadQueue.pendingItem(recordName: item.recordName) {
+        if let moved = item.movedOutOfUploadQueue {
+            // Removed as a pending item with the queue's chunk geometry: a save in
+            // flight when its entry was cancelled may have landed since, with
+            // or without its chunks, and removing a record that is not there is a
+            // no-op.
+            await context.uploadQueue.cancel(recordName: item.recordName)
+            outcome = try await context.coordinator.remove(recordName: item.recordName,
+                                                           albumID: context.cloudKitAlbumID,
+                                                           wasPending: true,
+                                                           pendingChunkCount: moved.chunkCount)
+        } else if let queued = await context.uploadQueue.pendingItem(recordName: item.recordName) {
+            // A capture still waiting to upload that was not moved out of the queue
+            // has its durable file as the source copy. Its local copy is verified,
+            // so the queue entry goes, and with it the upload that would otherwise
+            // land in an album about to be deleted. One that reached the server in
+            // the meantime is removed like any other record.
             let onServer = try await context.store.fetchRecordMetadata(recordName: item.recordName) != nil
             await context.uploadQueue.cancel(recordName: item.recordName)
             printDebug("item cancelled queued upload recordName=\(item.recordName) onServer=\(onServer)")

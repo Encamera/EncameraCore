@@ -187,8 +187,10 @@ public actor CloudKitUploader: DebugPrintable {
                                                storageFull: !blockedByFullStorage.isEmpty)
     }
 
-    /// Returns true when the item reached CloudKit.
+    /// Returns true when the item reached CloudKit. An item cancelled since the
+    /// pass took its snapshot is not sent.
     private func send(_ item: CloudKitPendingUpload, using coordinator: CloudKitSyncCoordinator) async -> Bool {
+        guard await queue.beginSend(recordName: item.recordName) else { return false }
         let previewURL = CloudKitStorageModel.previewURL(forMediaID: item.mediaID)
         let thumbURL = FileManager.default.fileExists(atPath: previewURL.path) ? previewURL : nil
         let upload = await queue.rebuild(item, thumbURL: thumbURL)

@@ -1049,6 +1049,17 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         /// meaningful for an `.icloud` source; a local album needs no download step.
         var materializedThrough = 0
         var verifiedThisRun = Set<Int>()
+        if let toLocal = step as? CloudKitToLocalStep {
+            if await mustStopBeforeItem(&plan, context: context, planStore: planStore) { return nil }
+            do {
+                verifiedThisRun = try await toLocal.moveCapturesOutOfUploadQueue(in: &plan, context: context)
+            } catch {
+                printDebug("run ABORT — could not checkpoint a capture moved out of the upload queue: \(error)")
+                endRun(.failed(.other("\(error)")), plan: plan)
+                return nil
+            }
+            if !verifiedThisRun.isEmpty { publishProgress(plan) }
+        }
         for index in plan.items.indices where !plan.items[index].state.isDone {
             if await mustStopBeforeItem(&plan, context: context, planStore: planStore) { return nil }
 
@@ -2010,8 +2021,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             for item in withdrawn {
                 await deleteQueue.forgetDeletionAfterDeletesInFlight(of: item.recordName)
             }
-            for item in withdrawn where item.state == .removalPending {
-                // A queued delete may have reached the server before it was withdrawn.
+            // A queued delete may have reached the server before it was withdrawn,
+            // and a capture moved out of the upload queue has no record unless a save
+            // in flight landed.
+            for item in withdrawn where item.state == .removalPending || item.movedOutOfUploadQueue != nil {
                 do {
                     if try await store.fetchRecordMetadata(recordName: item.recordName) == nil {
                         recordsGone.insert(item.recordName)
@@ -2060,8 +2073,16 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             plan = created
             do { try await planStore.save(plan) } catch { return false }
         }
-        printDebug("rollback re-uploading \(plan.items.count) item(s) whose record was already deleted")
+        printDebug("rollback re-uploading \(plan.items.count) item(s) whose record was already deleted or never uploaded")
+        // A rollback can run inside the move it rolls back, stopped by a cancel, or
+        // after a pause. Its own upload must not read that request as its own, and
+        // the stopped run gets its control, albums and store back once it is done.
+        let stoppedBy = (control: control, albums: runAlbums, store: activeStore)
+        control = .running
         await run(plan, source: twin, destination: cloudAlbum)
+        control = stoppedBy.control
+        runAlbums = stoppedBy.albums
+        activeStore = stoppedBy.store
         return state == .completed
     }
 

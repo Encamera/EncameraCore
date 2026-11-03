@@ -116,6 +116,19 @@ public enum MigrationDeferralReason: String, Codable, Sendable, Equatable {
 
 // MARK: - Work item
 
+/// A capture a move back to this device copied out of the upload queue, before
+/// it ever reached CloudKit. Its queue entry is cancelled once the copy is
+/// verified, so nothing else holds its bytes but the local album.
+public struct MigrationMovedCapture: Codable, Sendable, Equatable {
+    /// The queue entry's chunk geometry. A chunked upload that drained part-way
+    /// may have committed chunk records, which the removal pass deletes.
+    public let chunkCount: Int
+
+    public init(chunkCount: Int) {
+        self.chunkCount = chunkCount
+    }
+}
+
 /// One media component (a photo, or one half of a Live Photo) to migrate. The
 /// `mediaID` + `mediaType` pair re-derives the on-disk ciphertext/preview URLs and
 /// the CloudKit record name at execution time, so a moved directory or a changed
@@ -160,6 +173,9 @@ public struct MigrationItem: Codable, Sendable, Equatable {
     /// while the device was on Wi-Fi. Nil until one fails; cleared by a download
     /// that succeeds.
     public var failedDownloads: Int?
+    /// Set when a move back to this device copied the item from its upload queue
+    /// file rather than from CloudKit. Nil for every other item.
+    public var movedOutOfUploadQueue: MigrationMovedCapture?
 
     public init(mediaID: String,
                 recordName: String,
@@ -187,7 +203,7 @@ public struct MigrationItem: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case mediaID, recordName, mediaType, createdAt, sizeBytes, state, operationID, lastError
-        case verifiedSizeBytes, verifiedModificationDate, kind, priorityRequest, failedDownloads
+        case verifiedSizeBytes, verifiedModificationDate, kind, priorityRequest, failedDownloads, movedOutOfUploadQueue
         case deferralReason = "unmovableReason"
     }
 
@@ -209,6 +225,7 @@ public struct MigrationItem: Codable, Sendable, Equatable {
         priorityRequest = try container.decodeIfPresent(MigrationPriorityRequest.self, forKey: .priorityRequest)
         deferralReason = try container.decodeIfPresent(MigrationDeferralReason.self, forKey: .deferralReason)
         failedDownloads = try container.decodeIfPresent(Int.self, forKey: .failedDownloads)
+        movedOutOfUploadQueue = try container.decodeIfPresent(MigrationMovedCapture.self, forKey: .movedOutOfUploadQueue)
         if deferralReason != nil, state == .skipped { state = .pending }
     }
 

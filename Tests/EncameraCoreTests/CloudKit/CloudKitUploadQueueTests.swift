@@ -285,3 +285,19 @@ final class CloudKitUploadQueueTests: XCTestCase {
         XCTAssertFalse(unknown, "Cancelling an unknown record must report that nothing was pending")
     }
 }
+
+// MARK: - Sends
+
+extension CloudKitUploadQueueTests {
+
+    /// The uploader works from a snapshot; a capture cancelled since is not sent.
+    func testBeginSendRefusesACancelledCapture() async throws {
+        let queue = CloudKitUploadQueue(baseDir: baseDir)
+        let queued = try await queue.enqueue(makeUpload())
+        await queue.cancel(recordName: queued.recordName)
+
+        let claimed = await queue.beginSend(recordName: queued.recordName)
+
+        XCTAssertFalse(claimed)
+    }
+}

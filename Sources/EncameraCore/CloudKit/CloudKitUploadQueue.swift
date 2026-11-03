@@ -360,6 +360,18 @@ public actor CloudKitUploadQueue: DebugPrintable {
         return true
     }
 
+    /// Whether the uploader may send the capture: it is still in the queue. The
+    /// uploader works from a snapshot, and a capture cancelled since (a move back
+    /// to this device moved it into the local album) must not be sent.
+    public func beginSend(recordName: String) -> Bool {
+        loadIfNeeded()
+        guard pending[recordName] != nil else {
+            printDebug("beginSend refused recordName=\(recordName) reason=notQueued")
+            return false
+        }
+        return true
+    }
+
     /// Retries an item that had given up — for when the underlying reason may
     /// have changed (the user freed up iCloud storage, or signed back in).
     public func retryGivenUp() {
