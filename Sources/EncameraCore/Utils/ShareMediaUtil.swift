@@ -151,12 +151,7 @@ extension ShareMediaUtil: UIActivityItemSource {
             let allScenes = UIApplication.shared.connectedScenes
             let scene = allScenes.first { $0.activationState == .foregroundActive }
 
-            if let windowScene = scene as? UIWindowScene, let rootViewController = windowScene.keyWindow?.rootViewController {
-                var currentVC = rootViewController
-                while let presentedVC = currentVC.presentedViewController {
-                    currentVC = presentedVC
-                }
-                
+            if let windowScene = scene as? UIWindowScene, let currentVC = windowScene.topmostApplicationViewController {
                 ShareMediaUtil.configurePopoverForIPad(
                     activityController: activityView,
                     sourceView: currentVC.view
