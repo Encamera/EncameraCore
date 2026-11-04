@@ -3070,8 +3070,8 @@ public enum L10n {
     public static let saveToICloud = L10n.tr("Localizable", "StorageType.SaveToICloud", fallback: "Save to iCloud")
   }
   public enum SyncStatusBar {
-    /// Checking iCloud for changes…
-    public static let checking = L10n.tr("Localizable", "SyncStatusBar.Checking", fallback: "Checking iCloud for changes…")
+    /// Checking iCloud for changes
+    public static let checking = L10n.tr("Localizable", "SyncStatusBar.Checking", fallback: "Checking iCloud for changes")
     /// %d items could not be uploaded
     public static func stalled(_ p1: Int) -> String {
       return L10n.tr("Localizable", "SyncStatusBar.Stalled", p1, fallback: "%d items could not be uploaded")
@@ -3090,8 +3090,8 @@ public enum L10n {
     public static func uploading(_ p1: Int, _ p2: Int) -> String {
       return L10n.tr("Localizable", "SyncStatusBar.Uploading", p1, p2, fallback: "Uploading %d of %d to iCloud")
     }
-    /// iCloud is up to date
-    public static let upToDate = L10n.tr("Localizable", "SyncStatusBar.UpToDate", fallback: "iCloud is up to date")
+    /// iCloud synced
+    public static let upToDate = L10n.tr("Localizable", "SyncStatusBar.UpToDate", fallback: "iCloud synced")
   }
   public enum TaskDetailCard {
     /// Created: %@
