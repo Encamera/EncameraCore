@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import Combine
+import os
 
 public enum LivePhotoMode {
     case on
@@ -49,6 +50,16 @@ public enum CaptureMode: Int {
 
 // AVCapture's multi-camera, zoom and Live Photo APIs exist only on iOS.
 #if os(iOS)
+/// Starts and stops a capture session: `AVCaptureSession` in the app, a
+/// stand-in in tests, where the simulator has no camera to run.
+protocol CaptureSessionRunning: AnyObject {
+    var isRunning: Bool { get }
+    func startRunning()
+    func stopRunning()
+}
+
+extension AVCaptureSession: CaptureSessionRunning {}
+
 public actor CameraConfigurationService: CameraConfigurationServicable, DebugPrintable {
 
     public var currentCameraDeviceType: AVCaptureDevice.DeviceType?
@@ -94,9 +105,30 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         .builtInUltraWideCamera
     ]
     private var cancellables = Set<AnyCancellable>()
+    private let sessionRunnerOverride: CaptureSessionRunning?
+    private var sessionRunner: CaptureSessionRunning { sessionRunnerOverride ?? session }
+    private let lifecycleNotificationCenter: NotificationCenter
+
+    /// Whether the app is locked. Held outside the actor so the app can set it
+    /// synchronously as its lock screen goes up, before any start already
+    /// queued on the actor gets to run.
+    nonisolated private let isAppLocked = OSAllocatedUnfairLock(initialState: false)
+
+    /// Whether the camera screen is using the session: set when it configures
+    /// the session, cleared when it stops it for good. Unlocking restarts the
+    /// session only for a camera that is still open.
+    private var isCameraOpen = false
 
     public init(model: CameraConfigurationServiceModel) {
+        self.init(model: model, sessionRunner: nil, lifecycleNotificationCenter: .default)
+    }
+
+    init(model: CameraConfigurationServiceModel,
+         sessionRunner: CaptureSessionRunning?,
+         lifecycleNotificationCenter: NotificationCenter) {
         self.model = model
+        self.sessionRunnerOverride = sessionRunner
+        self.lifecycleNotificationCenter = lifecycleNotificationCenter
         self.canCaptureLivePhotoSubject = CurrentValueSubject(model.canCaptureLivePhoto)
         self.availableResolutionsSubject = CurrentValueSubject([])
         self.availableVideoQualitiesSubject = CurrentValueSubject([])
@@ -125,6 +157,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     }
 
     public func configure() async {
+        isCameraOpen = true
         registerLifecycleObservers()
         if model.setupResult == .setupComplete {
             printDebug("Starting session from configure()")
@@ -136,32 +169,61 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
 
     private func registerLifecycleObservers() {
         stopCancellables()
-        NotificationUtils.didEnterBackgroundPublisher
+        lifecycleNotificationCenter.publisher(for: AppLifecycleNotification.didEnterBackground)
             .sink { _ in
                 Task {
                     await self.stop(observeRestart: true)
                 }
             }.store(in: &cancellables)
-        NotificationUtils.willResignActivePublisher
+        lifecycleNotificationCenter.publisher(for: AppLifecycleNotification.willResignActive)
             .sink { _ in
                 Task {
                     await self.stop(observeRestart: true)
                 }
             }.store(in: &cancellables)
-        NotificationUtils.didBecomeActivePublisher
+        lifecycleNotificationCenter.publisher(for: AppLifecycleNotification.didBecomeActive)
             .sink { _ in
                 Task {
                     self.printDebug("Starting session from didBecomeActivePublisher")
                     await self.start()
                 }
             }.store(in: &cancellables)
-        NotificationUtils.willEnterForegroundPublisher
+        lifecycleNotificationCenter.publisher(for: AppLifecycleNotification.willEnterForeground)
             .sink { _ in
                 Task {
                     self.printDebug("Starting session from willEnterForegroundPublisher")
                     await self.start()
                 }
             }.store(in: &cancellables)
+    }
+
+    /// Tells the service whether the app is locked. The app calls this on
+    /// every lock and unlock.
+    ///
+    /// While locked the session is not started, and a running one is stopped.
+    /// Unlocking starts it again if the camera is still open, as returning to
+    /// the app would.
+    nonisolated public func setAppLocked(_ locked: Bool) {
+        let changed = isAppLocked.withLock { current in
+            defer { current = locked }
+            return current != locked
+        }
+        guard changed else { return }
+        Task {
+            await self.applyAppLockState()
+        }
+    }
+
+    /// Reads the lock state when it runs rather than taking it as an argument,
+    /// so a lock and unlock in quick succession settle on the latest one.
+    private func applyAppLockState() async {
+        if isAppLocked.withLock({ $0 }) {
+            printDebug("Stopping session for app lock")
+            await stop(observeRestart: true)
+        } else if isCameraOpen {
+            printDebug("Starting session from app unlock")
+            await start()
+        }
     }
 
     public func setDelegate(_ delegate: CameraConfigurationServicableDelegate) async {
@@ -189,22 +251,27 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     public func stop(observeRestart: Bool) async {
         self.printDebug("Stopping session. ObserveRestart: \(observeRestart)")
         if !observeRestart {
+            isCameraOpen = false
             stopCancellables()
         }
 
-        guard self.session.isRunning, self.model.setupResult == .setupComplete else {
-            self.printDebug("Could not stop session, isSessionRunning: \(self.session.isRunning), model.setupResult: \(self.model.setupResult)")
+        guard self.sessionRunner.isRunning, self.model.setupResult == .setupComplete else {
+            self.printDebug("Could not stop session, isSessionRunning: \(self.sessionRunner.isRunning), model.setupResult: \(self.model.setupResult)")
             return
         }
 
-        self.session.stopRunning()
+        self.sessionRunner.stopRunning()
 
     }
 
     public func start() async {
 
-        guard !session.isRunning else {
+        guard !sessionRunner.isRunning else {
             printDebug("Session is running already")
+            return
+        }
+        guard !isAppLocked.withLock({ $0 }) else {
+            printDebug("Not starting session while the app is locked")
             return
         }
         guard model.setupResult == .setupComplete else {
@@ -213,7 +280,7 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         }
 
         printDebug("Calling startRunning, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
-        session.startRunning()
+        sessionRunner.startRunning()
         zoomService.applyTarget()
         printDebug("Started running session, videoZoomFactor=\(zoomService.currentVideoZoomFactor())")
     }
