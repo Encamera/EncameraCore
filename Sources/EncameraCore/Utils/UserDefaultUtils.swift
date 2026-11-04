@@ -377,3 +377,35 @@ public extension UserDefaultUtils {
         Self.set(0, forKey: .reviewRequestedMetric)
     }
 }
+
+// MARK: - Notification unread state
+
+public extension UserDefaultUtils {
+
+    /// Whether the last successful notification fetch returned a notification
+    /// the user has not yet seen in the notification list.
+    static var hasUnseenNotifications: Bool {
+        !Set(stringArray(forKey: .lastFetchedNotificationIDs))
+            .subtracting(stringArray(forKey: .seenNotificationIDs))
+            .isEmpty
+    }
+
+    /// Stores the ids a successful fetch returned. Seen ids the fetch no longer
+    /// returns are dropped, so the seen list never outgrows the remote list.
+    static func recordFetchedNotificationIDs(_ ids: [String]) {
+        set(ids, forKey: .lastFetchedNotificationIDs)
+        let fetched = Set(ids)
+        set(stringArray(forKey: .seenNotificationIDs).filter(fetched.contains), forKey: .seenNotificationIDs)
+    }
+
+    static func markNotificationsSeen(_ ids: [String]) {
+        let seen = stringArray(forKey: .seenNotificationIDs)
+        let added = ids.filter { !seen.contains($0) }
+        guard !added.isEmpty else { return }
+        set(seen + added, forKey: .seenNotificationIDs)
+    }
+
+    private static func stringArray(forKey key: UserDefaultKey) -> [String] {
+        value(forKey: key) as? [String] ?? []
+    }
+}

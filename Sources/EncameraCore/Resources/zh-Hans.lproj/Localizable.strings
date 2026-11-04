@@ -257,17 +257,6 @@
 "AlbumNotFoundAtSourceLocation" = "无法在源位置找到相册。请使用文件应用程序确保它存在。";
 "NotificationBannerTitle" = "已通过加密保护";
 "NotificationBannerBody" = "所有媒体在保存前都会被加密。除了你，没有人可以查看你的文件。";
-"TelegramGroupJoinTitle" = "加入Telegram群组";
-"TelegramGroupJoinBody" = "抢先体验测试版功能并提供反馈";
-"TelegramGroupJoinButtonText" = "加入群组";
-"InstallWidgetTitle" = "安装锁屏小部件";
-"InstallWidgetBody" = "将Encamera添加到您的锁屏以快速拍照";
-"InstallWidgetButtonText" = "添加小组件";
-"NotificationBanner.LeaveAReview.Title" = "我们需要您的帮助！";
-"NotificationBanner.LeaveAReview.Body" = "如果您喜欢Encamera，请帮我们写个评论！";
-"NotificationBanner.Reddit.Title" = "你在用Reddit吗？";
-"NotificationBanner.Reddit.Body" = "加入Encamera subreddit以关注最新动态并提供反馈";
-"NotificationBanner.Reddit.Button" = "加入Subreddit";
 "Enable Face ID" = "启用面容ID";
 "Use Passcode instead" = "改用密码";
 "Select Login Method" = "请选择一种方法";

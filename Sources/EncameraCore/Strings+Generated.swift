@@ -313,12 +313,6 @@ public enum L10n {
   public static let importSelectedImages = L10n.tr("Localizable", "ImportSelectedImages", fallback: "Import the selected images to your currently active key album")
   /// Wrong PIN Code. Please try again.
   public static let incorrectPinCode = L10n.tr("Localizable", "IncorrectPinCode", fallback: "Wrong PIN Code. Please try again.")
-  /// Add Encamera to your lock screen to quickly take pictures
-  public static let installWidgetBody = L10n.tr("Localizable", "InstallWidgetBody", fallback: "Add Encamera to your lock screen to quickly take pictures")
-  /// Add Widget
-  public static let installWidgetButtonText = L10n.tr("Localizable", "InstallWidgetButtonText", fallback: "Add Widget")
-  /// Install Lock Screen Widget
-  public static let installWidgetTitle = L10n.tr("Localizable", "InstallWidgetTitle", fallback: "Install Lock Screen Widget")
   /// Invalid Password
   public static let invalidPassword = L10n.tr("Localizable", "Invalid Password", fallback: "Invalid Password")
   /// I Remember my Passcode
@@ -614,12 +608,6 @@ public enum L10n {
   public static let takeYourFirstPicture = L10n.tr("Localizable", "TakeYourFirstPicture", fallback: "TAKE YOUR FIRST PICTURE")
   /// Tap the 
   public static let tapThe = L10n.tr("Localizable", "Tap the ", fallback: "Tap the ")
-  /// Get early access to beta features and give feedback
-  public static let telegramGroupJoinBody = L10n.tr("Localizable", "TelegramGroupJoinBody", fallback: "Get early access to beta features and give feedback")
-  /// Join Group
-  public static let telegramGroupJoinButtonText = L10n.tr("Localizable", "TelegramGroupJoinButtonText", fallback: "Join Group")
-  /// Join Telegram Group
-  public static let telegramGroupJoinTitle = L10n.tr("Localizable", "TelegramGroupJoinTitle", fallback: "Join Telegram Group")
   /// Terms of Use
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
   /// Here is a test of the string translation
@@ -2415,22 +2403,6 @@ public enum L10n {
     public enum WidgetSetup {
       /// Guiding user to add a widget to the lock screen.
       public static let guidance = L10n.tr("Localizable", "Notification.WidgetSetup.Guidance", fallback: "Guiding user to add a widget to the lock screen.")
-    }
-  }
-  public enum NotificationBanner {
-    public enum LeaveAReview {
-      /// If you like Encamera, help us out with a review!
-      public static let body = L10n.tr("Localizable", "NotificationBanner.LeaveAReview.Body", fallback: "If you like Encamera, help us out with a review!")
-      /// We need your help!
-      public static let title = L10n.tr("Localizable", "NotificationBanner.LeaveAReview.Title", fallback: "We need your help!")
-    }
-    public enum Reddit {
-      /// Join the Encamera subreddit to follow the latest and give feedback
-      public static let body = L10n.tr("Localizable", "NotificationBanner.Reddit.Body", fallback: "Join the Encamera subreddit to follow the latest and give feedback")
-      /// Join Subreddit
-      public static let button = L10n.tr("Localizable", "NotificationBanner.Reddit.Button", fallback: "Join Subreddit")
-      /// Are you on Reddit?
-      public static let title = L10n.tr("Localizable", "NotificationBanner.Reddit.Title", fallback: "Are you on Reddit?")
     }
   }
   public enum Onboarding {

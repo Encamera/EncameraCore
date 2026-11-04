@@ -505,17 +505,6 @@
 
 "NotificationBannerTitle" = "Secured with Encryption";
 "NotificationBannerBody" = "All media is encrypted before saving. Nobody can view your files except you.";
-"TelegramGroupJoinTitle" = "Join Telegram Group";
-"TelegramGroupJoinBody" = "Get early access to beta features and give feedback";
-"TelegramGroupJoinButtonText" = "Join Group";
-"InstallWidgetTitle" = "Install Lock Screen Widget";
-"InstallWidgetBody" = "Add Encamera to your lock screen to quickly take pictures";
-"InstallWidgetButtonText" = "Add Widget";
-"NotificationBanner.LeaveAReview.Title" = "We need your help!";
-"NotificationBanner.LeaveAReview.Body" = "If you like Encamera, help us out with a review!";
-"NotificationBanner.Reddit.Title" = "Are you on Reddit?";
-"NotificationBanner.Reddit.Body" = "Join the Encamera subreddit to follow the latest and give feedback";
-"NotificationBanner.Reddit.Button" = "Join Subreddit";
 
 "BiometricMethod.Enable" = "Enable %@";
 "Use Passcode instead" = "Use Passcode instead";

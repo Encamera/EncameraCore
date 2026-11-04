@@ -1,7 +1,6 @@
 /* Italian Localization */
 
 
-"InstallWidgetTitle" = "Installa widget schermata di blocco";
 "Hide" = "Nascondi";
 "GlobalImportProgress.ImportingBatches" = "Importazione di %@ batch";
 "OnboardingPermissionsTitle" = "Autorizzazioni";
@@ -40,7 +39,6 @@
 "EmptyAlbumTakeAPictureHeading" = "Crea un nuovo ricordo";
 "AuthenticationMethod.SecurityLevel.password" = "Opzione più sicura";
 "Delete Album question" = "Elimina album?";
-"TelegramGroupJoinButtonText" = "Unisciti al gruppo";
 "Erase keychain data" = "Cancella dati portachiavi";
 "FaceIDOnlyAlert.Title" = "Cancellare PIN/Password?";
 "Key Info" = "Informazioni chiave";
@@ -158,14 +156,11 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Support privacy-focused development." = "Supporta lo sviluppo orientato alla privacy.";
 "CannotClearTitle" = "Impossibile cancellare";
 "ViewInFiles" = "Visualizza nell'app File";
-"TelegramGroupJoinTitle" = "Unisciti al gruppo Telegram";
 "DoYouRememberYourPin" = "Ricordi il tuo codice di accesso?";
 "PasswordSetSuccessMessage" = "La tua nuova password è stata salvata";
 "Add Key" = "Aggiungi chiave";
 "See the photos that belong to a key by tapping the " = "Vedi le foto associate a una chiave toccando il ";
-"InstallWidgetButtonText" = "Aggiungi widget";
 "OpenSystemSettings" = "Vai su Impostazioni";
-"NotificationBanner.LeaveAReview.Body" = "Se ti piace Encamera, aiutaci con una recensione!";
 "Rename" = "Rinomina";
 "EnterYourPassword" = "Inserisci la tua password";
 "AskForReview.EnjoyingTheApp" = "Ti sta piacendo l'app?";
@@ -238,8 +233,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "IRemember" = "Ricordo il mio codice di accesso";
 "MakeSureYouRememberYourPin" = "Assicurati di ricordare il tuo codice PIN!";
 "UnlimitedAlbumsFeatureRowTitle" = "Album illimitati per i tuoi ricordi";
-"NotificationBanner.Reddit.Button" = "Unisciti al Subreddit";
-"InstallWidgetBody" = "Aggiungi Encamera alla schermata di blocco per scattare foto rapidamente";
 "PinCodeLockTryAgainIn" = "Troppi tentativi. Attendere %@";
 "Enable %@" = "Abilita %@";
 "KeyPhrase.ContinueButton" = "La mia chiave è stata salvata";
@@ -247,7 +240,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Share this image?" = "Condividere questa immagine?";
 "Settings.BackupKeyToiCloudDescription" = "Se abilitato, la tua chiave verrà automaticamente salvata nel tuo Portachiavi iCloud. Se perdi il tuo dispositivo, avrai comunque accesso ai file archiviati su iCloud se scegli questa opzione.";
 "AlbumExistsError" = "Esiste già un album con questo nome.";
-"NotificationBanner.Reddit.Body" = "Unisciti al subreddit di Encamera per seguire le novità e dare feedback";
 "TaskDetailCard.Progress" = "Avanzamento:";
 "Key copied to clipboard. Store this in a password manager or other secure place." = "Chiave copiata negli appunti. Conservala in un gestore di password o in un altro luogo sicuro.";
 "HideAlbumsTutorial.Heading4" = "Nascondi un album";
@@ -294,7 +286,6 @@ Condividerla significa che potranno decrittare qualsiasi contenuto multimediale 
 "Delete Everything" = "Elimina tutto";
 "KeyTutorialTitle" = "Tutti i tuoi file sono criptati";
 "PermissionsNeededTitle" = "Autorizzazioni fotocamera necessarie";
-"NotificationBanner.LeaveAReview.Title" = "Abbiamo bisogno del tuo aiuto!";
 "FaceIDOnlyAlert.Continue" = "Continua";
 "NoAlbumSelected" = "Nessun album selezionato. Devi selezionare un album per salvare le foto.";
 "StorageSettingsSubheading" = "Dove vuoi archiviare i file multimediali per i file crittografati con questa chiave?
@@ -313,7 +304,6 @@ Ogni chiave archivierà i dati nella propria cartella.
 "Enable Face ID" = "Abilita Face ID";
 "Hold to erase" = "Tieni premuto per cancellare";
 "OK" = "OK";
-"NotificationBanner.Reddit.Title" = "Sei su Reddit?";
 "NoAlbum" = "Nessun album";
 "LetsGo" = "Andiamo!";
 "The media you tried to open could not be decrypted." = "Il media che hai provato ad aprire non può essere decriptato.";
@@ -431,7 +421,6 @@ Encamera!";
 "Notification.Permission.Error" = "Errore durante la richiesta delle autorizzazioni per le notifiche locali: %@";
 "Notification.ReviewPage.Navigation" = "Navigazione alla pagina di invio recensione.";
 "AuthenticationMethod.IncompatibleDetail" = "%@ non può essere utilizzato con i metodi attualmente selezionati. PIN e Password non possono essere usati insieme.";
-"TelegramGroupJoinBody" = "Ottieni accesso anticipato alle funzionalità beta e lascia un feedback";
 "Key Entry" = "Inserimento chiave";
 "HideAlbumsTutorial.Subheading3" = "Assicurati di ricordare i nomi dei tuoi album nascosti, perché non appariranno nell'elenco dei tuoi album.";
 "EmptyAlbumTakeAPictureActionTitle" = "Scatta una foto";

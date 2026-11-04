@@ -277,17 +277,6 @@
   "AlbumNotFoundAtSourceLocation" = "Impossible de trouver l’album à l’emplacement source. Utilisez l’application Fichiers pour vérifier qu’il existe.";
   "NotificationBannerTitle" = "Sécurisé par chiffrement";
   "NotificationBannerBody" = "Tous les médias sont chiffrés avant d'être enregistrés. Personne ne peut voir vos fichiers sauf vous.";
-  "TelegramGroupJoinTitle" = "Rejoindre le groupe Telegram";
-  "TelegramGroupJoinBody" = "Obtenez un accès anticipé aux fonctionnalités bêta et donnez votre avis";
-  "TelegramGroupJoinButtonText" = "Rejoindre le groupe";
-  "InstallWidgetTitle" = "Installer le widget d'écran de verrouillage";
-  "InstallWidgetBody" = "Ajoutez Encamera à votre écran de verrouillage pour prendre des photos rapidement";
-  "InstallWidgetButtonText" = "Ajouter le widget";
-  "NotificationBanner.LeaveAReview.Title" = "Nous avons besoin de votre aide !";
-  "NotificationBanner.LeaveAReview.Body" = "Si vous aimez Encamera, aidez-nous en laissant un avis !";
-  "NotificationBanner.Reddit.Title" = "Êtes-vous sur Reddit ?";
-  "NotificationBanner.Reddit.Body" = "Rejoignez le subreddit Encamera pour suivre les dernières nouveautés et donner votre avis";
-  "NotificationBanner.Reddit.Button" = "Rejoindre le subreddit";
   "Enable Face ID" = "Activer Face ID";
   "Use Passcode instead" = "Utiliser le code d’accès à la place";
   "Select Login Method" = "Veuillez sélectionner une méthode";

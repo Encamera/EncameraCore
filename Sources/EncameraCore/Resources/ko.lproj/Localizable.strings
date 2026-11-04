@@ -95,7 +95,6 @@
 "Password is too long, >%@" = "비밀번호가 너무 깁니다, >%@";
 "Saved to Device" = "장치에 저장됨";
 "ErrorSavingPassword" = "비밀번호 저장 오류";
-"TelegramGroupJoinTitle" = "텔레그램 그룹 가입";
 "ProgressView.FileLoadedSuccessfully" = "파일이 성공적으로 로드되었습니다";
 "DeleteAlbumForever" = "이 앨범과 관련된 모든 미디어를 영구적으로 삭제하시겠습니까?";
 "Delete Everything" = "모두 삭제";
@@ -133,13 +132,10 @@
 "ModalUpgradeText" = "키 기반 암호화";
 "SaveLocally" = "무제한 사진을 잠금 해제하려면 프리미엄으로 업그레이드하세요";
 "Key not found." = "키를 찾을 수 없습니다.";
-"NotificationBanner.Reddit.Body" = "최신 정보를 팔로우하고 피드백을 제공하려면 Encamera 서브레딧에 가입하세요";
 "Set as Active Key" = "활성 키로 설정";
 "PostPurchaseView.Subtext2" = "그동안 App Store에 리뷰를 남겨주시면 대단히 감사하겠습니다";
-"NotificationBanner.LeaveAReview.Title" = "당신의 도움이 필요합니다!";
 "IForgot" = "잊어버렸습니다";
 "Biometrics unavailable" = "생체 인식 사용 불가";
-"InstallWidgetTitle" = "잠금 화면 위젯 설치";
 "GetPremium" = "프리미엄 구독";
 "Privacy Policy" = "개인정보 처리방침";
 "Notification.ReviewPage.Navigation" = "리뷰 제출 페이지로 이동 중입니다.";
@@ -169,8 +165,6 @@
 "View unlimited photos for each key." = "각 키에 대한 무제한 사진 보기.";
 "MoveAlbumStorage" = "저장소 변경";
 "Error deleting key. Please try again." = "키 삭제 오류. 다시 시도해 주세요.";
-"InstallWidgetBody" = "잠금 화면에 Encamera를 추가하여 빠르게 사진을 찍으세요.";
-"InstallWidgetButtonText" = "위젯 추가";
 "Share Image" = "이미지 공유";
 "Subscription" = "구독";
 "Next" = "다음";
@@ -189,7 +183,6 @@
 "Notification.ImageSecurityReminder.Body" = "이미지만이 아니라 비디오도 앨범에 저장할 수 있습니다. 지금 시도해보고 몇 가지를 확보하세요!";
 "Use Password" = "비밀번호 사용";
 "BackUpKeysHeader" = "이 키들을 백업하세요!";
-"NotificationBanner.LeaveAReview.Body" = "Encamera가 마음에 드신다면, 리뷰로 도와주세요!";
 "Notification.WidgetSetup.Guidance" = "사용자가 잠금 화면에 위젯을 추가하도록 안내합니다.";
 "PHOTO" = "사진";
 "No info available" = "사용 가능한 정보가 없습니다";
@@ -258,7 +251,6 @@
 "TakeSurveyBody" = "피드백을 주시면 3개월 무료 제공";
 "AlbumDetailView.RenameAlbum" = "앨범 이름 변경";
 "FooterView.MediaDetails" = "미디어 세부 정보";
-"NotificationBanner.Reddit.Button" = "서브레딧 가입";
 "Take a Photo!" = "사진 찍기!";
 "Close" = "닫기";
 "Share" = "공유";
@@ -277,7 +269,6 @@
 "DoYouRememberYourPinSubtitle" = "하지 않으면 '핀 변경'으로 가서 새로 설정할 수 있습니다";
 "Keys" = "키";
 "EmptyAlbumTakeAPictureSubtitle" = "카메라를 열고 사진을 찍으세요";
-"TelegramGroupJoinButtonText" = "그룹에 가입";
 "Settings.Version" = "버전";
 "Active" = "활성";
 "Local" = "로컬";
@@ -292,7 +283,6 @@
 "IntroStorageExplanation" = "귀하의 미디어는 키로 안전하게 보호되며, 기기 또는 iCloud에 로컬로 저장됩니다.";
 "iCloudStorageFeatureRowTitle" = "iCloud 저장 및 백업";
 "Done" = "완료";
-"TelegramGroupJoinBody" = "베타 기능에 조기 액세스하고 피드백 제공";
 "Enter Password" = "비밀번호 입력";
 "New Album Subheading" = "이 암호화된 사진 앨범의 이름을 설정하세요.";
 "Notification.WidgetReminder.Body" = "잠금 화면에 위젯을 추가하고 이미지를 빠르게 찍는 것을 잊지 마세요. 방법을 확인하세요!";
@@ -323,7 +313,6 @@
 "PostPurchaseView.ThanksForYourPurchase" = "구매해 주셔서 감사합니다!";
 "Encamera encrypts all data it creates, keeping your data safe from the prying eyes of AI, media analysis, and other violations of privacy." = "Encamera는 모든 것을 암호화하여 원치 않는 눈으로부터 미디어를 안전하게 보호합니다.";
 "SaveToiCloudDrive" = "iCloud Drive에 저장하기";
-"NotificationBanner.Reddit.Title" = "Reddit을 사용하고 계신가요?";
 "Please select a storage location." = "저장 위치를 선택해 주세요.";
 "PinCodeLockTryAgainIn" = "시도 횟수가 너무 많습니다. %@ 동안 기다려 주세요.";
 "Notification.UnknownIdentifier" = "알 수 없는 알림 식별자";

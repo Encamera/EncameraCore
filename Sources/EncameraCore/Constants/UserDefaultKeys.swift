@@ -82,6 +82,10 @@ public enum UserDefaultKey {
     /// device, so `MultiDeviceStateRecorder` can publish where each was minted
     /// once the account exists.
     case keysMintedOnThisDevice
+    /// Ids of the notifications the last successful remote fetch returned.
+    case lastFetchedNotificationIDs
+    /// Ids of fetched notifications the user has opened the notification list on.
+    case seenNotificationIDs
 
     var rawValue: String {
         switch self {
@@ -168,7 +172,9 @@ public enum UserDefaultKey {
              .pendingDefaultsWipe,
              .cloudKitUpgradeDeferredAt,
              // "Minted here" is only true of this device.
-             .keysMintedOnThisDevice:
+             .keysMintedOnThisDevice,
+             .lastFetchedNotificationIDs,
+             .seenNotificationIDs:
             return false
         }
     }

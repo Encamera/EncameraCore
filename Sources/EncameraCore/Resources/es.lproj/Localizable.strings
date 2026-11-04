@@ -359,12 +359,6 @@
 /* Notification Banners */
 "NotificationBannerTitle" = "Asegurado con encriptación";
 "NotificationBannerBody" = "Todos los archivos multimedia se cifran antes de guardarse. Nadie excepto tú puede ver tus archivos.";
-"TelegramGroupJoinTitle" = "Únete al grupo de Telegram";
-"TelegramGroupJoinBody" = "Obtén acceso anticipado a funciones beta y da tu opinión";
-"TelegramGroupJoinButtonText" = "Unirse al Grupo";
-"InstallWidgetTitle" = "Instalar Widget de Pantalla de Bloqueo";
-"InstallWidgetBody" = "Añade Encamera a tu pantalla de bloqueo para tomar fotos rápidamente";
-"InstallWidgetButtonText" = "Añadir Widget"; 
 
 
 "IncorrectPinCode" = "Código PIN incorrecto. Por favor, inténtelo de nuevo.";
@@ -435,11 +429,6 @@
 "Settings.Version" = "Versión";
 
 "Settings.Contact" = "Contactar Soporte";
-"NotificationBanner.LeaveAReview.Body" = "Si te gusta Encamera, ¡ayúdanos con una reseña!";
-"NotificationBanner.Reddit.Button" = "Únete al Subreddit";
-"NotificationBanner.Reddit.Body" = "Únete al subreddit de Encamera para seguir lo último y dar tu opinión";
-"NotificationBanner.LeaveAReview.Title" = "¡Necesitamos tu ayuda!";
-"NotificationBanner.Reddit.Title" = "¿Estás en Reddit?";
 
 "GalleryView.PlayLivePhoto" = "Foto en Vivo - Mantén presionado para ver";
 "PinTooShort" = "El PIN es demasiado corto. Debe tener al menos %@ dígitos.";

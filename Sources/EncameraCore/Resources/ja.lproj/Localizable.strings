@@ -1,7 +1,6 @@
 /* Japanese Localization */
 
 
-"InstallWidgetTitle" = "ロック画面ウィジェットをインストール";
 "Hide" = "非表示";
 "GlobalImportProgress.ImportingBatches" = "%@バッチをインポート中";
 "OnboardingPermissionsTitle" = "権限";
@@ -40,7 +39,6 @@
 "EmptyAlbumTakeAPictureHeading" = "新しいメモリーを作成";
 "AuthenticationMethod.SecurityLevel.password" = "最も安全なオプション";
 "Delete Album question" = "アルバムを削除しますか？";
-"TelegramGroupJoinButtonText" = "グループに参加";
 "Erase keychain data" = "キーチェーンデータを消去";
 "FaceIDOnlyAlert.Title" = "PIN/パスワードを消去しますか？";
 "Key Info" = "主な情報";
@@ -169,14 +167,11 @@
 "Support privacy-focused development." = "プライバシー重視の開発をサポートしてください。";
 "CannotClearTitle" = "クリアできません";
 "ViewInFiles" = "ファイルアプリで表示";
-"TelegramGroupJoinTitle" = "Telegramグループに参加";
 "DoYouRememberYourPin" = "パスコードを覚えていますか？";
 "PasswordSetSuccessMessage" = "新しいパスワードが保存されました";
 "Add Key" = "キーを追加";
 "See the photos that belong to a key by tapping the " = "キーに紐づく写真を見るにはタップしてください";
-"InstallWidgetButtonText" = "ウィジェットを追加";
 "OpenSystemSettings" = "設定に移動";
-"NotificationBanner.LeaveAReview.Body" = "Encameraを気に入っていただけたら、レビューで応援してください！";
 "Rename" = "名前を変更";
 "EnterYourPassword" = "パスワードを入力してください";
 "AskForReview.EnjoyingTheApp" = "アプリを楽しんでいますか？";
@@ -249,8 +244,6 @@
 "IRemember" = "パスコードを覚えています";
 "MakeSureYouRememberYourPin" = "必ずPINコードを覚えておいてください！";
 "UnlimitedAlbumsFeatureRowTitle" = "思い出のための無制限アルバム";
-"NotificationBanner.Reddit.Button" = "サブレディットに参加する";
-"InstallWidgetBody" = "写真を素早く撮るためにEncameraをロック画面に追加しましょう";
 "PinCodeLockTryAgainIn" = "試行回数が多すぎます。%@をお待ちください";
 "Enable %@" = "%@を有効にする";
 "KeyPhrase.ContinueButton" = "キーが保存されました";
@@ -258,7 +251,6 @@
 "Share this image?" = "この画像を共有しますか？";
 "Settings.BackupKeyToiCloudDescription" = "有効にすると、あなたのキーは自動的にiCloudキーチェーンにバックアップされます。デバイスを紛失した場合でも、このオプションを選択すればiCloudに保存されたファイルにアクセスできます。";
 "AlbumExistsError" = "その名前のアルバムはすでに存在します。";
-"NotificationBanner.Reddit.Body" = "最新情報をフォローしたりフィードバックを送るには、Encameraのサブレディットに参加してください。";
 "TaskDetailCard.Progress" = "進行状況：";
 "Key copied to clipboard. Store this in a password manager or other secure place." = "キーがクリップボードにコピーされました。パスワードマネージャーや他の安全な場所に保管してください。";
 "HideAlbumsTutorial.Heading4" = "アルバムを非表示にする";
@@ -305,7 +297,6 @@
 "Delete Everything" = "すべて削除";
 "KeyTutorialTitle" = "あなたのすべてのファイルは暗号化されています";
 "PermissionsNeededTitle" = "カメラの許可が必要です";
-"NotificationBanner.LeaveAReview.Title" = "あなたの助けが必要です！";
 "FaceIDOnlyAlert.Continue" = "続ける";
 "NoAlbumSelected" = "アルバムが選択されていません。写真を保存するにはアルバムを選択してください。";
 "StorageSettingsSubheading" = "この鍵で暗号化されたファイルのメディアをどこに保存しますか？
@@ -324,7 +315,6 @@
 "Enable Face ID" = "Face IDを有効にする";
 "Hold to erase" = "長押しで消去";
 "OK" = "OK";
-"NotificationBanner.Reddit.Title" = "Redditを使っていますか？";
 "NoAlbum" = "アルバムなし";
 "LetsGo" = "行こう！";
 "The media you tried to open could not be decrypted." = "開こうとしたメディアは復号できませんでした。";
@@ -441,7 +431,6 @@
 "Notification.Permission.Error" = "ローカル通知の許可リクエスト中にエラーが発生しました: %@";
 "Notification.ReviewPage.Navigation" = "レビュー投稿ページへ移動します。";
 "AuthenticationMethod.IncompatibleDetail" = "%@は現在選択されている方法と併用できません。PINとパスワードは同時に使用できません。";
-"TelegramGroupJoinBody" = "ベータ機能をいち早く体験し、フィードバックをお寄せください";
 "Key Entry" = "キー入力";
 "HideAlbumsTutorial.Subheading3" = "非表示アルバムの名前はアルバム一覧に表示されないため、必ず覚えておいてください。";
 "EmptyAlbumTakeAPictureActionTitle" = "写真を撮る";

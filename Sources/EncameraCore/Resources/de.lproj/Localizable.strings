@@ -358,12 +358,6 @@
 /* Notification Banners */
 "NotificationBannerTitle" = "Mit Verschlüsselung gesichert";
 "NotificationBannerBody" = "Alle Medien werden vor dem Speichern verschlüsselt. Niemand außer Ihnen kann Ihre Dateien einsehen.";
-"TelegramGroupJoinTitle" = "Telegram-Gruppe beitreten";
-"TelegramGroupJoinBody" = "Erhalten Sie frühzeitigen Zugang zu Beta-Funktionen und geben Sie Feedback";
-"TelegramGroupJoinButtonText" = "Gruppe beitreten";
-"InstallWidgetTitle" = "Lock Screen-Widget installieren";
-"InstallWidgetBody" = "Fügen Sie Encamera Ihrem Sperrbildschirm hinzu, um schnell Fotos zu machen";
-"InstallWidgetButtonText" = "Widget hinzufügen";
 
 "Enable Face ID" = "Face ID aktivieren";
 "Use PIN instead" = "Stattdessen PIN verwenden";
@@ -435,11 +429,6 @@
 "Settings.Version" = "Version";
 
 "Settings.Contact" = "Kontaktieren Sie den Support";
-"NotificationBanner.LeaveAReview.Body" = "Wenn Ihnen Encamera gefällt, helfen Sie uns mit einer Bewertung!";
-"NotificationBanner.Reddit.Button" = "Subreddit beitreten";
-"NotificationBanner.Reddit.Body" = "Treten Sie dem Encamera-Subreddit bei, um das Neueste zu verfolgen und Feedback zu geben";
-"NotificationBanner.LeaveAReview.Title" = "Wir brauchen Ihre Hilfe!";
-"NotificationBanner.Reddit.Title" = "Bist du auf Reddit?";
 
 "GalleryView.PlayLivePhoto" = "Live Photo - Zum Ansehen halten";
 "PinTooShort" = "PIN ist zu kurz. Es muss mindestens %@ Stellen haben.";

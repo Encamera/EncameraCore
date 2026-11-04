@@ -1,7 +1,6 @@
 /* Arabic Localization */
 
 
-"InstallWidgetTitle" = "تثبيت أداة شاشة القفل";
 "Hide" = "إخفاء";
 "GlobalImportProgress.ImportingBatches" = "يتم استيراد %@ دفعات";
 "OnboardingPermissionsTitle" = "الأذونات";
@@ -40,7 +39,6 @@
 "EmptyAlbumTakeAPictureHeading" = "أنشئ ذكرى جديدة";
 "AuthenticationMethod.SecurityLevel.password" = "الخيار الأكثر أمانًا";
 "Delete Album question" = "حذف الألبوم؟";
-"TelegramGroupJoinButtonText" = "انضم إلى المجموعة";
 "Erase keychain data" = "مسح بيانات سلسلة المفاتيح";
 "FaceIDOnlyAlert.Title" = "مسح رمز PIN/كلمة المرور؟";
 "Key Info" = "معلومات أساسية";
@@ -155,14 +153,11 @@
 "Support privacy-focused development." = "ادعم تطوير يركز على الخصوصية.";
 "CannotClearTitle" = "لا يمكن المسح";
 "ViewInFiles" = "عرض في تطبيق الملفات";
-"TelegramGroupJoinTitle" = "انضم إلى مجموعة تيليجرام";
 "DoYouRememberYourPin" = "هل تتذكر رمز المرور الخاص بك؟";
 "PasswordSetSuccessMessage" = "تم حفظ كلمة المرور الجديدة الخاصة بك";
 "Add Key" = "إضافة مفتاح";
 "See the photos that belong to a key by tapping the " = "شاهد الصور التي تخص مفتاحًا من خلال النقر على";
-"InstallWidgetButtonText" = "إضافة ويدجت";
 "OpenSystemSettings" = "اذهب إلى الإعدادات";
-"NotificationBanner.LeaveAReview.Body" = "إذا أعجبك إنكاميرا، ساعدنا بكتابة مراجعة!";
 "Rename" = "إعادة تسمية";
 "EnterYourPassword" = "أدخل كلمة المرور الخاصة بك";
 "AskForReview.EnjoyingTheApp" = "هل تستمتع بالتطبيق؟";
@@ -235,8 +230,6 @@
 "IRemember" = "أتذكر رمز المرور الخاص بي";
 "MakeSureYouRememberYourPin" = "تأكد من أنك تتذكر رمزك السري!";
 "UnlimitedAlbumsFeatureRowTitle" = "ألبومات غير محدودة لذكرياتك";
-"NotificationBanner.Reddit.Button" = "انضم إلى منتدى Subreddit";
-"InstallWidgetBody" = "أضف Encamera إلى شاشة القفل لالتقاط الصور بسرعة";
 "PinCodeLockTryAgainIn" = "عدد المحاولات كبير جداً. يرجى الانتظار لمدة %@";
 "Enable %@" = "تفعيل %@";
 "KeyPhrase.ContinueButton" = "تم حفظ مفتاحي";
@@ -244,7 +237,6 @@
 "Share this image?" = "هل ترغب في مشاركة هذه الصورة؟";
 "Settings.BackupKeyToiCloudDescription" = "إذا تم التفعيل، سيتم نسخ مفتاحك احتياطيًا تلقائيًا إلى سلسلة مفاتيح iCloud الخاصة بك. إذا فقدت جهازك، ستظل قادرًا على الوصول إلى الملفات المخزنة على iCloud إذا اخترت هذا الخيار.";
 "AlbumExistsError" = "يوجد ألبوم بهذا الاسم بالفعل.";
-"NotificationBanner.Reddit.Body" = "انضم إلى مجتمع Encamera على Reddit لمتابعة آخر المستجدات وتقديم الملاحظات";
 "TaskDetailCard.Progress" = "التقدم:";
 "Key copied to clipboard. Store this in a password manager or other secure place." = "تم نسخ المفتاح إلى الحافظة. يرجى حفظه في مدير كلمات المرور أو في مكان آمن آخر.";
 "HideAlbumsTutorial.Heading4" = "إخفاء ألبوم";
@@ -291,7 +283,6 @@
 "Delete Everything" = "حذف كل شيء";
 "KeyTutorialTitle" = "جميع ملفاتك مشفرة";
 "PermissionsNeededTitle" = "مطلوب أذونات الكاميرا";
-"NotificationBanner.LeaveAReview.Title" = "نحن بحاجة إلى مساعدتك!";
 "FaceIDOnlyAlert.Continue" = "متابعة";
 "NoAlbumSelected" = "لم يتم اختيار ألبوم. يجب عليك اختيار ألبوم لحفظ الصور فيه.";
 "StorageSettingsSubheading" = "أين تريد تخزين الوسائط للملفات المشفرة بهذا المفتاح؟\nسيتم تخزين بيانات كل مفتاح في مجلد خاص به.\n";
@@ -308,7 +299,6 @@
 "Enable Face ID" = "تفعيل التعرف على الوجه (Face ID)";
 "Hold to erase" = "اضغط مطولاً للحذف";
 "OK" = "حسنًا";
-"NotificationBanner.Reddit.Title" = "هل أنت على ريديت؟";
 "NoAlbum" = "لا يوجد ألبوم";
 "LetsGo" = "هيا بنا!";
 "The media you tried to open could not be decrypted." = "لم يتمكن النظام من فك تشفير الوسائط التي حاولت فتحها.";
@@ -425,7 +415,6 @@
 "Notification.Permission.Error" = "حدث خطأ أثناء طلب أذونات الإشعارات المحلية: %@";
 "Notification.ReviewPage.Navigation" = "الانتقال إلى صفحة إرسال المراجعة.";
 "AuthenticationMethod.IncompatibleDetail" = "لا يمكن استخدام %@ مع الطرق المحددة حالياً. لا يمكن استخدام رقم التعريف الشخصي وكلمة المرور معاً.";
-"TelegramGroupJoinBody" = "احصل على وصول مبكر إلى الميزات التجريبية وقدم ملاحظاتك";
 "Key Entry" = "إدخال المفتاح";
 "HideAlbumsTutorial.Subheading3" = "تأكد من تذكر أسماء ألبوماتك المخفية، لأنها لن تظهر في قائمة الألبومات الخاصة بك.";
 "EmptyAlbumTakeAPictureActionTitle" = "التقط صورة";
