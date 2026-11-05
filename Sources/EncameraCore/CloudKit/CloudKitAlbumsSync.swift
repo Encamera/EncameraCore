@@ -16,9 +16,9 @@
 //  After the walk, the iCloud Drive album migration
 //  (`ICloudDriveAlbumMigration.runEveryFolder()`) runs for every album folder:
 //  after each pass until one run gets past its conditions (unlocked, foreground,
-//  Wi-Fi, account, iCloud Drive) in this process, and after every walk the
-//  marker monitor starts. Once any album step has skipped for want of Wi-Fi
-//  (`ICloudDriveAlbumMigration.didWaitForWiFi`), whether this actor's run or a
+//  network, account, iCloud Drive) in this process, and after every walk the
+//  marker monitor starts. Once any album step has skipped for want of a network
+//  (`ICloudDriveAlbumMigration.didWaitForNetwork`), whether this actor's run or a
 //  user's move, the migration runs again at the next
 //  `NetworkMonitor.pathDidChange`. It is never awaited by launch.
 //
@@ -70,13 +70,13 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     private var albumMigrationRequested = false
     /// Whether a migration pass got past its conditions in this process.
     private(set) var albumMigrationRanThisLaunch = false
-    /// Set from the observer of `ICloudDriveAlbumMigration.didWaitForWiFi`, which
-    /// is posted on the main actor during a run, so it is set before the run
+    /// Set from the observer of `ICloudDriveAlbumMigration.didWaitForNetwork`,
+    /// which is posted on the main actor during a run, so it is set before the run
     /// returns.
-    private let albumStepWaitedForWiFi = OSAllocatedUnfairLock(initialState: false)
-    /// Whether an album step skipped for want of Wi-Fi since the last migration
-    /// run started, so the migration runs again when the network changes.
-    var albumMigrationWaitingForWiFi: Bool { albumStepWaitedForWiFi.withLock { $0 } }
+    private let albumStepWaitedForNetwork = OSAllocatedUnfairLock(initialState: false)
+    /// Whether an album step skipped for want of a network since the last
+    /// migration run started, so the migration runs again when the network changes.
+    var albumMigrationWaitingForNetwork: Bool { albumStepWaitedForNetwork.withLock { $0 } }
 
     public init(albumManager: AlbumManaging,
                 observeNotifications: Bool = true,
@@ -129,11 +129,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             ) { [weak self] _ in
                 Task { await self?.networkPathDidChange() }
             }
-            let albumStepWaitedForWiFi = albumStepWaitedForWiFi
+            let albumStepWaitedForNetwork = albumStepWaitedForNetwork
             albumStepWaitObserver = NotificationCenter.default.addObserver(
-                forName: ICloudDriveAlbumMigration.didWaitForWiFi, object: nil, queue: nil
+                forName: ICloudDriveAlbumMigration.didWaitForNetwork, object: nil, queue: nil
             ) { _ in
-                albumStepWaitedForWiFi.withLock { $0 = true }
+                albumStepWaitedForNetwork.withLock { $0 = true }
             }
         }
         if let markerMonitor {
@@ -261,7 +261,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             var ran = false
             repeat {
                 albumMigrationRequested = false
-                albumStepWaitedForWiFi.withLock { $0 = false }
+                albumStepWaitedForNetwork.withLock { $0 = false }
                 let result = await makeICloudDriveAlbumMigration(albumManager).runEveryFolder()
                 if case .ran = result { ran = true }
             } while albumMigrationRequested
@@ -272,11 +272,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         return await task.value
     }
 
-    /// Runs the album migration again after an album step skipped for want of
-    /// Wi-Fi. A run still off Wi-Fi skips again and keeps waiting.
+    /// Runs the album migration again after an album step skipped for want of a
+    /// network. A run still offline skips again and keeps waiting.
     private func networkPathDidChange() async {
-        guard albumMigrationWaitingForWiFi else { return }
-        printDebug("networkPathDidChange; running the album migration an album step skipped for want of Wi-Fi")
+        guard albumMigrationWaitingForNetwork else { return }
+        printDebug("networkPathDidChange; running the album migration an album step skipped for want of a network")
         await migrateICloudDriveAlbums()
     }
 

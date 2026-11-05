@@ -56,8 +56,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// `onboardingScreen` marker text; the screens are hosted by their own flow,
     /// not `handleNavigationFor`.
     case cloudKitUpgradeIntro
-    case cloudKitUpgradeProgress
-    case cloudKitUpgradeComplete
+    case cloudKitUpgradeInitiated
     /// Save-recovery-key flow offered after the first item lands in a new
     /// album. Hosted by `RecoveryKeyFlowHostingView`, not the onboarding navigation stack.
     case recoveryKeyIntro

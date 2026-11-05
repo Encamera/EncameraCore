@@ -1414,10 +1414,6 @@ public enum L10n {
     public static let schemaNotDeployedMessage = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedMessage", fallback: "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.")
     /// iCloud can't accept this album yet
     public static let schemaNotDeployedTitle = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedTitle", fallback: "iCloud can't accept this album yet")
-    /// This album moves to iCloud once your iPhone is on Wi-Fi. You don't need to start the move again.
-    public static let waitingForWiFiMessage = L10n.tr("Localizable", "CloudKitMigration.WaitingForWiFiMessage", fallback: "This album moves to iCloud once your iPhone is on Wi-Fi. You don't need to start the move again.")
-    /// Waiting for Wi-Fi
-    public static let waitingForWiFiTitle = L10n.tr("Localizable", "CloudKitMigration.WaitingForWiFiTitle", fallback: "Waiting for Wi-Fi")
   }
   public enum CloudKitUpgrade {
     /// Update it now for faster, more reliable syncing
@@ -1430,18 +1426,12 @@ public enum L10n {
     }
     /// Albums included
     public static let albumsIncludedTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumsIncludedTitle", fallback: "Albums included")
-    /// The upgrade runs while Encamera is open, so keep the app open to finish sooner. Each album shows its progress in a banner at the top.
-    public static let backgroundBody = L10n.tr("Localizable", "CloudKitUpgrade.BackgroundBody", fallback: "The upgrade runs while Encamera is open, so keep the app open to finish sooner. Each album shows its progress in a banner at the top.")
-    /// Your albums are upgrading
-    public static let backgroundTitle = L10n.tr("Localizable", "CloudKitUpgrade.BackgroundTitle", fallback: "Your albums are upgrading")
-    /// Your photos will now sync faster and more reliably across your devices.
-    public static let completeBody = L10n.tr("Localizable", "CloudKitUpgrade.CompleteBody", fallback: "Your photos will now sync faster and more reliably across your devices.")
-    /// Upgrade complete
-    public static let completeTitle = L10n.tr("Localizable", "CloudKitUpgrade.CompleteTitle", fallback: "Upgrade complete")
     /// Continue
     public static let `continue` = L10n.tr("Localizable", "CloudKitUpgrade.Continue", fallback: "Continue")
-    /// Estimated time
-    public static let estimatedTime = L10n.tr("Localizable", "CloudKitUpgrade.EstimatedTime", fallback: "Estimated time")
+    /// Your photos and videos will upload to iCloud whenever your iPhone is on Wi-Fi. For the best results, keep Encamera open and your iPhone unlocked. Each album shows its progress in a banner at the top.
+    public static let initiatedBody = L10n.tr("Localizable", "CloudKitUpgrade.InitiatedBody", fallback: "Your photos and videos will upload to iCloud whenever your iPhone is on Wi-Fi. For the best results, keep Encamera open and your iPhone unlocked. Each album shows its progress in a banner at the top.")
+    /// Upgrade started
+    public static let initiatedTitle = L10n.tr("Localizable", "CloudKitUpgrade.InitiatedTitle", fallback: "Upgrade started")
     /// To start using the new syncing experience, your photo library needs a one-time upgrade.
     public static let introBody = L10n.tr("Localizable", "CloudKitUpgrade.IntroBody", fallback: "To start using the new syncing experience, your photo library needs a one-time upgrade.")
     /// Plural format key: "This update includes %#@album_count@"
@@ -1559,22 +1549,6 @@ public enum L10n {
       public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Body", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud storage one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
       /// How the upgrade works
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title", fallback: "How the upgrade works")
-    }
-    public enum CloudKitUpgradePauseDrawer {
-      /// Continue upgrading
-      public static let `continue` = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Continue", fallback: "Continue upgrading")
-      /// You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.
-      public static let message = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Message", fallback: "You can keep using Encamera and resume the upgrade anytime. Your photos will remain safe and encrypted.")
-      /// Pause Update
-      public static let pause = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Pause", fallback: "Pause Update")
-      /// Pause the upgrade?
-      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradePauseDrawer.Title", fallback: "Pause the upgrade?")
-    }
-    public enum CloudKitUpgradeWifiDrawer {
-      /// Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
-      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Body", fallback: "Upgrading your library may take some time. For the fastest experience, we recommend using Wi‑Fi. Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
-      /// We recommend using Wi‑Fi
-      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeWifiDrawer.Title", fallback: "We recommend using Wi‑Fi")
     }
     public enum ContinueWithoutKeyDrawer {
       /// Your existing encrypted files won't be accessible on this device until you import your encryption key.

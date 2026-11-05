@@ -25,9 +25,6 @@ public enum MigrationFailureReason: Equatable, Sendable {
     /// Production schema was never deployed for a type this build writes. Not
     /// recoverable on-device; see Documentation/cloudkit-schema-deploy.md.
     case schemaNotDeployed
-    /// The device is off Wi-Fi. The album step runs again by itself once it is on
-    /// Wi-Fi (`CloudKitAlbumsSync`), so nothing needs retrying.
-    case waitingForWiFi
     case other(String)
 }
 
@@ -322,7 +319,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         self.materializer = materializer
         self.makeICloudDriveAlbumMigration = makeICloudDriveAlbumMigration ?? { albumManager in
             ICloudDriveAlbumMigration(albumManager: albumManager,
-                                      makeStore: { storeFactory?("iCloudDriveAlbumMigration") ?? CloudKitStoreProvider.makeMigrationStore("iCloudDriveAlbumMigration") },
+                                      makeStore: { storeFactory?("iCloudDriveAlbumMigration") ?? CloudKitStoreProvider.makeStore("iCloudDriveAlbumMigration") },
                                       materializer: materializer,
                                       startBlobMigration: ICloudDriveBlobMigration.starter(
                                           albumManager: albumManager,
@@ -633,8 +630,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             state = .failed(.accountUnavailable)
         case .skipped(.offline):
             state = .failed(.other("Could not look up the album in iCloud. Check your connection and try again."))
-        case .skipped(.waitingForWiFi):
-            state = .failed(.waitingForWiFi)
         case .skipped(let reason):
             state = .failed(.other("\(reason)"))
         }
@@ -761,7 +756,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return MigrationLastFailure(category: .quota, date: now)
         case .accountUnavailable:
             return MigrationLastFailure(category: .accountUnavailable, date: now)
-        case .schemaNotDeployed, .waitingForWiFi, .other:
+        case .schemaNotDeployed, .other:
             guard failedForMissingKey else { return MigrationLastFailure(category: .other, date: now) }
             let held = ((try? albumManager.keyManager.storedKeys()) ?? []).map(\.keyFingerprint)
             return MigrationLastFailure(category: .missingKey, date: now, heldKeyFingerprints: held)

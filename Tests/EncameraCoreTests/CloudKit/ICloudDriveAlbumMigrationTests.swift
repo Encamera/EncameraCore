@@ -460,116 +460,82 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         assertListedAsICloudDriveOnly(drive)
     }
 
-    // MARK: - Wi-Fi only
+    // MARK: - Network
 
-    private func offWiFi() -> ICloudDriveAlbumMigration.MigrationDeviceConditions {
-        .init(isUnlocked: { true }, hasNetwork: { true }, isOnUnmeteredNetwork: { false })
-    }
-
-    func testAlbumStepOffWiFiSkipsWithWaitingForWiFi() async throws {
+    func testAlbumStepRunsOffWiFiAndStartsTheBlobMigration() async throws {
         let drive = try await makeDriveAlbum()
 
-        let outcome = await run(drive, makeMigration(conditions: offWiFi()))
-        XCTAssertEqual(outcome, .skipped(.waitingForWiFi))
+        let outcome = await run(drive, makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true },
+                                                                       isOnUnmeteredNetwork: { false })))
 
-        let pass = await makeMigration(conditions: offWiFi(), albumFolders: { [drive.folder] }).runEveryFolder()
-        XCTAssertEqual(pass, .skipped(.waitingForWiFi))
-        XCTAssertEqual(storesMade, 0, "nothing reaches CloudKit off Wi-Fi, not even the account check")
-
-        // On Wi-Fi the same album runs as before.
-        let onWiFi = await run(drive, makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true },
-                                                                      isOnUnmeteredNetwork: { true })))
-        guard case .prepared = onWiFi else { return XCTFail("expected prepared on Wi-Fi, got \(onWiFi)") }
+        guard case .prepared(let albumID) = outcome else { return XCTFail("expected prepared on cellular, got \(outcome)") }
+        touchedAlbumIDs.insert(albumID)
+        guard case .present(let marker) = markerFile(in: drive) else { return XCTFail("expected a marker file") }
+        XCTAssertEqual(marker.albumID, albumID)
+        XCTAssertEqual(blobMigrationStarts.map(\.albumID), [albumID],
+                       "the blob migration starts on cellular and waits for Wi-Fi itself")
     }
 
-    func testAlbumStepOffWiFiWritesNoMarkerOrRecord() async throws {
+    func testNetworkReturnStartsSkippedAlbumStep() async throws {
         let drive = try await makeDriveAlbum()
-        let before = try mediaSnapshot(drive)
-
-        _ = await run(drive, makeMigration(conditions: offWiFi()))
-
-        XCTAssertTrue(serverAlbumCalls.isEmpty)
-        XCTAssertEqual(markerFile(in: drive), .absent, "no marker file off Wi-Fi")
-        XCTAssertEqual(try mediaSnapshot(drive), before)
-        XCTAssertTrue(blobMigrationStarts.isEmpty)
-        assertNothingWritten(drive)
-        assertListedAsICloudDriveOnly(drive)
-    }
-
-    func testWiFiReturnStartsSkippedAlbumStep() async throws {
-        let drive = try await makeDriveAlbum()
-        let onWiFi = WiFiFlag()
+        let hasNetwork = NetworkFlag()
         let center = NotificationCenter()
-        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true },
-                                                        isOnUnmeteredNetwork: { onWiFi.value }),
+        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { hasNetwork.value },
+                                                        isOnUnmeteredNetwork: { false }),
                                       albumFolders: { [drive.folder] })
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
                                       makeICloudDriveAlbumMigration: { _ in migration },
                                       networkNotificationCenter: center)
 
-        let ranOffWiFi = await sync.migrateICloudDriveAlbums()
-        XCTAssertFalse(ranOffWiFi)
-        let waiting = await sync.albumMigrationWaitingForWiFi
-        XCTAssertTrue(waiting)
+        let ranOffline = await sync.migrateICloudDriveAlbums()
+        XCTAssertFalse(ranOffline)
+        let waiting = await sync.albumMigrationWaitingForNetwork
+        XCTAssertTrue(waiting, "a launch with no network runs the album step again when the network changes")
         XCTAssertEqual(markerFile(in: drive), .absent)
 
-        // A path change that is still not Wi-Fi runs nothing.
+        // A path change that is still offline runs nothing.
         center.post(name: NetworkMonitor.pathDidChange, object: nil)
         try await Task.sleep(for: .milliseconds(200))
         XCTAssertEqual(markerFile(in: drive), .absent)
 
-        onWiFi.value = true
+        // A cellular network is enough for the album step.
+        hasNetwork.value = true
         center.post(name: NetworkMonitor.pathDidChange, object: nil)
 
         let deadline = Date().addingTimeInterval(10)
         while blobMigrationStarts.isEmpty, Date() < deadline {
             try await Task.sleep(for: .milliseconds(50))
         }
-        let start = try XCTUnwrap(blobMigrationStarts.first, "Wi-Fi returning runs the skipped album step without a relaunch")
+        let start = try XCTUnwrap(blobMigrationStarts.first, "the network returning runs the skipped album step without a relaunch")
         touchedAlbumIDs.insert(start.albumID)
         guard case .present(let marker) = markerFile(in: drive) else { return XCTFail("expected a marker file") }
         XCTAssertEqual(marker.albumID, start.albumID)
-        let stillWaiting = await sync.albumMigrationWaitingForWiFi
+        let stillWaiting = await sync.albumMigrationWaitingForNetwork
         XCTAssertFalse(stillWaiting)
     }
 
-    func testWiFiReturnRerunsAlbumStepAUserMoveSkipped() async throws {
+    func testNetworkReturnRerunsAlbumStepAUserMoveSkipped() async throws {
         let drive = try await makeDriveAlbum()
-        let onWiFi = WiFiFlag()
-        onWiFi.value = true
+        let hasNetwork = NetworkFlag()
+        hasNetwork.value = true
         let center = NotificationCenter()
-        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true },
-                                                        isOnUnmeteredNetwork: { onWiFi.value }),
+        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { hasNetwork.value },
+                                                        isOnUnmeteredNetwork: { hasNetwork.value }),
                                       albumFolders: { [] })
         let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
                                       makeICloudDriveAlbumMigration: { _ in migration },
                                       networkNotificationCenter: center)
-        let ranOnWiFi = await sync.migrateICloudDriveAlbums()
-        XCTAssertTrue(ranOnWiFi)
-        let waitingAfterLaunch = await sync.albumMigrationWaitingForWiFi
+        let ranOnline = await sync.migrateICloudDriveAlbums()
+        XCTAssertTrue(ranOnline)
+        let waitingAfterLaunch = await sync.albumMigrationWaitingForNetwork
         XCTAssertFalse(waitingAfterLaunch)
 
-        // The user starts the move on cellular, outside the sync's own run.
-        onWiFi.value = false
+        // The user starts the move offline, outside the sync's own run.
+        hasNetwork.value = false
         let userMove = await run(drive, migration)
-        XCTAssertEqual(userMove, .skipped(.waitingForWiFi))
-        let waiting = await sync.albumMigrationWaitingForWiFi
-        XCTAssertTrue(waiting, "a user move skipped for Wi-Fi is run again when Wi-Fi returns")
-    }
-
-    func testOfflineSkipWaitsForWiFi() async throws {
-        let drive = try await makeDriveAlbum()
-        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { false },
-                                                        isOnUnmeteredNetwork: { false }),
-                                      albumFolders: { [drive.folder] })
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
-                                      makeICloudDriveAlbumMigration: { _ in migration },
-                                      networkNotificationCenter: NotificationCenter())
-
-        _ = await sync.migrateICloudDriveAlbums()
-
-        let waiting = await sync.albumMigrationWaitingForWiFi
-        XCTAssertTrue(waiting, "a launch with no network runs the album step again when the network changes")
+        XCTAssertEqual(userMove, .skipped(.offline))
+        let waiting = await sync.albumMigrationWaitingForNetwork
+        XCTAssertTrue(waiting, "a user move skipped offline is run again when the network returns")
     }
 
     // MARK: - Markers that cannot be used as they are
@@ -1133,7 +1099,7 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
     }
 }
 
-private final class WiFiFlag: @unchecked Sendable {
+private final class NetworkFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var stored = false
     var value: Bool {

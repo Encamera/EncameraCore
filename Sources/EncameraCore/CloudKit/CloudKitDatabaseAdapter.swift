@@ -41,7 +41,8 @@ public enum CloudKitNetworkPolicy: Equatable, Sendable {
         }
     }
 
-    /// Always false: every step of the migration waits for Wi-Fi.
+    /// Always false: the blob migration, whose stores run under this policy,
+    /// waits for Wi-Fi.
     public var allowsCellularAccess: Bool { false }
 
     /// Sets this policy on the operation's configuration, replacing the

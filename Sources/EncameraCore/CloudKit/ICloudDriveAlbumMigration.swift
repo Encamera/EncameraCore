@@ -44,12 +44,11 @@
 //  already in parity changes nothing.
 //
 //  The run needs the album key (name matching, the record's key fingerprint, the
-//  plan's encryption), Wi-Fi and an available account, so it does nothing while
-//  the phone is locked, off Wi-Fi or signed out, or while the app is in the
-//  background (a background task run included). Like every step of the
-//  migration it waits for Wi-Fi: off it, it writes no marker and no `EncAlbum`
-//  and flips nothing. Until it has run, the
-//  album stays a plain iCloud Drive album. On a device without iCloud Drive it
+//  plan's encryption), a network and an available account, so it does nothing
+//  while the phone is locked, offline or signed out, or while the app is in the
+//  background (a background task run included). It runs on cellular: it moves
+//  no media, so only the blob migration it starts waits for Wi-Fi. Until it has
+//  run, the album stays a plain iCloud Drive album. On a device without iCloud Drive it
 //  does nothing at all and never reads the iCloud Drive container: such a device
 //  sees only the album's CloudKit components.
 //
@@ -93,10 +92,9 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
 
     public enum MigrationSkipReason: Equatable, Sendable {
         case locked
+        /// No network. `CloudKitAlbumsSync` runs the step again when the network
+        /// changes.
         case offline
-        /// The device has a network, but not Wi-Fi. `CloudKitAlbumsSync` runs
-        /// the step again when the network changes.
-        case waitingForWiFi
         case accountUnavailable
         /// The folder is not an iCloud Drive album on this device.
         case albumNotFound
@@ -125,13 +123,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         /// A server call or a write failed; `step` names which.
         case failed(step: String, error: String)
 
-        /// Whether the run waits for Wi-Fi: it had no network or only a metered one.
-        public var waitsForWiFi: Bool {
-            switch self {
-            case .offline, .waitingForWiFi: return true
-            default: return false
-            }
-        }
+        /// Whether the run waits for a network.
+        public var waitsForNetwork: Bool { self == .offline }
 
         init(_ unmet: MigrationDeviceConditions.Unmet) {
             switch unmet {
@@ -139,7 +132,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
             case .inBackground: self = .inBackground
             case .locked: self = .locked
             case .offline: self = .offline
-            case .waitingForWiFi: self = .waitingForWiFi
             }
         }
     }
@@ -149,7 +141,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         public var isUnlocked: @MainActor () -> Bool
         public var hasNetwork: () -> Bool
         /// Whether the network is unmetered (`NetworkMonitor.isOnUnmeteredNetwork`):
-        /// Wi-Fi or wired, not cellular, Personal Hotspot or Low Data Mode.
+        /// Wi-Fi or wired, not cellular, Personal Hotspot or Low Data Mode. Only
+        /// the blob migration reads it; `unmet()` does not.
         public var isOnUnmeteredNetwork: () -> Bool
         public var hasICloudDrive: () -> Bool
         public var isInBackground: @MainActor () -> Bool
@@ -187,7 +180,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
             case inBackground
             case locked
             case offline
-            case waitingForWiFi
         }
 
         /// The first condition that does not hold now, nil when all do. iCloud
@@ -198,7 +190,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
             guard !isInBackground() else { return .inBackground }
             guard isUnlocked() else { return .locked }
             guard hasNetwork() else { return .offline }
-            guard isOnUnmeteredNetwork() else { return .waitingForWiFi }
             return nil
         }
     }
@@ -252,7 +243,7 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     ///   - albumDeletion: the albums deleted on this device, whose folders are
     ///     removed rather than run.
     public init(albumManager: AlbumManaging,
-                makeStore: @escaping () -> CloudKitMediaStoring = { CloudKitStoreProvider.makeMigrationStore("iCloudDriveAlbumMigration") },
+                makeStore: @escaping () -> CloudKitMediaStoring = { CloudKitStoreProvider.makeStore("iCloudDriveAlbumMigration") },
                 materializer: ICloudDriveMaterializing? = nil,
                 publishRegistry: CloudKitAlbumPublishRegistry = CloudKitAlbumPublishRegistry(),
                 deleteQueue: CloudKitAlbumDeleteQueue = CloudKitAlbumDeleteQueue(),
@@ -770,13 +761,13 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     }
 
     /// Posted on `NotificationCenter.default` each time a run, or
-    /// `runEveryFolder()`, skips for want of Wi-Fi (`MigrationSkipReason.waitsForWiFi`).
-    public static let didWaitForWiFi = Notification.Name("ICloudDriveAlbumMigration.didWaitForWiFi")
+    /// `runEveryFolder()`, skips for want of a network (`MigrationSkipReason.waitsForNetwork`).
+    public static let didWaitForNetwork = Notification.Name("ICloudDriveAlbumMigration.didWaitForNetwork")
 
     private func skip(_ reason: MigrationSkipReason) -> AlbumMigrationRunOutcome {
         printDebug("run skipped reason=\(Self.logName(reason))")
-        if reason.waitsForWiFi {
-            NotificationCenter.default.post(name: Self.didWaitForWiFi, object: nil)
+        if reason.waitsForNetwork {
+            NotificationCenter.default.post(name: Self.didWaitForNetwork, object: nil)
         }
         return .skipped(reason)
     }
