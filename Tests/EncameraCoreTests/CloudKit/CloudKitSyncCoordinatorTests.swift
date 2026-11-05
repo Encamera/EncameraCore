@@ -7,6 +7,7 @@
 
 import XCTest
 import Combine
+import CloudKit
 @testable import EncameraCore
 
 final class CloudKitSyncCoordinatorTests: XCTestCase {
@@ -285,6 +286,55 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         try await coord.sync()
         _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
         XCTAssertEqual(store.fetchBlobCount, 2, "A new change tag invalidates the stale cached file")
+    }
+
+    func testUnreachableCloudKitServesTheStaleCachedCopy() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1", tag: "t1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+        let cached = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1", tag: "t2")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+        for code in [CKError.Code.networkUnavailable, .networkFailure] {
+            store.fetchBlobError = CKErrorFactory.error(code)
+            let served = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+            XCTAssertEqual(served, cached, "Offline (\(code)), the copy cached under the old tag is served")
+        }
+        XCTAssertEqual(store.fetchBlobCount, 3, "The current tag is still tried on the network first")
+    }
+
+    func testUnreachableCloudKitWithNothingCachedStillThrows() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+        store.fetchBlobError = CKErrorFactory.error(.networkUnavailable)
+
+        do {
+            _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+            XCTFail("Expected throw")
+        } catch {
+            XCTAssertTrue(mapCKError(error).isRetryable, "The network failure reaches the caller, got \(error)")
+        }
+    }
+
+    func testNonNetworkFailureDoesNotServeTheStaleCachedCopy() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, _, _) = makeCoordinator(store: store)
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1", tag: "t1")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+        _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+
+        store.changeSet = CloudKitChangeSet(changed: [meta("m1", tag: "t2")], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+        store.fetchBlobError = CKErrorFactory.error(.permissionFailure)
+        do {
+            _ = try await coord.ensureBlobLocal(recordName: "m1", albumID: "a1", progress: { _ in })
+            XCTFail("A reachable server's refusal must not be papered over with a stale copy")
+        } catch {
+        }
     }
 
     func testEvictAllOlderThanForcesRefetch() async throws {

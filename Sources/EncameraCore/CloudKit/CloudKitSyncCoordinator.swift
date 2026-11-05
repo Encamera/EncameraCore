@@ -1232,9 +1232,26 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 waiter.deliver(.success(url))
             }
         case .failure(let error):
+            if let stale = await staleCopyWhenUnreachable(recordName: recordName, error: error) {
+                printDebug("ensureBlobLocal ok recordName=\(recordName) source=staleCache waiters=\(download.waiters.count) file=\(stale.lastPathComponent) — CloudKit unreachable, raw=\(error)")
+                for waiter in download.waiters {
+                    waiter.progress(1.0)
+                    waiter.deliver(.success(stale))
+                }
+                return
+            }
             printDebug("ensureBlobLocal FAILED recordName=\(recordName) waiters=\(download.waiters.count) raw=\(error)")
             download.waiters.forEach { $0.deliver(.failure(error)) }
         }
+    }
+
+    /// The cached ciphertext under any change tag, when a fetch failed only
+    /// because CloudKit could not be reached. A tag that moved on since the copy
+    /// was cached usually reflects a metadata save; an older copy that still
+    /// decrypts beats an error while offline, and the next online read replaces it.
+    private func staleCopyWhenUnreachable(recordName: String, error: Error) async -> URL? {
+        guard mapCKError(error).isRetryable, !isKnownDeleted(recordName) else { return nil }
+        return await cache.cachedURL(recordName: recordName, changeTag: nil)
     }
 
     /// Releases one waiter. The shared fetch is stopped only once nobody is left
