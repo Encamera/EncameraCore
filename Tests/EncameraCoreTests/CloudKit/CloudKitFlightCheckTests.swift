@@ -13,6 +13,25 @@ import XCTest
 
 final class CloudKitFlightCheckTests: XCTestCase {
 
+    /// The run creates its albums through `AlbumManager.create`, which rejects any
+    /// name `AlbumNameValidator` refuses — a refused name fails the create step and
+    /// every step after it.
+    func testTestAlbumNamesPassTheAlbumNameValidator() {
+        let date = Date(timeIntervalSince1970: 1_793_789_493)  // 2026-11-04 10:51:33 UTC
+        for kind in [nil, "Cascade"] {
+            let name = CloudKitFlightCheck.testAlbumName(kind: kind, date: date)
+            XCTAssertNil(AlbumNameValidator.violation(in: name), "'\(name)' is refused by AlbumNameValidator")
+            XCTAssertTrue(name.hasPrefix(CloudKitFlightCheck.testAlbumNamePrefix),
+                          "'\(name)' lacks the prefix removeTestAlbums keys on")
+        }
+    }
+
+    func testTestAlbumNamesAreUniquePerCall() {
+        let date = Date()
+        XCTAssertNotEqual(CloudKitFlightCheck.testAlbumName(date: date),
+                          CloudKitFlightCheck.testAlbumName(date: date))
+    }
+
     /// The probe payload has to still be transferring a moment after it starts.
     /// A solid-colour JPEG compresses to a few KB and is gone before it can be
     /// cancelled, which would make the whole step vacuous.

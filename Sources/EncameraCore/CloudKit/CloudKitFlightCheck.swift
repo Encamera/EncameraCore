@@ -441,7 +441,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
     }
 
     private func checkCreateAlbum() throws -> String? {
-        let name = "\(Self.testAlbumNamePrefix)\(Self.timestamp()) #\(String(NSUUID().uuidString.prefix(8)))"
+        let name = Self.testAlbumName()
         let album = try albumManager.create(name: name, storageOption: .cloudKit)
         testAlbum = album
         return "Created album '\(name)' (id \(album.id))"
@@ -718,7 +718,7 @@ public final class CloudKitFlightCheck: DebugPrintable {
     /// pass this step for the wrong reason — then deletes the album through
     /// `AlbumManager.delete`, the same call the album's "Delete Album" makes.
     private func checkAlbumDeleteCascade() async throws -> String? {
-        let name = "\(Self.testAlbumNamePrefix)Cascade \(Self.timestamp()) #\(String(NSUUID().uuidString.prefix(8)))"
+        let name = Self.testAlbumName(kind: "Cascade")
         let album = try albumManager.create(name: name, storageOption: .cloudKit)
         cascadeAlbum = album
         guard let albumID = album.albumID else {
@@ -810,11 +810,16 @@ public final class CloudKitFlightCheck: DebugPrintable {
         }
     }
 
-    private static func timestamp() -> String {
+    /// A unique name for an album the run creates, e.g.
+    /// `FlightCheck Cascade 2026-11-04 08.31.33 #1A2B3C4D`. The time uses dots
+    /// because `AlbumNameValidator` refuses `:`.
+    static func testAlbumName(kind: String? = nil, date: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter.string(from: Date())
+        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
+        let kindPart = kind.map { "\($0) " } ?? ""
+        let suffix = String(UUID().uuidString.prefix(8))
+        return "\(testAlbumNamePrefix)\(kindPart)\(formatter.string(from: date)) #\(suffix)"
     }
 
     /// A small solid-color JPEG, used as the dummy photo payload.
