@@ -10,16 +10,6 @@ import AVFoundation
 import Combine
 import os
 
-public enum LivePhotoMode {
-    case on
-    case off
-}
-
-public enum DepthDataDeliveryMode {
-    case on
-    case off
-}
-
 public enum SessionSetupResult {
     case authorized
     case notAuthorized
@@ -30,22 +20,13 @@ public enum SessionSetupResult {
 
 public enum SetupError: Error {
     case defaultVideoDeviceUnavailable
-    case defaultAudioDeviceUnavailable
-    case couldNotAddVideoInputToSession
-    case couldNotAddAudioInputToSession
     case couldNotCreateVideoDeviceInput(avFoundationError: Error)
-    case couldNotAddPhotoOutputToSession
     case couldNotAddVideoOutputToSession
 }
 
 public enum MediaProcessorError: Error {
     case missingMovieOutput
     case setupIncomplete
-}
-
-public enum CaptureMode: Int {
-    case photo = 0
-    case movie = 1
 }
 
 // AVCapture's multi-camera, zoom and Live Photo APIs exist only on iOS.
@@ -139,22 +120,11 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
         model.setupResult
     }
 
-    public func currentRotationAngle() -> CGFloat {
-        model.rotationAngle
-    }
-
     /// The angle the capture connection was actually left at by the most recent
     /// capture, read back off the connection. Diagnostic only — the on-device
     /// orientation suite asserts it against the camera's own horizon-level
     /// angle, which is the check that would have caught ENC-15.
     public private(set) var lastAppliedCaptureAngle: CGFloat?
-
-    /// The camera currently feeding the session, for anything that starts
-    /// observing after the session was configured and so missed
-    /// `didUpdate(videoDevice:)`.
-    public func currentVideoDevice() -> AVCaptureDevice? {
-        videoDeviceInput?.device
-    }
 
     public func configure() async {
         isCameraOpen = true
@@ -327,14 +297,6 @@ public actor CameraConfigurationService: CameraConfigurationServicable, DebugPri
     @discardableResult
     public func setContinuousZoom(factor: CGFloat) async -> CGFloat {
         zoomService.setContinuousZoom(factor: factor)
-    }
-
-    public func currentVideoZoomFactor() async -> CGFloat {
-        zoomService.currentVideoZoomFactor()
-    }
-
-    public func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel? {
-        zoomService.nearestAvailableZoomLevel(forVideoZoomFactor: factor)
     }
 
     public func set(rotationAngle: CGFloat) async {

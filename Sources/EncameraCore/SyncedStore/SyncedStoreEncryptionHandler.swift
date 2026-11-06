@@ -50,11 +50,6 @@ public class SyncedStoreEncryptionHandler {
     
     // MARK: - Key Availability
     
-    /// Whether an encryption key is currently available
-    public var isKeyAvailable: Bool {
-        keyManager.currentKey != nil
-    }
-    
     /// The current encryption key bytes, if available
     private var keyBytes: [UInt8]? {
         keyManager.currentKey?.keyBytes

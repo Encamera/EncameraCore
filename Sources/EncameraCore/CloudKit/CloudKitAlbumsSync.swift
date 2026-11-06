@@ -159,33 +159,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         if let albumStepWaitObserver { NotificationCenter.default.removeObserver(albumStepWaitObserver) }
     }
 
-    /// Removes notification observers and cancels any in-flight sync so no new
-    /// CloudKit operations start. Called during erase before the zone delete.
-    public func shutdown() {
-        if let observer {
-            NotificationCenter.default.removeObserver(observer)
-            self.observer = nil
-        }
-        if let keyLibraryObserver {
-            NotificationCenter.default.removeObserver(keyLibraryObserver)
-            self.keyLibraryObserver = nil
-        }
-        if let networkPathObserver {
-            networkNotificationCenter.removeObserver(networkPathObserver)
-            self.networkPathObserver = nil
-        }
-        if let albumStepWaitObserver {
-            NotificationCenter.default.removeObserver(albumStepWaitObserver)
-            self.albumStepWaitObserver = nil
-        }
-        activeSync?.cancel()
-        activeSync = nil
-        if let markerMonitor {
-            Task { @MainActor in markerMonitor.stop() }
-        }
-        Self.printDebug("shutdown ok")
-    }
-
     /// Walks the zone once, reconciles album *existence* from what the walk and the
     /// album query say (materialize newly-discovered albums, remove ones deleted
     /// elsewhere, push local-only ones up), THEN applies the walk's media changes to

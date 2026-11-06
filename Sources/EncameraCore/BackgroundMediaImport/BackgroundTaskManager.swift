@@ -171,18 +171,6 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         unregisterCancellationHandler(for: taskId)
     }
     
-    /// Pauses a task by invoking its pause handler (if registered) and updating state
-    public func pauseTask(taskId: String) {
-        printDebug("Pausing task: \(taskId)")
-        markTaskPaused(taskId: taskId)
-    }
-    
-    /// Resumes a task - note: actual resume logic must be handled by the task owner
-    public func resumeTask(taskId: String) {
-        printDebug("Resuming task: \(taskId)")
-        markTaskRunning(taskId: taskId)
-    }
-    
     /// Finalizes a task as completed
     public func finalizeTaskCompleted(taskId: String, totalItems: Int, assetIdentifiers: [String] = [], mediaIdsByAssetId: [String: String]? = nil) {
         guard let taskIndex = currentTasks.firstIndex(where: { $0.id == taskId }) else {
@@ -324,11 +312,6 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// Returns the task with the given ID, if it exists
     public func task(withId taskId: String) -> (any BackgroundFileTask)? {
         currentTasks.first { $0.id == taskId }
-    }
-    
-    /// Returns the index of a task with the given ID
-    public func taskIndex(withId taskId: String) -> Int? {
-        currentTasks.firstIndex { $0.id == taskId }
     }
     
     /// Returns all active (running or paused) tasks

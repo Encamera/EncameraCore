@@ -119,8 +119,6 @@ public class iCloudStorageModel: DataStorageModel {
     @MainActor
     private var downloadStatusSubjects = [URL: PassthroughSubject<iCloudDownloadStatus, Never>]()
     @MainActor
-    private var downloadTasks = [URL: AnyCancellable]()
-    @MainActor
     private var activeQueries = [URL: (NSMetadataQuery, [NSObjectProtocol])]()
 
     public var baseURL: URL {
@@ -133,19 +131,6 @@ public class iCloudStorageModel: DataStorageModel {
             return legacy
         }
         return preferred
-    }
-
-    public func triggerDownloadOfAllFilesFromiCloud() {
-        enumeratorForStorageDirectory().forEach({
-            try? iCloudFileStatusUtil.startDownload(for: $0)
-        })
-    }
-
-    public func triggerDownload(ofFile file: EncryptedMedia) {
-        guard case .url(let source) = file.source else {
-            return
-        }
-        try? iCloudFileStatusUtil.startDownload(for: source)
     }
 
     public func resolveDownloadedMedia<T: MediaDescribing>(media: T) throws -> T?  {
@@ -410,13 +395,5 @@ public class iCloudStorageModel: DataStorageModel {
             activeQueries.removeValue(forKey: url)
         }
         downloadStatusSubjects.removeValue(forKey: url)
-    }
-    @MainActor
-    public func cancelDownload(for url: URL) {
-        downloadTasks[url]?.cancel()
-        downloadTasks.removeValue(forKey: url)
-        downloadStatusSubjects[url]?.send(.cancelled)
-        downloadStatusSubjects[url]?.send(completion: .finished)
-        cleanUpQuery(for: url)
     }
 }

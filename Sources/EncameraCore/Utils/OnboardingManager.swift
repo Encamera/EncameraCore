@@ -103,7 +103,6 @@ public enum OnboardingManagerError: Error, Equatable {
 }
 
 public protocol OnboardingManaging {
-    init(keyManager: KeyManager, authManager: AuthManager)
     func saveOnboardingState(_ state: OnboardingState, authenticationConfiguration: AuthenticationConfiguration) async throws
 }
 
@@ -120,10 +119,6 @@ public class OnboardingManagerObservable {
 }
 
 public class OnboardingManager: OnboardingManaging {
-    
-    private enum Constants {
-        static var onboardingStateKey = "onboardingState"
-    }
     public var observables: OnboardingManagerObservable
     
     private var keyManager: KeyManager
@@ -133,10 +128,6 @@ public class OnboardingManager: OnboardingManaging {
         self.keyManager = keyManager
         self.authManager = authManager
         self.observables = OnboardingManagerObservable()
-    }
-    
-    func clearOnboardingState() {
-        UserDefaultUtils.removeObject(forKey: .onboardingState)
     }
     
     public func saveOnboardingState(_ state: OnboardingState, authenticationConfiguration: AuthenticationConfiguration) async throws {

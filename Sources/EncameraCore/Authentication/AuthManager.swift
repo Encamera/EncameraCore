@@ -161,12 +161,10 @@ public enum BiometricAvailability: Equatable {
 public protocol AuthManager {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
     var isAuthenticated: Bool { get }
-    var availableBiometric: AuthenticationMethod? { get }
     var biometricAvailability: BiometricAvailability { get }
     var useBiometricsForAuth: Bool { get set }
     var canAuthenticateWithBiometrics: Bool { get }
     var deviceBiometryType: AuthenticationMethod? { get }
-    func deauthorize()
     func authorize(with password: String, using keyManager: KeyManager) throws
     func authorizeWithBiometrics() async throws
     @discardableResult func evaluateWithBiometrics() async throws -> Bool
@@ -530,11 +528,6 @@ public class DeviceAuthManager: AuthManager {
 
 private extension DeviceAuthManager {
 
-    
-    func reauthorizeForPassword() {
-        authState = .unauthenticated
-    }
-    
     func cancelNotificationObservers() {
         appStateCancellables.removeAll()
     }

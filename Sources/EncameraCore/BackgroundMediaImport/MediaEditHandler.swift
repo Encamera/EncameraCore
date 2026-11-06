@@ -25,7 +25,6 @@ public class MediaEditHandler: DebugPrintable {
     // MARK: - Private Properties
 
     private var activeBackgroundTask: BackgroundTaskID = .invalid
-    private var cancellables = Set<AnyCancellable>()
     private var currentEditTask: Task<Void, Error>?
     private var exportSession: AVAssetExportSession?
 

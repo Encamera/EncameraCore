@@ -47,7 +47,6 @@ public protocol AlbumManaging {
     /// album makes it refuse. See `AlbumManager`.
     @discardableResult func finalizeMigrationToLocal(album: Album, movedRecordNames: Set<String>) async throws -> Album
     func renameAlbum(album: Album, to newName: String) throws -> Album
-    func validateAlbumName(name: String) throws
     func albumMediaCount(album: Album) -> Int
     func isAlbumHidden(_ album: Album) -> Bool
     func setIsAlbumHidden(_ isAlbumHidden: Bool, album: Album)

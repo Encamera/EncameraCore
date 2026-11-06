@@ -380,48 +380,4 @@ extension EncryptedMetadataHandler {
         let version = (try? detectFileVersion(from: url)) ?? 1
         return version >= 2
     }
-    
-    /// Updates metadata in an existing v2 file
-    /// Note: This requires rewriting the entire file and should be used sparingly
-    public func updateMetadata(
-        in url: URL,
-        keyBytes: [UInt8],
-        update: (inout EncryptedFileMetadata) -> Void
-    ) async throws {
-        let fileVersion = try detectFileVersion(from: url)
-        guard fileVersion == 2 else {
-            if fileVersion == 1 {
-                throw EncryptedMetadataError.v1FileNoMetadata
-            }
-            throw EncryptedMetadataError.unsupportedVersion(UInt16(fileVersion))
-        }
-
-        guard var metadata = try await readMetadata(from: url, keyBytes: keyBytes) else {
-            throw EncryptedMetadataError.v1FileNoMetadata
-        }
-        
-        update(&metadata)
-        
-        let contentStart = try contentOffset(for: url)
-        let fileHandle = try FileHandle(forReadingFrom: url)
-        defer { try? fileHandle.close() }
-        
-        try fileHandle.seek(toOffset: contentStart)
-        guard let contentData = try fileHandle.readToEnd() else {
-            throw EncryptedMetadataError.readError
-        }
-        
-        let newHeader = try buildV2Header(metadata: metadata, keyBytes: keyBytes)
-        
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(UUID().uuidString)
-        
-        var newFileData = Data()
-        newFileData.append(newHeader)
-        newFileData.append(contentData)
-        
-        try newFileData.write(to: tempURL)
-        
-        _ = try FileManager.default.replaceItemAt(url, withItemAt: tempURL)
-    }
 }

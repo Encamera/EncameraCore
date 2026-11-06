@@ -64,9 +64,6 @@ protocol SecretFileHandling {
     var sourceMedia: SourceMediaType { get }
     var keyBytes: Array<UInt8> { get }
     var sodium: Sodium { get }
-    func encrypt() async throws -> EncryptedMedia
-    func decryptToURL() async throws -> CleartextMedia
-    func decryptInMemory() async throws -> CleartextMedia
 
 }
 
@@ -304,8 +301,6 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         self.sourceMedia = source
         self.targetURL = targetURL
     }
-
-    var cancellables = Set<AnyCancellable>()
 
     private let defaultBlockSize: Int = 20480
 

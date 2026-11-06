@@ -195,20 +195,6 @@ public enum CloudKitKeyStamp: DebugPrintable {
         }
     }
 
-    /// Writes `fingerprint`'s stamp onto a file that just came down from CloudKit.
-    ///
-    /// The record's fingerprint is the full 16 bytes and the stamp is its first 4, so
-    /// the prefix is recoverable from the hex alone — no key material needed, which
-    /// matters because an export may run for media whose key this device does not hold.
-    public static func stampExportedFile(at url: URL, fingerprint: String) {
-        guard let prefix = stampPrefix(fromFingerprintHex: fingerprint) else {
-            printDebug("stampExportedFile SKIPPED file=\(url.lastPathComponent) reason=unparseableFingerprint")
-            return
-        }
-        guard KeyStampSlot.readStamp(url: url) != prefix else { return }
-        KeyStampSlot.writeStamp(prefix, url: url)
-    }
-
     /// The first 4 fingerprint bytes as the little-endian `UInt32` the stamp slot holds.
     /// Nil for a fingerprint that is not the expected hex, and for the all-zero prefix,
     /// which the slot reserves to mean "unstamped".

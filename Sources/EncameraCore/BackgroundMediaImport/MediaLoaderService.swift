@@ -24,21 +24,6 @@ public struct LoadedMediaItem {
     }
 }
 
-/// Result of loading a batch of media from the photo library
-public struct LoadedMediaBatch {
-    public let media: [CleartextMedia]
-    public let assetIdentifiers: [String]
-    public let successfulLoads: Int
-    public let failedLoads: Int
-    
-    public init(media: [CleartextMedia], assetIdentifiers: [String], successfulLoads: Int, failedLoads: Int) {
-        self.media = media
-        self.assetIdentifiers = assetIdentifiers
-        self.successfulLoads = successfulLoads
-        self.failedLoads = failedLoads
-    }
-}
-
 /// Service responsible for loading media from the Photos library into temporary storage
 /// This handles extraction of PHAssets and PHPickerResults into CleartextMedia objects
 @MainActor
@@ -52,45 +37,6 @@ public class MediaLoaderService: DebugPrintable {
     public init() {}
     
     // MARK: - Public API
-    
-    /// Loads media from an array of MediaSelectionResults
-    /// Returns a batch with all successfully loaded media and statistics
-    public func loadMedia(from results: [MediaSelectionResult]) async throws -> LoadedMediaBatch {
-        try await ensureTempDirectoryExists()
-        
-        var allMedia: [CleartextMedia] = []
-        var assetIdentifiers: [String] = []
-        var successfulLoads = 0
-        var failedLoads = 0
-        
-        for (index, result) in results.enumerated() {
-            printDebug("📄 Processing result \(index + 1)/\(results.count)")
-            
-            do {
-                let loaded = try await loadSingleMedia(from: result)
-                
-                allMedia.append(contentsOf: loaded.media)
-                successfulLoads += 1
-                
-                if let assetId = loaded.assetIdentifier {
-                    assetIdentifiers.append(assetId)
-                }
-                
-            } catch {
-                failedLoads += 1
-                logMediaLoadError(error, for: result)
-            }
-        }
-        
-        printDebug("📈 Summary - Successful: \(successfulLoads), Failed: \(failedLoads), Total media: \(allMedia.count)")
-        
-        return LoadedMediaBatch(
-            media: allMedia,
-            assetIdentifiers: assetIdentifiers,
-            successfulLoads: successfulLoads,
-            failedLoads: failedLoads
-        )
-    }
     
     /// Loads media from a single MediaSelectionResult
     /// Returns the loaded media, metadata, and optional asset ID. `progress`
@@ -150,12 +96,6 @@ public class MediaLoaderService: DebugPrintable {
         return metadata
     }
 
-    /// Legacy method for backwards compatibility - returns tuple format
-    public func loadSingleMediaTuple(from result: MediaSelectionResult) async throws -> (media: [CleartextMedia], assetId: String?) {
-        let loaded = try await loadSingleMedia(from: result)
-        return (loaded.media, loaded.assetIdentifier)
-    }
-    
     // MARK: - Private Implementation
     
     // MARK: - PHPickerResult Loading
@@ -371,19 +311,5 @@ public class MediaLoaderService: DebugPrintable {
         }
         
         tempDirectoryChecked = true
-    }
-    
-    /// Logs media loading errors with detailed information
-    private func logMediaLoadError(_ error: Error, for result: MediaSelectionResult) {
-        let identifier: String
-        switch result {
-        case .phAsset(let asset): identifier = asset.localIdentifier
-        case .phPickerResult(let picker): identifier = picker.assetIdentifier ?? "unknown"
-        }
-        
-        printDebug("❌ Error loading media \(identifier): \(error)")
-        if let nsError = error as NSError? {
-            printDebug("❌ Error domain: \(nsError.domain), code: \(nsError.code)")
-        }
     }
 }

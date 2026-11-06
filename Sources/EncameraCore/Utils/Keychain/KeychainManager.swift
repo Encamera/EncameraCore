@@ -172,15 +172,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         }
     }
 
-    public func hasResolvedCredentialsBefore() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: KeychainConstants.credentialResolutionMarker,
-            kSecAttrSynchronizable as String: kCFBooleanFalse!
-        ]
-        return keychainWrapper.secItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
-    }
-
     @discardableResult
     public func setResolvedCredentialsBefore() -> Bool {
         let query: [String: Any] = [
@@ -415,11 +406,6 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
                 guard let self else { return }
                 Task { await self.keychainSyncManager.syncKeychainItems() }
             }.store(in: &cancellables)
-    }
-
-    public func stopKeychainSyncMonitor() {
-        isKeychainSyncMonitorRunning = false
-        Task { await keychainSyncManager.stopMonitoring() }
     }
 
     /// One adoption pass, now. What the monitor runs on each tick.

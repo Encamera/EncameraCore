@@ -15,12 +15,6 @@ import CryptoKit
 
 public actor CloudKitBlobCache: DebugPrintable {
 
-    /// Per-album residency policy for fetched blobs.
-    public enum Mode: Sendable {
-        case keepLocal     // authoring device / opted-in: keep the file resident
-        case fetchOnTap    // non-authoring device default: evictable on pressure
-    }
-
     /// Where a stored blob enters the eviction order.
     public enum Insertion: Sendable, Equatable {
         /// Most recently used, as a blob someone just opened.

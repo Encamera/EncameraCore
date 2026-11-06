@@ -55,11 +55,6 @@ public enum CloudKitComponentReadSource: Equatable, Sendable {
     case cloudKit
     /// The file in the album's linked iCloud Drive folder, downloaded for this read.
     case iCloudDriveDownload
-
-    /// Whether the bytes came from the album's iCloud Drive folder.
-    public var isICloudDrive: Bool {
-        self == .iCloudDriveFile || self == .iCloudDriveDownload
-    }
 }
 
 /// Why a CloudKit album's delete deleted nothing.
@@ -788,12 +783,6 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         } catch where fileManager.fileExists(atPath: previewURL.path) {
             printDebug("fetchThumbnail kept existing recordName=\(recordName) — another load wrote it first")
         }
-    }
-
-    public func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel {
-        var preview = try await previewAccess.createPreview(for: media.thumbnailSource)
-        preview.isLivePhoto = media.mediaType == .livePhoto
-        return preview
     }
 
     // MARK: - Delete (hard delete + cross-device propagation)

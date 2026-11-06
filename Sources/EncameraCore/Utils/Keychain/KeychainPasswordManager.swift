@@ -357,16 +357,6 @@ private extension KeychainPasswordManager {
         return hashed
     }
     
-    func bytes(from string: String) throws -> [UInt8] {
-        guard let passwordData = string.data(using: .utf8) else {
-            throw KeyManagerError.dataError
-        }
-        
-        var bytes = [UInt8](repeating: 0, count: passwordData.count)
-        passwordData.copyBytes(to: &bytes, count: string.count)
-        return bytes
-    }
-    
     /// Persists the passcode type into the `AuthenticationConfiguration`, the
     /// only place it is stored; the rest of the configuration is kept as is.
     func savePasscodeTypeToKeychain(_ passcodeType: PasscodeType, synchronizable: Bool) throws {

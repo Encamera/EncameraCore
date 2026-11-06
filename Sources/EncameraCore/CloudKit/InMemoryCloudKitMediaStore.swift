@@ -36,11 +36,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
     /// including all the unit tests — is unaffected.
     public var uploadDelay: Duration = .zero
 
-    /// Album IDs whose next upload throws `quotaExceeded` instead of storing,
-    /// once each. Lets a UI test halt a migration on a recoverable failure and
-    /// resume it against the same store; see `failNextUpload(forAlbumID:)`.
-    private var albumIDsFailingNextUpload: Set<String> = []
-
     /// Transport for chunked blobs. When an upload carries `chunkCount > 0` the
     /// ciphertext is split into chunks via this store instead of being held as a
     /// monolithic blob — mirroring what `CloudKitMediaStore` does in production.
@@ -75,19 +70,13 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
 
     private var persistenceURL: URL?
 
-    /// Rejects the next upload for `albumID` with `CloudKitMediaStoreError.quotaExceeded`
-    /// — the recoverable, run-halting classification — then behaves normally.
-    public func failNextUpload(forAlbumID albumID: String) {
-        locked { _ = albumIDsFailingNextUpload.insert(albumID) }
-    }
-
     /// Album-name matchers whose next upload throws `quotaExceeded`, once each. Each
     /// is asked about the `encName` of the album record the upload's album id names.
     private var encryptedNameMatchersFailingNextUpload: [(String) -> Bool] = []
 
-    /// Like `failNextUpload(forAlbumID:)`, for an album whose CloudKit id is not known
-    /// yet: rejects the next upload into the album whose record's `encName` satisfies
-    /// `matches`.
+    /// Rejects the next upload with `CloudKitMediaStoreError.quotaExceeded` — the
+    /// recoverable, run-halting classification — into the album whose record's
+    /// `encName` satisfies `matches`, then behaves normally.
     public func failNextUpload(toAlbumWhoseEncryptedName matches: @escaping (String) -> Bool) {
         locked { encryptedNameMatchersFailingNextUpload.append(matches) }
     }
@@ -116,7 +105,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
 
     private func consumeUploadFailure(forAlbumID albumID: String) -> Bool {
         locked {
-            if albumIDsFailingNextUpload.remove(albumID) != nil { return true }
             guard let encName = albums[albumID]?.encName,
                   let index = encryptedNameMatchersFailingNextUpload.firstIndex(where: { $0(encName) }) else {
                 return false
@@ -319,32 +307,6 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
                 migrationInProgress: migrationInProgress,
                 recordModificationDate: Date()
             )
-        }
-        persist()
-    }
-
-    /// Dates an album record's last save, and every media record in it, to `date`,
-    /// as if nothing had written to the album since.
-    public func backdate(albumID: String, to date: Date) {
-        locked {
-            if let album = albums[albumID] {
-                albums[albumID] = CloudKitAlbumMetadata(
-                    albumID: album.albumID, encName: album.encName, createdAt: album.createdAt,
-                    isHidden: album.isHidden, schemaVersion: album.schemaVersion,
-                    keyFingerprint: album.keyFingerprint, recordChangeTag: album.recordChangeTag,
-                    coverMediaID: album.coverMediaID, migrationInProgress: album.migrationInProgress,
-                    recordModificationDate: date)
-            }
-            for (name, stored) in records where stored.metadata.albumID == albumID {
-                var stored = stored
-                stored.metadata = CloudKitMediaMetadata(descriptor: stored.metadata.descriptor,
-                                                        creationDeviceID: stored.metadata.creationDeviceID,
-                                                        schemaVersion: stored.metadata.schemaVersion,
-                                                        recordChangeTag: stored.metadata.recordChangeTag,
-                                                        encHeader: stored.metadata.encHeader,
-                                                        recordCreationDate: date)
-                records[name] = stored
-            }
         }
         persist()
     }

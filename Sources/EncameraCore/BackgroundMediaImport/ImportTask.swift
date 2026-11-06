@@ -38,7 +38,6 @@ public enum FileTaskType: String, CaseIterable {
 public protocol BackgroundFileTask: Equatable  {
     var id: String { get }
     var taskType: FileTaskType { get }
-    var createdAt: Date { get }
     /// Settable so `BackgroundTaskManager` can write through the existential.
     /// If this ever goes back to `get`-only, the manager has to hand-roll a cast
     /// per conformer again and new task types silently stop receiving updates.

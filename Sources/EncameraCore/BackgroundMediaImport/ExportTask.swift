@@ -19,11 +19,6 @@ public struct ExportTask: BackgroundFileTask {
     }
     public let assetIdentifiers: [String]
     
-    /// The number of media items to export
-    public var totalMediaCount: Int {
-        mediaToExport.count
-    }
-    
     public init(
         id: String = UUID().uuidString,
         mediaToExport: [InteractableMedia<EncryptedMedia>]

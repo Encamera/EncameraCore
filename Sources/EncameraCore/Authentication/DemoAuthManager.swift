@@ -10,10 +10,6 @@ import Combine
 
 public class DemoAuthManager: AuthManager {
     
-    public func resetAuthenticationMethodsToDefault() {
-
-    }
-    
     public func waitForAuthResponse() async -> AuthManagerState {
         return .unauthenticated
     }
@@ -30,10 +26,6 @@ public class DemoAuthManager: AuthManager {
     public var canAuthenticateWithBiometrics: Bool = true
 
     public var deviceBiometryType: AuthenticationMethod? = .faceID
-
-    public func deauthorize() {
-        
-    }
 
     public func evaluateWithBiometrics() async throws -> Bool {
         return false

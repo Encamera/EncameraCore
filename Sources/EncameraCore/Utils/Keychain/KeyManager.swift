@@ -107,12 +107,9 @@ public enum KeyDeletionScope {
 public protocol KeyManager {
 
     var isSyncEnabled: Bool { get }
-    var isAuthenticated: AnyPublisher<Bool, Never> { get }
     var currentKey: PrivateKey? { get }
     var keyPublisher: AnyPublisher<PrivateKey?, Never> { get }
     var passcodeType: PasscodeType { get }
-
-    init(isAuthenticated: AnyPublisher<Bool, Never>, keychainWrapper: KeychainWrapperProtocol)
 
     /// Wipes this app's keychain footprint.
     ///
@@ -141,8 +138,6 @@ public protocol KeyManager {
     /// Removes a single key from the library, addressed by fingerprint.
     /// Defaults to device-local; see `KeyDeletionScope`.
     func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws
-    func getPasswordHash() throws -> Data
-    func setPasswordHash(hash: Data) throws
     func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws
     func generateKeyUsingRandomWords() throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey
@@ -153,17 +148,14 @@ public protocol KeyManager {
     func setPassword(_ password: String, type: PasscodeType) throws
     func setOrUpdatePassword(_ password: String, type: PasscodeType) throws
     func passwordExists() -> Bool
-    func hasResolvedCredentialsBefore() -> Bool
     @discardableResult func setResolvedCredentialsBefore() -> Bool
     func credentialSnapshot() -> KeychainCredentialSnapshot
-    func changePassword(newPassword: String, existingPassword: String, type: PasscodeType) throws
     func setiCloudKeychainSyncEnabled(enabled: Bool) throws
     /// Starts watching the always-synced backup flag and adopting the
     /// account's credentials when another device turns backup on. The toggle
     /// above only flips the items on the device it is tapped on; this is the
     /// other side. See `KeychainSyncManager`.
     func startKeychainSyncMonitor()
-    func stopKeychainSyncMonitor()
     func clearPassword() throws
     func dumpAllKeychainEntries() -> [KeychainDumpEntry]
     func getAuthenticationConfiguration() -> AuthenticationConfiguration?

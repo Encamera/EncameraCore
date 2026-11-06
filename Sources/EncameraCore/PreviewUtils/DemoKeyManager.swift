@@ -86,7 +86,6 @@ public class DemoKeyManager: KeyManager {
 
 
     private var hasExistingPassword = false
-    public var throwError = false
     public var password: String? {
         didSet {
             hasExistingPassword = password != nil
@@ -100,21 +99,9 @@ public class DemoKeyManager: KeyManager {
         return Data()
     }
 
-    public func setPasswordHash(hash: Data) throws {
-
-    }
-
-    public func setOrUpdatePassword(_ password: String) throws {
-        self.password = password
-    }
-
-    public func createBackupDocument() throws -> String {
-        return ""
-    }
     public func passwordExists() -> Bool {
         return hasExistingPassword
     }
-    public func hasResolvedCredentialsBefore() -> Bool { false }
     @discardableResult public func setResolvedCredentialsBefore() -> Bool { true }
     public func credentialSnapshot() -> KeychainCredentialSnapshot {
         return KeychainCredentialSnapshot(
@@ -136,7 +123,6 @@ public class DemoKeyManager: KeyManager {
         isSyncEnabled = enabled
     }
     public func startKeychainSyncMonitor() { }
-    public func stopKeychainSyncMonitor() { }
 
     /// Set to make the next flip fail, so callers' error handling is testable.
     public var backupError: KeyManagerError?
@@ -152,27 +138,11 @@ public class DemoKeyManager: KeyManager {
         return false
     }
 
-    func validate(password: String) -> PasswordValidation {
-        return .valid
-    }
-
-    public func changePassword(newPassword: String, existingPassword: String) throws {
-
-    }
-
     public func checkPassword(_ password: String) throws -> Bool {
         if self.password != password {
             throw KeyManagerError.invalidPassword
         }
         return self.password == password
-    }
-
-    public func setPassword(_ password: String) throws {
-        self.password = password
-    }
-
-    public func deleteKey(_ key: PrivateKey) throws {
-
     }
 
     /// Deduplicates on key material, mirroring `KeychainManager.save`. Honors
@@ -185,10 +155,6 @@ public class DemoKeyManager: KeyManager {
         if setNewKeyToCurrent {
             currentKey = key
         }
-    }
-
-    public func update(key: PrivateKey) throws {
-
     }
 
     public var currentKey: PrivateKey?
@@ -230,12 +196,4 @@ public class DemoKeyManager: KeyManager {
     }
 
     public func residualKeychainItemNames() -> [String] { [] }
-
-    func generateNewKey(name: String) throws {
-
-    }
-
-    func validatePasswordPair(_ password1: String, password2: String) -> PasswordValidation {
-        return .valid
-    }
 }

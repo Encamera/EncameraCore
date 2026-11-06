@@ -23,10 +23,6 @@ public enum Feature: String, CaseIterable {
     case showDebugLogs
     case userDefaultsInspector
 
-    var userDefaultsKey: String {
-        return "feature_" +  rawValue
-    }
-
     /// Cases shown in the feature toggles UI. The test RevenueCat key is a
     /// simulated-store key the SDK hard-asserts against in release builds, so
     /// that toggle only appears in DEBUG builds.

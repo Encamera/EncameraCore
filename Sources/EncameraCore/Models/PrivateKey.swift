@@ -157,7 +157,4 @@ extension PrivateKey: Equatable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(keyBytes)
     }
-    public var keyString: String {
-        return keyBytes.map({String($0)}).joined(separator: " ")
-    }
 }

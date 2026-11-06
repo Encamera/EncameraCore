@@ -23,16 +23,6 @@ public struct SubscriptionSavings: Equatable {
         self.subscriptionPeriodUnitFormatStyle = subscriptionPeriodUnitFormatStyle
     }
 
-    public var formattedMonthlyPrice: String {
-        let currency = monthlyPrice.formatted(priceFormatStyle)
-        if let format = subscriptionPeriodUnitFormatStyle {
-            let period = granularPricePeriod.formatted(format).lowercased()
-            return "\(currency)/\(period)"
-        } else {
-            return "\(currency)/month"
-        }
-    }
-
     public var formattedMonthlyPriceValue: String {
         monthlyPrice.formatted(priceFormatStyle)
     }

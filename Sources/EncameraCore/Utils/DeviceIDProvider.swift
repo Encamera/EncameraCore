@@ -70,7 +70,6 @@ public final class DeviceIDProvider: Sendable {
 protocol DeviceIDStorage {
     func save(_ value: String, account: String)
     func load(account: String) -> String?
-    func delete(account: String)
 }
 
 struct KeychainDeviceIDStorage: DeviceIDStorage {

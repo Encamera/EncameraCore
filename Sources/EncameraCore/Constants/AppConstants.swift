@@ -14,7 +14,6 @@ public enum AppConstants {
     public static var thumbnailWidth: CGFloat = 100
     public static var blockingBlurRadius: CGFloat = 20.0
     public static var defaultCornerRadius: CGFloat = 10.0
-    public static var numberOfPhotosBeforeInitialTutorial: Double = 1
     public static let maxPhotoCountBeforePurchase: Double = 10
     public static let defaultAlbumName: String = L10n.defaultAlbumName
     public static let legacyDefaultKeyName: String = "encamera_default_key"
@@ -22,7 +21,6 @@ public enum AppConstants {
     public static let lowOpacity = 0.4
     public static let previewDirectory = "preview_thumbnails"
     public static let defaultPinCodeLength: PasscodeType.PasscodeLength = .four
-    public static let lockoutTime: TimeInterval = 300
     public static let maxCharacterAlbumName = 20
 
     /// How long a fresh install quietly polls for iCloud Keychain credential
@@ -37,7 +35,6 @@ public enum AppConstants {
 
     // Legacy accessors (prefer URLs enum)
     public static let appStoreURL = URLs.appStore.rawValue
-    public static let widgetVimeoLink = URLs.widgetTutorialVideo.url
     public static let feedbackApiURL = URLs.feedbackApi.url
 
     // Supabase Edge Functions

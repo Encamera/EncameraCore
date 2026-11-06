@@ -41,12 +41,4 @@ public final class ICloudDriveAlbumMarkerMonitor: @unchecked Sendable, DebugPrin
         query.start()
         printDebug("start ok")
     }
-
-    @MainActor
-    public func stop() {
-        observers.forEach(NotificationCenter.default.removeObserver)
-        observers = []
-        query?.stop()
-        query = nil
-    }
 }

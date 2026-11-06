@@ -7,10 +7,6 @@
 
 import Foundation
 
-public protocol MediaReference {
-
-}
-
 public protocol MediaSourcing: Hashable, Codable {
 
 }

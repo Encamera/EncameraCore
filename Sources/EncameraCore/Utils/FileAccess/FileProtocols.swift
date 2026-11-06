@@ -179,7 +179,6 @@ public protocol FileReader: FileEnumerator {
 public protocol FileWriter: FileEnumerator {
 
     @discardableResult func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>?
-    @discardableResult func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel
     func copy(media: InteractableMedia<EncryptedMedia>) async throws
     func move(media: InteractableMedia<EncryptedMedia>, progress: ((FileLoadingStatus) -> Void)?) async throws
     func delete(media: [InteractableMedia<EncryptedMedia>]) async throws
@@ -187,15 +186,11 @@ public protocol FileWriter: FileEnumerator {
     func setKeyUUIDForExistingFiles() async throws
 }
 
-// Real convenience overloads (not silent stubs): default the metadata / progress
-// arguments so callers can omit them.
+// A real convenience overload (not a silent stub): defaults the metadata
+// argument so callers can omit it.
 public extension FileWriter {
     func save(media: InteractableMedia<CleartextMedia>, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
         return try await save(media: media, metadata: nil, progress: progress)
-    }
-
-    func move(media: InteractableMedia<EncryptedMedia>) async throws {
-        try await move(media: media, progress: nil)
     }
 }
 
@@ -287,13 +282,6 @@ public protocol FileAccess: MediaBackend {
     init()
     init(for album: Album, albumManager: AlbumManaging) async
     func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)?) async throws -> PlatformImage?
-    static func deleteThumbnailDirectory() throws
-}
-
-extension FileAccess {
-    var operationBus: FileOperationBus {
-        FileOperationBus.shared
-    }
 }
 
 public extension MediaBackend {

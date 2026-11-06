@@ -198,15 +198,6 @@ public final class DebugLogBuffer: @unchecked Sendable {
         generationValue &+= 1
     }
 
-    /// Mirrors the current `showDebugLogs` toggle value into the buffer.
-    ///
-    /// Not required at launch — `record` resolves lazily on first use, so lines
-    /// emitted before app-delegate setup are still captured — but useful for
-    /// tests and for forcing a re-read.
-    public func refreshFromFeatureToggle() {
-        setCapturing(FeatureToggle.isEnabled(feature: .showDebugLogs))
-    }
-
     /// Reads the toggle once per process, deliberately **not** holding the lock
     /// while touching `UserDefaults` (see the type-level deadlock note).
     private func resolveIfNeeded() {

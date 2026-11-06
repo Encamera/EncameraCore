@@ -17,8 +17,6 @@ public struct MediaPageResult {
     public let totalCount: Int
     /// The `offset` to pass when requesting the next page.
     public let nextOffset: Int
-    /// Whether any pages remain after this one.
-    public var hasMore: Bool { nextOffset < totalCount }
 
     public init(media: [InteractableMedia<EncryptedMedia>], totalCount: Int, nextOffset: Int) {
         self.media = media

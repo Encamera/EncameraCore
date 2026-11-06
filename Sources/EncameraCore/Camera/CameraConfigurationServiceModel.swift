@@ -13,7 +13,6 @@ public class CameraConfigurationServiceModel {
     @Published public var cameraMode: CameraMode = .photo
     @Published public var canCaptureLivePhoto: Bool = true
 
-    public var alertError: AlertError = AlertError()
     public var setupResult: SessionSetupResult = .notDetermined
 
     public init() {

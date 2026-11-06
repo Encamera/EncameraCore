@@ -190,35 +190,7 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
         printDebug("Pending imports cancelled and cleaned up")
     }
     
-    /// Deletes specific pending media items
-    public func deletePendingMedia(_ media: [CleartextMedia]) async throws {
-        try await appGroupFileAccess.delete(mediaList: media)
-        
-        await loadPendingMedia()
-    }
-    
     // MARK: - Metadata Management (Used by Share Extension)
-    
-    /// Records that new media was added to the pending queue
-    /// Call this from the Share Extension after saving files
-    public func recordPendingImport(count: Int) {
-        sharedDefaults?.set(Date().timeIntervalSince1970, forKey: Self.lastImportTimestampKey)
-        
-        let currentCount = sharedDefaults?.integer(forKey: Self.pendingCountKey) ?? 0
-        sharedDefaults?.set(currentCount + count, forKey: Self.pendingCountKey)
-        sharedDefaults?.synchronize()
-        
-        printDebug("Recorded \(count) new pending imports (total: \(currentCount + count))")
-    }
-    
-    /// Gets the timestamp of the last pending import
-    public func lastPendingImportTimestamp() -> Date? {
-        guard let timestamp = sharedDefaults?.double(forKey: Self.lastImportTimestampKey),
-              timestamp > 0 else {
-            return nil
-        }
-        return Date(timeIntervalSince1970: timestamp)
-    }
     
     /// Clears the pending import metadata
     private func clearPendingMetadata() {

@@ -8,7 +8,6 @@
 import Foundation
 
 public enum ExtendedAttributesError: Error {
-    case attributeNotFound
     case invalidData
     case setAttributeFailed
     case getAttributeFailed

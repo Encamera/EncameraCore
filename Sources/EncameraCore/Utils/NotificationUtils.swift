@@ -45,24 +45,11 @@ public struct NotificationUtils {
         return publisher(for: AppLifecycleNotification.willResignActive)
     }
 
-
-    public static var didFinishLaunchingPublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: AppLifecycleNotification.didFinishLaunching)
-    }
-
     #if canImport(UIKit)
     public static var orientationDidChangePublisher: AnyPublisher<Notification, Never> {
         return publisher(for: UIDevice.orientationDidChangeNotification)
     }
     #endif
-
-    public static var systemClockDidChangePublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: .NSSystemClockDidChange)
-    }
-
-    public static var cameraDidStartRunningPublisher: AnyPublisher<Notification, Never> {
-        return publisher(for: NSNotification.Name.AVCaptureSessionDidStartRunning)
-    }
 
     private static func publisher(for notifType: Notification.Name) -> AnyPublisher<Notification, Never> {
         guard noOp == false else {

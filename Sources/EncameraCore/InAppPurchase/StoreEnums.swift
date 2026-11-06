@@ -9,8 +9,5 @@ import Foundation
 
 public enum PurchaseFinishedAction {
     case purchaseComplete(amount: Decimal, currencyCode: String)
-    case noAction
     case cancelled
-    case pending
-    case displayError
 }

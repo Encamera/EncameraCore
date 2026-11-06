@@ -12,14 +12,12 @@ public enum AppLifecycleNotification {
     public static let willEnterForeground = UIApplication.willEnterForegroundNotification
     public static let didEnterBackground = UIApplication.didEnterBackgroundNotification
     public static let willResignActive = UIApplication.willResignActiveNotification
-    public static let didFinishLaunching = UIApplication.didFinishLaunchingNotification
     public static let protectedDataWillBecomeUnavailable = UIApplication.protectedDataWillBecomeUnavailableNotification
     #else
     public static let didBecomeActive = Notification.Name("EncameraCore.AppLifecycle.didBecomeActive")
     public static let willEnterForeground = Notification.Name("EncameraCore.AppLifecycle.willEnterForeground")
     public static let didEnterBackground = Notification.Name("EncameraCore.AppLifecycle.didEnterBackground")
     public static let willResignActive = Notification.Name("EncameraCore.AppLifecycle.willResignActive")
-    public static let didFinishLaunching = Notification.Name("EncameraCore.AppLifecycle.didFinishLaunching")
     public static let protectedDataWillBecomeUnavailable = Notification.Name("EncameraCore.AppLifecycle.protectedDataWillBecomeUnavailable")
     #endif
 }

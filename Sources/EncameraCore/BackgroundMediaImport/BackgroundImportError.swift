@@ -16,7 +16,6 @@ import Photos
 
 public enum BackgroundImportError: Error, Equatable {
     case configurationError
-    case taskNotFound
     case operationCancelled
     case mismatchedType
     /// The photo library will not give us this asset's data. Under limited access this

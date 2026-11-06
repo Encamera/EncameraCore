@@ -35,7 +35,6 @@ final class PrivateKeyManager: DebugPrintable {
 
     private let keychainWrapper: KeychainWrapperProtocol
     private let syncFlipper: KeychainItemSyncFlipper
-    private let sodium = Sodium()
     private let keySubject: PassthroughSubject<PrivateKey?, Never> = .init()
 
     init(keychainWrapper: KeychainWrapperProtocol) {

@@ -60,15 +60,6 @@ public class DemoAlbumManager: AlbumManaging {
         currentAlbum = demoAlbums.first
     }
 
-    public var albumPublisher: AnyPublisher<[Album], Never> {
-        albumSubject.eraseToAnyPublisher()
-    }
-
-    public var selectedAlbumPublisher: AnyPublisher<Album?, Never> = PassthroughSubject<Album?, Never>().eraseToAnyPublisher()
-
-    private var albumSubject = PassthroughSubject<[Album], Never>()
-
-
     public var lockedAlbums: [LockedAlbumPlaceholder] = []
 
     public var defaultStorageForAlbum: StorageType
@@ -104,9 +95,6 @@ public class DemoAlbumManager: AlbumManaging {
         fatalError()
 
     }
-    public func create(album: Album) throws {
-    }
-
     public func storageModel(for album: Album) -> DataStorageModel? {
         return LocalStorageModel(album: album)
     }

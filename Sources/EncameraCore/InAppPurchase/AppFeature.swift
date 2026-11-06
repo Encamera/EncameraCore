@@ -7,11 +7,6 @@
 
 import Foundation
 
-enum RenewalFrequency: String {
-    case monthly
-    case yearly
-}
-
 public enum AppFeature {
     case accessPhoto(count: Double)
     case createKey(count: Double)

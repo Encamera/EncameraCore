@@ -13,8 +13,6 @@ import LinkPresentation
 import UniformTypeIdentifiers
 
 public enum SharingError: Error {
-    case noMediaToShare
-    case errorDownloading
     case errorSharing(internalError: Error)
 }
 

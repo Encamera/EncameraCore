@@ -210,12 +210,6 @@ public actor DiskMediaBackend: MediaBackend {
         }
     }
 
-    public func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel {
-        var preview = try await fileAccess.createPreview(for: media.thumbnailSource)
-        preview.isLivePhoto = media.mediaType == .livePhoto
-        return preview
-    }
-
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
         for mediaItem in media.underlyingMedia {
             try Task.checkCancellation()

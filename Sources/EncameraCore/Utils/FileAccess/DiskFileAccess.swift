@@ -33,10 +33,6 @@ public actor DiskFileAccess: DebugPrintable {
         return cache
     }()
 
-    enum iCloudError: Error {
-        case invalidURL
-        case general
-    }
     var key: PrivateKey?
 
     /// Per-process discovery memo: media id → resolved key uuid. The stamp is
@@ -138,14 +134,6 @@ public actor DiskFileAccess: DebugPrintable {
         if storageModel?.isDrainedSourceOfCloudKitMove != true {
             try? self.directoryModel?.initializeDirectories()
         }
-    }
-
-    public func resolveEncryptedMedia(by id: String, type: MediaType) -> EncryptedMedia? {
-        guard let url = directoryModel?.driveURLForMedia(withID: id, type: type) else {
-            return nil
-        }
-        let media = EncryptedMedia(source: .url(url), mediaType: type, id: id)
-        return media
     }
 
     public func enumerateMedia<T : MediaDescribing>() async -> [T] {
@@ -624,7 +612,7 @@ extension DiskFileAccess {
 
         if var encrypted = media as? EncryptedMedia {
             encrypted = try await ensureFileIsDownloaded(encrypted: encrypted, progress: progress)
-            return try await decryptMediaToData(encrypted: encrypted, progress: progress)
+            return try await decryptMediaToData(encrypted: encrypted)
         } else {
             fatalError()
         }
@@ -753,7 +741,7 @@ extension DiskFileAccess {
         return try? await resolveKey(for: sourceURL, mediaID: encrypted.id).key
     }
 
-    private func decryptMediaToData(encrypted: EncryptedMedia, progress: (FileLoadingStatus) -> Void) async throws -> CleartextMedia {
+    private func decryptMediaToData(encrypted: EncryptedMedia) async throws -> CleartextMedia {
         guard keyManager != nil else {
             throw FileAccessError.missingKeyManager
         }
@@ -946,7 +934,7 @@ extension DiskFileAccess {
             switch encrypted.mediaType {
 
             case .photo:
-                let decrypted: CleartextMedia = try await decryptMediaToData(encrypted: encrypted) { _ in }
+                let decrypted: CleartextMedia = try await decryptMediaToData(encrypted: encrypted)
                 thumb = try await ThumbnailUtils.createThumbnailMediaFrom(cleartext: decrypted)
 
             case .video:

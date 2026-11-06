@@ -54,7 +54,6 @@ public class SyncedDataStore: ObservableObject {
     // MARK: - Observers
     
     private var iCloudObserver: NSObjectProtocol?
-    private var cancellables = Set<AnyCancellable>()
     
     /// Publisher that emits when external changes are received from iCloud
     public let externalChangePublisher = PassthroughSubject<[String], Never>()
@@ -341,11 +340,5 @@ public class SyncedDataStore: ObservableObject {
         cloudStore.removeObject(forKey: schema.storageKey)
         cloudStore.synchronize()
         print("[SyncedDataStore] Cleared all data for \(schema.tableName)")
-    }
-    
-    /// Forces a sync with iCloud
-    @discardableResult
-    public func forceSync() -> Bool {
-        return cloudStore.synchronize()
     }
 }

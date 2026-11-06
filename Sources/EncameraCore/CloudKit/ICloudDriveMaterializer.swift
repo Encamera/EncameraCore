@@ -16,7 +16,7 @@
 //  Everything here is built on machinery the app already had:
 //  `iCloudFileStatusUtil.startDownload(for:)` to request a download, and the
 //  NSMetadataQuery configuration + twin-notification observation pattern from
-//  `iCloudDirectoryMonitor` and `iCloudStorageModel.monitorDownloadProgress`.
+//  `iCloudStorageModel.monitorDownloadProgress`.
 //  What is new is that this one is *awaitable per batch* and has a deadline:
 //  `downloadFileFromiCloud` never times out, which is tolerable for one photo a
 //  user is staring at and unacceptable for an unattended migration batch.

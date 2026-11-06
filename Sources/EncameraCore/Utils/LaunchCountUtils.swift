@@ -4,34 +4,6 @@
 import Foundation
 import Foundation
 
-public struct AppVersion: Comparable {
-    let majorVersion: Int
-    let minorVersion: Int
-    let patchVersion: Int
-
-    static let zero = AppVersion(majorVersion: 0, minorVersion: 0, patchVersion: 0)
-
-    init(majorVersion: Int, minorVersion: Int, patchVersion: Int) {
-        self.majorVersion = majorVersion
-        self.minorVersion = minorVersion
-        self.patchVersion = patchVersion
-    }
-
-    /// Parses "major.minor.patch"; missing trailing components read as 0.
-    init?(_ string: String) {
-        let components = string.split(separator: ".").map { Int($0) }
-        guard (1...3).contains(components.count), !components.contains(nil) else {
-            return nil
-        }
-        let numbers = components.compactMap { $0 } + Array(repeating: 0, count: 3 - components.count)
-        self.init(majorVersion: numbers[0], minorVersion: numbers[1], patchVersion: numbers[2])
-    }
-
-    public static func < (lhs: AppVersion, rhs: AppVersion) -> Bool {
-        (lhs.majorVersion, lhs.minorVersion, lhs.patchVersion) < (rhs.majorVersion, rhs.minorVersion, rhs.patchVersion)
-    }
-}
-
 public class LaunchCountUtils: DebugPrintable {
 
     private static var currentVersion: String {
@@ -59,16 +31,5 @@ public class LaunchCountUtils: DebugPrintable {
             return true
         }
         return false
-    }
-
-    /// The version the app last launched as, and the one it is launching as now. On a first
-    /// launch both are the current version. Must be read before `recordCurrentVersionLaunch()`,
-    /// which overwrites the stored previous version.
-    public static func launchVersionChange() -> (from: AppVersion, to: AppVersion) {
-        let current = AppVersion(currentVersion) ?? .zero
-        guard let lastVersion = UserDefaultUtils.string(forKey: .lastVersionKey) else {
-            return (current, current)
-        }
-        return (AppVersion(lastVersion) ?? .zero, current)
     }
 }

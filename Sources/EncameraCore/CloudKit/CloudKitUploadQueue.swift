@@ -282,16 +282,6 @@ public actor CloudKitUploadQueue: DebugPrintable {
         return pending.values.filter(\.hasGivenUp).sorted { $0.queuedAt < $1.queuedAt }
     }
 
-    /// Whether a specific media item (either component) is still waiting or has
-    /// failed — what the gallery badge reads.
-    public func state(forMediaID mediaID: String) -> CloudKitUploadState {
-        loadIfNeeded()
-        let components = pending.values.filter { $0.mediaID == mediaID }
-        if components.isEmpty { return .uploaded }
-        if components.contains(where: \.hasGivenUp) { return .failed }
-        return .waiting
-    }
-
     // MARK: - Outcomes
 
     /// Records a failed attempt that is worth retrying.
@@ -478,14 +468,4 @@ public actor CloudKitUploadQueue: DebugPrintable {
         pending.removeAll()
         printDebug("clearAll ok")
     }
-}
-
-/// Where a media item stands with respect to CloudKit, for the gallery badge.
-public enum CloudKitUploadState: Sendable, Equatable {
-    /// CloudKit has it (or it never needed uploading — e.g. a local album).
-    case uploaded
-    /// Written to this device, waiting its turn to upload.
-    case waiting
-    /// Written to this device; uploading failed in a way retrying cannot fix.
-    case failed
 }

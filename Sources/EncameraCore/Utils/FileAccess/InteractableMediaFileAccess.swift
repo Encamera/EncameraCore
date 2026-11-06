@@ -154,10 +154,6 @@ public actor InteractableMediaFileAccess: FileAccess {
         try await requireBackend().save(media: media, metadata: metadata, progress: progress)
     }
 
-    public func createPreview(for media: InteractableMedia<CleartextMedia>) async throws -> PreviewModel {
-        try await requireBackend().createPreview(for: media)
-    }
-
     public func copy(media: InteractableMedia<EncryptedMedia>) async throws {
         try await requireBackend().copy(media: media)
     }
@@ -360,10 +356,6 @@ public actor InteractableMediaFileAccess: FileAccess {
                 count += 1
             }
         }
-    }
-
-    public static func deleteThumbnailDirectory() throws {
-        try DiskFileAccess.deleteThumbnailDirectory()
     }
 
     // MARK: - Test hooks

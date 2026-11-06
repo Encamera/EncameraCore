@@ -6,7 +6,6 @@
 
 */
 
-
 /* ./EncameraCore/Constants/AppConstants.swift */
 "DefaultAlbumName" = "Default Album";
 /* ./EncameraCore/Utils/KeyManager.swift */
@@ -20,10 +19,6 @@
 "BiometricMethod.Generic" = "Biometrics";
 "Password" = "Password";
 "Keep your encrypted data safe by using %@." = "Keep your encrypted data safe by using %@.";
-"FaceIDOnlyAlert.Title" = "Clear PIN/Password?";
-"FaceIDOnlyAlert.Message" = "Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.";
-"FaceIDOnlyAlert.Continue" = "Continue";
-"FaceIDOnlyAlert.Cancel" = "Cancel";
 "AuthenticationMethod" = "Passcode Options";
 /* ./EncameraCore/Utils/PasswordValidator.swift */
 "Not determined." = "Not determined.";
@@ -37,7 +32,6 @@
 "No iCloud account found on this device." = "No iCloud account found on this device.";
 /* ./EncameraCore/Utils/SettingsManager.swift */
 /* ./EncameraCore/Models/StorageType.swift */
-"iCloud" = "iCloud";
 "Local" = "Local";
 "LocalDevice" = "local device";
 "SaveToiCloudDrive" = "Save to iCloud Drive";
@@ -150,15 +144,11 @@
 "ConfirmStorage" = "Confirm Storage";
 /* ./Encamera/Tutorial/ExplanationForUpgradeTutorial.swift */
 /* ./Encamera/Camera/CameraConfigurationService.swift */
-/* ./Encamera/Camera/AlertError.swift */
-"Accept" = "Accept";
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
 "CreateNewAlbum" = "Create New Album";
 /* AlbumGrid */
 "AlbumsTitle" = "Albums";
 
-/* ./Encamera/KeyManagement/KeyOperationCell.swift */
-"Add Key" = "Add Key";
 /* ./Encamera/KeyManagement/KeyExchange.swift */
 /* ./Encamera/KeyManagement/AlbumDetailView.swift */
 "Rename" = "Rename";
@@ -183,7 +173,6 @@
 "AlbumDetailView.ResetCoverImage" = "Default to Latest Item";
 "AlbumDetailView.CoverImageRemovedToast" = "Cover image disabled";
 "AlbumDetailView.CoverImageResetToast" = "Cover image defaults to latest item";
-"AlbumDetailView.MoveMedia" = "Move Media";
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
 "AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
 "AlbumDetailView.MovePartialToast" = "Moved %@ %@, %@ %@ failed";
@@ -232,18 +221,14 @@
 /* ./Encamera/KeyManagement/AlbumCell.swift */
 /* ./Encamera/KeyManagement/KeyInformation.swift */
 /* ./Encamera/KeyManagement/AlbumList.swift */
-/* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Save Key" = "Save Key";
 /* ./Encamera/KeyManagement/KeyEntry.swift */
 "Save" = "Save";
 "Cancel" = "Cancel";
-"Save Key" = "Save Key";
 /* ./Encamera/KeyManagement/KeyGeneration.swift */
 "" = "";
 
 "New Album" = "New Album";
 "AlbumNameInvalid" = "Album name must be longer than 1 character";
-"Save Key" = "Save Key";
 "Select a place to keep media for this key." = "Select a place to keep media for this key.";
 /* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
 /* ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift */
@@ -272,7 +257,6 @@
 "Photo limit reached" = "Photo limit reached";
 "ModalUpgradeText" = "Upgrade to premium to unlock unlimited photos";
 "Upgrade to Premium" = "Upgrade to Premium";
-"Back to album" = "Back to album";
 /* Picture taken overlay*/
 "CoolPicture" = "That's a cool picture!";
 "WhereToFindYourPictures" = "You will find all of your photos and videos grouped in the \"Albums\"";
@@ -280,7 +264,6 @@
 "TakeAnotherPhoto" = "Take another photo";
 /* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
 "Delete" = "Delete";
-"Share Decrypted" = "Share Decrypted";
 "GalleryView.MakeAlbumCover" = "Make Album Cover";
 "GalleryView.AlbumCoverSetToast" = "Album cover set";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
@@ -303,17 +286,9 @@
 "OnboardingCarousel.HeadingText3" = "No accounts. No profiling. No ads.";
 "OnboardingCarousel.SubheadingText3" = "Encamera never collects your data. Your private moments stay completely yours.";
 
-
-
-"Set Password" = "Set Password";
-"Set Password" = "Set Password";
 "Use %@?" = "Use %@?";
 
-
 /* Key Phrase Display Screen */
-"KeyPhrase.Title" = "Your Recovery Key";
-"KeyPhrase.Subtitle" = "This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.";
-"KeyPhrase.ContinueButton" = "My Key Has Been Stored";
 "KeyPhrase.PrivacyKeyTitle" = "Your recovery key";
 "KeyPhrase.PrivacyKeySubtitle" = "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.";
 "KeyPhrase.CopyToClipboard" = "Copy to clipboard";
@@ -328,16 +303,11 @@
 /* ./Encamera/Store/Extensions/Package+PremiumPurchasable.swift */
 "BillingFrequency.PerMonth" = "per month";
 "BillingFrequency.PerYear" = "per year";
-"BillingFrequency.PerWeek" = "per week";
-"BillingFrequency.LifetimeUnlimited" = "Unlimited Updates";
-"BillingFrequency.LifetimeLimited" = "1 Year of Updates";
 /* ./Encamera/Store/SubscriptionView.swift */
 "Restore Purchases" = "Restore Purchases";
 "Enter Promo Code" = "Enter Promo Code";
 
 /* ./Encamera/Store/SubscriptionOptionView.swift */
-/* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
-"premium" = "premium";
 /* ./Encamera/Store/PurchaseUpgradeView.swift */
 
 /* ./Encamera/MediaImport/MediaImportView.swift */
@@ -348,7 +318,6 @@
 
 /* ShareViewController.swift */
 
-
 /* Widget */
 "QuicklyTakePictures" = "Quickly take pictures and video.";
 
@@ -356,7 +325,6 @@
 "AlbumNotFoundAtSourceLocation" = "Could not find the album at the source location. Use the Files app to ensure that it exists.";
 
 /* Notification Banners */
-
 
 "BiometricMethod.Enable" = "Enable %@";
 "Use Passcode instead" = "Use Passcode instead";
@@ -367,7 +335,6 @@
 "AlbumDetailView.ImportButton" = "Import Media";
 "AlbumDetailView.OpenCamera" = "Open Camera";
 "AlbumDetailView.Select" = "Select Media";
-"AlbumDetailView.RenameAlbum" = "Rename Album";
 "AlbumDetailView.HideAlbumAlertTitle" = "Hide this album?";
 "AlbumDetailView.HideAlbumAlertMessage" = "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.";
 
@@ -376,7 +343,6 @@
 "AlbumDetailView.SortFilter.DateAddedOldest" = "Date Added: Oldest First";
 "AlbumDetailView.SortFilter.DateCapturedNewest" = "Date Captured: Newest First";
 "AlbumDetailView.SortFilter.DateCapturedOldest" = "Date Captured: Oldest First";
-"AlbumDetailView.SortFilter.LivePhotos" = "Live Photos";
 "AlbumDetailView.NoMediaFound" = "No media found";
 "AlbumDetailView.ClearFilters" = "Clear Filters";
 "AlbumDetailView.PremiumCardTitle" = "Store more with Premium";
@@ -423,19 +389,6 @@
 "PostPurchaseView.Subtext2" = "In the meantime, we would highly appreciate if you could help us with a Review on the App Store";
 "PostPurchaseView.ReviewButton" = "Help us with a review";
 "PostPurchaseView.MaybeLater" = "Maybe Later";
-"Notification.Permission.Error" = "Error requesting local notification permissions: %@";
-"Notification.PremiumReminder.Title" = "20%% Discount - Limited time 📅";
-"Notification.PremiumReminder.Body" = "Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!";
-"Notification.ImageSaveReminder.Title" = "We would like your support 🙏";
-"Notification.ImageSaveReminder.Body" = "Hope you like Encamera - This is why we need you to help us with a review. Tap here!";
-"Notification.ImageSecurityReminder.Title" = "Did you know? 🤔";
-"Notification.ImageSecurityReminder.Body" = "You can also save videos to your albums, not only images. Try it now and secure some!";
-"Notification.InactiveUserReminder.Title" = "Your images might be at risk 🚨";
-"Notification.InactiveUserReminder.Body" = "Don't forget to secure more images by adding them to your album. Import now!";
-"Notification.WidgetReminder.Title" = "Take directly encrypted photos 📸";
-"Notification.WidgetReminder.Body" = "Don't forget to add the widget on the lock screen and take images quickly. See how!";
-"Notification.ImportImages.Prompt" = "Prompting user to import more images for security.";
-"Notification.Scheduling.Error" = "Error scheduling notification: %@";
 "Settings.Version" = "Version";
 "Settings.RevenueCatCustomerId" = "RevenueCat Customer ID";
 "Settings.CopiedToClipboard" = "Copied to clipboard";
@@ -476,7 +429,6 @@
 "Settings.ImportMediaMetadata" = "Import Photo Metadata";
 "MediaSelectionTray.SelectMedia" = "Select Media";
 "MediaSelectionTray.ItemSelected" = "Selected";
-"MediaSelectionTray.MoveMedia" = "Move";
 
 "AskForReview.EnjoyingTheApp" = "Are you enjoying the app?";
 "AskForReview.AskMeLater" = "Ask me later";
@@ -492,11 +444,7 @@
 "FooterView.Slideshow.ThreeSeconds" = "3 Seconds";
 "FooterView.Slideshow.FiveSeconds" = "5 Seconds";
 "FooterView.Slideshow.FifteenSeconds" = "15 Seconds";
-"Alert.LoadingFile.Title" = "Loading File";
-"Alert.LoadingFile.Message" = "Please wait...";
 
-"ProgressView.Downloading" = "Downloading: %.0f%%";
-"ProgressView.Decrypting" = "Decrypting: %.0f%%";
 "ProgressView.FileLoadedSuccessfully" = "File loaded successfully";
 
 "FileLoading.StepIndicator" = "STEP %d OF 2";
@@ -507,10 +455,6 @@
 
 "Error.Alert.Title" = "Error";
 "Error.Alert.FailedToLoadFile" = "Failed to load file: %@";
-"Test" = "Here is a test of the string translation";
-
-/* Hide Albums Tutorial */
-"HideAlbumsTutorial.Title" = "Hide Albums";
 
 /* Hide Image Tutorial */
 "HideImageTutorial.HeadingText1" = "Hide Your Albums";
@@ -522,26 +466,12 @@
 "HideImageTutorial.HeadingText4" = "Access the Albums";
 "HideImageTutorial.SubheadingText4" = "To unhide an album, create a new album with the exact same name. Your hidden albums will instantly reappear.";
 
-/* Authentication Method View */
-"AuthenticationMethod.Cancel" = "Cancel";
-"AuthenticationMethod.OK" = "OK";
-
-/* Authentication Method Security Levels */
-"AuthenticationMethod.SecurityLevel.FaceID" = "Low protection";
-"AuthenticationMethod.SecurityLevel.PinCode" = "Moderate protection";
-
 /* Authentication Method Text Descriptions */
-"AuthenticationMethod.TextDescription.FaceID" = "Face ID";
-"AuthenticationMethod.TextDescription.PinCode" = "Pin Code";
 "AuthenticationMethod.TextDescription.Password" = "Password";
 
 /* Authentication Method Types */
 "AuthenticationMethod.TextDescription.pinCode4Digit" = "4-digit PIN";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "6-digit PIN";
-
-"AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Quick but less secure";
-"AuthenticationMethod.SecurityLevel.pinCode6Digit" = "More secure PIN code";
-"AuthenticationMethod.SecurityLevel.password" = "Most secure option";
 
 /* Authentication Method View */
 "Clear Password" = "Clear Password";
@@ -561,9 +491,6 @@
 "Set 6-Digit PIN" = "Set 6-Digit PIN";
 "Confirm 6-Digit PIN" = "Confirm 6-Digit PIN";
 
-/* Face ID */
-"Use Face ID" = "Use Face ID";
-
 "setPasswordSubtitle" = "This password will be used to securely access the app. Make sure you remember it!";
 "repeatPasswordSubtitle" = "Repeat your password to confirm.";
 
@@ -576,7 +503,6 @@
 "SplashScreen.Subline" = "Secure Your Memories";
 
 /* ./Encamera/AlbumManagement/AlbumSelectionModal.swift */
-"AlbumSelectionModal.Title" = "Move to Album";
 "AlbumSelectionModal.Description" = "Select an album to move %@ items to";
 "AlbumSelectionModal.Move" = "Move";
 "AlbumSelectionModal.NoAlbumsDescription" = "Create another album first.";
@@ -651,7 +577,6 @@
 "CloudKitMigration.FailedMessage" = "Something went wrong: %@. You may need to be connected to Wi-Fi to continue. You can resume the move.";
 "CloudKitMigration.Resume" = "Resume";
 "CloudKitMigration.PartialTitle" = "Move to iCloud not finished";
-"CloudKitMigration.PartialMessage" = "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.";
 
 /* ./Encamera/AlbumManagement/PartialMigrationBanner.swift - Persistent banner for an album left split between this device and iCloud */
 "CloudKitMigration.BannerMessage" = "Everything is still on this device. Tap to continue or cancel.";
@@ -719,12 +644,6 @@
 "Lightbox.Edit.Completed" = "Edit saved";
 
 /* ./Encamera/Components/ImportProgress/TaskDetailCard.swift */
-"TaskDetailCard.Created" = "Created: %@";
-"TaskDetailCard.Progress" = "Progress:";
-"TaskDetailCard.Current" = "Current: %@";
-"TaskDetailCard.Unknown" = "Unknown";
-"TaskDetailCard.Pause" = "Pause";
-"TaskDetailCard.Resume" = "Resume";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Photo Library Access Required";
 "TaskDetailCard.GrantAccessMessage" = "Please grant access to your photo library in Settings to delete imported photos.";
 "TaskDetailCard.StatusCancelled" = "Cancelled";
@@ -741,11 +660,6 @@
 "CompletedImportHistory.DeleteConfirmMessage" = "This will delete %@ photo(s) from your Photo Library.";
 "CompletedImportHistory.DeleteConfirmMessageSkipping" = "This will delete %@ photo(s) from your Photo Library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.";
 
-/* ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift */
-"ImportTaskDetailsView.Title" = "Import Tasks";
-"ImportTaskDetailsView.Done" = "Done";
-"ImportTaskDetailsView.ClearAll" = "Clear All";
-
 /* ./Encamera/Components/ImportProgress/TaskProgressRow.swift */
 
 /* ./Encamera/Components/CustomPhotoPicker.swift */
@@ -757,7 +671,6 @@
 "CustomPhotoPicker.PhotoAccessRequired" = "Photo Access Required";
 "CustomPhotoPicker.GrantAccessMessage" = "Please grant full access to your photo library to use swipe selection. You can change this in Settings.";
 "CustomPhotoPicker.Selected" = "%@ Selected";
-"CustomPhotoPicker.AllPhotos" = "All Photos";
 "CustomPhotoPicker.LoadingMore" = "Loading more photos...";
 "CustomPhotoPicker.EmptyLimitedTitle" = "No media selected";
 "CustomPhotoPicker.EmptyLimitedMessage" = "Give Encamera access to at least one photo or video.";
@@ -775,7 +688,6 @@
 "PhotoDeletion.PartialMessage" = "Deleted %@ from your photo library. %@ could not be found — they may no longer be shared with Encamera.";
 "PhotoDeletion.NotFoundMessage" = "Those photos could not be found in your photo library. They may no longer be shared with Encamera.";
 "PhotoDeletion.FailedMessage" = "Couldn't delete from your photo library: %@";
-
 
 /* ./Encamera/AuthenticationView/AuthenticationView.swift */
 "AuthenticationView.TooManyAttempts" = "Too many attempts";
@@ -800,7 +712,6 @@
 "EncameraDrawerFactory.ResetDrawer.Body" = "If you don’t have access to your other device, you can reset Encamera. You will not lose any of your encrypted files, but your encryption key and your passcode will be deleted from all devices.";
 "EncameraDrawerFactory.ResetDrawer.BodySyncOff" = "Resetting Encamera removes all keys from all your devices. This can’t be undone.";
 "EncameraDrawerFactory.ResetDrawer.Confirm" = "Reset Encamera";
-"EncameraDrawerFactory.ResetDrawer.GoBack" = "Go Back";
 
 /* ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift */
 "EncameraDrawerFactory.GoBack" = "Go Back";
@@ -877,7 +788,6 @@
 
 /* ./Encamera/Settings/FeatureTogglesView.swift */
 "FeatureToggles.Title" = "Feature Toggles";
-"FeatureToggles.HideAlbum" = "Hide Album";
 "FeatureToggles.EncryptedZipExport" = "Encrypted Zip Export";
 "FeatureToggles.EncryptedZipExportDescription" = "Enable sharing media as an encrypted zip";
 "FeatureToggles.EnableTestRevenueCat" = "Test RevenueCat";
@@ -888,24 +798,12 @@
 "FeatureToggles.ShowFeatureTogglesDescription" = "Enable the feature toggles menu in settings";
 "FeatureToggles.ShowDesignSystem" = "🎨 Design System";
 "FeatureToggles.ShowDesignSystemDescription" = "Show hidden design system showcase";
-"FeatureToggles.AppIconSelection" = "App Icon Selection";
 "FeatureToggles.EditRotation" = "Edit Rotation";
 "FeatureToggles.EditRotationDescription" = "Enable the edit button in the lightbox to rotate media";
 "FeatureToggles.DetectDuplicates" = "Detect Duplicates";
 "FeatureToggles.DetectDuplicatesDescription" = "Enable the find duplicates option in album menus";
 "Common.Cancel" = "Cancel";
 "Common.Confirm" = "Confirm";
-
-/* ./Encamera/Services/CMS/ContentfulService.swift */
-"CMS.NetworkError" = "Unable to load promotional content. Using cached data.";
-
-/* ./EncameraCore/Utils/iCloudFileStatusUtil.swift */
-"ICloudStatus.NotICloudFile" = "This file is stored locally.";
-"ICloudStatus.Downloaded" = "File is downloaded.";
-"ICloudStatus.NotDownloaded" = "File is stored in iCloud and needs to be downloaded.";
-"ICloudStatus.Downloading" = "Downloading from iCloud: %d%%";
-"ICloudStatus.DownloadFailed" = "Download failed: %@";
-"ICloudStatus.DownloadFailedUnknown" = "Download from iCloud failed.";
 
 /* ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status */
 "ICloudStatus.AllSynced" = "All files downloaded";
@@ -934,13 +832,8 @@
 "ICloudError.NotAvailableWiFi" = "This file is stored in iCloud and could not be downloaded. Check your iCloud connection and try again.";
 "ICloudError.NotAvailableNoConnection" = "This file is stored in iCloud and could not be downloaded. Connect to the internet and try again.";
 
-/* ./ShareExtension/ShareViewController.swift - Share Extension */
-"ShareExtension.SaveFailed" = "Failed to save media";
-
 /* ./Encamera/MediaImport/PendingImportView.swift - Pending Import */
-"PendingImport.Title" = "Import Media";
 "PendingImport.Description" = "Select an album to move %d items";
-"PendingImport.SelectAlbum" = "Select destination album:";
 "PendingImport.ImportButton" = "Import & Encrypt";
 "PendingImport.CancelConfirmTitle" = "Cancel Import?";
 "PendingImport.DeleteMedia" = "Delete Media";
@@ -1021,9 +914,7 @@
 "CreateAlbumModal.Placeholder" = "Your memories";
 "CreateAlbumModal.CreateAlbum" = "Create Album";
 
-
 /* ./Encamera/Components/RestoringFromiCloudView.swift - iCloud Keychain restore wait screen */
-"RestoringFromICloud.SetUpAsNew" = "Set up as a new device";
 "RestoringFromICloud.FinishingRestore" = "Finishing restore…";
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - Restore Purchases during onboarding (ENC-96). Three distinct failure modes. */
 /* ./Encamera/Onboarding/OnboardingHostingView.swift - Returning-user branch screen (ENC-91). Placeholder copy pending design (ENC-75). */
@@ -1089,7 +980,6 @@
 "MissingKey.AddKey" = "Add this key";
 "MissingKey.ShortLabel" = "Missing key";
 "MissingKey.AlbumTitle" = "Missing Key";
-"MissingKey.LockedAlbums" = "%d album(s) can't be shown because their key isn't on this device.";
 "MissingKey.AddKeyTitle" = "Add a key";
 "MissingKey.AddKeyPrompt" = "Enter the recovery key for key %@. It will only be used to open existing media — new photos keep using this device's key.";
 "MissingKey.AddKeyPromptUnknown" = "Enter the recovery key for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.";
@@ -1097,7 +987,6 @@
 "MissingKey.WrongKeyUnknown" = "That recovery key doesn't open this media.";
 "MissingKey.CouldNotVerify" = "This recovery key couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.";
 "MissingKey.AlreadyHaveKey" = "You already have that key on this device.";
-"MissingKey.Added" = "Key added. Your media should open now.";
 "MissingKey.EnterKey" = "Enter Key";
 "MissingKey.AlbumSubtitleWithFingerprint" = "This album was encrypted with key %@, which isn't on this device.";
 "MissingKey.AlbumContentsUnreadable" = "None of this album's photos or videos could be opened with any key on this device.";
@@ -1181,7 +1070,6 @@
 "Onboarding.Pin.title" = "Create your PIN";
 "Onboarding.Pin.subtitle" = "Choose a PIN you'll use to unlock your encrypted files";
 "Onboarding.Pin.confirmTitle" = "Confirm your PIN";
-"Onboarding.Pin.setButton" = "Set PIN Code";
 
 /* Password */
 "Onboarding.Password.title" = "Create your password";
@@ -1270,11 +1158,3 @@
 "RecoveryKey.Intro.Row1" = "Your recovery key is needed to recover your media on a new device";
 "RecoveryKey.Intro.Row2" = "Keep it somewhere safe, like a password manager";
 "RecoveryKey.Intro.Row3" = "If you lose it, we can't recover your media for you";
-"RecoveryKey.Saved.Title" = "Have you saved your recovery key?";
-"RecoveryKey.Saved.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
-"RecoveryKey.Saved.Confirm" = "I've saved my key";
-"RecoveryKey.Saved.Later" = "I'll do it later";
-"RecoveryKey.Storage.Title" = "Where should we save your recovery key?";
-"RecoveryKey.Storage.Subtitle" = "Only you have access. We can't recover it for you.";
-"RecoveryKey.Storage.ICloudLabel" = "Backed up automatically. Recoverable if you switch devices or lose your iPhone.";
-"RecoveryKey.Storage.ThisIPhoneLabel" = "Stored locally only. Not backed up. You'll need to export and manage it yourself.";

@@ -468,22 +468,4 @@ public enum DeviceInfo {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         return "\(bundleId) \(version)".trimmingCharacters(in: .whitespaces)
     }
-    
-    /// Creates a CameraInfo populated with current device information
-    /// - Parameters:
-    ///   - flashFired: Whether flash was fired
-    ///   - flashMode: Flash mode description
-    /// - Returns: CameraInfo with device details populated
-    public static func currentDeviceCameraInfo(
-        flashFired: Bool? = nil,
-        flashMode: String? = nil
-    ) -> EncryptedFileMetadata.CameraInfo {
-        return EncryptedFileMetadata.CameraInfo(
-            deviceMake: make,
-            deviceModel: modelName,
-            flashFired: flashFired,
-            flashMode: flashMode,
-            software: softwareVersion
-        )
-    }
 }

@@ -75,9 +75,6 @@ public final class NetworkMonitor {
     /// Whether the device currently has a usable network connection.
     public var isConnected: Bool { currentState.isConnected }
 
-    /// Whether the current connection is over WiFi.
-    public var isOnWiFi: Bool { currentState.isOnWiFi }
-
     /// Whether the current connection is over cellular data.
     public var isOnCellular: Bool { currentState.isOnCellular }
 

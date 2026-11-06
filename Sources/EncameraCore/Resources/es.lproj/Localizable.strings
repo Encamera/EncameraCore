@@ -25,7 +25,6 @@
 /* ./EncameraCore/Utils/SettingsManager.swift */
 
 /* ./EncameraCore/Models/StorageType.swift */
-"iCloud" = "iCloud";
 "Local" = "Local";
 "SaveToiCloudDrive" = "Guardar en iCloud Drive";
 "SaveLocally" = "Guardar en este dispositivo"; 
@@ -62,17 +61,11 @@
 "ChooseYourStorage" = "Elige tu almacenamiento";
 "ConfirmStorage" = "Confirmar Almacenamiento"; 
 
-/* ./Encamera/Camera/AlertError.swift */
-"Accept" = "Aceptar"; 
-
 /* ./Encamera/KeyManagement/AlbumGridItem.swift */
 "CreateNewAlbum" = "Crear Nuevo Álbum";
 
 /* AlbumGrid */
 "AlbumsTitle" = "Álbumes"; 
-
-/* ./Encamera/KeyManagement/KeyOperationCell.swift */
-"Add Key" = "Añadir clave"; 
 
 /* ./Encamera/KeyManagement/KeyExchange.swift */
 
@@ -99,19 +92,14 @@
 
 /* ./Encamera/KeyManagement/AlbumList.swift */
 
-/* ./Encamera/KeyManagement/AddExchangedKeyConfirmation.swift */
-"Save Key" = "Guardar clave";
-
 /* ./Encamera/KeyManagement/KeyEntry.swift */
 "Save" = "Guardar";
 "Cancel" = "Cancelar";
-"Save Key" = "Guardar Clave"; 
 
 /* ./Encamera/KeyManagement/KeyGeneration.swift */
 "" = "";
 "New Album" = "Nuevo Álbum";
 "AlbumNameInvalid" = "El nombre del álbum debe tener más de 1 carácter";
-"Save Key" = "Guardar Clave";
 "Select a place to keep media for this key." = "Selecciona un lugar para guardar los medios para esta clave."; 
 
 /* ./Encamera/Styles/ViewModifiers/PurchaseOptionViewModifier.swift */
@@ -141,7 +129,6 @@
 "Photo limit reached" = "Límite de fotos alcanzado";
 "ModalUpgradeText" = "Actualiza a premium para desbloquear fotos ilimitadas";
 "Upgrade to Premium" = "Actualizar a Premium";
-"Back to album" = "Volver al álbum";
 
 /* Picture taken overlay */
 "CoolPicture" = "¡Esa es una foto genial!";
@@ -151,7 +138,6 @@
 
 /* ./Encamera/ImageViewing/GalleryHorizontalScrollView.swift */
 "Delete" = "Eliminar";
-"Share Decrypted" = "Compartir descifrada";
 /* ./Encamera/ImageViewing/DecryptErrorExplanation.swift */
 
 /* ./Encamera/ImageViewing/GalleryGridView.swift */
@@ -167,8 +153,6 @@
 
 /* ./Encamera/Onboarding/MainOnboardingView.swift */
 "Next" = "Siguiente";
-"Set Password" = "Establecer Contraseña";
-"Set Password" = "Establecer Contraseña";
 "Password" = "Contraseña";
 "Use %@?" = "¿Usar %@?";
 "New Album Subheading" = "Establece el nombre para este álbum de fotos encriptado.";
@@ -185,9 +169,6 @@
 
 /* ./Encamera/Store/SubscriptionOptionView.swift */
 
-/* ./Encamera/Store/PurchaseUpgradeOptionsListView.swift */
-"premium" = "premium";
-
 /* ./Encamera/Store/PurchaseUpgradeView.swift */
 
 /* ./Encamera/MediaImport/MediaImportView.swift */
@@ -203,7 +184,6 @@
 "AlbumNotFoundAtSourceLocation" = "No se pudo encontrar el álbum en la ubicación de origen. Usa la app Archivos para asegurarte de que existe."; 
 
 /* Notification Banners */
-
 
 "PostPurchaseView.ReviewButton" = "Ayúdanos con una reseña";
 "IRemember" = "Recuerdo mi PIN";
@@ -223,19 +203,6 @@
 "LoginMethodDescription" = "Elige cómo deseas acceder a tus álbumes privados.";
 "PostPurchaseView.Subtext1" = "Usted es uno de los primeros partidarios de Encamera y le agradecemos por el apoyo.";
 "MakeSureYouRememberYourPin" = "¡Asegúrese de recordar su código PIN!";
-"Notification.ImportImages.Prompt" = "Solicitando al usuario que importe más imágenes para seguridad.";
-"Notification.WidgetReminder.Body" = "No olvides añadir el widget en la pantalla de bloqueo y tomar imágenes rápidamente. ¡Mira cómo!";
-"Notification.InactiveUserReminder.Body" = "No olvides asegurar más imágenes añadiéndolas a tu álbum. ¡Importa ahora!";
-"Notification.ImageSecurityReminder.Title" = "¿Sabías? 🤔";
-"Notification.ImageSaveReminder.Title" = "Nos gustaría contar con tu apoyo 🙏";
-"Notification.WidgetReminder.Title" = "Toma fotos cifradas directamente 📸";
-"Notification.Scheduling.Error" = "Error al programar la notificación: %@";
-"Notification.Permission.Error" = "Error al solicitar permisos para notificaciones locales: %@";
-"Notification.ImageSaveReminder.Body" = "Esperamos que te guste Encamera - Por eso necesitamos que nos ayudes con una reseña. ¡Toca aquí!";
-"Notification.ImageSecurityReminder.Body" = "También puedes guardar videos en tus álbumes, no solo imágenes. ¡Inténtalo ahora y asegura algunos!";
-"Notification.PremiumReminder.Title" = "20%% de descuento - Tiempo limitado 📅";
-"Notification.PremiumReminder.Body" = "Usa el código 'ENCAMERA20' para obtener un 20%% de descuento en cualquier plan. ¡Apúrate!";
-"Notification.InactiveUserReminder.Title" = "Tus imágenes podrían estar en riesgo 🚨";
 
 "Settings.Version" = "Versión";
 
@@ -250,9 +217,7 @@
 "Yes" = "Sí";
 "AskForReview.EnjoyingTheApp" = "¿Estás disfrutando de la aplicación?";
 "No" = "No";
-"AlbumDetailView.RenameAlbum" = "Renombrar álbum";
 "AskForReview.AskMeLater" = "Pregúntame más tarde";
-"MediaSelectionTray.MoveMedia" = "Mover";
 "FeedbackView.WeAppreciateIt" = "Agradecemos tus comentarios";
 "FeedbackView.Subheading" = "Tus comentarios son realmente importantes para nosotros y nos ayudan a construir un mejor producto. ¡Lo apreciamos mucho!";
 "FeedbackView.Title" = "Dejar comentarios";
@@ -260,14 +225,9 @@
 "FeedbackView.Thanks" = "¡Gracias!";
 "FeedbackView.PlaceholderText" = "¿Qué podríamos mejorar?";
 "Error.Alert.Title" = "Error";
-"Alert.LoadingFile.Message" = "Por favor espera...";
 "ProgressView.FileLoadedSuccessfully" = "Archivo cargado exitosamente";
-"ProgressView.Downloading" = "Descargando: %.0f%%";
 "Error.Alert.FailedToLoadFile" = "Error al cargar el archivo: %@";
-"ProgressView.Decrypting" = "Desencriptando: %.0f%%";
-"Alert.LoadingFile.Title" = "Cargando archivo";
 "Import from files" = "Importar desde archivos";
-"Test" = "Aquí hay una prueba de la traducción de la cadena";
 "AlbumDetailView.HideAlbumAlertTitle" = "¿Ocultar este álbum?";
 "AlbumDetailView.HideAlbumAlertMessage" = "¿Estás seguro de que deseas ocultar este álbum? DEBES recordar el nombre de este álbum para acceder a él nuevamente.";
 
@@ -281,26 +241,17 @@
 "GalleryView.MakeAlbumCover" = "Establecer como portada del álbum";
 "AlbumDetailView.DeleteSelectedMedia" = "¿Quieres eliminar %@?";
 
-
-"AuthenticationMethod.TextDescription.PinCode" = "Código PIN";
-"AuthenticationMethod.SecurityLevel.pinCode4Digit" = "Rápido pero menos seguro";
-"Use Face ID" = "Usar Face ID";
 "Clear Password" = "Borrar contraseña";
 "Change Authentication Method" = "Cambiar método de autenticación";
 "setPasswordSubtitle" = "Esta contraseña se utilizará para acceder de forma segura a la aplicación. ¡Asegúrate de recordarla!";
 "RepeatPassword" = "Repetir contraseña";
 "CannotClearTitle" = "No se puede borrar";
-"FaceIDOnlyAlert.Title" = "¿Borrar PIN/Contraseña?";
-"FaceIDOnlyAlert.Continue" = "Continuar";
 "Use Passcode instead" = "Usar código de acceso en su lugar";
 "AuthenticationMethod" = "Opciones de código de acceso";
 "Changing your authentication method will require setting up a new PIN or password. Would you like to continue?" = "Cambiar su método de autenticación requerirá configurar un nuevo PIN o contraseña. ¿Le gustaría continuar?";
-"AuthenticationMethod.Cancel" = "Cancelar";
 "ProtectionLevel.Strong" = "Protección fuerte";
 "repeatPasswordSubtitle" = "Repite tu contraseña para confirmar.";
 "ProtectionLevel.Low" = "Protección baja";
-"AuthenticationMethod.TextDescription.FaceID" = "Face ID";
-"AuthenticationMethod.SecurityLevel.PinCode" = "Protección moderada";
 "PasswordSetSuccessMessage" = "Tu nueva contraseña ha sido guardada";
 "Select Login Method" = "Por favor seleccione un método";
 "ProtectionLevel.Moderate" = "Protección moderada";
@@ -308,7 +259,6 @@
 "ChangePasscode" = "Cambiar código de acceso";
 "None" = "Ninguno";
 "SplashScreen.Subline" = "Protege tus recuerdos";
-"FaceIDOnlyAlert.Cancel" = "Cancelar";
 "FailedToSavePassword" = "Error al guardar la contraseña";
 "PasswordSetSuccessfully" = "Contraseña establecida con éxito";
 "AuthenticationMethod.TextDescription.pinCode6Digit" = "PIN de 6 dígitos";
@@ -316,48 +266,31 @@
 "AuthenticationMethod.TextDescription.pinCode4Digit" = "PIN de 4 dígitos";
 "Confirm 6-Digit PIN" = "Confirmar PIN de 6 dígitos";
 "Clear" = "Borrar";
-"AuthenticationMethod.SecurityLevel.password" = "Opción más segura";
-"AuthenticationMethod.OK" = "OK";
 "Continue" = "Continuar";
-"HideAlbumsTutorial.Title" = "Ocultar álbumes";
-"AuthenticationMethod.SecurityLevel.FaceID" = "Protección baja";
-"FaceIDOnlyAlert.Message" = "Cambiar a Face ID solo borrará su PIN/contraseña actual. Solo podrá desbloquear la aplicación usando Face ID.";
 "AuthenticationMethod.TextDescription.Password" = "Contraseña";
-"AuthenticationMethod.SecurityLevel.pinCode6Digit" = "Código PIN más seguro";
 "Set 6-Digit PIN" = "Establecer PIN de 6 dígitos";
 "ProtectionLevel.Strongest" = "Protección más fuerte";
 "TaskDetailCard.StatusCancelled" = "Cancelado";
 "CustomPhotoPicker.GrantAccessMessage" = "Por favor, concede acceso completo a tu biblioteca de fotos para usar la selección por deslizamiento. Puedes cambiar esto en Configuración.";
-"ImportTaskDetailsView.Done" = "Hecho";
-"TaskDetailCard.Resume" = "Reanudar";
 "AlbumSelectionModal.Move" = "Mover";
 "GlobalImportProgress.ImportCompleted" = "Importación completada";
 "GlobalImportProgress.ImportingProgress" = "Importando %@ de %@";
 "GlobalImportProgress.ImportStopped" = "Importación detenida";
 "MediaSelectionTray.MoveToAlbum" = "Mover a álbum";
-"AlbumSelectionModal.Title" = "Mover a álbum";
 "CustomPhotoPicker.PhotoAccessRequired" = "Acceso a fotos requerido";
 "AlbumSelectionModal.Description" = "Selecciona un álbum para mover %@ elementos a";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "¿Eliminar de la biblioteca de fotos?";
 "AuthenticationView.ForgotPassword" = "¿Olvidó su contraseña? Restablecer aplicación";
 "TaskDetailCard.GrantAccessMessage" = "Por favor, conceda acceso completo a su biblioteca de fotos en Configuración para eliminar fotos importadas.";
-"TaskDetailCard.Progress" = "Progreso:";
-"TaskDetailCard.Pause" = "Pausa";
 "SettingsView.UnknownError" = "Error desconocido";
-"ImportTaskDetailsView.ClearAll" = "Borrar todo";
 "CustomPhotoPicker.Selected" = "%@ seleccionado";
 "AlbumDetailView.MovedToast" = "Se movió %@ elemento%@ a %@";
 "AuthenticationView.TooManyAttempts" = "Demasiados intentos";
 "CustomPhotoPicker.Add" = "Agregar";
 "GlobalImportProgress.ImportingBatches" = "Importando %@ lotes";
-"TaskDetailCard.Created" = "Creado: %@";
-"AlbumDetailView.MoveMedia" = "Mover Medios";
-"ImportTaskDetailsView.Title" = "Importar Tareas";
 "TaskDetailCard.PhotoLibraryAccessRequired" = "Se requiere acceso a la Biblioteca de Fotos";
 "CustomPhotoPicker.SelectPhotos" = "Seleccionar Fotos";
-"TaskDetailCard.Current" = "Actual: %@";
 "CustomPhotoPicker.SwipeInstruction" = "Mantén presionado y desliza para seleccionar varias fotos";
-"TaskDetailCard.Unknown" = "Desconocido";
 "AuthenticationView.RetryIn" = "Puedes volver a intentar tu contraseña en %@";
 "OnboardingCarousel.HeadingText1" = "Tus recuerdos, completamente protegidos";
 "GlobalImportProgress.Remaining" = "Restante";
@@ -369,14 +302,10 @@
 "OnboardingCarousel.SubheadingText2" = "Tus álbumes están protegidos con tu clave única y se almacenan de manera segura en tu dispositivo o iCloud.";
 "OnboardingCarousel.HeadingText2" = "Solo tú tienes la clave de cifrado";
 "OnboardingCarousel.HeadingText3" = "Sin cuentas. Sin perfilado. Sin anuncios.";
-"KeyPhrase.ContinueButton" = "Mi clave ha sido almacenada";
 "Settings.CopiedToClipboard" = "Copiado al portapapeles";
 "Settings.RevenueCatCustomerId" = "ID de cliente de RevenueCat";
 "BillingFrequency.PerYear" = "por año";
-"BillingFrequency.PerWeek" = "por semana";
 "BillingFrequency.PerMonth" = "por mes";
-"BillingFrequency.LifetimeUnlimited" = "Actualizaciones ilimitadas";
-"BillingFrequency.LifetimeLimited" = "1 año de actualizaciones";
 "AddAlbumModal.RenameAlbumTitle" = "Cambiemos el nombre de tu
 álbum";
 
@@ -388,13 +317,10 @@
 "FeatureToggles.EnableTestRevenueCatDescription" = "Activar el modo de prueba de RevenueCat";
 "Common.Confirm" = "Confirmar";
 "PurchaseScreen.LoadingSubscriptions" = "Cargando suscripciones...";
-"CMS.NetworkError" = "No se puede cargar el contenido promocional. Usando datos en caché.";
 "FeatureToggles.Title" = "Alternadores de funciones";
 "FeatureToggles.RevenuecatToggleMessage" = "Cambiar el modo de RevenueCat requiere reiniciar la aplicación. ¿Continuar?";
 "PurchaseScreen.ErrorLoadingSubscriptions" = "No se pueden cargar las suscripciones";
 "FeatureToggles.EnableTestRevenueCat" = "Probar RevenueCat";
-"FeatureToggles.HideAlbum" = "Ocultar álbum";
-"ICloudStatus.Downloading" = "Descargando desde iCloud: %d%%";
 "GlobalImportProgress.ImportCanceled" = "Importación cancelada";
 "BackgroundTaskProgress.MoveCanceled" = "Movimiento cancelado";
 "CompletedImportHistory.Title" = "Historial de importaciones";
@@ -403,16 +329,13 @@
 "BackgroundTaskProgress.MovingProgress" = "Moviendo %@ de %@";
 "BackgroundTaskProgress.MoveCompleted" = "Movimiento completado";
 "ICloudError.DownloadFailedGeneric" = "No se pudo descargar '%@' de iCloud. Por favor, verifica tu conexión a internet y la configuración de iCloud.";
-"ICloudStatus.NotDownloaded" = "El archivo está almacenado en iCloud y necesita ser descargado.";
 "AlbumSelectionModal.NoAlbumsDescription" = "Crea otro álbum primero para mover medios entre álbumes.";
 "CustomPhotoPicker.LoadingMore" = "Cargando más fotos...";
 "ICloudError.DownloadFailed" = "No se pudo descargar '%@' de iCloud: %@";
 "PendingImport.DeleteMedia" = "Eliminar medio";
 "PendingImport.Description" = "%d elemento(s) listo(s) para importar y cifrar";
 "CompletedImportHistory.ViewImportHistory" = "Ver historial de importación";
-"ShareExtension.SaveFailed" = "Error al guardar el archivo multimedia";
 "AlbumDetailView.MoveErrorToast" = "No se pudo mover %@ %@";
-"CustomPhotoPicker.AllPhotos" = "Todas las fotos";
 "ICloudStatus.PendingDownload" = "%d archivos necesitan descargarse";
 "FileLoading.Decrypting" = "Descifrando archivos multimedia";
 "CompletedImportHistory.ItemsImported" = "%@ de %@ importados";
@@ -423,20 +346,14 @@
 "ICloudStatus.AllSynced" = "Todos los archivos descargados";
 "Deselect All" = "Deseleccionar todo";
 "BackgroundTaskProgress.MovingBatches" = "Moviendo %@ lotes";
-"ICloudStatus.Downloaded" = "El archivo está descargado.";
 "FileLoading.StepIndicator" = "PASO %d DE 2";
 "PendingImport.CancelConfirmTitle" = "¿Cancelar importación?";
-"PendingImport.SelectAlbum" = "Selecciona el álbum de destino:";
 "ICloudError.DownloadInProgress" = "El archivo '%@' todavía se está descargando de iCloud. Por favor, espera.";
-"ICloudStatus.DownloadFailedUnknown" = "La descarga desde iCloud falló.";
 "PendingImport.ImportButton" = "Importar y encriptar";
 "CompletedImportHistory.ClearAll" = "Borrar todo";
-"ICloudStatus.NotICloudFile" = "Este archivo está almacenado localmente.";
 "ICloudStatus.NoFiles" = "No hay archivos en iCloud";
 "AlbumDetailView.LargeImportWarningMessage" = "Deja la aplicación abierta y conectada a WiFi para obtener los mejores resultados.";
 "AlbumDetailView.LargeImportWarningTitle" = "Para importaciones más rápidas";
-"PendingImport.Title" = "Importar medios";
-"ICloudStatus.DownloadFailed" = "Descarga fallida: %@";
 "CompletedImportHistory.DeleteConfirmMessage" = "Esto eliminará %@ foto(s) de tu Biblioteca de Fotos.";
 "CompletedImportHistory.EmptyState" = "No hay importaciones completadas";
 "ICloudError.DownloadTimeout" = "La descarga de iCloud excedió el tiempo de espera. Por favor, verifica tu conexión a internet e inténtalo de nuevo.";
@@ -501,7 +418,6 @@
 "FeatureToggles.ShowFeatureTogglesDescription" = "Habilitar el menú de opciones de funciones en la configuración";
 "ZipExportError.DirectoryCreationFailed" = "No se pudo crear el directorio de exportación: %@";
 "ZipExport.Cancel" = "Cancelar";
-"FeatureToggles.AppIconSelection" = "Selección de icono de la aplicación";
 "ZipExport.Preparing" = "Preparando archivo zip encriptado";
 "HideImageTutorial.HeadingText3" = "Ver álbumes ocultos";
 "ZipExport.ConfirmPassword" = "Confirmar contraseña";
@@ -531,7 +447,6 @@
 "Settings.PurchasesRestoreFailed" = "No se pudieron restaurar las compras";
 "Settings.PurchasesRestoreFailedMessage" = "No se pudieron restaurar tus compras. Por favor, inténtalo de nuevo o contacta con soporte.";
 "AlbumDetailView.SortFilter.DateAddedOldest" = "Fecha de incorporación: más antiguas primero";
-"AlbumDetailView.SortFilter.LivePhotos" = "Fotos en vivo";
 "Settings.BannersCleared" = "Banners eliminados";
 "PaywallView.CurrentPlan" = "PLAN ACTUAL";
 "PaywallView.RestorePurchase" = "Restaurar compra";

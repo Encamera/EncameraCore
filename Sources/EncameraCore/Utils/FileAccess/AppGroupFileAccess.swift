@@ -162,11 +162,6 @@ public class AppGroupFileAccess: DebugPrintable {
         }
     }
     
-    /// Checks if there are any pending media files
-    public func hasPendingMedia() -> Bool {
-        return pendingMediaCount() > 0
-    }
-    
     // MARK: - Deleting Media
     
     /// Deletes a specific media file from the import directory
@@ -218,18 +213,6 @@ public class AppGroupFileAccess: DebugPrintable {
         }
         
         initializeDirectoryIfNeeded()
-    }
-    
-    // MARK: - Thumbnail Generation
-    
-    /// Generates a thumbnail for a cleartext media file
-    public func loadThumbnail(for media: CleartextMedia, targetSize: CGSize = CGSize(width: 200, height: 200)) async throws -> PlatformImage? {
-        guard case .url(let url) = media.source else {
-            throw AppGroupFileAccessError.invalidMediaSource
-        }
-        
-        let data = try await ThumbnailUtils.createThumbnailDataFrom(cleartext: media)
-        return PlatformImage(data: data)
     }
 }
 

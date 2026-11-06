@@ -14,8 +14,6 @@ protocol CameraConfigurationServicable {
     func set(zoom: ZoomLevel) async
     @discardableResult
     func setContinuousZoom(factor: CGFloat) async -> CGFloat
-    func currentVideoZoomFactor() async -> CGFloat
-    func nearestAvailableZoomLevel(forVideoZoomFactor factor: CGFloat) async -> ZoomLevel?
     func set(rotationAngle: CGFloat) async
     func flipCameraDevice() async
     func configureForMode(targetMode: CameraMode, videoQuality: VideoQualityOption?, force: Bool) async

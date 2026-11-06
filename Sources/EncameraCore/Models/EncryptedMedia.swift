@@ -40,10 +40,6 @@ public class EncryptedMedia: MediaDescribing, ObservableObject, Codable, Identif
         self.init(source: .url(source), mediaType: mediaType, id: id)
     }
 
-    public convenience init(source: Data, mediaType: MediaType, id: String) {
-        self.init(source: .data(source), mediaType: mediaType, id: id)
-    }
-
     public required init?(source: MediaSource, generateID: Bool = false) {
         self.source = source
         guard case .url(let source) = source, let id = source.deletingPathExtension().lastPathComponent.split(separator: ".").first else {

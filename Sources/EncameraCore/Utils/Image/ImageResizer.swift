@@ -3,21 +3,8 @@ import Foundation
 import UIKit
 #endif
 
-enum ImageResizingError: Error {
-    case cannotRetrieveFromURL
-    case cannotRetrieveFromData
-}
-
 public struct ImageResizer {
     var targetWidth: CGFloat
-
-    public func resize(at url: URL, quality: CGFloat) -> PlatformImage? {
-        guard let image = PlatformImage(contentsOfFile: url.path) else {
-            return nil
-        }
-
-        return self.resize(image: image, quality: quality)
-    }
 
     public func resize(image: PlatformImage, quality: CGFloat) -> PlatformImage? {
         let originalSize = image.size

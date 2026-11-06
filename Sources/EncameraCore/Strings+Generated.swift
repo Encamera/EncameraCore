@@ -16,10 +16,6 @@ public enum L10n {
   }
   /// A key with this name already exists.
   public static let aKeyWithThisNameAlreadyExists = L10n.tr("Localizable", "A key with this name already exists.", fallback: "A key with this name already exists.")
-  /// ./Encamera/Camera/AlertError.swift
-  public static let accept = L10n.tr("Localizable", "Accept", fallback: "Accept")
-  /// ./Encamera/KeyManagement/KeyOperationCell.swift
-  public static let addKey = L10n.tr("Localizable", "Add Key", fallback: "Add Key")
   /// An album with that name already exists.
   public static let albumExistsError = L10n.tr("Localizable", "AlbumExistsError", fallback: "An album with that name already exists.")
   /// This album can't be renamed while items are moving. Try again when the move finishes.
@@ -34,8 +30,6 @@ public enum L10n {
   public static let albumsTitle = L10n.tr("Localizable", "AlbumsTitle", fallback: "Albums")
   /// Passcode Options
   public static let authenticationMethod = L10n.tr("Localizable", "AuthenticationMethod", fallback: "Passcode Options")
-  /// Back to album
-  public static let backToAlbum = L10n.tr("Localizable", "Back to album", fallback: "Back to album")
   /// Biometrics failed
   public static let biometricsFailed = L10n.tr("Localizable", "Biometrics failed", fallback: "Biometrics failed")
   /// Biometrics unavailable
@@ -122,8 +116,6 @@ public enum L10n {
   public static let hide = L10n.tr("Localizable", "Hide", fallback: "Hide")
   /// ./Encamera/Settings/PromptToErase.swift
   public static let holdToErase = L10n.tr("Localizable", "Hold to erase", fallback: "Hold to erase")
-  /// ./EncameraCore/Models/StorageType.swift
-  public static let iCloud = L10n.tr("Localizable", "iCloud", fallback: "iCloud")
   /// I Forgot
   public static let iForgot = L10n.tr("Localizable", "IForgot", fallback: "I Forgot")
   /// Import
@@ -149,7 +141,7 @@ public enum L10n {
   /// Let's give your
   /// album a name
   public static let letsGiveYourAlbumAName = L10n.tr("Localizable", "LetsGiveYourAlbumAName", fallback: "Let's give your\nalbum a name")
-  /// Local
+  /// ./EncameraCore/Models/StorageType.swift
   public static let local = L10n.tr("Localizable", "Local", fallback: "Local")
   /// local device
   public static let localDevice = L10n.tr("Localizable", "LocalDevice", fallback: "local device")
@@ -227,8 +219,6 @@ public enum L10n {
   public static let pinSuccessfullyChanged = L10n.tr("Localizable", "PinSuccessfullyChanged", fallback: "Pin successfully changed")
   /// Please enter a name for the album
   public static let pleaseEnterAnAlbumName = L10n.tr("Localizable", "PleaseEnterAnAlbumName", fallback: "Please enter a name for the album")
-  /// ./Encamera/Store/PurchaseUpgradeOptionsListView.swift
-  public static let premium = L10n.tr("Localizable", "premium", fallback: "premium")
   /// Privacy Policy
   public static let privacyPolicy = L10n.tr("Localizable", "Privacy Policy", fallback: "Privacy Policy")
   /// Widget
@@ -247,8 +237,6 @@ public enum L10n {
   public static let roadmap = L10n.tr("Localizable", "Roadmap", fallback: "Roadmap & Feature Requests")
   /// Save
   public static let save = L10n.tr("Localizable", "Save", fallback: "Save")
-  /// Save Key
-  public static let saveKey = L10n.tr("Localizable", "Save Key", fallback: "Save Key")
   /// Save to this device
   public static let saveLocally = L10n.tr("Localizable", "SaveLocally", fallback: "Save to this device")
   /// Save to iCloud Drive
@@ -261,8 +249,6 @@ public enum L10n {
   public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Please select a method")
   /// PIN Code Setting
   public static let set6DigitPIN = L10n.tr("Localizable", "Set 6-Digit PIN", fallback: "Set 6-Digit PIN")
-  /// Set Password
-  public static let setPassword = L10n.tr("Localizable", "Set Password", fallback: "Set Password")
   /// This password will be used to securely access the app. Make sure you remember it!
   public static let setPasswordSubtitle = L10n.tr("Localizable", "setPasswordSubtitle", fallback: "This password will be used to securely access the app. Make sure you remember it!")
   /// Set Pin Code
@@ -273,16 +259,12 @@ public enum L10n {
   public static let settings = L10n.tr("Localizable", "Settings", fallback: "Settings")
   /// ./Encamera/Styles/ViewModifiers/ButtonViewModifier.swift
   public static let share = L10n.tr("Localizable", "Share", fallback: "Share")
-  /// Share Decrypted
-  public static let shareDecrypted = L10n.tr("Localizable", "Share Decrypted", fallback: "Share Decrypted")
   /// Take another photo
   public static let takeAnotherPhoto = L10n.tr("Localizable", "TakeAnotherPhoto", fallback: "Take another photo")
   /// TAKE YOUR FIRST PICTURE
   public static let takeYourFirstPicture = L10n.tr("Localizable", "TakeYourFirstPicture", fallback: "TAKE YOUR FIRST PICTURE")
   /// Terms of Use
   public static let termsOfUse = L10n.tr("Localizable", "Terms of Use", fallback: "Terms of Use")
-  /// Here is a test of the string translation
-  public static let test = L10n.tr("Localizable", "Test", fallback: "Here is a test of the string translation")
   /// ./EncameraCore/Utils/AuthManager.swift
   public static let touchID = L10n.tr("Localizable", "Touch ID", fallback: "Touch ID")
   /// Try Again
@@ -299,8 +281,6 @@ public enum L10n {
   public static func use(_ p1: Any) -> String {
     return L10n.tr("Localizable", "Use %@?", String(describing: p1), fallback: "Use %@?")
   }
-  /// Face ID
-  public static let useFaceID = L10n.tr("Localizable", "Use Face ID", fallback: "Use Face ID")
   /// Use Passcode instead
   public static let usePasscodeInstead = L10n.tr("Localizable", "Use Passcode instead", fallback: "Use Passcode instead")
   /// VIDEO
@@ -443,8 +423,6 @@ public enum L10n {
     }
     /// Some Items Stayed in iCloud Drive
     public static let moveLeftItemsInICloudDriveAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle", fallback: "Some Items Stayed in iCloud Drive")
-    /// Move Media
-    public static let moveMedia = L10n.tr("Localizable", "AlbumDetailView.MoveMedia", fallback: "Move Media")
     /// Upgrade “%@” to the new iCloud sync first, then move items into it
     public static func moveNeedsUpgradeToast(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveNeedsUpgradeToast", String(describing: p1), fallback: "Upgrade “%@” to the new iCloud sync first, then move items into it")
@@ -463,8 +441,6 @@ public enum L10n {
     public static let premiumCardSubtitle = L10n.tr("Localizable", "AlbumDetailView.PremiumCardSubtitle", fallback: "Get unlimited encrypted storage for all your photos and videos")
     /// Store more with Premium
     public static let premiumCardTitle = L10n.tr("Localizable", "AlbumDetailView.PremiumCardTitle", fallback: "Store more with Premium")
-    /// Rename Album
-    public static let renameAlbum = L10n.tr("Localizable", "AlbumDetailView.RenameAlbum", fallback: "Rename Album")
     /// Default to Latest Item
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Default to Latest Item")
     /// Select Media
@@ -486,8 +462,6 @@ public enum L10n {
       public static let dateCapturedNewest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedNewest", fallback: "Date Captured: Newest First")
       /// Date Captured: Oldest First
       public static let dateCapturedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedOldest", fallback: "Date Captured: Oldest First")
-      /// Live Photos
-      public static let livePhotos = L10n.tr("Localizable", "AlbumDetailView.SortFilter.LivePhotos", fallback: "Live Photos")
     }
   }
   public enum AlbumGrid {
@@ -519,7 +493,7 @@ public enum L10n {
     public static let forbidden = L10n.tr("Localizable", "AlbumNameValidator.Forbidden", fallback: "Album names can't be \".\" or \"..\", or contain \"/\" or \":\".")
   }
   public enum AlbumSelectionModal {
-    /// Select an album to move %@ items to
+    /// ./Encamera/AlbumManagement/AlbumSelectionModal.swift
     public static func description(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumSelectionModal.Description", String(describing: p1), fallback: "Select an album to move %@ items to")
     }
@@ -531,16 +505,6 @@ public enum L10n {
     public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "AlbumSelectionModal.NewOrHiddenAlbumTitle", fallback: "New or hidden album")
     /// Create another album first.
     public static let noAlbumsDescription = L10n.tr("Localizable", "AlbumSelectionModal.NoAlbumsDescription", fallback: "Create another album first.")
-    /// ./Encamera/AlbumManagement/AlbumSelectionModal.swift
-    public static let title = L10n.tr("Localizable", "AlbumSelectionModal.Title", fallback: "Move to Album")
-  }
-  public enum Alert {
-    public enum LoadingFile {
-      /// Please wait...
-      public static let message = L10n.tr("Localizable", "Alert.LoadingFile.Message", fallback: "Please wait...")
-      /// Loading File
-      public static let title = L10n.tr("Localizable", "Alert.LoadingFile.Title", fallback: "Loading File")
-    }
   }
   public enum AppIcon {
     /// Calculator
@@ -573,29 +537,9 @@ public enum L10n {
     public static let enjoyingTheApp = L10n.tr("Localizable", "AskForReview.EnjoyingTheApp", fallback: "Are you enjoying the app?")
   }
   public enum AuthenticationMethod {
-    /// Authentication Method View
-    public static let cancel = L10n.tr("Localizable", "AuthenticationMethod.Cancel", fallback: "Cancel")
-    /// OK
-    public static let ok = L10n.tr("Localizable", "AuthenticationMethod.OK", fallback: "OK")
-    public enum SecurityLevel {
-      /// Authentication Method Security Levels
-      public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.FaceID", fallback: "Low protection")
-      /// Most secure option
-      public static let password = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.password", fallback: "Most secure option")
-      /// Moderate protection
-      public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.PinCode", fallback: "Moderate protection")
-      /// Quick but less secure
-      public static let pinCode4Digit = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.pinCode4Digit", fallback: "Quick but less secure")
-      /// More secure PIN code
-      public static let pinCode6Digit = L10n.tr("Localizable", "AuthenticationMethod.SecurityLevel.pinCode6Digit", fallback: "More secure PIN code")
-    }
     public enum TextDescription {
       /// Authentication Method Text Descriptions
-      public static let faceID = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.FaceID", fallback: "Face ID")
-      /// Password
       public static let password = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.Password", fallback: "Password")
-      /// Pin Code
-      public static let pinCode = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.PinCode", fallback: "Pin Code")
       /// Authentication Method Types
       public static let pinCode4Digit = L10n.tr("Localizable", "AuthenticationMethod.TextDescription.pinCode4Digit", fallback: "4-digit PIN")
       /// 6-digit PIN
@@ -713,14 +657,8 @@ public enum L10n {
     }
   }
   public enum BillingFrequency {
-    /// 1 Year of Updates
-    public static let lifetimeLimited = L10n.tr("Localizable", "BillingFrequency.LifetimeLimited", fallback: "1 Year of Updates")
-    /// Unlimited Updates
-    public static let lifetimeUnlimited = L10n.tr("Localizable", "BillingFrequency.LifetimeUnlimited", fallback: "Unlimited Updates")
     /// ./Encamera/Store/Extensions/Package+PremiumPurchasable.swift
     public static let perMonth = L10n.tr("Localizable", "BillingFrequency.PerMonth", fallback: "per month")
-    /// per week
-    public static let perWeek = L10n.tr("Localizable", "BillingFrequency.PerWeek", fallback: "per week")
     /// per year
     public static let perYear = L10n.tr("Localizable", "BillingFrequency.PerYear", fallback: "per year")
   }
@@ -783,10 +721,6 @@ public enum L10n {
     public static func removePasscode(_ p1: Any) -> String {
       return L10n.tr("Localizable", "BiometricMethod.RemovePasscode", String(describing: p1), fallback: "This will remove your passcode. You will only be able to use %@ to get into the app. Continue?")
     }
-  }
-  public enum Cms {
-    /// ./Encamera/Services/CMS/ContentfulService.swift
-    public static let networkError = L10n.tr("Localizable", "CMS.NetworkError", fallback: "Unable to load promotional content. Using cached data.")
   }
   public enum CameraCapture {
     /// Camera capture: blocked shutter and save failures
@@ -967,8 +901,6 @@ public enum L10n {
     public static func overlayTotalSize(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.OverlayTotalSize", String(describing: p1), fallback: "%@ total")
     }
-    /// Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.
-    public static let partialMessage = L10n.tr("Localizable", "CloudKitMigration.PartialMessage", fallback: "Some items in this album were already moved to iCloud before the move was stopped. They won't appear here until the move finishes. Resume to finish moving the rest.")
     /// Plural format key: "%1$#@moved@ %2$@, %3$#@remaining@"
     public static func partialMoveBannerMessage(_ p1: Int, _ p2: Any, _ p3: Int) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.PartialMoveBannerMessage", p1, String(describing: p2), p3, fallback: "Plural format key: \"%1$#@moved@ %2$@, %3$#@remaining@\"")
@@ -1085,8 +1017,6 @@ public enum L10n {
   public enum CustomPhotoPicker {
     /// Add
     public static let add = L10n.tr("Localizable", "CustomPhotoPicker.Add", fallback: "Add")
-    /// All Photos
-    public static let allPhotos = L10n.tr("Localizable", "CustomPhotoPicker.AllPhotos", fallback: "All Photos")
     /// Open Settings
     public static let emptyDeniedButton = L10n.tr("Localizable", "CustomPhotoPicker.EmptyDeniedButton", fallback: "Open Settings")
     /// Encamera needs access to your photo library to import photos. You can turn it on in Settings.
@@ -1220,8 +1150,6 @@ public enum L10n {
       public static let bodySyncOff = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.BodySyncOff", fallback: "Resetting Encamera removes all keys from all your devices. This can’t be undone.")
       /// Reset Encamera
       public static let confirm = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Confirm", fallback: "Reset Encamera")
-      /// Go Back
-      public static let goBack = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.GoBack", fallback: "Go Back")
       /// Reset Encamera?
       public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.ResetDrawer.Title", fallback: "Reset Encamera?")
     }
@@ -1352,16 +1280,6 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "Error.Alert.Title", fallback: "Error")
     }
   }
-  public enum FaceIDOnlyAlert {
-    /// Cancel
-    public static let cancel = L10n.tr("Localizable", "FaceIDOnlyAlert.Cancel", fallback: "Cancel")
-    /// Continue
-    public static let `continue` = L10n.tr("Localizable", "FaceIDOnlyAlert.Continue", fallback: "Continue")
-    /// Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.
-    public static let message = L10n.tr("Localizable", "FaceIDOnlyAlert.Message", fallback: "Switching to Face ID only will clear your current PIN/password. You will only be able to unlock the app using Face ID.")
-    /// Clear PIN/Password?
-    public static let title = L10n.tr("Localizable", "FaceIDOnlyAlert.Title", fallback: "Clear PIN/Password?")
-  }
   public enum FeatureFlagToast {
     /// disabled
     public static let disabled = L10n.tr("Localizable", "FeatureFlagToast.Disabled", fallback: "disabled")
@@ -1373,8 +1291,6 @@ public enum L10n {
     }
   }
   public enum FeatureToggles {
-    /// App Icon Selection
-    public static let appIconSelection = L10n.tr("Localizable", "FeatureToggles.AppIconSelection", fallback: "App Icon Selection")
     /// Detect Duplicates
     public static let detectDuplicates = L10n.tr("Localizable", "FeatureToggles.DetectDuplicates", fallback: "Detect Duplicates")
     /// Enable the find duplicates option in album menus
@@ -1391,8 +1307,6 @@ public enum L10n {
     public static let encryptedZipExport = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExport", fallback: "Encrypted Zip Export")
     /// Enable sharing media as an encrypted zip
     public static let encryptedZipExportDescription = L10n.tr("Localizable", "FeatureToggles.EncryptedZipExportDescription", fallback: "Enable sharing media as an encrypted zip")
-    /// Hide Album
-    public static let hideAlbum = L10n.tr("Localizable", "FeatureToggles.HideAlbum", fallback: "Hide Album")
     /// Changing RevenueCat mode requires restarting the app. Continue?
     public static let revenuecatToggleMessage = L10n.tr("Localizable", "FeatureToggles.RevenuecatToggleMessage", fallback: "Changing RevenueCat mode requires restarting the app. Continue?")
     /// Restart Required
@@ -1518,10 +1432,6 @@ public enum L10n {
     /// Waiting for your key to arrive…
     public static let waiting = L10n.tr("Localizable", "GuidedSync.Waiting", fallback: "Waiting for your key to arrive…")
   }
-  public enum HideAlbumsTutorial {
-    /// Hide Albums Tutorial
-    public static let title = L10n.tr("Localizable", "HideAlbumsTutorial.Title", fallback: "Hide Albums")
-  }
   public enum HideImageTutorial {
     /// Hide Image Tutorial
     public static let headingText1 = L10n.tr("Localizable", "HideImageTutorial.HeadingText1", fallback: "Hide Your Albums")
@@ -1567,24 +1477,8 @@ public enum L10n {
   public enum ICloudStatus {
     /// ./Encamera/Components/iCloudSyncStatusIndicator.swift - Directory Sync Status
     public static let allSynced = L10n.tr("Localizable", "ICloudStatus.AllSynced", fallback: "All files downloaded")
-    /// File is downloaded.
-    public static let downloaded = L10n.tr("Localizable", "ICloudStatus.Downloaded", fallback: "File is downloaded.")
-    /// Download failed: %@
-    public static func downloadFailed(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "ICloudStatus.DownloadFailed", String(describing: p1), fallback: "Download failed: %@")
-    }
-    /// Download from iCloud failed.
-    public static let downloadFailedUnknown = L10n.tr("Localizable", "ICloudStatus.DownloadFailedUnknown", fallback: "Download from iCloud failed.")
-    /// Downloading from iCloud: %d%%
-    public static func downloading(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "ICloudStatus.Downloading", p1, fallback: "Downloading from iCloud: %d%%")
-    }
     /// No files in iCloud
     public static let noFiles = L10n.tr("Localizable", "ICloudStatus.NoFiles", fallback: "No files in iCloud")
-    /// File is stored in iCloud and needs to be downloaded.
-    public static let notDownloaded = L10n.tr("Localizable", "ICloudStatus.NotDownloaded", fallback: "File is stored in iCloud and needs to be downloaded.")
-    /// ./EncameraCore/Utils/iCloudFileStatusUtil.swift
-    public static let notICloudFile = L10n.tr("Localizable", "ICloudStatus.NotICloudFile", fallback: "This file is stored locally.")
     /// %d files need download
     public static func pendingDownload(_ p1: Int) -> String {
       return L10n.tr("Localizable", "ICloudStatus.PendingDownload", p1, fallback: "%d files need download")
@@ -1593,14 +1487,6 @@ public enum L10n {
     public static func syncing(_ p1: Int, _ p2: Int) -> String {
       return L10n.tr("Localizable", "ICloudStatus.Syncing", p1, p2, fallback: "Downloading %d of %d files")
     }
-  }
-  public enum ImportTaskDetailsView {
-    /// Clear All
-    public static let clearAll = L10n.tr("Localizable", "ImportTaskDetailsView.ClearAll", fallback: "Clear All")
-    /// Done
-    public static let done = L10n.tr("Localizable", "ImportTaskDetailsView.Done", fallback: "Done")
-    /// ./Encamera/Components/ImportProgress/ImportTaskDetailsView.swift
-    public static let title = L10n.tr("Localizable", "ImportTaskDetailsView.Title", fallback: "Import Tasks")
   }
   public enum KeyEntry {
     /// That's not the key these photos need. You entered key %@, but they need key %@.
@@ -1643,20 +1529,14 @@ public enum L10n {
     public static let title = L10n.tr("Localizable", "KeyMissing.Title", fallback: "No encryption key on this device")
   }
   public enum KeyPhrase {
-    /// My Key Has Been Stored
-    public static let continueButton = L10n.tr("Localizable", "KeyPhrase.ContinueButton", fallback: "My Key Has Been Stored")
     /// Copied to clipboard
     public static let copiedToClipboard = L10n.tr("Localizable", "KeyPhrase.CopiedToClipboard", fallback: "Copied to clipboard")
     /// Copy to clipboard
     public static let copyToClipboard = L10n.tr("Localizable", "KeyPhrase.CopyToClipboard", fallback: "Copy to clipboard")
     /// This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.
     public static let privacyKeySubtitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeySubtitle", fallback: "This key unlocks your encrypted albums. Keep a copy somewhere safe in case you ever need it.")
-    /// Your recovery key
-    public static let privacyKeyTitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeyTitle", fallback: "Your recovery key")
-    /// This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.
-    public static let subtitle = L10n.tr("Localizable", "KeyPhrase.Subtitle", fallback: "This is your unique recovery key. If you lose this and get a new phone, you will never be able to access your encrypted photos and videos again. Please save it in a safe place.")
     /// Key Phrase Display Screen
-    public static let title = L10n.tr("Localizable", "KeyPhrase.Title", fallback: "Your Recovery Key")
+    public static let privacyKeyTitle = L10n.tr("Localizable", "KeyPhrase.PrivacyKeyTitle", fallback: "Your recovery key")
   }
   public enum KeyPhrasePicker {
     /// In Use
@@ -1761,16 +1641,12 @@ public enum L10n {
   public enum MediaSelectionTray {
     /// Selected
     public static let itemSelected = L10n.tr("Localizable", "MediaSelectionTray.ItemSelected", fallback: "Selected")
-    /// Move
-    public static let moveMedia = L10n.tr("Localizable", "MediaSelectionTray.MoveMedia", fallback: "Move")
     /// ./Encamera/AlbumManagement/MediaSelectionTray.swift
     public static let moveToAlbum = L10n.tr("Localizable", "MediaSelectionTray.MoveToAlbum", fallback: "Move to Album")
     /// Select Media
     public static let selectMedia = L10n.tr("Localizable", "MediaSelectionTray.SelectMedia", fallback: "Select Media")
   }
   public enum MissingKey {
-    /// Key added. Your media should open now.
-    public static let added = L10n.tr("Localizable", "MissingKey.Added", fallback: "Key added. Your media should open now.")
     /// Add this key
     public static let addKey = L10n.tr("Localizable", "MissingKey.AddKey", fallback: "Add this key")
     /// Enter the recovery key for key %@. It will only be used to open existing media — new photos keep using this device's key.
@@ -1797,10 +1673,6 @@ public enum L10n {
     public static let couldNotVerify = L10n.tr("Localizable", "MissingKey.CouldNotVerify", fallback: "This recovery key couldn't be checked because none of this album's media has downloaded yet. Wait for the download to finish and try again.")
     /// Enter Key
     public static let enterKey = L10n.tr("Localizable", "MissingKey.EnterKey", fallback: "Enter Key")
-    /// %d album(s) can't be shown because their key isn't on this device.
-    public static func lockedAlbums(_ p1: Int) -> String {
-      return L10n.tr("Localizable", "MissingKey.LockedAlbums", p1, fallback: "%d album(s) can't be shown because their key isn't on this device.")
-    }
     /// Missing key
     public static let shortLabel = L10n.tr("Localizable", "MissingKey.ShortLabel", fallback: "Missing key")
     /// It was encrypted with a key that isn't on this device.
@@ -1817,54 +1689,6 @@ public enum L10n {
     }
     /// That recovery key doesn't open this media.
     public static let wrongKeyUnknown = L10n.tr("Localizable", "MissingKey.WrongKeyUnknown", fallback: "That recovery key doesn't open this media.")
-  }
-  public enum Notification {
-    public enum ImageSaveReminder {
-      /// Hope you like Encamera - This is why we need you to help us with a review. Tap here!
-      public static let body = L10n.tr("Localizable", "Notification.ImageSaveReminder.Body", fallback: "Hope you like Encamera - This is why we need you to help us with a review. Tap here!")
-      /// We would like your support 🙏
-      public static let title = L10n.tr("Localizable", "Notification.ImageSaveReminder.Title", fallback: "We would like your support 🙏")
-    }
-    public enum ImageSecurityReminder {
-      /// You can also save videos to your albums, not only images. Try it now and secure some!
-      public static let body = L10n.tr("Localizable", "Notification.ImageSecurityReminder.Body", fallback: "You can also save videos to your albums, not only images. Try it now and secure some!")
-      /// Did you know? 🤔
-      public static let title = L10n.tr("Localizable", "Notification.ImageSecurityReminder.Title", fallback: "Did you know? 🤔")
-    }
-    public enum ImportImages {
-      /// Prompting user to import more images for security.
-      public static let prompt = L10n.tr("Localizable", "Notification.ImportImages.Prompt", fallback: "Prompting user to import more images for security.")
-    }
-    public enum InactiveUserReminder {
-      /// Don't forget to secure more images by adding them to your album. Import now!
-      public static let body = L10n.tr("Localizable", "Notification.InactiveUserReminder.Body", fallback: "Don't forget to secure more images by adding them to your album. Import now!")
-      /// Your images might be at risk 🚨
-      public static let title = L10n.tr("Localizable", "Notification.InactiveUserReminder.Title", fallback: "Your images might be at risk 🚨")
-    }
-    public enum Permission {
-      /// Error requesting local notification permissions: %@
-      public static func error(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "Notification.Permission.Error", String(describing: p1), fallback: "Error requesting local notification permissions: %@")
-      }
-    }
-    public enum PremiumReminder {
-      /// Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!
-      public static let body = L10n.tr("Localizable", "Notification.PremiumReminder.Body", fallback: "Use code 'ENCAMERA20' to get a 20%% discount on any plan. Hurry up!")
-      /// 20%% Discount - Limited time 📅
-      public static let title = L10n.tr("Localizable", "Notification.PremiumReminder.Title", fallback: "20%% Discount - Limited time 📅")
-    }
-    public enum Scheduling {
-      /// Error scheduling notification: %@
-      public static func error(_ p1: Any) -> String {
-        return L10n.tr("Localizable", "Notification.Scheduling.Error", String(describing: p1), fallback: "Error scheduling notification: %@")
-      }
-    }
-    public enum WidgetReminder {
-      /// Don't forget to add the widget on the lock screen and take images quickly. See how!
-      public static let body = L10n.tr("Localizable", "Notification.WidgetReminder.Body", fallback: "Don't forget to add the widget on the lock screen and take images quickly. See how!")
-      /// Take directly encrypted photos 📸
-      public static let title = L10n.tr("Localizable", "Notification.WidgetReminder.Title", fallback: "Take directly encrypted photos 📸")
-    }
   }
   public enum Onboarding {
     public enum DataLocation {
@@ -1914,8 +1738,6 @@ public enum L10n {
     public enum Pin {
       /// Confirm your PIN
       public static let confirmTitle = L10n.tr("Localizable", "Onboarding.Pin.confirmTitle", fallback: "Confirm your PIN")
-      /// Set PIN Code
-      public static let setButton = L10n.tr("Localizable", "Onboarding.Pin.setButton", fallback: "Set PIN Code")
       /// Choose a PIN you'll use to unlock your encrypted files
       public static let subtitle = L10n.tr("Localizable", "Onboarding.Pin.subtitle", fallback: "Choose a PIN you'll use to unlock your encrypted files")
       /// PIN
@@ -2045,7 +1867,7 @@ public enum L10n {
     public static let cancelConfirmTitle = L10n.tr("Localizable", "PendingImport.CancelConfirmTitle", fallback: "Cancel Import?")
     /// Delete Media
     public static let deleteMedia = L10n.tr("Localizable", "PendingImport.DeleteMedia", fallback: "Delete Media")
-    /// Select an album to move %d items
+    /// ./Encamera/MediaImport/PendingImportView.swift - Pending Import
     public static func description(_ p1: Int) -> String {
       return L10n.tr("Localizable", "PendingImport.Description", p1, fallback: "Select an album to move %d items")
     }
@@ -2057,10 +1879,6 @@ public enum L10n {
     public static let newOrHiddenAlbumTitle = L10n.tr("Localizable", "PendingImport.NewOrHiddenAlbumTitle", fallback: "New or hidden album")
     /// Create an album to import into.
     public static let noAlbumsDescription = L10n.tr("Localizable", "PendingImport.NoAlbumsDescription", fallback: "Create an album to import into.")
-    /// Select destination album:
-    public static let selectAlbum = L10n.tr("Localizable", "PendingImport.SelectAlbum", fallback: "Select destination album:")
-    /// ./Encamera/MediaImport/PendingImportView.swift - Pending Import
-    public static let title = L10n.tr("Localizable", "PendingImport.Title", fallback: "Import Media")
   }
   public enum PhotoDeletion {
     /// Nothing was deleted from your photo library.
@@ -2091,14 +1909,6 @@ public enum L10n {
     public static let thanksForYourPurchase = L10n.tr("Localizable", "PostPurchaseView.ThanksForYourPurchase", fallback: "Thanks for your purchase!")
   }
   public enum ProgressView {
-    /// Decrypting: %.0f%%
-    public static func decrypting(_ p1: Float) -> String {
-      return L10n.tr("Localizable", "ProgressView.Decrypting", p1, fallback: "Decrypting: %.0f%%")
-    }
-    /// Downloading: %.0f%%
-    public static func downloading(_ p1: Float) -> String {
-      return L10n.tr("Localizable", "ProgressView.Downloading", p1, fallback: "Downloading: %.0f%%")
-    }
     /// File loaded successfully
     public static let fileLoadedSuccessfully = L10n.tr("Localizable", "ProgressView.FileLoadedSuccessfully", fallback: "File loaded successfully")
   }
@@ -2169,32 +1979,10 @@ public enum L10n {
       /// The save-recovery-key flow
       public static let title = L10n.tr("Localizable", "RecoveryKey.Intro.Title", fallback: "Save your recovery key")
     }
-    public enum Saved {
-      /// Make sure you save a copy somewhere safe. You can always find your key in Settings.
-      public static let body = L10n.tr("Localizable", "RecoveryKey.Saved.Body", fallback: "Make sure you save a copy somewhere safe. You can always find your key in Settings.")
-      /// I've saved my key
-      public static let confirm = L10n.tr("Localizable", "RecoveryKey.Saved.Confirm", fallback: "I've saved my key")
-      /// I'll do it later
-      public static let later = L10n.tr("Localizable", "RecoveryKey.Saved.Later", fallback: "I'll do it later")
-      /// Have you saved your recovery key?
-      public static let title = L10n.tr("Localizable", "RecoveryKey.Saved.Title", fallback: "Have you saved your recovery key?")
-    }
-    public enum Storage {
-      /// Backed up automatically. Recoverable if you switch devices or lose your iPhone.
-      public static let iCloudLabel = L10n.tr("Localizable", "RecoveryKey.Storage.ICloudLabel", fallback: "Backed up automatically. Recoverable if you switch devices or lose your iPhone.")
-      /// Only you have access. We can't recover it for you.
-      public static let subtitle = L10n.tr("Localizable", "RecoveryKey.Storage.Subtitle", fallback: "Only you have access. We can't recover it for you.")
-      /// Stored locally only. Not backed up. You'll need to export and manage it yourself.
-      public static let thisIPhoneLabel = L10n.tr("Localizable", "RecoveryKey.Storage.ThisIPhoneLabel", fallback: "Stored locally only. Not backed up. You'll need to export and manage it yourself.")
-      /// Where should we save your recovery key?
-      public static let title = L10n.tr("Localizable", "RecoveryKey.Storage.Title", fallback: "Where should we save your recovery key?")
-    }
   }
   public enum RestoringFromICloud {
-    /// Finishing restore…
-    public static let finishingRestore = L10n.tr("Localizable", "RestoringFromICloud.FinishingRestore", fallback: "Finishing restore…")
     /// ./Encamera/Components/RestoringFromiCloudView.swift - iCloud Keychain restore wait screen
-    public static let setUpAsNew = L10n.tr("Localizable", "RestoringFromICloud.SetUpAsNew", fallback: "Set up as a new device")
+    public static let finishingRestore = L10n.tr("Localizable", "RestoringFromICloud.FinishingRestore", fallback: "Finishing restore…")
   }
   public enum ReturningUser {
     /// We found an existing Encamera account linked to your iCloud. Choose how you'd like to continue on this device.
@@ -2368,10 +2156,6 @@ public enum L10n {
       public static let storage = L10n.tr("Localizable", "SettingsView.SectionHeader.Storage", fallback: "STORAGE")
     }
   }
-  public enum ShareExtension {
-    /// ./ShareExtension/ShareViewController.swift - Share Extension
-    public static let saveFailed = L10n.tr("Localizable", "ShareExtension.SaveFailed", fallback: "Failed to save media")
-  }
   public enum SplashScreen {
     /// Secure Your Memories
     public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")
@@ -2491,32 +2275,16 @@ public enum L10n {
     public static let upToDate = L10n.tr("Localizable", "SyncStatusBar.UpToDate", fallback: "iCloud synced")
   }
   public enum TaskDetailCard {
-    /// ./Encamera/Components/ImportProgress/TaskDetailCard.swift
-    public static func created(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "TaskDetailCard.Created", String(describing: p1), fallback: "Created: %@")
-    }
-    /// Current: %@
-    public static func current(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "TaskDetailCard.Current", String(describing: p1), fallback: "Current: %@")
-    }
     /// Please grant access to your photo library in Settings to delete imported photos.
     public static let grantAccessMessage = L10n.tr("Localizable", "TaskDetailCard.GrantAccessMessage", fallback: "Please grant access to your photo library in Settings to delete imported photos.")
     /// Limited Photo Access
     public static let limitedAccessInfo = L10n.tr("Localizable", "TaskDetailCard.LimitedAccessInfo", fallback: "Limited Photo Access")
     /// With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.
     public static let limitedAccessMessage = L10n.tr("Localizable", "TaskDetailCard.LimitedAccessMessage", fallback: "With limited photo access, only photos you've selected can be deleted. To delete all imported photos, please grant full photo library access in Settings.")
-    /// Pause
-    public static let pause = L10n.tr("Localizable", "TaskDetailCard.Pause", fallback: "Pause")
-    /// Photo Library Access Required
+    /// ./Encamera/Components/ImportProgress/TaskDetailCard.swift
     public static let photoLibraryAccessRequired = L10n.tr("Localizable", "TaskDetailCard.PhotoLibraryAccessRequired", fallback: "Photo Library Access Required")
-    /// Progress:
-    public static let progress = L10n.tr("Localizable", "TaskDetailCard.Progress", fallback: "Progress:")
-    /// Resume
-    public static let resume = L10n.tr("Localizable", "TaskDetailCard.Resume", fallback: "Resume")
     /// Cancelled
     public static let statusCancelled = L10n.tr("Localizable", "TaskDetailCard.StatusCancelled", fallback: "Cancelled")
-    /// Unknown
-    public static let unknown = L10n.tr("Localizable", "TaskDetailCard.Unknown", fallback: "Unknown")
   }
   public enum VerticalPaywall {
     /// Billed monthly

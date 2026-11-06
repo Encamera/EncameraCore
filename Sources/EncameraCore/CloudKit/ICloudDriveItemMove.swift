@@ -116,7 +116,7 @@ public final class ICloudDriveItemMove: DebugPrintable {
         try await materialize(urls, in: folder, mediaID: media.id)
 
         if target.storageOption == .cloudKit {
-            try await upload(media, from: folderAlbum, model: folderModel, source: source, to: target)
+            try await upload(media, from: folderAlbum, model: folderModel, to: target)
         } else {
             try await copy(media, from: folderModel, to: target)
         }
@@ -145,7 +145,6 @@ public final class ICloudDriveItemMove: DebugPrintable {
     private func upload(_ media: InteractableMedia<EncryptedMedia>,
                         from folderAlbum: Album,
                         model: iCloudStorageModel,
-                        source: Album,
                         to target: Album) async throws {
         guard let targetAlbumID = target.albumID else { throw ICloudDriveItemMoveError.notMoved }
         var plan = try MigrationPlan.items(source: folderAlbum, destination: target, media: [media])

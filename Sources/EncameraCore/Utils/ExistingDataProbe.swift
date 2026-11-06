@@ -465,7 +465,7 @@ struct MetadataCountResult {
 }
 
 /// One-shot `NSMetadataQuery` that reports how many items it gathered, then stops.
-/// Modelled on `iCloudDirectoryMonitor`, but terminating instead of observing.
+/// Terminates once the initial gather completes instead of observing updates.
 @MainActor
 private final class MetadataCounter {
     private let directoryURL: URL

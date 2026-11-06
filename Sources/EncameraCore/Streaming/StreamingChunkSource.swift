@@ -117,10 +117,6 @@ public actor StreamingChunkSource: SeekableChunkProviding, DebugPrintable {
 
     public func currentTelemetry() -> StreamingTelemetry { telemetry }
 
-    public func resetTelemetry() {
-        telemetry = StreamingTelemetry()
-    }
-
     // MARK: SeekableChunkProviding
 
     public func ciphertextChunk(at index: Int) async throws -> Data {

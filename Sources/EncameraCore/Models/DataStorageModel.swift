@@ -36,7 +36,6 @@ public enum MediaPreviewStorage {
 }
 
 enum DataStorageModelError: Error {
-    case noURLForiCloudDownload
     case couldNotCreateMedia
 }
 

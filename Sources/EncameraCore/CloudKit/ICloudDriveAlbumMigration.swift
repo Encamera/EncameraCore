@@ -446,8 +446,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
             waiters[key] = queue.isEmpty ? nil : queue
             next.resume()
         }
-
-        func isHeld(_ key: String) -> Bool { held.contains(key) }
     }
 
     /// The albums one run holds in the flip registry, released when the run ends.

@@ -120,9 +120,4 @@ public actor KeychainSyncManager: DebugPrintable {
             }
         }
     }
-
-    public func stopMonitoring() {
-        monitorTask?.cancel()
-        monitorTask = nil
-    }
 }

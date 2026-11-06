@@ -12,8 +12,6 @@ import Foundation
 /// Represents the data type of a synced field
 public enum SyncedFieldType {
     case string
-    case int
-    case double
     case date
     case bool
 }
@@ -61,11 +59,6 @@ public struct SyncedTableSchema {
         fields.filter { $0.isEncrypted }
     }
     
-    /// Fields that do not require encryption
-    public var unencryptedFields: [SyncedField] {
-        fields.filter { !$0.isEncrypted }
-    }
-    
     /// Whether the primary key field should be encrypted/hashed for storage
     public var isPrimaryKeyEncrypted: Bool {
         field(named: primaryKey)?.isEncrypted ?? false
@@ -74,11 +67,6 @@ public struct SyncedTableSchema {
     /// Get a field by name
     public func field(named name: String) -> SyncedField? {
         fields.first { $0.name == name }
-    }
-    
-    /// Check if a field with the given name should be encrypted
-    public func isFieldEncrypted(_ fieldName: String) -> Bool {
-        field(named: fieldName)?.isEncrypted ?? false
     }
     
     public init(tableName: String, primaryKey: String, fields: [SyncedField]) {
