@@ -3,7 +3,7 @@
 //  EncameraCore
 //
 //  A background task representing a local -> CloudKit album migration, so the
-//  existing floating progress UI (EncameraCircularLoader + ETA + keep-screen-awake)
+//  existing floating progress UI (EncameraCircularProgressComponent + ETA + keep-screen-awake)
 //  surfaces it for free. The durable state lives in the `MigrationPlan` checkpoint;
 //  this is only the in-memory mirror the progress UI binds to.
 //  See plans/cloudkit-migration/12-local-to-cloudkit-migration.md.
