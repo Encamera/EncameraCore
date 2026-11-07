@@ -122,6 +122,9 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let record = makeRecord(for: item, thumbnailURL: snapshot ?? item.encryptedThumbURL)
         let recordName = item.recordName
         printDebug("upload start recordName=\(recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes) chunkCount=\(item.chunkCount) zone=\(zoneID.zoneName) hasThumb=\(item.encryptedThumbURL != nil)")
+        if item.encryptedThumbURL != nil {
+            printDebug("upload thumbnail recordName=\(recordName) snapshot=\(snapshot != nil) thumb=[\(FileFingerprint.describe(snapshot ?? item.encryptedThumbURL))]")
+        }
 
         // A chunked item's payload goes to the blob zone FIRST; the `EncMedia`
         // save below is then the commit point (`makeRecord` gave it the header
@@ -528,18 +531,21 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
     public func fetchThumbnail(recordName: String, to destination: URL) async throws {
         try await fetchAsset(recordName: recordName,
                              assetKey: CloudKitSchema.EncMedia.encThumbnail,
+                             extraKeys: [CloudKitSchema.EncMedia.creationDevice],
                              to: destination,
                              progress: { _ in })
     }
 
+    /// `extraKeys` are fetched alongside the asset only to be logged.
     private func fetchAsset(recordName: String,
                             assetKey: CKRecord.FieldKey,
+                            extraKeys: [CKRecord.FieldKey] = [],
                             to destination: URL,
                             progress: @escaping @Sendable (Double) -> Void) async throws {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
             let records = try await adapter.fetch(recordIDs: [recordID],
-                                                  desiredKeys: [assetKey],
+                                                  desiredKeys: [assetKey] + extraKeys,
                                                   qualityOfService: .userInteractive,
                                                   perRecordProgress: { _, fraction in progress(fraction) })
             guard let record = records[recordID],
@@ -554,11 +560,22 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             }
             try fileManager.copyItem(at: sourceURL, to: destination)
             CKDatabaseAdapter.discardSnapshot(at: sourceURL)
+            if assetKey == CloudKitSchema.EncMedia.encThumbnail {
+                printDebug("fetchThumbnail ok recordName=\(recordName) \(Self.describeRecordOrigin(record)) thumb=[\(FileFingerprint.describe(destination))]")
+            }
         } catch let error as CloudKitMediaStoreError {
             throw error
         } catch {
             throw mapAndRecord(error)
         }
+    }
+
+    /// The record's system fields, plus the device that created it when it was
+    /// fetched, for telling which save produced the bytes being logged.
+    private static func describeRecordOrigin(_ record: CKRecord) -> String {
+        let modified = record.modificationDate.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+        let creationDevice = record[CloudKitSchema.EncMedia.creationDevice] as? String ?? "unfetched"
+        return "changeTag=\(record.recordChangeTag ?? "nil") modified=\(modified) creationDevice=\(creationDevice)"
     }
 
     // MARK: - Thumbnail repair
@@ -596,8 +613,11 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                     return .recordMissing
                 }
                 if let existing = record[CloudKitSchema.EncMedia.encThumbnail] as? CKAsset {
+                    // The existing thumbnail was downloaded with the record, so
+                    // its fingerprint costs nothing. Matching it against this
+                    // device's preview shows whether the server copy differs.
+                    printDebug("attachThumbnail alreadyPresent recordName=\(recordName) \(Self.describeRecordOrigin(record)) server=[\(FileFingerprint.describe(existing.fileURL))] local=[\(FileFingerprint.describe(assetURL))]")
                     CKDatabaseAdapter.discardSnapshot(at: existing.fileURL)
-                    printDebug("attachThumbnail alreadyPresent recordName=\(recordName)")
                     return .alreadyPresent
                 }
                 record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: assetURL)
@@ -606,7 +626,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                                        savePolicy: .ifServerRecordUnchanged,
                                                        perRecordProgress: { _, _ in })
                     let changeTag = (saved.first ?? record).recordChangeTag
-                    printDebug("attachThumbnail attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
+                    printDebug("attachThumbnail attached recordName=\(recordName) changeTag=\(changeTag ?? "nil") thumb=[\(FileFingerprint.describe(assetURL))]")
                     return .attached(changeTag: changeTag)
                 } catch {
                     guard save < maxSaves, case .conflict = mapCKError(error) else { throw error }

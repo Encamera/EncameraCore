@@ -565,16 +565,28 @@ extension DiskFileAccess {
         let preview = T(source: .url(thumbnailPath), mediaType: .preview, id: media.id)
 
         let result: PreviewModel
+        var stage = "decrypt"
         do {
             printDebug("loadMediaPreview: Trying to load thumbnail", media.id)
             let existingPreview = try await loadMediaInMemory(media: preview) { _ in }
             printDebug("loadMediaPreview: Found existing thumbnail", media.id)
-            result = try PreviewModel(source: existingPreview)
+            stage = "decode"
+            do {
+                result = try PreviewModel(source: existingPreview)
+            } catch {
+                printDebug("loadMediaPreview: preview JSON decode FAILED id=\(media.id) \(Self.describePreviewPlaintext(existingPreview)) raw=\(error)")
+                throw error
+            }
         } catch {
             if case FileAccessError.missingKeyForMedia = error {
                 printDebug("loadMediaPreview: thumbnail needs an absent key for \(media.id)")
                 throw error
             }
+            // A missing file is the ordinary "no preview yet" case. A file that
+            // exists but fails is a broken preview, and the error says why.
+            let previewExists = FileManager.default.fileExists(atPath: thumbnailPath.path)
+            let reason = previewExists ? "unreadable stage=\(stage) raw=\(error)" : "missing"
+            printDebug("loadMediaPreview: thumbnail \(reason) id=\(media.id) mediaType=\(media.mediaType) preview=[\(FileFingerprint.describe(thumbnailPath))] keyUUID=\((try? ExtendedAttributesUtil.getKeyUUID(for: thumbnailPath))?.uuidString ?? "none")")
             switch media.mediaType {
             case .photo:
                 printDebug("loadMediaPreview: No thumbnail found for photo with id: \(media.id)")
@@ -590,6 +602,16 @@ extension DiskFileAccess {
         Self.previewCache.setObject(PreviewModelWrapper(result), forKey: cacheKey)
         return result
     }
+    /// The shape of a decrypted preview, never its content: its length and
+    /// whether it opens and closes like a JSON object. A preview that decrypts
+    /// but stops short of its closing brace lost its tail.
+    private static func describePreviewPlaintext(_ media: CleartextMedia) -> String {
+        guard case .data(let data) = media.source else { return "plaintext=notData" }
+        let opensObject = data.first == UInt8(ascii: "{")
+        let closesObject = data.last == UInt8(ascii: "}")
+        return "plaintextBytes=\(data.count) opensObject=\(opensObject) closesObject=\(closesObject)"
+    }
+
     public func loadLeadingThumbnail(purchasedPermissions: (any PurchasedPermissionManaging)? = nil) async throws -> PlatformImage? {
         if let album,
            let albumManager = albumManager,
@@ -719,11 +741,20 @@ extension DiskFileAccess {
                                   underKey: await sourceKey(of: media))
             return preview
         } catch {
-            printDebug("createPreview: Error creating preview for \(media.id)")
+            printDebug("createPreview: Error creating preview for \(media.id) mediaType=\(media.mediaType) source=[\(Self.describeSource(of: media))] raw=\(error)")
             throw error
         }
     }
 
+
+    /// Where a preview is being made from: an encrypted file's fingerprint, or
+    /// that the cleartext is in memory.
+    private static func describeSource<T: MediaDescribing>(of media: T) -> String {
+        switch media.source {
+        case .url(let url): return FileFingerprint.describe(url)
+        case .data(let data): return "inMemory bytes=\(data.count)"
+        }
+    }
 
     private static func playbackDurationText(of url: URL, slowMotion: SlowMotionRamp?) async -> String? {
         guard let duration = try? await AVURLAsset(url: url).load(.duration) else { return nil }
@@ -816,7 +847,7 @@ extension DiskFileAccess {
             guard let currentKey = key else {
                 throw FileAccessError.missingPrivateKey
             }
-            printDebug("resolveKey: file \(mediaID) is unreadable as encrypted media, falling back to current key")
+            printDebug("resolveKey: file \(mediaID) is unreadable as encrypted media, falling back to current key source=[\(FileFingerprint.describe(sourceURL))]")
             return (currentKey, false)
         }
     }
@@ -983,7 +1014,7 @@ extension DiskFileAccess {
             }
         }
         
-        printDebug("Saved preview for \(sourceMedia.id)")
+        printDebug("Saved preview for \(sourceMedia.id) key=\(key.keyFingerprint) previewJSONBytes=\(data.count) preview=[\(FileFingerprint.describe(encrypted.url))]")
         return cleartextPreview
     }
 

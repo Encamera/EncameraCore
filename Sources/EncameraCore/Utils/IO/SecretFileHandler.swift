@@ -67,7 +67,7 @@ protocol SecretFileHandling {
 
 }
 
-private protocol SecretFileHandlerInt: SecretFileHandling {
+private protocol SecretFileHandlerInt: SecretFileHandling, DebugPrintable {
     var progressSubject: PassthroughSubject<Double, Never> { get }
 }
 
@@ -203,7 +203,15 @@ extension SecretFileHandlerInt {
                     let count = reader.geometry.chunkCount
                     for index in 0..<count {
                         try Task.checkCancellation()
-                        let plain = try await reader.plaintextChunk(at: index)
+                        let plain: Data
+                        do {
+                            plain = try await reader.plaintextChunk(at: index)
+                        } catch {
+                            if !(error is CancellationError) {
+                                self.printDebug("decryptFile FAILED id=\(self.sourceMedia.id) mediaType=\(self.sourceMedia.mediaType) format=seekable chunk \(index) of \(count) raw=\(error) source=[\(FileFingerprint.describe(url))]")
+                            }
+                            throw error
+                        }
                         continuation.yield(plain)
                         progressSubject.send(Double(index + 1) / Double(max(1, count)))
                     }
@@ -244,9 +252,17 @@ extension SecretFileHandlerInt {
             }
 
             let processor = ChunkedFilesProcessor(sourceFileHandle: fileHandler, blockSize: Int(setup.blockSize))
+            let mediaDescription = "id=\(sourceMedia.id) mediaType=\(sourceMedia.mediaType) isV2=\(setup.isV2) blockSize=\(setup.blockSize)"
+            var sourceURL: URL?
+            if case .url(let url) = sourceMedia.source { sourceURL = url }
+            let fingerprintURL = sourceURL
             return AsyncThrowingStream<Data, Error> { continuation in
 
                 let readTask = Task {
+                    var blockIndex = 0
+                    var cipherBytesRead = 0
+                    var plaintextBytes = 0
+                    var lastTag: SecretStream.XChaCha20Poly1305.Tag?
                     do {
                         for try await (bytes, _) in processor.processFile(progressUpdate: { progress in
                             progressSubject.send(progress)
@@ -255,11 +271,23 @@ extension SecretFileHandlerInt {
                             try Task.checkCancellation()
                             try autoreleasepool {
 
-                                guard let (message, _) = streamDec.pull(cipherText: bytes) else {
-                                    throw SecretFilesError.decryptError("Could not decrypt message")
+                                guard let (message, tag) = streamDec.pull(cipherText: bytes) else {
+                                    let detail = "block \(blockIndex) failed authentication (\(bytes.count) cipher bytes, \(cipherBytesRead) cipher bytes and \(plaintextBytes) plaintext bytes before it)"
+                                    self.printDebug("decryptFile FAILED \(mediaDescription) \(detail) source=[\(FileFingerprint.describe(fingerprintURL))]")
+                                    throw SecretFilesError.decryptError("Could not decrypt message: \(detail)")
                                 }
                                 continuation.yield(Data(message))
+                                blockIndex += 1
+                                cipherBytesRead += bytes.count
+                                plaintextBytes += message.count
+                                lastTag = tag
                             }
+                        }
+                        // A secretstream file ends with a FINAL-tagged block. One that
+                        // stops before it has lost its tail: every block read
+                        // authenticated, but the plaintext is incomplete.
+                        if lastTag != .FINAL {
+                            self.printDebug("decryptFile WARNING truncated \(mediaDescription) blocks=\(blockIndex) plaintextBytes=\(plaintextBytes) lastTag=\(lastTag.map { "\($0)" } ?? "none") — stream ended without a FINAL tag source=[\(FileFingerprint.describe(fingerprintURL))]")
                         }
                         continuation.finish()
                     } catch is CancellationError {
@@ -377,7 +405,7 @@ class SecretFileHandler<T: MediaDescribing>: SecretFileHandlerInt {
         } catch let error as SecretFilesError {
             throw error
         } catch {
-            throw SecretFilesError.decryptError("Could not decrypt file")
+            throw SecretFilesError.decryptError("Could not decrypt file: \(error)")
         }
 
 

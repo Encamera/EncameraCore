@@ -396,6 +396,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let thumbURL = FileManager.default.fileExists(atPath: previewURL.path) ? previewURL : nil
         if thumbURL == nil {
             printDebug("saveSingle thumbnail WARNING mediaID=\(item.id) — no preview file on disk; uploading the record without an eager thumbnail")
+        } else {
+            printDebug("saveSingle thumbnail mediaID=\(item.id) mediaType=\(item.mediaType) preview=[\(FileFingerprint.describe(thumbURL))]")
         }
 
         // Must run before the queue moves the file into the holding folder: the stamp
@@ -744,7 +746,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         let previewURL = directoryModel.previewURLForMedia(withID: source.id)
         let recordName = Self.componentRecordName(mediaID: source.id, type: source.mediaType)
         if FileManager.default.fileExists(atPath: previewURL.path) {
-            printDebug("loadMediaPreview thumbnail hit recordName=\(recordName) source=localFile")
+            printDebug("loadMediaPreview thumbnail hit recordName=\(recordName) source=localFile preview=[\(FileFingerprint.describe(previewURL))]")
         } else if await componentLocation(id: source.id, type: source.mediaType) == .iCloudDrive,
                   let driveFile = iCloudDriveFileURL(id: source.id, type: source.mediaType),
                   iCloudDrive.existsInAnyForm(driveFile) {
@@ -757,7 +759,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             printDebug("loadMediaPreview fetch recordName=\(recordName) reason=missingLocalFile")
             do {
                 try await fetchThumbnail(recordName: recordName, to: previewURL)
-                printDebug("loadMediaPreview thumbnail ok recordName=\(recordName)")
+                printDebug("loadMediaPreview thumbnail ok recordName=\(recordName) preview=[\(FileFingerprint.describe(previewURL))]")
             } catch {
                 printDebug("loadMediaPreview thumbnail FAILED recordName=\(recordName) raw=\(error)")
             }
