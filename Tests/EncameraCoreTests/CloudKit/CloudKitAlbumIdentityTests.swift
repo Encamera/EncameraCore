@@ -239,7 +239,7 @@ final class CloudKitAlbumIdentityTests: XCTestCase {
         XCTAssertFalse(manager.fetchAlbumsFromSources(includingHidden: true).contains { $0.albumID == albumID })
     }
 
-    /// "Free up space" on the storage screen empties the blob cache, and must leave
+    /// "Free Up Space" on the storage screen empties the blob cache, and must leave
     /// every CloudKit album listed.
     func testFreeUpSpaceKeepsEveryCloudKitAlbumListed() async throws {
         let key = makeKey()

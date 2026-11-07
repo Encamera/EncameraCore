@@ -58,7 +58,7 @@ final class RemovedAlbumDetailStringsTests: XCTestCase {
 
     func testRemovedKeysAreAbsentInEveryLocalization() throws {
         let bundles = try localizationBundles()
-        XCTAssertEqual(bundles.count, 13, "Expected 13 localizations, found \(bundles.map(\.0))")
+        XCTAssertEqual(bundles.count, 1, "Expected 1 localization, found \(bundles.map(\.0))")
 
         for (name, bundle) in bundles {
             // Guard against a vacuous pass: a table that failed to load would

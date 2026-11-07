@@ -573,7 +573,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(store.fetchBlobCount, 2)
     }
 
-    /// After "Free up space" the album is still on the device and an item whose
+    /// After "Free Up Space" the album is still on the device and an item whose
     /// blob was freed comes back from CloudKit and decrypts.
     func testAnItemFreedByFreeUpSpaceRedownloadsAndDecrypts() async throws {
         let album = makeAlbum()

@@ -24,7 +24,7 @@ final class BiometricMethodNameTests: XCTestCase {
         XCTAssertEqual(authManager.biometricMethodName, L10n.touchID)
         XCTAssertEqual(
             L10n.BiometricMethod.enable(authManager.biometricMethodName),
-            "Enable Touch ID"
+            "Turn On Touch ID"
         )
     }
 
@@ -37,7 +37,7 @@ final class BiometricMethodNameTests: XCTestCase {
     func testDisabledOpenSettingsNamesMethodTwice() {
         XCTAssertEqual(
             L10n.BiometricMethod.disabledOpenSettings(L10n.touchID),
-            "You have disabled Touch ID for Encamera. Enable it in Settings to login with Touch ID."
+            "You have turned off Touch ID for Encamera. Turn it on in Settings to unlock with Touch ID."
         )
     }
 }

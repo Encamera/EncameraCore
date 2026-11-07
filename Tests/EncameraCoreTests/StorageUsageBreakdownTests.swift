@@ -3,7 +3,7 @@ import XCTest
 
 final class StorageUsageBreakdownTests: XCTestCase {
 
-    /// The data-loss guard, and the reason this type exists: "Free up space" is wired
+    /// The data-loss guard, and the reason this type exists: "Free Up Space" is wired
     /// to `reclaimableBytes`, and `.local` media is the only copy in existence.
     func testReclaimableBytesExcludesLocalMedia() {
         let breakdown = StorageUsageBreakdown(localMediaBytes: 5_000_000)
@@ -12,7 +12,7 @@ final class StorageUsageBreakdownTests: XCTestCase {
         XCTAssertEqual(breakdown.totalDeviceBytes, 5_000_000)
     }
 
-    /// Only the cache "Free up space" deletes counts. Previews and indexes are kept,
+    /// Only the cache "Free Up Space" deletes counts. Previews and indexes are kept,
     /// and a counted bucket the button cannot clear keeps it enabled forever.
     func testReclaimableBytesIsOnlyTheCloudCache() {
         let breakdown = StorageUsageBreakdown(

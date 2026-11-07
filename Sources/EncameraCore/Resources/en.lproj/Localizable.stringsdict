@@ -68,7 +68,7 @@
 	<key>CloudKitUpgrade.IntroIncludes</key>
 	<dict>
 		<key>NSStringLocalizedFormatKey</key>
-		<string>This update includes %#@album_count@</string>
+		<string>This upgrade includes %#@album_count@</string>
 		<key>album_count</key>
 		<dict>
 			<key>NSStringFormatSpecTypeKey</key>
