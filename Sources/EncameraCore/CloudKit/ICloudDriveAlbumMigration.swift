@@ -140,9 +140,11 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     public struct MigrationDeviceConditions {
         public var isUnlocked: @MainActor () -> Bool
         public var hasNetwork: () -> Bool
-        /// Whether the network is unmetered (`NetworkMonitor.isOnUnmeteredNetwork`):
-        /// Wi-Fi or wired, not cellular, Personal Hotspot or Low Data Mode. Only
-        /// the blob migration reads it; `unmet()` does not.
+        /// Whether the blob migration may transfer on the current network: an
+        /// unmetered one (`NetworkMonitor.isOnUnmeteredNetwork`: Wi-Fi or wired,
+        /// not cellular, Personal Hotspot or Low Data Mode), or any connected one
+        /// while `ICloudDriveBlobMigrationCellularPreference` allows cellular. Only the blob
+        /// migration reads it; `unmet()` does not.
         public var isOnUnmeteredNetwork: () -> Bool
         public var hasICloudDrive: () -> Bool
         public var isInBackground: @MainActor () -> Bool
@@ -164,7 +166,7 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         public static var device: MigrationDeviceConditions {
             MigrationDeviceConditions(isUnlocked: { ProtectedDataAvailability.isAvailable },
                        hasNetwork: { NetworkMonitor.shared.isConnected },
-                       isOnUnmeteredNetwork: { NetworkMonitor.shared.isOnUnmeteredNetwork },
+                       isOnUnmeteredNetwork: { ICloudDriveBlobMigrationCellularPreference.permitsTransferNow },
                        hasICloudDrive: deviceHasICloudDrive,
                        isInBackground: { AppRunState.isInBackground })
         }

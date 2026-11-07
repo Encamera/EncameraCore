@@ -54,8 +54,8 @@ public struct ICloudDriveDownloadAhead: DebugPrintable {
     /// - Parameters:
     ///   - keyCache: the keys that open each album's plan; nil for the shared cache.
     ///   - freeSpace: free disk space.
-    ///   - isOnUnmeteredNetwork: whether the device is on Wi-Fi; nothing is
-    ///     requested otherwise.
+    ///   - isOnUnmeteredNetwork: whether the device is on Wi-Fi, or on any network
+    ///     while cellular is allowed; nothing is requested otherwise.
     ///   - maxFiles: the most files one batch requests.
     ///   - startDownloading: requests one evicted file's download; nil for iCloud Drive's.
     ///   - linkedFolder: the iCloud Drive folder an album id is linked to.
@@ -63,7 +63,7 @@ public struct ICloudDriveDownloadAhead: DebugPrintable {
     ///     ciphertext-only tiers.
     public init(keyCache: BlobMigrationKeyCache? = nil,
                 freeSpace: DeviceFreeSpaceProviding = LiveDeviceFreeSpace(),
-                isOnUnmeteredNetwork: @escaping () -> Bool = { NetworkMonitor.shared.isOnUnmeteredNetwork },
+                isOnUnmeteredNetwork: @escaping () -> Bool = { ICloudDriveBlobMigrationCellularPreference.permitsTransferNow },
                 maxFiles: @escaping () -> Int = { ICloudDriveMigrationBatchSize.current },
                 startDownloading: ((URL) throws -> Void)? = nil,
                 linkedFolder: @escaping (String) -> URL? = CloudKitAlbumMarker.linkedICloudDriveFolderURL(albumID:),

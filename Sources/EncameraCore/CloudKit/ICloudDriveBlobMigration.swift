@@ -111,7 +111,13 @@
 //  album waits with `.waitingForWiFi` (`pauseReason(albumID:)`) and a pass starts
 //  again for it once `NetworkMonitor.pathDidChange` reports an unmetered network. Its CloudKit
 //  requests run under `networkPolicy`: `.background` (utility QoS) unless it is
-//  set to `.speedUp` (user-initiated QoS), both with cellular off. It pauses while
+//  set to `.speedUp` (user-initiated QoS), both with cellular off. While the user
+//  allows cellular (`ICloudDriveBlobMigrationCellularPreference`), any connected network
+//  counts as Wi-Fi here, a pass's CloudKit requests may use cellular
+//  (`requestPolicy`), and a `.waitingForWiFi` album resumes as soon as the
+//  preference turns on; turned off, a pass on cellular stops before its next
+//  item. The preference reaches nothing else: the folder walk and the
+//  whole-album move keep their Wi-Fi-only stores. It pauses while
 //  Low Power Mode is on or the thermal state is serious or critical: the pass
 //  stops before its next item with `.paused`, the album waits with its reason
 //  (`pauseReason(albumID:)`), and a pass starts again for it once the power or
@@ -212,8 +218,9 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         private let thermalState: () -> ProcessInfo.ThermalState
         /// Where `NSProcessInfoPowerStateDidChange`,
         /// `ProcessInfo.thermalStateDidChangeNotification` and
-        /// `accountChangeNotification` and `NetworkMonitor.pathDidChange` are
-        /// posted, and where `pauseStateDidChange` is posted.
+        /// `accountChangeNotification`, `NetworkMonitor.pathDidChange` and
+        /// `ICloudDriveBlobMigrationCellularPreference.didChange` are posted, and where
+        /// `pauseStateDidChange` is posted.
         let notificationCenter: NotificationCenter
         /// Posted when the iCloud account changes.
         private let accountChangeNotification: Notification.Name
@@ -266,7 +273,8 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
                 (.NSProcessInfoPowerStateDidChange, .powerOrThermalState),
                 (ProcessInfo.thermalStateDidChangeNotification, .powerOrThermalState),
                 (accountChangeNotification, .account),
-                (NetworkMonitor.pathDidChange, .network)
+                (NetworkMonitor.pathDidChange, .network),
+                (ICloudDriveBlobMigrationCellularPreference.didChange, .network)
             ]
             observers = changes.map { name, change in
                 notificationCenter.addObserver(forName: name, object: nil, queue: nil) { _ in
@@ -438,7 +446,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// pause, or `.waitingForWiFi` while the device is off Wi-Fi. A launch off
     /// Wi-Fi starts no pass, so no pause is held then.
     public static func shownPauseReason(albumID: String,
-                                        isOnUnmeteredNetwork: Bool = NetworkMonitor.shared.isOnUnmeteredNetwork) -> PauseReason? {
+                                        isOnUnmeteredNetwork: Bool = ICloudDriveBlobMigrationCellularPreference.permitsTransferNow) -> PauseReason? {
         pauseReason(albumID: albumID) ?? (isOnUnmeteredNetwork ? nil : .waitingForWiFi)
     }
 
@@ -464,9 +472,17 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         set { networkPolicyLock.withLock { currentNetworkPolicy = newValue } }
     }
 
-    /// The store a pass uses by default: requests under `networkPolicy`.
+    /// The policy a pass's CloudKit requests run under: `networkPolicy`'s
+    /// quality of service, with cellular on while
+    /// `ICloudDriveBlobMigrationCellularPreference` allows it. Read at each request.
+    nonisolated public static var requestPolicy: CloudKitNetworkPolicy {
+        networkPolicy.allowingCellular(ICloudDriveBlobMigrationCellularPreference.isAllowed)
+    }
+
+    /// The store a pass uses by default: requests under `requestPolicy`. A bound
+    /// `makeStore` factory is used as it is.
     nonisolated public static func makeDefaultStore() -> CloudKitMediaStoring {
-        CloudKitStoreProvider.makeMigrationStore("iCloudDriveBlobMigration")
+        CloudKitStoreProvider.makeStore("iCloudDriveBlobMigration", networkPolicy: { requestPolicy })
     }
 
     private let albumManager: AlbumManaging

@@ -27,23 +27,23 @@ public struct DeletedRecord: Equatable, Sendable {
 
 /// How a run's CloudKit requests use the network, set on each operation's
 /// `CKOperation.Configuration`.
-public enum CloudKitNetworkPolicy: Equatable, Sendable {
+public struct CloudKitNetworkPolicy: Equatable, Sendable {
+    public let qualityOfService: QualityOfService
+    /// Off for both presets, which wait for Wi-Fi. Only the iCloud Drive blob
+    /// migration turns it on, while the user allows cellular
+    /// (`ICloudDriveBlobMigrationCellularPreference`).
+    public let allowsCellularAccess: Bool
+
     /// Work nobody is waiting on: utility QoS, Wi-Fi only.
-    case background
+    public static let background = CloudKitNetworkPolicy(qualityOfService: .utility, allowsCellularAccess: false)
     /// Work the user is watching: user-initiated QoS, still Wi-Fi only. Speed-up
-    /// mode only raises the priority; the migration never uses cellular.
-    case speedUp
+    /// mode only raises the priority.
+    public static let speedUp = CloudKitNetworkPolicy(qualityOfService: .userInitiated, allowsCellularAccess: false)
 
-    public var qualityOfService: QualityOfService {
-        switch self {
-        case .background: return .utility
-        case .speedUp: return .userInitiated
-        }
+    /// This policy's quality of service, with cellular access set to `allowed`.
+    public func allowingCellular(_ allowed: Bool) -> CloudKitNetworkPolicy {
+        CloudKitNetworkPolicy(qualityOfService: qualityOfService, allowsCellularAccess: allowed)
     }
-
-    /// Always false: the blob migration, whose stores run under this policy,
-    /// waits for Wi-Fi.
-    public var allowsCellularAccess: Bool { false }
 
     /// Sets this policy on the operation's configuration, replacing the
     /// quality of service the request asked for.

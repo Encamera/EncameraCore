@@ -205,6 +205,39 @@ final class CloudKitDatabaseAdapterTests: XCTestCase {
         }
     }
 
+    /// The blob migration's default store reads `requestPolicy`, so its requests
+    /// use cellular once the user allows it, while `makeMigrationStore` stays
+    /// Wi-Fi only.
+    func testBlobMigrationStoreFollowsCellularPreference() async throws {
+        let suiteName = "CloudKitDatabaseAdapterTests-\(UUID().uuidString)"
+        UserDefaultUtils.current = UserDefaultUtils(defaults: UserDefaults(suiteName: suiteName)!)
+        defer {
+            UserDefaults().removePersistentDomain(forName: suiteName)
+            UserDefaultUtils.current = UserDefaultUtils()
+        }
+        let blobPolicy = PolicyClosureBox()
+        let migrationPolicy = PolicyClosureBox()
+        await withUnboundStoreProvider(makePolicyStore: { policy in
+            blobPolicy.closure = policy
+            return InMemoryCloudKitMediaStore()
+        }) {
+            _ = ICloudDriveBlobMigration.makeDefaultStore()
+        }
+        await withUnboundStoreProvider(makePolicyStore: { policy in
+            migrationPolicy.closure = policy
+            return InMemoryCloudKitMediaStore()
+        }) {
+            _ = CloudKitStoreProvider.makeMigrationStore("iCloudDriveAlbumFolderWalk")
+        }
+        let blob = try XCTUnwrap(blobPolicy.closure)
+        let other = try XCTUnwrap(migrationPolicy.closure)
+
+        XCTAssertFalse(blob().allowsCellularAccess, "off until the user allows cellular")
+        ICloudDriveBlobMigrationCellularPreference.isAllowed = true
+        XCTAssertTrue(blob().allowsCellularAccess, "read per request, so the switch reaches a pass under way")
+        XCTAssertFalse(other().allowsCellularAccess, "other migration stores stay Wi-Fi only")
+    }
+
     /// A bound factory, such as the UI-test mock, is what a migration store is.
     func testBoundFactoryIsUsedAsIsForMigrationStore() {
         let bound = InMemoryCloudKitMediaStore()

@@ -609,6 +609,8 @@
 
 /* ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift */
 "CloudKitMigration.MigrationBannerMovingTitle" = "Moving to iCloud";
+"CloudKitMigration.MigrationScreenUseCellular" = "Use Cellular Data";
+"CloudKitMigration.MigrationScreenUseWifiOnly" = "Use Wi-Fi Only";
 "CloudKitMigration.MigrationBannerPausedTitle" = "Move to iCloud paused";
 "CloudKitMigration.MigrationBannerProgress" = "%@ of %@ moved";
 "CloudKitMigration.MigrationBannerPausedLowPowerMode" = "Paused while Low Power Mode is on.";

@@ -86,6 +86,9 @@ public enum UserDefaultKey {
     case lastFetchedNotificationIDs
     /// Ids of fetched notifications the user has opened the notification list on.
     case seenNotificationIDs
+    /// Whether the iCloud Drive blob migration may use cellular data. Unset
+    /// means off. See `ICloudDriveBlobMigrationCellularPreference`.
+    case useCellularForICloudDriveBlobMigration
 
     var rawValue: String {
         switch self {
@@ -174,7 +177,9 @@ public enum UserDefaultKey {
              // "Minted here" is only true of this device.
              .keysMintedOnThisDevice,
              .lastFetchedNotificationIDs,
-             .seenNotificationIDs:
+             .seenNotificationIDs,
+             // Cellular use is a choice about this device's data plan.
+             .useCellularForICloudDriveBlobMigration:
             return false
         }
     }

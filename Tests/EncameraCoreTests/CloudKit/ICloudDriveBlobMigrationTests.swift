@@ -1188,6 +1188,27 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(pauseChanges.value, 2, "the resume is posted")
     }
 
+    func testAllowingCellularResumesAlbumWaitingForWiFi() async throws {
+        let prepared = try await prepareAlbum(count: 2)
+        let cellularAllowed = LockedBox(false)
+
+        let outcome = await makeLoop(isOnUnmeteredNetwork: {
+            ICloudDriveBlobMigrationCellularPreference.permitsTransfer(on: NetworkMonitor.ForcedPath.cellular.state,
+                                                             cellularAllowed: cellularAllowed.value)
+        }).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
+
+        guard case .stopped(.paused(.waitingForWiFi), _) = outcome else {
+            return XCTFail("expected a stop waiting for Wi-Fi on cellular, got \(outcome)")
+        }
+
+        cellularAllowed.mutate { $0 = true }
+        deviceResourceState.center.post(name: ICloudDriveBlobMigrationCellularPreference.didChange, object: nil)
+        try await waitUntil("allowing cellular resumes the album") {
+            self.mediaFiles(in: prepared.folder).isEmpty && !ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID)
+        }
+        XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
+    }
+
     func testShownPauseReasonIsWaitingForWiFiOffWiFiWithoutAHeldPause() async throws {
         let prepared = try await prepareAlbum(count: 1)
         XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
