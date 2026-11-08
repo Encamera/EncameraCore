@@ -77,7 +77,7 @@ public enum Feature: String, CaseIterable {
     public var defaultValue: Bool? {
         switch self {
         case .showDebugLogs:
-            return BuildEnvironment.isTestFlight ? true : nil
+            return BuildEnvironment.isTestingFeaturesEnabled ? true : nil
         case .iCloudFlightCheck, .iCloudDiagnostics, .clearMediaIndex, .keychainInspector, .userDefaultsInspector:
             #if DEBUG
             return true
@@ -151,9 +151,9 @@ public struct FeatureToggle {
     }
 
     public static func isEnabled(feature: Feature) -> Bool {
-        // TestFlight testers always get the Feature Toggles screen, even if a
+        // Testing-features builds always show the Feature Toggles screen, even if a
         // stored value says otherwise.
-        if feature == .showFeatureToggles && BuildEnvironment.isTestFlight {
+        if feature == .showFeatureToggles && BuildEnvironment.isTestingFeaturesEnabled {
             return true
         }
         if let value: Bool = UserDefaultUtils.boolNullable(forKey: .featureToggle(feature: feature)) {

@@ -5,18 +5,35 @@
 
 import Foundation
 
-/// Which distribution channel this binary came through, for defaults that
-/// differ between TestFlight and the App Store.
+/// Build-time facts about this binary that change runtime defaults.
 public enum BuildEnvironment {
 
-    /// TestFlight installs carry a sandbox receipt; App Store installs carry a
-    /// production one. The receipt URL is deprecated for Swift callers in favour
-    /// of StoreKit's async `AppTransaction`, which cannot answer a synchronous
-    /// default, so the property is read through KVC.
-    public static var isTestFlight: Bool {
-        guard let receiptURL = Bundle.main.value(forKey: "appStoreReceiptURL") as? URL else {
+    /// Info.plist key that carries the `ENABLE_TESTING_FEATURES` build value.
+    public static let testingFeaturesInfoPlistKey = "EncameraTestingFeaturesEnabled"
+
+    /// Whether this build turns on tester-facing features: captured debug logs,
+    /// short passcode lockouts, the pre-login erase and the Feature Toggles
+    /// screen.
+    ///
+    /// The value comes from the `ENABLE_TESTING_FEATURES` environment variable
+    /// of the Xcode Cloud workflow that built the binary. Environment variables
+    /// do not reach the device, so the app's Info.plist carries it as
+    /// `$(ENABLE_TESTING_FEATURES)`, which the build expands, and
+    /// `ci_scripts/ci_pre_xcodebuild.sh` also writes it there explicitly. An
+    /// unset, empty or unrecognised value means `false`. Extensions have their
+    /// own Info.plist without the key, so this is always `false` there.
+    public static var isTestingFeaturesEnabled: Bool {
+        isTestingFeaturesEnabled(infoDictionary: Bundle.main.infoDictionary)
+    }
+
+    static func isTestingFeaturesEnabled(infoDictionary: [String: Any]?) -> Bool {
+        switch infoDictionary?[testingFeaturesInfoPlistKey] {
+        case let value as Bool:
+            return value
+        case let value as String:
+            return ["yes", "true", "1"].contains(value.trimmingCharacters(in: .whitespaces).lowercased())
+        default:
             return false
         }
-        return receiptURL.lastPathComponent == "sandboxReceipt"
     }
 }

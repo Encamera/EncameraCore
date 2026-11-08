@@ -72,7 +72,7 @@ public struct PasscodeAttemptPolicy: Equatable {
         lockoutDurations: [60 * 60, 4 * 60 * 60, 24 * 60 * 60]
     )
 
-    /// Short lockouts so debug and TestFlight builds can be walked through by hand.
+    /// Short lockouts so debug and testing-features builds can be walked through by hand.
     public static let debug = PasscodeAttemptPolicy(
         failureWindow: 10 * 60,
         failuresPerWindow: 4,
@@ -84,7 +84,7 @@ public struct PasscodeAttemptPolicy: Equatable {
 #if DEBUG
         .debug
 #else
-        BuildEnvironment.isTestFlight ? .debug : .standard
+        BuildEnvironment.isTestingFeaturesEnabled ? .debug : .standard
 #endif
     }
 }
