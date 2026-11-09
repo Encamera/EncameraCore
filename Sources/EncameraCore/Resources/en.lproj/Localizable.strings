@@ -317,7 +317,7 @@
 
 "BiometricMethod.Enable" = "Turn On %@";
 "Use Passcode instead" = "Use Passcode Instead";
-"Select Login Method" = "Choose an Unlock Method";
+"Select Login Method" = "How do you want to unlock Encamera?";
 "LoginMethodDescription" = "Choose how you want to unlock Encamera.";
 "AlbumDetailView.AddFirstMedia" = "Add your first photo or video";
 "AlbumDetailView.AddFirstMediaSubtitle" = "Photos and videos you add here are automatically encrypted";
@@ -1036,20 +1036,20 @@
 /* ./Encamera/Onboarding - New onboarding flow strings (ENC-276) */
 
 /* Story carousel */
-"Onboarding.Story.title1" = "iPhone's first truly encrypted camera";
-"Onboarding.Story.title2" = "Encrypted as soon as you capture";
-"Onboarding.Story.title3" = "No account. No ads. No notifications. Ever.";
-"Onboarding.Story.title4" = "Only you hold the encryption key";
-"Onboarding.Story.letsStart" = "Let's start";
+"Onboarding.Story.title1" = "Get your privacy back";
+"Onboarding.Story.title2" = "What you shoot stays in Encamera, not in Photos";
+"Onboarding.Story.title3" = "Your photos live on your device or your iCloud";
+"Onboarding.Story.title4" = "Nobody can view your photos and videos except you";
+"Onboarding.Story.letsStart" = "Get Started";
 
-/* Unlock method */
-"Onboarding.UnlockMethod.title" = "How do you want to unlock Encamera?";
-"Onboarding.UnlockMethod.subtitle" = "Choose how you'd like to unlock your photos and videos";
-"Onboarding.UnlockMethod.passwordTitle" = "Password (Recommended)";
-"Onboarding.UnlockMethod.passwordLabel" = "More characters for added security";
-"Onboarding.UnlockMethod.pinTitle" = "PIN";
-"Onboarding.UnlockMethod.pinLabel" = "Quick and easy to enter";
-"Onboarding.UnlockMethod.changeAnytime" = "You can change this anytime in Settings";
+/* Passcode type selection */
+"Onboarding.PasscodeTypeSelection.title" = "Password or PIN?";
+"Onboarding.PasscodeTypeSelection.subtitle" = "Choose the option that works best for you.";
+"Onboarding.PasscodeTypeSelection.passwordTitle" = "Password (Recommended)";
+"Onboarding.PasscodeTypeSelection.passwordLabel" = "More characters for added security";
+"Onboarding.PasscodeTypeSelection.pinTitle" = "PIN";
+"Onboarding.PasscodeTypeSelection.pinLabel" = "Quick and easy to enter";
+"Onboarding.PasscodeTypeSelection.changeAnytime" = "You can change this anytime in Settings";
 
 /* PIN */
 "Onboarding.Pin.title" = "Create your PIN";

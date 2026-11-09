@@ -245,8 +245,8 @@ public enum L10n {
   public static let selectAPlaceToKeepMediaForThisKey = L10n.tr("Localizable", "Select a place to keep media for this key.", fallback: "Select a place to keep media for this key.")
   /// ./Encamera/MediaImport/MediaImportView.swift
   public static let selectAll = L10n.tr("Localizable", "Select All", fallback: "Select All")
-  /// Choose an Unlock Method
-  public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "Choose an Unlock Method")
+  /// How do you want to unlock Encamera?
+  public static let selectLoginMethod = L10n.tr("Localizable", "Select Login Method", fallback: "How do you want to unlock Encamera?")
   /// PIN Code Setting
   public static let set6DigitPIN = L10n.tr("Localizable", "Set 6-Digit PIN", fallback: "Set 6-Digit PIN")
   /// You'll use this password to unlock Encamera. Make sure you remember it!
@@ -1727,6 +1727,22 @@ public enum L10n {
       /// Need key
       public static let title = L10n.tr("Localizable", "Onboarding.NeedKey.title", fallback: "You'll need your encryption key")
     }
+    public enum PasscodeTypeSelection {
+      /// You can change this anytime in Settings
+      public static let changeAnytime = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.changeAnytime", fallback: "You can change this anytime in Settings")
+      /// More characters for added security
+      public static let passwordLabel = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.passwordLabel", fallback: "More characters for added security")
+      /// Password (Recommended)
+      public static let passwordTitle = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.passwordTitle", fallback: "Password (Recommended)")
+      /// Quick and easy to enter
+      public static let pinLabel = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.pinLabel", fallback: "Quick and easy to enter")
+      /// PIN
+      public static let pinTitle = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.pinTitle", fallback: "PIN")
+      /// Choose the option that works best for you.
+      public static let subtitle = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.subtitle", fallback: "Choose the option that works best for you.")
+      /// Passcode type selection
+      public static let title = L10n.tr("Localizable", "Onboarding.PasscodeTypeSelection.title", fallback: "Password or PIN?")
+    }
     public enum Password {
       /// Confirm your password
       public static let confirmTitle = L10n.tr("Localizable", "Onboarding.Password.confirmTitle", fallback: "Confirm your password")
@@ -1768,34 +1784,18 @@ public enum L10n {
       public static let title = L10n.tr("Localizable", "Onboarding.Ready.title", fallback: "You're ready to use Encamera")
     }
     public enum Story {
-      /// Let's start
-      public static let letsStart = L10n.tr("Localizable", "Onboarding.Story.letsStart", fallback: "Let's start")
+      /// Get Started
+      public static let letsStart = L10n.tr("Localizable", "Onboarding.Story.letsStart", fallback: "Get Started")
       /// Story carousel
-      public static let title1 = L10n.tr("Localizable", "Onboarding.Story.title1", fallback: "iPhone's first truly encrypted camera")
-      /// Encrypted as soon as you capture
-      public static let title2 = L10n.tr("Localizable", "Onboarding.Story.title2", fallback: "Encrypted as soon as you capture")
-      /// No account. No ads. No notifications. Ever.
-      public static let title3 = L10n.tr("Localizable", "Onboarding.Story.title3", fallback: "No account. No ads. No notifications. Ever.")
-      /// Only you hold the encryption key
-      public static let title4 = L10n.tr("Localizable", "Onboarding.Story.title4", fallback: "Only you hold the encryption key")
+      public static let title1 = L10n.tr("Localizable", "Onboarding.Story.title1", fallback: "Get your privacy back")
+      /// What you shoot stays in Encamera, not in Photos
+      public static let title2 = L10n.tr("Localizable", "Onboarding.Story.title2", fallback: "What you shoot stays in Encamera, not in Photos")
+      /// Your photos live on your device or your iCloud
+      public static let title3 = L10n.tr("Localizable", "Onboarding.Story.title3", fallback: "Your photos live on your device or your iCloud")
+      /// Nobody can view your photos and videos except you
+      public static let title4 = L10n.tr("Localizable", "Onboarding.Story.title4", fallback: "Nobody can view your photos and videos except you")
       /// ./Encamera/Onboarding/OnboardingStoryCarousel.swift - Story carousel welcome label (ENC-277)
       public static let welcome = L10n.tr("Localizable", "Onboarding.Story.welcome", fallback: "Welcome to Encamera")
-    }
-    public enum UnlockMethod {
-      /// You can change this anytime in Settings
-      public static let changeAnytime = L10n.tr("Localizable", "Onboarding.UnlockMethod.changeAnytime", fallback: "You can change this anytime in Settings")
-      /// More characters for added security
-      public static let passwordLabel = L10n.tr("Localizable", "Onboarding.UnlockMethod.passwordLabel", fallback: "More characters for added security")
-      /// Password (Recommended)
-      public static let passwordTitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.passwordTitle", fallback: "Password (Recommended)")
-      /// Quick and easy to enter
-      public static let pinLabel = L10n.tr("Localizable", "Onboarding.UnlockMethod.pinLabel", fallback: "Quick and easy to enter")
-      /// PIN
-      public static let pinTitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.pinTitle", fallback: "PIN")
-      /// Choose how you'd like to unlock your photos and videos
-      public static let subtitle = L10n.tr("Localizable", "Onboarding.UnlockMethod.subtitle", fallback: "Choose how you'd like to unlock your photos and videos")
-      /// Unlock method
-      public static let title = L10n.tr("Localizable", "Onboarding.UnlockMethod.title", fallback: "How do you want to unlock Encamera?")
     }
     public enum WelcomeBack {
       /// We found that you've used Encamera on your other device. Turn on iCloud Backup & Sync on that device, or enter your recovery key, to keep your albums in sync.

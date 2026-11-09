@@ -63,7 +63,7 @@ public enum OnboardingFlowScreen: String, Identifiable {
     case recoveryKeyPhrase
     // MARK: - Multi-Device Onboarding
     case loginMethod
-    case unlockMethod
+    case passcodeTypeSelection
     case encryptionExplainer
     case defaultStorage
     case premiumExplainer
