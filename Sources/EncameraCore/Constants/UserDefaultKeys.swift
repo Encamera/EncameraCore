@@ -48,8 +48,6 @@ public enum UserDefaultKey {
     case firstCaptureExplainerState
     case promotionalBannerInteractions
     case dismissedBanners
-    case showPaywallOnAppear
-    case paywallShownDuringOnboarding
     case selectedPhotoResolution
     case selectedVideoQuality
     case keyMigration
@@ -150,8 +148,6 @@ public enum UserDefaultKey {
              .firstCaptureExplainerState,
              .promotionalBannerInteractions,
              .dismissedBanners,
-             .showPaywallOnAppear,
-             .paywallShownDuringOnboarding,
              .selectedPhotoResolution,
              .selectedVideoQuality,
              .showHiddenAlbumsInCameraPicker,
