@@ -18,6 +18,7 @@ final class MockAlbumManager: AlbumManaging {
     var currentAlbum: Album?
     var currentAlbumMediaCount: Int? { nil }
     var albumsOnDisk: [Album] = []
+    var lockedAlbums: [LockedAlbumPlaceholder] = []
 
     private(set) var deletedAlbums: [Album] = []
     private(set) var remoteDeletedAlbums: [Album] = []
@@ -137,6 +138,16 @@ final class MockAlbumManager: AlbumManaging {
         albumsOnDisk.append(album)
         cloudKitAlbumStores[albumID] = (indexStore, sizeSidecar)
         return album
+    }
+
+    /// A CloudKit album no held key opens: listed only as a locked placeholder,
+    /// with `indexStore` as its index.
+    func addLockedCloudKitAlbum(_ albumID: String, indexStore: MediaIndexStore) {
+        lockedAlbums.append(LockedAlbumPlaceholder(encryptedDirectoryName: "Album_locked-\(albumID)",
+                                                   storageOption: .cloudKit,
+                                                   creationDate: Date(),
+                                                   albumID: albumID))
+        cloudKitAlbumStores[albumID] = (indexStore, nil)
     }
 
     static let testAlbumKey = PrivateKey(keyBytes: Array(repeating: 7, count: 32),

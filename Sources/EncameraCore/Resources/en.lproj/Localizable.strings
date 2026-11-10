@@ -196,6 +196,8 @@
 "AlbumMove.ItemsStayedInICloudDrive" = "%@ items stayed in iCloud Drive because they couldn't be downloaded.";
 "AlbumDetailView.DeleteBlockedByMoveTitle" = "Can't Delete Album";
 "AlbumDetailView.DeleteBlockedByMoveMessage" = "This album is part of a move that hasn't finished, so it can't be deleted yet. Finish or resume the move first. Nothing was deleted.";
+"AlbumDetailView.StorageChangeNeedsKeyTitle" = "Key Needed";
+"AlbumDetailView.StorageChangeNeedsKeyMessage" = "Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";

@@ -307,6 +307,8 @@ public struct LockedAlbumPlaceholder: Identifiable, Hashable {
     /// True when the album's media was sampled and no key on this device opened
     /// any of it. False also covers "not checked yet" and "nothing to check".
     public let contentsUnreadable: Bool
+    /// The CloudKit album's identity. Nil for directory albums.
+    public let albumID: String?
 
     public var id: String {
         "\(encryptedDirectoryName)_\(storageOption.rawValue)"
@@ -316,29 +318,35 @@ public struct LockedAlbumPlaceholder: Identifiable, Hashable {
                 storageOption: StorageType,
                 creationDate: Date,
                 requiredKey: RequiredKeyIdentity? = nil,
-                contentsUnreadable: Bool = false) {
+                contentsUnreadable: Bool = false,
+                albumID: String? = nil) {
         self.encryptedDirectoryName = encryptedDirectoryName
         self.storageOption = storageOption
         self.creationDate = creationDate
         self.requiredKey = requiredKey
         self.contentsUnreadable = contentsUnreadable
+        self.albumID = albumID
     }
 
-    /// The locked-album alert's message. A known key always leads, since the
-    /// Enter Key flow asks for that key; a probe that opened nothing adds a
-    /// sentence after it, or stands alone when the key is unknown.
-    public var lockedAlertMessage: String {
-        let keyLine = requiredKey.map { L10n.MissingKey.albumSubtitleWithFingerprint($0.displayLabel) }
-        switch (keyLine, contentsUnreadable) {
-        case (let keyLine?, true):
-            return "\(keyLine) \(L10n.MissingKey.albumContentsUnreadable)"
-        case (let keyLine?, false):
-            return keyLine
-        case (nil, true):
-            return L10n.MissingKey.albumContentsUnreadable
-        case (nil, false):
-            return L10n.MissingKey.subtitleUnknown
+    /// The album to open when the user taps this placeholder, under `key`
+    /// (normally the current key). The name stays ciphertext, so views show
+    /// `displayName`, and each item resolves its own key: media `key` cannot
+    /// open shows as a missing-key tile.
+    public func openableAlbum(key: PrivateKey) -> Album {
+        Album(encryptedName: encryptedDirectoryName,
+              storageOption: storageOption,
+              creationDate: creationDate,
+              key: key,
+              albumID: albumID)
+    }
+
+    /// Whether `album` is this placeholder opened with `openableAlbum(key:)`.
+    public func matches(_ album: Album) -> Bool {
+        guard album.storageOption == storageOption else { return false }
+        if let albumID {
+            return album.albumID == albumID
         }
+        return album.encryptedPathComponent == encryptedDirectoryName
     }
 
     /// Whether `key` is the key that encrypted this album's name — an

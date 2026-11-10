@@ -445,6 +445,10 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Use Latest Item")
     /// Select
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
+    /// Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.
+    public static let storageChangeNeedsKeyMessage = L10n.tr("Localizable", "AlbumDetailView.StorageChangeNeedsKeyMessage", fallback: "Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.")
+    /// Key Needed
+    public static let storageChangeNeedsKeyTitle = L10n.tr("Localizable", "AlbumDetailView.StorageChangeNeedsKeyTitle", fallback: "Key Needed")
     /// this device
     public static let storageLocationThisDevice = L10n.tr("Localizable", "AlbumDetailView.StorageLocationThisDevice", fallback: "this device")
     /// Saved on %@

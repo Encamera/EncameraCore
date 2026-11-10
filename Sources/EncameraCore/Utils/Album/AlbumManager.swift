@@ -247,7 +247,8 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                     encryptedDirectoryName: entry.marker.encName,
                     storageOption: .cloudKit,
                     creationDate: entry.marker.createdAt,
-                    requiredKey: RequiredKeyIdentity(fingerprintHex: entry.marker.keyFingerprint)
+                    requiredKey: RequiredKeyIdentity(fingerprintHex: entry.marker.keyFingerprint),
+                    albumID: entry.albumID
                 ))
             }
             return album

@@ -2270,6 +2270,29 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         return (coord, a1, a2)
     }
 
+    /// A locked album's records are indexed like any other album's, so opening it
+    /// lists its media and each item reports its missing key.
+    func testZoneSyncIndexesRecordsOfALockedAlbum() async throws {
+        let store = MockCloudKitMediaStore()
+        let open = makeIndexStore()
+        let locked = makeIndexStore()
+        let (coord, albumManager) = CloudKitSyncCoordinator.forTesting(albums: [("a1", open, nil)],
+                                                                       store: store, cache: makeCache(),
+                                                                       bus: FileOperationBus(),
+                                                                       deleteQueue: makeDeleteQueue())
+        albumManager.addLockedCloudKitAlbum("locked", indexStore: locked)
+
+        store.changeSet = CloudKitChangeSet(changed: [record("m1", in: "a1"), record("l1", in: "locked"),
+                                                      record("l2", in: "locked")],
+                                            deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+
+        let openIDs = await ids(open)
+        let lockedIDs = await ids(locked)
+        XCTAssertEqual(openIDs, ["m1"])
+        XCTAssertEqual(lockedIDs, ["l1", "l2"])
+    }
+
     /// One walk carries both albums' records; each lands in its own album's index,
     /// and a delete leaves the index that never held the record alone.
     func testZoneSyncRoutesRecordsToTheirAlbumIndex() async throws {

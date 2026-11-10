@@ -116,9 +116,16 @@ public extension AlbumManaging {
 
     /// A store already handed out for the album answers first, so an album a
     /// migration is still filling, which no album list shows yet, is found too.
+    /// A locked album's index is kept under the current key, the key it opens
+    /// under, so its media list without its own key.
     func mediaIndexStore(forAlbumID albumID: String) -> MediaIndexStore? {
-        AlbumStoreRegistry.shared.existingIndexStore(forCloudKitAlbumID: albumID)
-            ?? cloudKitAlbum(withID: albumID).map { mediaIndexStore(for: $0) }
+        if let store = AlbumStoreRegistry.shared.existingIndexStore(forCloudKitAlbumID: albumID)
+            ?? cloudKitAlbum(withID: albumID).map({ mediaIndexStore(for: $0) }) {
+            return store
+        }
+        guard let locked = lockedAlbums.first(where: { $0.storageOption == .cloudKit && $0.albumID == albumID }),
+              let key = keyManager.currentKey else { return nil }
+        return mediaIndexStore(for: locked.openableAlbum(key: key))
     }
 
     func sizeSidecar(for album: Album) -> AlbumSizeSidecar {

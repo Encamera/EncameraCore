@@ -366,31 +366,40 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
         XCTAssertEqual(album.displayName, "Album_2024")
     }
 
-    // MARK: - Locked album alert
+    // MARK: - Opening a locked album
 
-    /// The Enter Key flow relies on the alert naming the key, so an album whose
-    /// contents no key opens must still lead with it.
-    func testAlertNamesTheRequiredKeyWhenNoContentsOpened() throws {
-        let key = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
-        let required = RequiredKeyIdentity.stampPrefix(key.stampPrefix)
-        let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x",
+    func testLockedDirectoryAlbumOpensUnderTheGivenKeyWithItsNameUnavailable() throws {
+        let foreignKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        let encryptedName = Album(name: "Holiday", storageOption: .local, creationDate: Date(), key: foreignKey).encryptedPathComponent
+        let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: encryptedName,
                                                  storageOption: .local,
-                                                 creationDate: Date(),
-                                                 requiredKey: required,
-                                                 contentsUnreadable: true)
+                                                 creationDate: Date())
 
-        let keyLine = L10n.MissingKey.albumSubtitleWithFingerprint(required.displayLabel)
-        XCTAssertTrue(placeholder.lockedAlertMessage.hasPrefix(keyLine))
-        XCTAssertTrue(placeholder.lockedAlertMessage.contains(L10n.MissingKey.albumContentsUnreadable))
+        let album = placeholder.openableAlbum(key: deviceKey)
+
+        XCTAssertEqual(album.key, deviceKey)
+        XCTAssertEqual(album.encryptedPathComponent, encryptedName, "the album must keep its directory")
+        XCTAssertNil(album.albumID)
+        XCTAssertTrue(album.isNameUnavailable)
+        XCTAssertTrue(placeholder.matches(album))
+        XCTAssertFalse(placeholder.matches(Album(name: "Other", storageOption: .local, creationDate: Date(), key: deviceKey)))
     }
 
-    func testAlertWithoutAKnownKeyExplainsNoContentsOpened() {
-        let unreadable = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x", storageOption: .local,
-                                                creationDate: Date(), contentsUnreadable: true)
-        let unprobed = LockedAlbumPlaceholder(encryptedDirectoryName: "Album_x", storageOption: .local,
-                                              creationDate: Date())
+    func testLockedCloudKitAlbumOpensUnderItsAlbumID() throws {
+        let scenario = try makeScenario { _ in nil }
+        let placeholder = LockedAlbumPlaceholder(encryptedDirectoryName: scenario.placeholder.encryptedDirectoryName,
+                                                 storageOption: .cloudKit,
+                                                 creationDate: scenario.placeholder.creationDate,
+                                                 albumID: "album-1")
 
-        XCTAssertEqual(unreadable.lockedAlertMessage, L10n.MissingKey.albumContentsUnreadable)
-        XCTAssertEqual(unprobed.lockedAlertMessage, L10n.MissingKey.subtitleUnknown)
+        let album = placeholder.openableAlbum(key: deviceKey)
+
+        XCTAssertEqual(album.albumID, "album-1")
+        XCTAssertEqual(album.storageOption, .cloudKit)
+        XCTAssertTrue(album.isNameUnavailable)
+        XCTAssertTrue(placeholder.matches(album))
+        var other = album
+        other.albumID = "album-2"
+        XCTAssertFalse(placeholder.matches(other))
     }
 }

@@ -624,11 +624,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         return Set(moved.map { MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType) })
     }
 
-    /// The ids of the CloudKit albums on this device.
+    /// The ids of the CloudKit albums on this device, locked ones included: their
+    /// records are indexed too, so the album lists its media without its key.
     private func localAlbumIDs() -> [String] {
-        albumManager.fetchAlbumsFromSources(includingHidden: true)
+        let albumIDs = albumManager.fetchAlbumsFromSources(includingHidden: true)
             .filter { $0.storageOption == .cloudKit }
             .compactMap(\.albumID)
+        let lockedIDs = albumManager.lockedAlbums
+            .filter { $0.storageOption == .cloudKit }
+            .compactMap(\.albumID)
+        return albumIDs + lockedIDs.filter { !albumIDs.contains($0) }
     }
 
     /// Each local CloudKit album's index as it is on disk now, keyed by album id.
