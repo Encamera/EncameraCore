@@ -1697,7 +1697,7 @@ public enum L10n {
       /// This Device
       public static let thisIPhoneTitle = L10n.tr("Localizable", "Onboarding.DataLocation.thisIPhoneTitle", fallback: "This Device")
       /// Data location choice
-      public static let title = L10n.tr("Localizable", "Onboarding.DataLocation.title", fallback: "Where should your data be stored?")
+      public static let title = L10n.tr("Localizable", "Onboarding.DataLocation.title", fallback: "iCloud or this device?")
     }
     public enum Encryption {
       /// Before it's stored on your device or in iCloud
@@ -1760,12 +1760,10 @@ public enum L10n {
       public static func body1(_ p1: Int) -> String {
         return L10n.tr("Localizable", "Onboarding.Premium.Body1", p1, fallback: "Store up to %d photos and videos in Encamera at no cost.")
       }
-      /// Get Premium when you need more.
-      public static let body2 = L10n.tr("Localizable", "Onboarding.Premium.Body2", fallback: "Get Premium when you need more.")
+      /// Upgrade to Premium when you need more.
+      public static let body2 = L10n.tr("Localizable", "Onboarding.Premium.Body2", fallback: "Upgrade to Premium when you need more.")
       /// ./Encamera/Onboarding/PremiumFeaturesExplanationView.swift - Premium features explainer (ENC-270)
-      public static func title(_ p1: Int) -> String {
-        return L10n.tr("Localizable", "Onboarding.Premium.Title", p1, fallback: "%d items, always free")
-      }
+      public static let title = L10n.tr("Localizable", "Onboarding.Premium.Title", fallback: "Privacy starts free")
     }
     public enum Ready {
       /// Go to My Album
@@ -2283,8 +2281,14 @@ public enum L10n {
     public static let statusCancelled = L10n.tr("Localizable", "TaskDetailCard.StatusCancelled", fallback: "Canceled")
   }
   public enum VerticalPaywall {
+    /// Annual
+    public static let annualPlanName = L10n.tr("Localizable", "VerticalPaywall.annualPlanName", fallback: "Annual")
     /// Billed monthly
     public static let billedMonthly = L10n.tr("Localizable", "VerticalPaywall.billedMonthly", fallback: "Billed monthly")
+    /// Lifetime
+    public static let lifetimePlanName = L10n.tr("Localizable", "VerticalPaywall.lifetimePlanName", fallback: "Lifetime")
+    /// Monthly
+    public static let monthlyPlanName = L10n.tr("Localizable", "VerticalPaywall.monthlyPlanName", fallback: "Monthly")
     /// %@ / month
     public static func monthlyPriceSubtext(_ p1: Any) -> String {
       return L10n.tr("Localizable", "VerticalPaywall.monthlyPriceSubtext", String(describing: p1), fallback: "%@ / month")
@@ -2298,7 +2302,7 @@ public enum L10n {
     /// Keep all your photos and videos in Encamera with unlimited, automatic encryption.
     public static let subtitle = L10n.tr("Localizable", "VerticalPaywall.subtitle", fallback: "Keep all your photos and videos in Encamera with unlimited, automatic encryption.")
     /// ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282)
-    public static let title = L10n.tr("Localizable", "VerticalPaywall.title", fallback: "Get Unlimited Photos & Videos")
+    public static let title = L10n.tr("Localizable", "VerticalPaywall.title", fallback: "Encrypt Everything")
   }
   public enum ZipExport {
     /// Cancel

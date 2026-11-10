@@ -1067,7 +1067,7 @@
 "Onboarding.Encryption.row3" = "Your recovery key is the only way to recover them if you lose access";
 
 /* Data location choice */
-"Onboarding.DataLocation.title" = "Where should your data be stored?";
+"Onboarding.DataLocation.title" = "iCloud or this device?";
 "Onboarding.DataLocation.subtitle" = "Choose where your encrypted photos and videos live, along with your encryption key and passcode";
 "Onboarding.DataLocation.iCloudLabel" = "Synced across your Apple devices";
 "Onboarding.DataLocation.thisIPhoneTitle" = "This Device";
@@ -1091,18 +1091,21 @@
 "Onboarding.NeedKey.continueWithoutKey" = "Continue Without Key";
 
 /* ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282) */
-"VerticalPaywall.title" = "Get Unlimited Photos & Videos";
+"VerticalPaywall.title" = "Encrypt Everything";
 "VerticalPaywall.subtitle" = "Keep all your photos and videos in Encamera with unlimited, automatic encryption.";
 "VerticalPaywall.noPaymentDueNow" = "No payment due now";
 "VerticalPaywall.billedMonthly" = "Billed monthly";
 "VerticalPaywall.payOnceAccessForever" = "Pay once, access forever";
 "VerticalPaywall.monthlyPriceSubtext" = "%@ / month";
 "VerticalPaywall.startFreeTrial" = "Start Free Trial";
+"VerticalPaywall.annualPlanName" = "Annual";
+"VerticalPaywall.monthlyPlanName" = "Monthly";
+"VerticalPaywall.lifetimePlanName" = "Lifetime";
 
 /* ./Encamera/Onboarding/PremiumFeaturesExplanationView.swift - Premium features explainer (ENC-270) */
-"Onboarding.Premium.Title" = "%d items, always free";
+"Onboarding.Premium.Title" = "Privacy starts free";
 "Onboarding.Premium.Body1" = "Store up to %d photos and videos in Encamera at no cost.";
-"Onboarding.Premium.Body2" = "Get Premium when you need more.";
+"Onboarding.Premium.Body2" = "Upgrade to Premium when you need more.";
 
 /* ./Encamera/Settings/KeyPhrasePasswordManagerSaver.swift - Key phrase entry saved to the user's password manager */
 "PasswordManager.CredentialUserName" = "Encamera Recovery Key";
