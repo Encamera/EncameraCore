@@ -1065,6 +1065,22 @@ public enum L10n {
   public enum EncameraDrawerFactory {
     /// ./Encamera/ViewModifiers/EncameraDrawerFactoryModifier.swift
     public static let goBack = L10n.tr("Localizable", "EncameraDrawerFactory.GoBack", fallback: "Go Back")
+    public enum CloudKitMoveCompleteDrawer {
+      /// Got It
+      public static let gotIt = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.GotIt", fallback: "Got It")
+      /// Everything in it is now stored in iCloud and syncs across your devices.
+      public static let movedBody = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedBody", fallback: "Everything in it is now stored in iCloud and syncs across your devices.")
+      /// This album was moved to iCloud
+      public static let movedTitle = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedTitle", fallback: "This album was moved to iCloud")
+      /// Everything in it is now stored only on this device. It no longer syncs to your other devices.
+      public static let movedToThisDeviceBody = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedToThisDeviceBody", fallback: "Everything in it is now stored only on this device. It no longer syncs to your other devices.")
+      /// This album was moved to This Device
+      public static let movedToThisDeviceTitle = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedToThisDeviceTitle", fallback: "This album was moved to This Device")
+      /// Everything in it has moved. It syncs faster and more reliably across your devices.
+      public static let upgradedBody = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.UpgradedBody", fallback: "Everything in it has moved. It syncs faster and more reliably across your devices.")
+      /// This album now uses the new iCloud storage
+      public static let upgradedTitle = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.UpgradedTitle", fallback: "This album now uses the new iCloud storage")
+    }
     public enum CloudKitUpgradeFailedDrawer {
       /// Not Now
       public static let notNow = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow", fallback: "Not Now")

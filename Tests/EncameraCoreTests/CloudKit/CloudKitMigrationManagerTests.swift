@@ -832,6 +832,70 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertTrue(store.uploadCalls.isEmpty)
     }
 
+    func testLocalAlbumMoveToCloudKitMarksMovedNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        albumManager.albumsOnDisk = [album]
+        defer { cleanup(album) }
+
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let cloudKitAlbumID = try XCTUnwrap(plan.destination.cloudKitAlbumID)
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: cloudKitAlbumID), "precondition: nothing pending before the move")
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertEqual(CloudKitMoveNotice.pending(albumID: cloudKitAlbumID), .movedFromThisDevice)
+    }
+
+    func testLocalAlbumMoveToCloudKitClearsTheLocalAlbumsNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        albumManager.albumsOnDisk = [album]
+        defer { cleanup(album) }
+        let localKey = try XCTUnwrap(CloudKitMoveNotice.key(for: album))
+        CloudKitMoveNotice.markPending(albumID: localKey, kind: .movedToThisDevice)
+
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        _ = try await manager.plan(album: album)
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: localKey),
+                     "a local album of the same name made later must not inherit the notice")
+    }
+
+    func testFailedFinalizeMarksNoNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        albumManager.albumsOnDisk = [album]
+        albumManager.finalizeError = AlbumError.cloudKitMarkerWriteFailed
+        defer { cleanup(album) }
+
+        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        let plan = try await manager.plan(album: album)
+        let cloudKitAlbumID = try XCTUnwrap(plan.destination.cloudKitAlbumID)
+        await manager.start(album: album)
+
+        guard case .failed = manager.state else {
+            return XCTFail("finalize failure must fail the run, got \(manager.state)")
+        }
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: cloudKitAlbumID))
+    }
+
+    func testMoveNoticeKindFollowsTheSourceStorage() {
+        XCTAssertEqual(CloudKitMigrationManager.moveNoticeKind(forSource: .local), .movedFromThisDevice)
+        XCTAssertEqual(CloudKitMigrationManager.moveNoticeKind(forSource: .icloud), .upgradedFromICloudDrive)
+        XCTAssertNil(CloudKitMigrationManager.moveNoticeKind(forSource: .cloudKit))
+    }
+
     func testPlanDoesNotPublishTerminalCompleted() async throws {
         let album = makeAlbum()
         let (manager, albumManager, _) = makeExecutableManager(for: album)
@@ -1930,6 +1994,33 @@ extension CloudKitMigrationManagerTests {
                        "a full reassembly verifies against the header, not the record's legacy sizeBytes")
         XCTAssertTrue(try Data(contentsOf: localURL) == ciphertext, "the full video comes home byte for byte")
         XCTAssertTrue(fixture.store.callOrder.contains(.delete(recordName: recordName)))
+    }
+
+    func testMoveToLocalMarksMovedToThisDeviceNoticeUnderTheLocalAlbum() async throws {
+        isolateCloudKitMoveNotices()
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        XCTAssertEqual(fixture.manager.state, .completed)
+        let stored = CloudKitMoveNotice.defaults.dictionary(forKey: CloudKitMoveNotice.storageKey) as? [String: String]
+        XCTAssertEqual(stored, [fixture.local.id: "movedToThisDevice"],
+                       "the notice is kept under the local album, not the CloudKit album it left")
+    }
+
+    func testFailedMoveToLocalFinalizeMarksNoNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let fixture = try makeToLocalFixture(count: 2)
+        defer { cleanup(fixture) }
+        fixture.albumManager.finalizeToLocalError = AlbumError.albumNotFoundAtSourceLocation
+
+        await fixture.manager.start(plan: fixture.plan)
+
+        guard case .failed = fixture.manager.state else {
+            return XCTFail("expected a failed run, got \(fixture.manager.state)")
+        }
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: fixture.local.id))
     }
 
     func testAlbumMoveToLocalFailedFinalizeKeepsThePlanForRetry() async throws {

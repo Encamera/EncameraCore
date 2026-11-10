@@ -1953,6 +1953,33 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         assertFinished(prepared)
     }
 
+    func testFinishingAnAlbumMarksUpgradeNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let prepared = try await prepareAlbum(count: 1)
+        folderContents.metadata = []
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: prepared.albumID), "precondition: nothing pending mid-move")
+
+        let finish = await passAndFinish(prepared)
+
+        XCTAssertEqual(finish, .removed)
+        XCTAssertEqual(CloudKitMoveNotice.pending(albumID: prepared.albumID), .upgradedFromICloudDrive)
+    }
+
+    func testAlbumWithDeferredItemsMarksNoNotice() async throws {
+        isolateCloudKitMoveNotices()
+        let corruptID = UUID().uuidString
+        let prepared = try await prepareAlbum(count: 1) { _, folder in
+            try Data(repeating: 0xA5, count: 600)
+                .write(to: folder.appendingPathComponent("\(corruptID).\(MediaType.photo.encryptedFileExtension)"))
+        }
+        folderContents.metadata = []
+
+        let finish = await passAndFinish(prepared)
+
+        XCTAssertEqual(finish, .kept(.deferredItems(1)))
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: prepared.albumID), "the folder is kept, so the move is not done")
+    }
+
     func testDeferredItemKeepsFolder() async throws {
         let corruptID = UUID().uuidString
         let prepared = try await prepareAlbum(count: 1) { _, folder in

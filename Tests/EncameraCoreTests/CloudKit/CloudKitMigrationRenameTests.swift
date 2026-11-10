@@ -309,6 +309,28 @@ final class CloudKitMigrationRenameTests: XCTestCase {
         createdAlbums.append(renamed)
         XCTAssertTrue(FileManager.default.fileExists(atPath: renamed.storageURL.path))
     }
+
+    func testRenamingALocalAlbumCarriesItsMoveNotice() throws {
+        isolateCloudKitMoveNotices()
+        let album = try createAlbum("Noticed", storage: .local)
+        CloudKitMoveNotice.markPending(albumID: album.id, kind: .movedToThisDevice)
+
+        let renamed = try albumManager.renameAlbum(album: album, to: "Noticed2-\(UUID().uuidString)")
+        createdAlbums.append(renamed)
+
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: album.id))
+        XCTAssertEqual(CloudKitMoveNotice.pending(albumID: renamed.id), .movedToThisDevice)
+    }
+
+    func testDeletingALocalAlbumClearsItsMoveNotice() throws {
+        isolateCloudKitMoveNotices()
+        let album = try createAlbum("Deleted", storage: .local)
+        CloudKitMoveNotice.markPending(albumID: album.id, kind: .movedToThisDevice)
+
+        try albumManager.delete(album: album)
+
+        XCTAssertNil(CloudKitMoveNotice.pending(albumID: album.id))
+    }
 }
 
 @MainActor

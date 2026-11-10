@@ -1216,8 +1216,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     private func finalizeAlbumToLocal(_ plan: MigrationPlan,
                                       album: Album,
                                       planStore: MigrationPlanStore) async -> Bool {
+        let localAlbum: Album
         do {
-            _ = try await albumManager.finalizeMigrationToLocal(
+            localAlbum = try await albumManager.finalizeMigrationToLocal(
                 album: album,
                 movedRecordNames: Set(plan.items.filter { $0.state == .sourceDeleted }.map(\.recordName)))
         } catch {
@@ -1226,6 +1227,9 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             return false
         }
         await planStore.delete()
+        if let key = CloudKitMoveNotice.key(for: localAlbum) {
+            CloudKitMoveNotice.markPending(albumID: key, kind: .movedToThisDevice)
+        }
         printDebug("run COMPLETED album=\(album.name) -> local items=\(plan.items.count)")
         state = .completed
         return true
@@ -1670,9 +1674,28 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         }
         try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
         await planStore.delete()
+        // The source album is gone. A local album's notice is keyed by its name,
+        // so a later local album of the same name would otherwise inherit it.
+        if let sourceKey = CloudKitMoveNotice.key(for: album), sourceKey != albumID {
+            CloudKitMoveNotice.clear(albumID: sourceKey)
+        }
+        if let kind = Self.moveNoticeKind(forSource: album.storageOption) {
+            CloudKitMoveNotice.markPending(albumID: albumID, kind: kind)
+        }
         printDebug("run COMPLETED album=\(album.name) items=\(plan.items.count)")
         state = .completed
         return true
+    }
+
+    /// The move-complete notice a finished whole-album move into CloudKit from
+    /// `source` leaves: a move from This Device, or a legacy whole-album move
+    /// from iCloud Drive (an auto-resumed plan).
+    static func moveNoticeKind(forSource source: StorageType) -> CloudKitMoveNoticeKind? {
+        switch source {
+        case .local: return .movedFromThisDevice
+        case .icloud: return .upgradedFromICloudDrive
+        case .cloudKit: return nil
+        }
     }
 
     /// Removes `album`'s source directory when it still exists and holds no files,

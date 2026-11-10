@@ -441,6 +441,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             deleteCloudKitAlbumRecord(album, iCloudDriveFolder: iCloudDriveFolder)
         } else {
             removeNameKeyedAlbumSettings(albumName: album.name)
+            if let key = CloudKitMoveNotice.key(for: album) { CloudKitMoveNotice.clear(albumID: key) }
         }
 
         albumOperationSubject.send(.albumDeleted(album: album))
@@ -517,6 +518,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
             }
         } else {
             removeNameKeyedAlbumSettings(albumName: album.name)
+            if let key = CloudKitMoveNotice.key(for: album) { CloudKitMoveNotice.clear(albumID: key) }
         }
 
         albumOperationSubject.send(.albumDeleted(album: album))
@@ -553,6 +555,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         }
         if let albumID = album.albumID {
             try? CloudKitAlbumMarker.remove(albumID: albumID)
+            CloudKitMoveNotice.clear(albumID: albumID)
         }
         try? fileManager.removeItem(at: MediaIndexStore.indexURL(for: album))
         try? fileManager.removeItem(at: AlbumSizeSidecar.sidecarURL(for: album))
@@ -1284,6 +1287,9 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         albumsSyncedStore?.deleteAlbum(name: album.name)
         removeLegacyHiddenKey(albumName: album.name)
         removeLegacyCoverImageKey(albumName: album.name)
+        if let oldKey = CloudKitMoveNotice.key(for: renamedFrom), let newKey = CloudKitMoveNotice.key(for: albumToUpdate) {
+            CloudKitMoveNotice.carry(from: oldKey, to: newKey)
+        }
 
         do {
             let carried = try MigrationPlanStore.carryPlans(acrossRenameOf: renamedFrom, to: albumToUpdate,

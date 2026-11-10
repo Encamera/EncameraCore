@@ -324,8 +324,8 @@ public final class ICloudDriveAlbumFinish: DebugPrintable {
     }
 
     /// What is left once the album's folder is gone: stops its watch, deletes its
-    /// plan, drops its link, forgets any pause held for it and posts `didComplete`.
-    /// Needs no key.
+    /// plan, drops its link, forgets any pause held for it, records the album's
+    /// move-complete notice and posts `didComplete`. Needs no key.
     func completeRemovedFolder(albumID: String) async {
         await folderWatches.stop(albumID: albumID)
         MigrationPlanStore.removeICloudDriveMigrationPlan(cloudKitAlbumID: albumID)
@@ -335,6 +335,7 @@ public final class ICloudDriveAlbumFinish: DebugPrintable {
             printDebug("unlink FAILED albumID=\(albumID) error=\(error)")
         }
         ICloudDriveBlobMigration.forgetPause(albumID: albumID)
+        CloudKitMoveNotice.markPending(albumID: albumID, kind: .upgradedFromICloudDrive)
         NotificationCenter.default.post(name: Self.didComplete, object: nil, userInfo: ["albumID": albumID])
         printDebug("complete albumID=\(albumID)")
     }

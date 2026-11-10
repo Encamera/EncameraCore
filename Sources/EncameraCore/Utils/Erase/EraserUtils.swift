@@ -145,6 +145,7 @@ struct DefaultLocalDataEraser: LocalDataErasing, DebugPrintable {
     /// of which album's backend is currently configured. iCloud Drive is handled
     /// separately by `eraseICloudDriveMedia`.
     func eraseAllLocalMediaFiles() {
+        CloudKitMoveNotice.clearAll()
         for type in StorageType.allCases where type != .icloud {
             guard case .available = DataStorageAvailabilityUtil.isStorageTypeAvailable(type: type) else {
                 continue

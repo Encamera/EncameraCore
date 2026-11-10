@@ -737,6 +737,13 @@
 "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow" = "Not Now";
 "EncameraDrawerFactory.PartialMigrationDrawer.ToCloudKitBody" = "Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.";
 "EncameraDrawerFactory.PartialMediaMoveDrawer.Body" = "Resume to move the rest of the items to “%@”. Cancel Move stops the move: items already moved stay in “%@”, and the rest stay in this album.";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.UpgradedTitle" = "This album now uses the new iCloud storage";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.UpgradedBody" = "Everything in it has moved. It syncs faster and more reliably across your devices.";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedTitle" = "This album was moved to iCloud";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedBody" = "Everything in it is now stored in iCloud and syncs across your devices.";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedToThisDeviceTitle" = "This album was moved to This Device";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedToThisDeviceBody" = "Everything in it is now stored only on this device. It no longer syncs to your other devices.";
+"EncameraDrawerFactory.CloudKitMoveCompleteDrawer.GotIt" = "Got It";
 "EncameraDrawerFactory.PartialMigrationDrawer.ToLocalBody" = "Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.";
 
 /* Shown when biometrics is the only way into the app and it cannot run. */
