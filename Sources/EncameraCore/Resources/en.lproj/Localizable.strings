@@ -731,8 +731,6 @@
 "EncameraDrawerFactory.PasscodeSetDrawer.Title" = "You're all set";
 "EncameraDrawerFactory.PasscodeSetDrawer.PinBody" = "You've set your PIN successfully. Remember it, you'll need it to unlock Encamera.";
 "EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody" = "You've set your password successfully. Remember it, you'll need it to unlock Encamera.";
-"EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title" = "How the upgrade works";
-"EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Body" = "Each album is copied from iCloud Drive to Encamera's new iCloud sync one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.";
 "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow" = "Not Now";
 "EncameraDrawerFactory.PartialMigrationDrawer.ToCloudKitBody" = "Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.";
 "EncameraDrawerFactory.PartialMediaMoveDrawer.Body" = "Resume to move the rest of the items to “%@”. Cancel Move stops the move: items already moved stay in “%@”, and the rest stay in this album.";
@@ -1017,9 +1015,8 @@
 "CloudKitUpgrade.IntroTitle" = "Faster, more reliable iCloud sync";
 "CloudKitUpgrade.IntroBody" = "To start using the new syncing experience, your iCloud albums need a one-time upgrade.";
 "CloudKitUpgrade.IntroSecurity" = "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
-"CloudKitUpgrade.OtherDevicesNeedUpdate" = "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.";
-"CloudKitUpgrade.Continue" = "Continue";
-"CloudKitUpgrade.SeeHowItWorks" = "See how it works";
+"CloudKitUpgrade.StartUpgrade" = "Start Upgrade";
+"CloudKitUpgrade.WhyUpgrade" = "Why Upgrade?";
 "CloudKitUpgrade.AlbumsIncludedTitle" = "Albums included";
 "CloudKitUpgrade.LaterTitle" = "Upgrade later?";
 "CloudKitUpgrade.LaterMessage" = "You'll still be able to use Encamera, but your existing albums won't get the improved sync until you complete the upgrade.";

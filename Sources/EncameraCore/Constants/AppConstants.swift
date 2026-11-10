@@ -62,6 +62,7 @@ public enum AppConstants {
         // Website Pages
         case openSource = "https://encamera.app/open-source/"
         case privacyPolicy = "https://encamera.app/privacy/"
+        case cloudKitTransitionBlogPost = "https://www.encamera.app/blog/transition-to-cloudkit"
         case roadmap = "https://encamera.featurebase.app/"
         case promotionsConfig = "https://config.encamera.app/promotions/current.json"
 

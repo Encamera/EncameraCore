@@ -951,8 +951,6 @@ public enum L10n {
     }
     /// Albums included
     public static let albumsIncludedTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumsIncludedTitle", fallback: "Albums included")
-    /// Continue
-    public static let `continue` = L10n.tr("Localizable", "CloudKitUpgrade.Continue", fallback: "Continue")
     /// Your photos and videos will upload to iCloud whenever your device is on Wi-Fi. For the best results, keep Encamera open and your device unlocked. Each album shows its progress in a banner at the top.
     public static let initiatedBody = L10n.tr("Localizable", "CloudKitUpgrade.InitiatedBody", fallback: "Your photos and videos will upload to iCloud whenever your device is on Wi-Fi. For the best results, keep Encamera open and your device unlocked. Each album shows its progress in a banner at the top.")
     /// Upgrade started
@@ -975,10 +973,10 @@ public enum L10n {
     public static let laterTitle = L10n.tr("Localizable", "CloudKitUpgrade.LaterTitle", fallback: "Upgrade later?")
     /// Upgrade Now
     public static let laterUpdateNow = L10n.tr("Localizable", "CloudKitUpgrade.LaterUpdateNow", fallback: "Upgrade Now")
-    /// Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.
-    public static let otherDevicesNeedUpdate = L10n.tr("Localizable", "CloudKitUpgrade.OtherDevicesNeedUpdate", fallback: "Your other iPhones and iPads need Encamera 3.0.0 or later to see upgraded albums. Until they update, those albums look empty there.")
-    /// See how it works
-    public static let seeHowItWorks = L10n.tr("Localizable", "CloudKitUpgrade.SeeHowItWorks", fallback: "See how it works")
+    /// Start Upgrade
+    public static let startUpgrade = L10n.tr("Localizable", "CloudKitUpgrade.StartUpgrade", fallback: "Start Upgrade")
+    /// Why Upgrade?
+    public static let whyUpgrade = L10n.tr("Localizable", "CloudKitUpgrade.WhyUpgrade", fallback: "Why Upgrade?")
   }
   public enum Common {
     /// Cancel
@@ -1064,12 +1062,6 @@ public enum L10n {
     public enum CloudKitUpgradeFailedDrawer {
       /// Not Now
       public static let notNow = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow", fallback: "Not Now")
-    }
-    public enum CloudKitUpgradeHowItWorksDrawer {
-      /// Each album is copied from iCloud Drive to Encamera's new iCloud sync one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.
-      public static let body = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Body", fallback: "Each album is copied from iCloud Drive to Encamera's new iCloud sync one at a time. Files are downloaded, verified, then uploaded, and stay end-to-end encrypted the whole way. Nothing is removed from iCloud Drive until its copy is confirmed.")
-      /// How the upgrade works
-      public static let title = L10n.tr("Localizable", "EncameraDrawerFactory.CloudKitUpgradeHowItWorksDrawer.Title", fallback: "How the upgrade works")
     }
     public enum ContinueWithoutKeyDrawer {
       /// Your existing encrypted photos and videos won't be accessible on this device until you enter your recovery key.
