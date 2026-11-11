@@ -585,7 +585,6 @@
 /* ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud */
 "CloudKitMigration.OverlayTitle" = "Moving to iCloud";
 "CloudKitMigration.OverlayTitleToLocal" = "Moving to This Device";
-"CloudKitMigration.OverlayTitleUpgradingICloud" = "Upgrading iCloud Storage";
 "CloudKitMigration.OverlayPhasePreparing" = "Preparing";
 "CloudKitMigration.OverlayPhaseMaterializing" = "Downloading from iCloud Drive";
 "CloudKitMigration.OverlayPhaseUploading" = "Uploading";

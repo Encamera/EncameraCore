@@ -905,8 +905,6 @@ public enum L10n {
     public static let overlayTitle = L10n.tr("Localizable", "CloudKitMigration.OverlayTitle", fallback: "Moving to iCloud")
     /// Moving to This Device
     public static let overlayTitleToLocal = L10n.tr("Localizable", "CloudKitMigration.OverlayTitleToLocal", fallback: "Moving to This Device")
-    /// Upgrading iCloud Storage
-    public static let overlayTitleUpgradingICloud = L10n.tr("Localizable", "CloudKitMigration.OverlayTitleUpgradingICloud", fallback: "Upgrading iCloud Storage")
     /// %@ total
     public static func overlayTotalSize(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.OverlayTotalSize", String(describing: p1), fallback: "%@ total")
