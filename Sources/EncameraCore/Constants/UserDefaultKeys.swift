@@ -21,7 +21,6 @@ public enum UserDefaultKey {
     case hasOpenedAlbum
     case keyTutorialClosed
     case currentAlbumID
-    case showCurrentAlbumOnLaunch
     case launchCountKey
     case lastVersionKey
     case photoAddedCount
@@ -118,7 +117,6 @@ public enum UserDefaultKey {
         case .onboardingState,
              .savedSettings,
              .currentAlbumID,
-             .showCurrentAlbumOnLaunch,
              .keyTutorialClosed,
              .hasOpenedAlbum,
              .defaultStorageLocation,
