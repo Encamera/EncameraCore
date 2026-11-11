@@ -229,6 +229,8 @@ public enum ICloudMaterializationError: Error, LocalizedError, Equatable {
     case downloadFailed(filename: String, message: String)
     /// The download could not even be requested.
     case couldNotStartDownload(filename: String, message: String)
+    /// The task waiting for the download was cancelled.
+    case cancelled(filename: String)
 
     public var errorDescription: String? {
         switch self {
@@ -238,6 +240,8 @@ public enum ICloudMaterializationError: Error, LocalizedError, Equatable {
             return "\(filename) could not be downloaded from iCloud Drive: \(message)"
         case .couldNotStartDownload(let filename, let message):
             return "Could not start downloading \(filename) from iCloud Drive: \(message)"
+        case .cancelled(let filename):
+            return "The download of \(filename) from iCloud Drive was cancelled"
         }
     }
 }
@@ -482,9 +486,9 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
             NSMetadataUbiquitousItemDownloadingErrorKey
         ])
 
+        let state = QueryRun(query: query)
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
-                let state = QueryRun(query: query)
                 var observers: [NSObjectProtocol] = []
                 var outstanding = pending
                 var results: [URL: Result<URL, Error>] = [:]
@@ -502,6 +506,16 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                     ICloudDriveMigrationObserver.shared.recordBatchResolved(byDeadline: true)
                     for (name, url) in outstanding {
                         results[url] = .failure(ICloudMaterializationError.timedOut(filename: name))
+                    }
+                    teardown()
+                    continuation.resume(returning: results)
+                }
+
+                // A cancelled wait ends now, not at the deadline.
+                state.finishCancelled = {
+                    guard state.claim() else { return }
+                    for (name, url) in outstanding {
+                        results[url] = .failure(ICloudMaterializationError.cancelled(filename: name))
                     }
                     teardown()
                     continuation.resume(returning: results)
@@ -577,7 +591,10 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
                 query.start()
             }
         } onCancel: {
-            Task { @MainActor in query.stop() }
+            Task { @MainActor in
+                query.stop()
+                state.finishCancelled?()
+            }
         }
     }
 
@@ -587,6 +604,8 @@ public final class ICloudDriveMaterializer: ICloudDriveMaterializing, DebugPrint
     private final class QueryRun {
         private(set) var isClaimed = false
         private let query: NSMetadataQuery
+        /// Resolves the wait with every outstanding file failed as cancelled.
+        var finishCancelled: (@MainActor () -> Void)?
 
         init(query: NSMetadataQuery) { self.query = query }
 

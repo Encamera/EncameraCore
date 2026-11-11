@@ -63,12 +63,13 @@ extension CloudKitContainer: CloudDataErasing {
 public protocol LocalDataErasing {
     /// Cancels all in-flight CloudKit syncs, uploads, and blob downloads so the
     /// zone delete is the only CloudKit operation in flight. Must run before
-    /// `deleteAllCloudData`.
+    /// `deleteAllCloudData` and before the local media goes.
     func shutdownCloudKitSync() async
     /// Halts in-flight CloudKit migrations (no further checkpoints or CloudKit
-    /// ops) and the iCloud Drive blob migration, which no pass or slice restarts
-    /// in the process, clears the keys it holds in memory, and removes every
-    /// on-disk migration plan: local moves and iCloud Drive albums alike.
+    /// ops) and cancels the iCloud Drive blob migration without waiting for the
+    /// transfer under way; no pass or slice restarts in the process. Clears the
+    /// keys it holds in memory, and removes every on-disk migration plan: local
+    /// moves and iCloud Drive albums alike.
     func eraseMigrationState() async
     /// Active backend cleanup (also clears that backend's in-memory caches).
     func eraseActiveBackendMedia() async
@@ -415,13 +416,17 @@ public struct EraserUtils {
     ///
     /// Pending background slices are cancelled and in-flight migrations, the
     /// iCloud Drive blob migration included, are halted FIRST so nothing keeps
-    /// writing checkpoints or issuing CloudKit operations. `.allData` removes the
-    /// linked iCloud Drive folders of partly migrated albums before the local
-    /// albums, whose markers link them; a `.reset` leaves the folders alone. The
-    /// CloudKit checks run before the residual sweep, which removes
-    /// `Library/Caches/CloudKit` and breaks every later CloudKit read; the keychain wipe runs after the media so deleting the
-    /// keys orphans nothing. A `pendingCloudDataWipe` marker from an earlier run
-    /// survives both scopes.
+    /// writing checkpoints or issuing CloudKit operations; a transfer under way
+    /// is cancelled, not waited for. Everything on the device then goes before
+    /// any step that waits on the network: `.allData` deletes the CloudKit zones
+    /// and subscriptions only after the media, caches and app-layer state. It
+    /// removes the linked iCloud Drive folders of partly migrated albums before
+    /// the local albums, whose markers link them; a `.reset` leaves the folders
+    /// alone. The CloudKit steps run before the residual sweep, which removes
+    /// `Library/Caches/CloudKit` and breaks every later CloudKit read, and before
+    /// the defaults wipe, after which an owed cloud wipe is recorded; the
+    /// keychain wipe runs after the media so deleting the keys orphans nothing.
+    /// A `pendingCloudDataWipe` marker from an earlier run survives both scopes.
     public func erase(progress: @escaping @Sendable (ErasureStepReport) -> Void) async -> ErasureReport {
         var steps: [ErasureStepReport] = []
         var cloudKitDeletionFailed = false
@@ -459,6 +464,38 @@ public struct EraserUtils {
         await perform("sync.shutdown",
                       erase: { await localEraser.shutdownCloudKitSync() },
                       verify: { await localVerifier.verifyCloudKitSyncShutdown() })
+
+        if scope.includes(.ciphertext) {
+            await perform("media.iCloudDrive",
+                          erase: { await localEraser.eraseICloudDriveMedia() },
+                          verify: { localVerifier.verifyICloudDriveMedia() })
+            await perform("media.activeBackend",
+                          erase: { await localEraser.eraseActiveBackendMedia() },
+                          verify: { await localVerifier.verifyActiveBackendMedia() })
+            await perform("media.localAlbums",
+                          erase: { localEraser.eraseAllLocalMediaFiles() },
+                          verify: { localVerifier.verifyLocalMediaFiles() })
+            await perform("media.indexes",
+                          erase: { localEraser.eraseMediaIndexes() },
+                          verify: { localVerifier.verifyMediaIndexes() })
+            await perform("media.blobCache",
+                          erase: { await localEraser.eraseBlobCache() },
+                          verify: { localVerifier.verifyBlobCache() })
+        }
+
+        await perform("media.thumbnails",
+                      erase: { localEraser.eraseThumbnails() },
+                      verify: { localVerifier.verifyThumbnails() })
+        await perform("media.temp",
+                      erase: { localEraser.eraseTempDirectories() },
+                      verify: { localVerifier.verifyTempDirectories() })
+        await perform("media.sharedImports",
+                      erase: { await localEraser.eraseSharedContainerImports() },
+                      verify: { localVerifier.verifySharedContainerImports() })
+
+        for step in appLayerSteps where scope.includes(step.descriptor.tier) {
+            await perform(step.descriptor.id, erase: step.erase, verify: step.verify)
+        }
 
         if scope.includes(.ciphertext) {
             progress(.running("cloud.zones"))
@@ -500,38 +537,6 @@ public struct EraserUtils {
                 }
             }
 
-            await perform("media.iCloudDrive",
-                          erase: { await localEraser.eraseICloudDriveMedia() },
-                          verify: { localVerifier.verifyICloudDriveMedia() })
-            await perform("media.activeBackend",
-                          erase: { await localEraser.eraseActiveBackendMedia() },
-                          verify: { await localVerifier.verifyActiveBackendMedia() })
-            await perform("media.localAlbums",
-                          erase: { localEraser.eraseAllLocalMediaFiles() },
-                          verify: { localVerifier.verifyLocalMediaFiles() })
-            await perform("media.indexes",
-                          erase: { localEraser.eraseMediaIndexes() },
-                          verify: { localVerifier.verifyMediaIndexes() })
-            await perform("media.blobCache",
-                          erase: { await localEraser.eraseBlobCache() },
-                          verify: { localVerifier.verifyBlobCache() })
-        }
-
-        await perform("media.thumbnails",
-                      erase: { localEraser.eraseThumbnails() },
-                      verify: { localVerifier.verifyThumbnails() })
-        await perform("media.temp",
-                      erase: { localEraser.eraseTempDirectories() },
-                      verify: { localVerifier.verifyTempDirectories() })
-        await perform("media.sharedImports",
-                      erase: { await localEraser.eraseSharedContainerImports() },
-                      verify: { localVerifier.verifySharedContainerImports() })
-
-        for step in appLayerSteps where scope.includes(step.descriptor.tier) {
-            await perform(step.descriptor.id, erase: step.erase, verify: step.verify)
-        }
-
-        if scope.includes(.ciphertext) {
             await perform("sweep.residual",
                           erase: { localEraser.eraseResidualContainerFiles() },
                           verify: { localVerifier.verifyResidualContainerFiles() })

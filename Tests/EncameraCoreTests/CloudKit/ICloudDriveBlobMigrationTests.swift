@@ -1113,6 +1113,88 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: corruptURL), garbage)
     }
 
+    // MARK: - Erase
+
+    /// Holds a download until the test opens it, whatever happens to the task.
+    private final class DownloadGate {
+        private var continuation: CheckedContinuation<Void, Never>?
+        private var isOpen = false
+
+        func wait() async {
+            guard !isOpen else { return }
+            await withCheckedContinuation { continuation = $0 }
+        }
+
+        func open() {
+            isOpen = true
+            continuation?.resume()
+            continuation = nil
+        }
+    }
+
+    func testEraseHaltCancelsADownloadUnderWayAndTheItemWritesNothing() async throws {
+        let prepared = try await prepareAlbum(count: 2)
+        for id in prepared.mediaIDs { try materializer.evictForTest(photoURL(prepared, id)) }
+        let downloadStarted = expectation(description: "a download is under way")
+        materializer.onMaterialize = { _ in
+            downloadStarted.fulfill()
+            // Ends when the pass's task is cancelled, as the real download wait does.
+            try? await Task.sleep(for: .seconds(60))
+        }
+        let before = try await plan(prepared)
+        defer { ICloudDriveBlobMigration._testClearEraseHalt() }
+
+        XCTAssertTrue(makeLoop().startMigrationPass(albumID: prepared.albumID, folder: prepared.folder))
+        await fulfillment(of: [downloadStarted], timeout: 5)
+        let waited = await ContinuousClock().measure { await ICloudDriveBlobMigration.haltForErase() }
+
+        XCTAssertLessThan(waited, .seconds(2), "the erase cancels the download instead of waiting for it")
+        XCTAssertFalse(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID), "the cancelled pass has ended")
+        XCTAssertEqual(store.uploadCalls, [], "the abandoned item is not uploaded")
+        XCTAssertTrue(spy.calls.isEmpty, "nor is its file deleted")
+        let after = try await plan(prepared)
+        XCTAssertEqual(after.items, before.items, "no checkpoint is written for it")
+    }
+
+    func testEraseHaltGoesOnWithoutAPassThatIgnoresCancellation() async throws {
+        let prepared = try await prepareAlbum(count: 2)
+        for id in prepared.mediaIDs { try materializer.evictForTest(photoURL(prepared, id)) }
+        let downloadStarted = expectation(description: "a download is under way")
+        let gate = DownloadGate()
+        materializer.onMaterialize = { _ in
+            downloadStarted.fulfill()
+            await gate.wait()
+        }
+        let before = try await plan(prepared)
+        let gracePeriod = ICloudDriveBlobMigration.eraseHaltGracePeriod
+        ICloudDriveBlobMigration.eraseHaltGracePeriod = .milliseconds(100)
+        defer {
+            ICloudDriveBlobMigration.eraseHaltGracePeriod = gracePeriod
+            ICloudDriveBlobMigration._testClearEraseHalt()
+        }
+
+        XCTAssertTrue(makeLoop().startMigrationPass(albumID: prepared.albumID, folder: prepared.folder))
+        await fulfillment(of: [downloadStarted], timeout: 5)
+        let waited = await ContinuousClock().measure { await ICloudDriveBlobMigration.haltForErase() }
+
+        XCTAssertLessThan(waited, .seconds(2), "the erase waits no longer than the grace period")
+        XCTAssertTrue(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID), "precondition: the pass is still stuck")
+        let stopped = await ContinuousClock().measure { await ICloudDriveBlobMigration.stopPass(albumID: prepared.albumID) }
+        XCTAssertLessThan(stopped, .seconds(2), "the folder removal does not wait for the stuck pass either")
+
+        // The download ends after the erase moved on: the item still writes nothing.
+        gate.open()
+        let deadline = ContinuousClock.now + .seconds(5)
+        while ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID), ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertFalse(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID))
+        XCTAssertEqual(store.uploadCalls, [])
+        XCTAssertTrue(spy.calls.isEmpty)
+        let after = try await plan(prepared)
+        XCTAssertEqual(after.items, before.items)
+    }
+
     // MARK: - Wi-Fi only
 
     func testPassOffWiFiStopsBeforeMaterializing() async throws {

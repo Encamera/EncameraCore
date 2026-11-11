@@ -83,8 +83,9 @@
 //  over. It stops for an album whose `album.json` is gone and for a folder whose
 //  marker no longer names the album. No `CKOperation` outlives the call that made
 //  it. An erase halts it for the rest of the process (`haltForErase()`): the
-//  passes in flight stop after their item, and no pass or background task run
-//  starts again.
+//  passes in flight are cancelled, the item under way is abandoned where it is
+//  without another checkpoint, index write or delete, and no pass or background
+//  task run starts again.
 //
 //  A full iCloud, no iCloud account or an undeployed Production schema halts the
 //  run: the pass stops with `.paused` and the album waits with that reason
@@ -341,7 +342,8 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// and returns once it has ended. The item in flight finishes and checkpoints
     /// first.
     public static func stopPass(albumID: String) async {
-        guard let pass = running[albumID] else { return }
+        // An erase already cancelled every pass and does not wait for one.
+        guard !isHaltedForErase, let pass = running[albumID] else { return }
         pass.requestStop()
         await pass.waitForPassEnd()
     }
@@ -371,28 +373,41 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         activeBackgroundTaskRun?.requestStop()
     }
 
+    nonisolated private static let eraseHaltLock = NSLock()
+    nonisolated(unsafe) private static var haltedForErase = false
+
     /// Whether an erase halted the blob migration in this process. Once set, no
     /// pass or slice starts again in the process; an erase ends the process.
-    public private(set) static var isHaltedForErase = false
+    nonisolated public static var isHaltedForErase: Bool {
+        eraseHaltLock.withLock { haltedForErase }
+    }
+
+    /// How long `haltForErase()` gives the cancelled passes to end before the
+    /// erase goes on without them.
+    static var eraseHaltGracePeriod: Duration = .seconds(5)
 
     /// Halts the blob migration for an erase: every pass and the slice in flight
-    /// are asked to stop and waited out, so the item in flight finishes first, no
-    /// pass or slice starts again in the process, every hold is dropped and the
-    /// keys held in memory are cleared.
+    /// are cancelled, so a download or upload under way is abandoned and its item
+    /// writes nothing more, no pass or slice starts again in the process and the
+    /// keys held in memory are cleared. Waits for the cancelled passes to end,
+    /// but no longer than `eraseHaltGracePeriod`.
     public static func haltForErase() async {
-        isHaltedForErase = true
+        eraseHaltLock.withLock { haltedForErase = true }
         activeBackgroundTaskRun?.requestStop()
         let passes = Array(running.values)
-        for pass in passes { pass.requestStop() }
-        for pass in passes { await pass.waitForPassEnd() }
+        for pass in passes { pass.abandonPasses() }
+        let deadline = ContinuousClock.now + eraseHaltGracePeriod
+        while !running.isEmpty, ContinuousClock.now < deadline {
+            do { try await Task.sleep(for: .milliseconds(20)) } catch { break }
+        }
         for albumID in Array(pausedAlbums.keys) { cancelScheduledResume(albumID: albumID) }
         BlobMigrationKeyCache.shared.clear()
-        printDebug("halted for erase passes=\(passes.count)")
+        printDebug("halted for erase passes=\(passes.count) stillRunning=\(running.count)")
     }
 
     /// Test-only: lifts the erase halt so later tests can run passes.
     static func _testClearEraseHalt() {
-        isHaltedForErase = false
+        eraseHaltLock.withLock { haltedForErase = false }
     }
 
     /// Whether any iCloud Drive album migration plan on this device has an item
@@ -505,6 +520,8 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     private let maxFailedDownloads: Int
     private let albumFinish: ICloudDriveAlbumFinish
     private var stopRequested = false
+    /// The task of each pass this loop is running, by album id.
+    private var passTasks: [String: Task<MigrationRunOutcome, Never>] = [:]
     /// Whether the pass goes on in the background: set for a background task run's passes.
     private var allowsBackground = false
     /// Resumed when the pass in flight ends.
@@ -599,11 +616,22 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     @discardableResult
     public func startMigrationPass(albumID: String, folder: URL) -> Bool {
         guard beginMigrationPass(albumID) else { return false }
-        Task { @MainActor in
-            defer { endMigrationPass(albumID) }
-            _ = await executeMigrationPass(albumID: albumID, folder: folder)
-        }
+        _ = launchClaimedPass(albumID: albumID, folder: folder)
         return true
+    }
+
+    /// Runs the pass `beginMigrationPass` claimed in a task of its own, which an
+    /// erase cancels.
+    private func launchClaimedPass(albumID: String, folder: URL) -> Task<MigrationRunOutcome, Never> {
+        let task = Task { @MainActor in
+            defer {
+                passTasks[albumID] = nil
+                endMigrationPass(albumID)
+            }
+            return await executeMigrationPass(albumID: albumID, folder: folder)
+        }
+        passTasks[albumID] = task
+        return task
     }
 
     /// Runs one pass for the CloudKit album `albumID` and its iCloud Drive folder
@@ -611,8 +639,8 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     public func runMigrationPass(albumID: String, folder: URL) async -> MigrationRunOutcome {
         if Self.isHaltedForErase { return .stopped(.erased, MigrationPassReport()) }
         guard beginMigrationPass(albumID) else { return .alreadyRunning }
-        defer { endMigrationPass(albumID) }
-        return await executeMigrationPass(albumID: albumID, folder: folder)
+        let task = launchClaimedPass(albumID: albumID, folder: folder)
+        return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
     }
 
     /// What one background task run did.
@@ -670,6 +698,12 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// Stops this loop's pass before its next item.
     public func requestStop() {
         stopRequested = true
+    }
+
+    /// Stops this loop's passes now: whatever their item is waiting on is cancelled.
+    private func abandonPasses() {
+        stopRequested = true
+        for task in passTasks.values { task.cancel() }
     }
 
     private func beginMigrationPass(_ albumID: String) -> Bool {
@@ -835,6 +869,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
             return .stopped(reason, report)
         }
 
+        if Self.isHaltedForErase { return stopPass(because: .erased) }
         let startedUnlocked = conditions.isUnlocked()
         let deviceLocked = DeviceLockedFlag()
         let configuration: MigrationPassConfiguration
@@ -867,6 +902,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
 
             configuration.keyProofFailure.reset()
             let itemResult = await migrate(at: nextIndex, in: &latestPlan, configuration: configuration)
+            if case .abandoned = itemResult { return stopPass(because: .erased) }
             deviceResourceStateObserver.notificationCenter.post(name: Self.itemDidFinish, object: nil,
                                                                 userInfo: ["albumID": albumID])
             switch itemResult {
@@ -952,6 +988,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
 
     /// Why the pass cannot go on to another item, if it cannot.
     private func stopReasonBeforeNextItem(albumID: String, folder: URL) -> StopReason? {
+        if Self.isHaltedForErase { return .erased }
         if stopRequested { return .stopRequested }
         if let unmet = unmetCondition() { return unmet }
         guard CloudKitAlbumMarker.exists(albumID: albumID) else { return .albumNotOnDevice }
@@ -990,6 +1027,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         case .deferredItem(let reason): report.deferredItems[recordName] = reason
         case .requeued: report.requeued.append(recordName)
         case .halted(let cause): return cause
+        case .abandoned: break
         }
         return nil
     }
@@ -1012,10 +1050,15 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         case requeued
         /// A failure that halts the run; the item is not failed.
         case halted(PauseReason)
+        /// An erase halted the migration while the item was under way: nothing
+        /// more is written for it.
+        case abandoned
     }
 
     /// One item through materialize, upload, verify, location flip, conflict
-    /// resolution and verified delete, checkpointed after every transition.
+    /// resolution and verified delete, checkpointed after every transition. Once
+    /// an erase has halted the migration it returns `.abandoned` from wherever it
+    /// is, writing nothing more.
     private func migrate(at index: Int, in plan: inout MigrationPlan, configuration: MigrationPassConfiguration) async -> ItemResult {
         let planStore = configuration.planStore
         let item = plan.items[index]
@@ -1026,6 +1069,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         if item.state == .pending || item.state == .failed {
             await alignCreatedAt(at: index, in: &plan, indexStore: configuration.indexStore, cloudKitAlbum: configuration.cloudKitAlbum)
             downloadedHere = await materialize(at: index, in: &plan, url: url, folder: configuration.folder)
+            if Self.isHaltedForErase { return .abandoned }
             if ICloudPlaceholderName.existsInAnyForm(url), !ICloudPlaceholderName.isMaterialized(url) {
                 if (plan.items[index].failedDownloads ?? 0) >= maxFailedDownloads {
                     return await deferItem(at: index, in: &plan, reason: .neverDownloads, url: url,
@@ -1050,9 +1094,11 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         do {
             try await LocalToCloudKitStep().transfer(at: index, in: &plan, context: configuration.context)
         } catch {
+            if Self.isHaltedForErase { return .abandoned }
             return await recordTransferError(error, at: index, in: &plan, url: url, deferralReason: item.deferralReason,
                                              downloadedHere: downloadedHere, planStore: planStore)
         }
+        if Self.isHaltedForErase { return .abandoned }
 
         switch plan.items[index].state {
         case .verified:
@@ -1092,6 +1138,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         }
 
         await flipToCloudKit(plan.items[index], indexStore: configuration.indexStore)
+        if Self.isHaltedForErase { return .abandoned }
 
         // The current version is the one uploaded and verified; the others go.
         if !fileVersions.unresolvedConflictVersionURLs(of: url).isEmpty {
@@ -1107,6 +1154,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         }
 
         let outcome = await configuration.verifiedDelete.delete(recordName: item.recordName, albumID: configuration.albumID, folder: configuration.folder)
+        if Self.isHaltedForErase { return .abandoned }
         switch outcome {
         case .deleted, .skipped(.notInFolder):
             plan.items[index].state = .sourceDeleted
@@ -1316,7 +1364,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
                                           noteMissingKey: {},
                                           setPhase: { _, _, _ in },
                                           reportTransferProgress: { _, _ in },
-                                          shouldStopReencryption: { deviceLocked.wasLocked },
+                                          shouldStopReencryption: { deviceLocked.wasLocked || ICloudDriveBlobMigration.isHaltedForErase },
                                           cacheInsertion: Self.cacheInsertion(for:))
         context.defersRecordsInAnotherAlbum = true
         return context

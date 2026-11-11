@@ -38,9 +38,9 @@ public enum ErasureStepOutcome: String, Equatable, Sendable {
 /// The groups the progress screen renders, in run order.
 public enum ErasureStepSection: String, CaseIterable, Sendable {
     case activity = "Stopping activity"
-    case cloud = "iCloud"
     case media = "Media & caches"
     case app = "App services"
+    case cloud = "iCloud"
     case keys = "Keys & settings"
     case finalCheck = "Final check"
 }
@@ -108,15 +108,14 @@ public struct ErasureStepDescriptor: Identifiable, Equatable, Sendable {
         allDataCatalog.filter { scope.includes($0.tier) }
     }
 
-    /// Every step, both tiers, in run order. The keychain and defaults wipes stay
-    /// last so deleting the keys orphans nothing mid-run, and the CloudKit checks
-    /// run before the residual sweep, which breaks CloudKit reads until relaunch.
+    /// Every step, both tiers, in run order. Everything on the device goes
+    /// first; the iCloud steps, which wait on the network, come after it. The
+    /// keychain and defaults wipes stay last so deleting the keys orphans nothing
+    /// mid-run, and the CloudKit checks run before the residual sweep, which
+    /// breaks CloudKit reads until relaunch.
     public static let allDataCatalog: [ErasureStepDescriptor] = [
         .init(id: "migration.state",      title: "Cancel migrations",                           section: .activity),
         .init(id: "sync.shutdown",        title: "Stop iCloud sync",                            section: .activity),
-
-        .init(id: "cloud.zones",          title: "Delete iCloud data",                          section: .cloud, tier: .ciphertext),
-        .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud, tier: .ciphertext),
 
         .init(id: "media.iCloudDrive",    title: "Delete iCloud Drive media",                   section: .media, tier: .ciphertext),
         .init(id: "media.activeBackend",  title: "Delete current album media",                  section: .media, tier: .ciphertext),
@@ -126,6 +125,9 @@ public struct ErasureStepDescriptor: Identifiable, Equatable, Sendable {
         .init(id: "media.thumbnails",     title: "Delete thumbnails",                           section: .media),
         .init(id: "media.temp",           title: "Delete temporary files",                      section: .media),
         .init(id: "media.sharedImports",  title: "Delete shared imports",                       section: .media),
+
+        .init(id: "cloud.zones",          title: "Delete iCloud data",                          section: .cloud, tier: .ciphertext),
+        .init(id: "cloud.subscriptions",  title: "Remove iCloud notifications",                 section: .cloud, tier: .ciphertext),
 
         .init(id: "sweep.residual",       title: "Remove remaining files",                      section: .keys, tier: .ciphertext),
         .init(id: "keys.keychain",        title: "Delete keys and passcode",                    section: .keys),

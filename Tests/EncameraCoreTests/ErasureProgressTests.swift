@@ -20,11 +20,16 @@ final class ErasureProgressTests: XCTestCase {
         XCTAssertEqual(indices, indices.sorted(), "steps must be declared in section order so the screen and the run agree")
     }
 
-    func testCatalogRunsCloudBeforeLocalSweepAndKeychainLast() {
+    func testCatalogRunsLocalWipeBeforeCloudThenSweepAndKeychainLast() {
         let ids = ErasureStepDescriptor.allDataCatalog.map(\.id)
         let index = { (id: String) in ids.firstIndex(of: id)! }
         XCTAssertLessThan(index("migration.state"), index("sync.shutdown"))
-        XCTAssertLessThan(index("sync.shutdown"), index("cloud.zones"))
+        XCTAssertLessThan(index("sync.shutdown"), index("media.iCloudDrive"))
+        let mediaIDs = ErasureStepDescriptor.allDataCatalog.filter { $0.section == .media }.map(\.id)
+        for id in mediaIDs {
+            XCTAssertLessThan(index(id), index("cloud.zones"),
+                              "\(id) is on the device and must not wait behind a step that waits on the network")
+        }
         XCTAssertLessThan(index("cloud.subscriptions"), index("sweep.residual"),
                           "the residual sweep removes Library/Caches/CloudKit, after which CloudKit reads fail")
         XCTAssertLessThan(index("sweep.residual"), index("keys.keychain"))
@@ -63,8 +68,9 @@ final class ErasureProgressTests: XCTestCase {
     func testMarkerTextCountsPassesAndNamesFailures() {
         let descriptors = ErasureStepDescriptor.allDataCatalog
         var steps = descriptors.map { ErasureStepReport(id: $0.id, outcome: .pass) }
-        steps[2] = ErasureStepReport(id: "cloud.zones", outcome: .fail, summary: "offline", hint: .cloudUnreachable)
-        steps[3] = .skipped("cloud.subscriptions", "no account")
+        let index = { (id: String) in descriptors.firstIndex { $0.id == id }! }
+        steps[index("cloud.zones")] = ErasureStepReport(id: "cloud.zones", outcome: .fail, summary: "offline", hint: .cloudUnreachable)
+        steps[index("cloud.subscriptions")] = .skipped("cloud.subscriptions", "no account")
         let report = ErasureReport(descriptors: descriptors, steps: steps, cloudKitDeletionFailed: true)
 
         XCTAssertFalse(report.isClean)

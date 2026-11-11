@@ -30,9 +30,12 @@ final class EraserUtilsTests: XCTestCase {
         var readError: Error?
         private(set) var callCount = 0
         private(set) var subscriptionDeleteCount = 0
+        /// Runs as the zone delete starts.
+        var onDelete: (() -> Void)?
 
         func deleteAllCloudData() async throws {
             callCount += 1
+            onDelete?()
             if let error { throw error }
         }
         func deleteAllSubscriptions() async throws {
@@ -139,6 +142,27 @@ final class EraserUtilsTests: XCTestCase {
         XCTAssertFalse(result.cloudKitDeletionFailed)
         XCTAssertEqual(local.steps, Self.allDataSteps,
                        "every local step runs, in order, with no pending-wipe marker on success")
+    }
+
+    func testEraseAllDataWipesTheDeviceBeforeReachingForICloud() async throws {
+        let cloud = MockCloudDataEraser()
+        let local = RecordingLocalEraser()
+        var stepsBeforeCloudDelete: [String] = []
+        cloud.onDelete = { stepsBeforeCloudDelete = local.steps }
+        let appStep = ErasureStep(descriptor: .init(id: "app.test", title: "App state", section: .app),
+                                  erase: { [local] in local.steps.append("appLayer") },
+                                  verify: { .pass() })
+
+        let utils = makeUtils(scope: .allData, cloud: cloud, local: local, appLayerSteps: [appStep])
+        _ = try await utils.erase()
+
+        XCTAssertEqual(stepsBeforeCloudDelete,
+                       ["migrationState", "shutdownCloudKitSync", "iCloudDriveMedia", "activeBackendMedia", "allLocalMediaFiles",
+                        "mediaIndexes", "blobCache", "thumbnails", "tempDirectories", "sharedContainerImports", "appLayer"],
+                       "everything on the device goes before the zone delete, which waits on the network; the residual sweep, keychain and defaults follow it")
+        let ids = utils.stepDescriptors.map(\.id)
+        XCTAssertEqual(ids.firstIndex(of: "cloud.zones"), ids.firstIndex(of: "app.test").map { $0 + 1 },
+                       "the checklist lists the steps in the order they run")
     }
 
     func testEraseAllDataCloudFailureStillRunsEveryLocalStepAndPersistsMarker() async throws {
