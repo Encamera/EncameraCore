@@ -87,6 +87,19 @@ final class MissingKeyEntryTests: XCTestCase {
                       "adding a key must never drop the device's own key")
     }
 
+    /// The phrase is stored with the key, so the key picker can list it for
+    /// backup alongside the device's own key.
+    func testAddedKeyKeepsItsPassphrase() async throws {
+        let scenario = try await makeScenario()
+
+        _ = try await MissingKeyEntry(keyManager: scenario.manager)
+            .addKey(phraseComponents: foreignPhrase,
+                    requiredStampPrefix: scenario.foreignKey.stampPrefix,
+                    verify: verifier(for: scenario.mediaURL))
+
+        XCTAssertEqual(scenario.manager.savedPassphrases.map(\.words), [foreignPhrase])
+    }
+
     /// Step 5: a wrong key is rejected with a specific message, and nothing is
     /// written to the keychain.
     func testAddingWrongKeyIsRejectedAndSavesNothing() async throws {

@@ -99,7 +99,7 @@ public struct MissingKeyEntry {
     }
 
     /// Derives the phrase's key, proves it opens the media, and only then saves
-    /// it as a decrypt-only library entry.
+    /// it, with its passphrase, as a decrypt-only library entry.
     ///
     /// - Parameters:
     ///   - requiredKey: the key the media or album names, when it names one.
@@ -116,14 +116,15 @@ public struct MissingKeyEntry {
         verify: (PrivateKey) async -> KeyProofOutcome
     ) async throws -> PrivateKey {
 
-        let candidate: PrivateKey
+        let passphraseKey: PassphraseKey
         do {
-            candidate = try PrivateKey(passphrase: KeyPassphrase(words: phraseComponents))
+            passphraseKey = try PassphraseKey(passphrase: KeyPassphrase(words: phraseComponents))
         } catch let error as KeyManagerError {
             throw MissingKeyEntryError.invalidPhrase(error.displayDescription)
         } catch let error as PrivateKeyError {
             throw MissingKeyEntryError.invalidPhrase(error.displayDescription)
         }
+        let candidate = passphraseKey.key
 
         // Identity is the full fingerprint, never the display name — every
         // production key is named `encamera_default_key`.
@@ -149,7 +150,7 @@ public struct MissingKeyEntry {
             throw MissingKeyEntryError.wrongKey(entered: candidate.stampPrefix, required: nil)
         }
 
-        try keyManager.save(key: candidate, setNewKeyToCurrent: false)
+        try keyManager.save(passphraseKey, setNewKeyToCurrent: false)
         NotificationCenter.default.post(name: .keyLibraryDidGrow, object: nil)
         return candidate
     }

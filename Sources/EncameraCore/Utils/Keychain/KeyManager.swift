@@ -138,7 +138,10 @@ public protocol KeyManager {
     /// Removes a single key from the library, addressed by fingerprint.
     /// Defaults to device-local; see `KeyDeletionScope`.
     func deleteKey(fingerprint: String, scope: KeyDeletionScope) throws
-    func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws
+    /// Saves a key derived from a passphrase together with that passphrase's
+    /// item, so the key shows in the key picker and can be backed up. There is
+    /// deliberately no public way to save a key without its passphrase.
+    func save(_ passphraseKey: PassphraseKey, setNewKeyToCurrent: Bool) throws
     func generateKeyUsingRandomWords() throws -> PrivateKey
     @discardableResult func generateKeyFromPasswordComponentsAndSave(_ components: [String]) throws -> PrivateKey
     @discardableResult func saveKeyWithPassphrase(passphrase: KeyPassphrase) throws -> PrivateKey
@@ -181,5 +184,4 @@ public extension KeyManager {
     func clearKeychainData() {
         clearKeychainData(scope: .deviceLocal)
     }
-
 }

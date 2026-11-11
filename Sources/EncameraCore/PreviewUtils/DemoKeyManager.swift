@@ -148,7 +148,16 @@ public class DemoKeyManager: KeyManager {
     /// Deduplicates on key material, mirroring `KeychainManager.save`. Honors
     /// `setNewKeyToCurrent` so a test can prove a decrypt-only add does not
     /// repoint which key new media is written with.
-    public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
+    /// Every passphrase `save(_:setNewKeyToCurrent:)` stored.
+    public var savedPassphrases: [KeyPassphrase] = []
+
+    public func save(_ passphraseKey: PassphraseKey, setNewKeyToCurrent: Bool) throws {
+        try save(key: passphraseKey.key, setNewKeyToCurrent: setNewKeyToCurrent)
+        savedPassphrases.append(passphraseKey.passphrase)
+    }
+
+    /// Stores a key with no passphrase, for tests that seed raw key bytes.
+    func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
         if !storedKeysValue.contains(where: { $0.keyBytes == key.keyBytes }) {
             storedKeysValue.append(key)
         }

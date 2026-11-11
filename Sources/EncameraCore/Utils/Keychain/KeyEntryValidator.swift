@@ -60,9 +60,11 @@ public enum KeyFingerprintVerification: Equatable {
 
 /// The result of accepting a manually entered key.
 public struct KeyEntryOutcome: Equatable {
-    /// The key that was derived. `acceptKey` has also saved it; `validateKey`
-    /// has not.
-    public let key: PrivateKey
+    /// The key that was derived, with the entered phrase. `acceptKey` has
+    /// also saved both; `validateKey` has not, and its caller saves this value
+    /// later so the passphrase is stored with the key.
+    public let passphraseKey: PassphraseKey
+    public var key: PrivateKey { passphraseKey.key }
     /// True when the key was checked against a known fingerprint and matched.
     /// False when no fingerprints were available (offline / `.unknown` probe),
     /// so the key was accepted without validation and verification is deferred
@@ -128,7 +130,7 @@ public struct KeyEntryValidator {
                           requiredFingerprints: [String]) throws -> KeyEntryOutcome {
         let outcome = try validateKey(phraseComponents: phraseComponents,
                                       requiredFingerprints: requiredFingerprints)
-        try keyManager.save(key: outcome.key, setNewKeyToCurrent: true)
+        try keyManager.save(outcome.passphraseKey, setNewKeyToCurrent: true)
         return outcome
     }
 
@@ -138,16 +140,16 @@ public struct KeyEntryValidator {
     public func validateKey(phraseComponents: [String],
                             requiredFingerprints: [String]) throws -> KeyEntryOutcome {
 
-        let candidate: PrivateKey
+        let passphraseKey: PassphraseKey
         do {
-            candidate = try PrivateKey(passphrase: KeyPassphrase(words: phraseComponents))
+            passphraseKey = try PassphraseKey(passphrase: KeyPassphrase(words: phraseComponents))
         } catch let error as KeyManagerError {
             throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
         } catch let error as PrivateKeyError {
             throw KeyEntryValidationError.invalidPhrase(error.displayDescription)
         }
 
-        let enteredFingerprint = candidate.keyFingerprint
+        let enteredFingerprint = passphraseKey.key.keyFingerprint
 
         let validated: Bool
         switch KeyEntryValidator.verify(fingerprint: enteredFingerprint, against: requiredFingerprints) {
@@ -159,6 +161,6 @@ public struct KeyEntryValidator {
             throw KeyEntryValidationError.fingerprintMismatch(entered: entered, required: required)
         }
 
-        return KeyEntryOutcome(key: candidate, validatedAgainstFingerprint: validated)
+        return KeyEntryOutcome(passphraseKey: passphraseKey, validatedAgainstFingerprint: validated)
     }
 }

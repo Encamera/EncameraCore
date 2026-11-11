@@ -115,7 +115,9 @@ public struct PrivateKey: Hashable {
 
     /// Derives the key a passphrase encodes without touching the keychain.
     /// Words 1-4 are the salt, the rest the password input to pwHash.
-    public init(passphrase: KeyPassphrase) throws {
+    /// Internal so callers outside the module derive through `PassphraseKey`,
+    /// which keeps the passphrase with the key.
+    init(passphrase: KeyPassphrase) throws {
         let components = passphrase.words
         let sodium = Sodium()
         let splitIndex = 4

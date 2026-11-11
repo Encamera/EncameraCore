@@ -35,6 +35,9 @@ final class KeyEntryValidationTests: XCTestCase {
         XCTAssertEqual(manager.currentKey?.keyFingerprint, required,
                        "the accepted key becomes current so the user's media is readable")
         XCTAssertTrue(try manager.storedKeys().contains { $0.keyFingerprint == required })
+        XCTAssertEqual(manager.savedPassphrases.map(\.words), [correctPhrase],
+                       "the phrase is stored with the key so it can be backed up")
+        XCTAssertEqual(outcome.passphraseKey.passphrase.keyFingerprint, required)
     }
 
     /// A well-formed but wrong phrase is a DETECTABLE mismatch — reported as a

@@ -244,8 +244,20 @@ public class KeychainManager: ObservableObject, KeyManager, DebugPrintable {
         return try privateKeyManager.retrieveKeyPassphrases()
     }
 
-    public func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
+    public func save(_ passphraseKey: PassphraseKey, setNewKeyToCurrent: Bool) throws {
+        try keyMintingManager.add(passphraseKey, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: isSyncEnabled)
+    }
+
+    /// Saves `key` with no passphrase item. Internal: every public save of a
+    /// key carries its passphrase (`save(_:setNewKeyToCurrent:)`).
+    func save(key: PrivateKey, setNewKeyToCurrent: Bool) throws {
         try keyMintingManager.add(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: isSyncEnabled)
+    }
+
+    /// Seeds a key that has no passphrase, for the UI-test harness only.
+    @_spi(UITesting)
+    public func seedKeyWithoutPassphrase(_ key: PrivateKey, setNewKeyToCurrent: Bool) throws {
+        try save(key: key, setNewKeyToCurrent: setNewKeyToCurrent)
     }
 
     public func update(key: PrivateKey, backupToiCloud: Bool) throws {

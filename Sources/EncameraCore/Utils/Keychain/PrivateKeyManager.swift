@@ -66,20 +66,21 @@ final class PrivateKeyManager: DebugPrintable {
         guard !components.isEmpty else {
             throw KeyManagerError.invalidInput
         }
-        let passphrase = KeyPassphrase(words: components)
-        let key = try PrivateKey(passphrase: passphrase)
+        let passphraseKey = try PassphraseKey(passphrase: KeyPassphrase(words: components))
+        try save(passphraseKey, setNewKeyToCurrent: true, synchronizable: synchronizable)
+        return passphraseKey.key
+    }
 
+    /// Saves the key together with the passphrase item it was derived from,
+    /// so the key can be listed and backed up from the key picker.
+    fileprivate func save(_ passphraseKey: PassphraseKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
         do {
-            try save(key: key, setNewKeyToCurrent: true, synchronizable: synchronizable)
+            try save(key: passphraseKey.key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizable)
         } catch {
             self.printDebug("Could not save key", error)
             throw error
         }
-
-        try savePassphrase(passphrase, for: key, synchronizable: synchronizable)
-
-        return key
-
+        try savePassphrase(passphraseKey.passphrase, for: passphraseKey.key, synchronizable: synchronizable)
     }
 
     /// Stores `passphrase` as the item for `key`'s fingerprint, in the sync
@@ -695,9 +696,16 @@ struct KeyMintingManager: DebugPrintable {
         return key
     }
 
-    /// Saves an already-derived key, with no passphrase item. No origin is
-    /// claimed: the callers hold keys entered for another device's media or
-    /// re-derived from a synced passphrase.
+    /// Saves a key derived from a passphrase the user entered, with its
+    /// passphrase item. No origin is claimed: the key was minted elsewhere.
+    func add(_ passphraseKey: PassphraseKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
+        try privateKeyManager.save(passphraseKey, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizable)
+        publish(passphraseKey.key, claimOrigin: false)
+    }
+
+    /// Saves a key with no passphrase item. Only for a key whose passphrase
+    /// item is already stored, or one that has no passphrase at all (test
+    /// seeding). No origin is claimed.
     func add(key: PrivateKey, setNewKeyToCurrent: Bool, synchronizable: Bool) throws {
         try privateKeyManager.save(key: key, setNewKeyToCurrent: setNewKeyToCurrent, synchronizable: synchronizable)
         publish(key, claimOrigin: false)
