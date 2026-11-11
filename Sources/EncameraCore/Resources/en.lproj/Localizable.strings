@@ -582,7 +582,7 @@
 "CloudKitMigration.PartialMoveDestinationMissing" = "“%@” no longer exists, so this move can't be finished. Cancel the move to keep every item where it is now.";
 "CloudKitMigration.PartialMoveDiscard" = "Cancel Move";
 
-/* ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud */
+/* ./Encamera/AlbumManagement/StorageMoveStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud */
 "CloudKitMigration.OverlayTitle" = "Moving to iCloud";
 "CloudKitMigration.OverlayTitleToLocal" = "Moving to This Device";
 "CloudKitMigration.OverlayPhasePreparing" = "Preparing";
@@ -610,22 +610,22 @@
 "CloudKitMigration.OverlayCancelUnavailable" = "Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.";
 
 /* ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift */
-"CloudKitMigration.MigrationBannerMovingTitle" = "Moving to iCloud";
+"CloudKitMigration.MigrationBannerMovingTitle" = "Upgrading iCloud Storage";
 "CloudKitMigration.MigrationScreenUseCellular" = "Use Cellular Data";
 "CloudKitMigration.MigrationScreenUseWifiOnly" = "Use Wi-Fi Only";
-"CloudKitMigration.MigrationBannerPausedTitle" = "Move to iCloud paused";
-"CloudKitMigration.MigrationBannerProgress" = "%@ of %@ moved";
+"CloudKitMigration.MigrationBannerPausedTitle" = "iCloud Storage upgrade paused";
+"CloudKitMigration.MigrationBannerProgress" = "%@ of %@ upgraded";
 "CloudKitMigration.MigrationBannerPausedLowPowerMode" = "Paused while Low Power Mode is on.";
 "CloudKitMigration.MigrationBannerPausedThermal" = "Paused while your device cools down.";
 "CloudKitMigration.MigrationBannerPausedAccountUnavailable" = "Paused until you sign in to iCloud in Settings.";
 "CloudKitMigration.MigrationBannerPausedSchemaNotDeployed" = "Paused until iCloud is ready for this version of Encamera. Make sure Encamera is up to date.";
 "CloudKitMigration.MigrationBannerPausedWaitingForWiFi" = "Paused until your device is on Wi-Fi.";
-"CloudKitMigration.MigrationScreenKeepsAwake" = "Your device stays awake while this screen is open and items are moving.";
+"CloudKitMigration.MigrationScreenKeepsAwake" = "Your device stays awake while this screen is open and the upgrade is running.";
 "CloudKitMigration.MigrationBannerQuotaTitle" = "iCloud storage full, paused";
-"CloudKitMigration.MigrationBannerQuotaSpaceNeeded" = "This album needs about %@ more iCloud storage to finish moving.";
-"CloudKitMigration.MigrationBannerQuotaSpaceUnknown" = "Free up iCloud storage to finish moving this album.";
+"CloudKitMigration.MigrationBannerQuotaSpaceNeeded" = "This album needs about %@ more iCloud storage to finish upgrading.";
+"CloudKitMigration.MigrationBannerQuotaSpaceUnknown" = "Free up iCloud storage to finish upgrading this album.";
 "CloudKitMigration.MigrationBannerQuotaOpenSettings" = "Open Settings";
-"CloudKitMigration.MigrationBannerFailedCount" = "%@ %@ can't be moved right now";
+"CloudKitMigration.MigrationBannerFailedCount" = "%@ %@ can't be upgraded right now";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";

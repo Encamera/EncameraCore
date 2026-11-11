@@ -43,7 +43,7 @@ The engine and its checkpoint live in `EncameraCore` (this directory). Everythin
 | `Encamera/AlbumManagement/CloudKitMigrationRunRegistry.swift` | Keeps each launcher alive for exactly as long as its run, keyed by album id. Without it, popping the album screen mid-move deallocates the launcher and the progress UI freezes. |
 | `Encamera/AlbumManagement/CloudKitMigrationResumer.swift` | Finds interrupted checkpoints and drives each one to completion. Called at launch and from the background task. |
 | `Encamera/AlbumManagement/CloudKitMigrationBackgroundTask.swift` | The `com.encamera.cloudkit-migration` background processing task — best-effort extra progress while the app is backgrounded. |
-| `Encamera/AlbumManagement/MigrationStatusOverlay.swift` | The blocking, non-dismissible status view over the album grid, with phase, counts, ETA and Cancel. |
+| `Encamera/AlbumManagement/StorageMoveStatusOverlay.swift` | The blocking, non-dismissible status view over the album grid, with phase, counts, ETA and Cancel. |
 | `Encamera/AlbumManagement/PartialMigrationBanner.swift` | The persistent banner on an album whose move was stopped part-way, with Resume. |
 | `Encamera/AlbumManagement/AlbumDetailView/StorageMove/AlbumStorageMoveController.swift` | The album screen's storage moves: starts every kind of move, binds the launcher, and decides when the overlay and banner are shown. |
 
@@ -211,7 +211,7 @@ The launcher registers a `MigrationTask` with `direction: .toLocal`, so the pill
 
 # What both directions share
 
-**The overlay** (`MigrationStatusOverlay`) is shown when three things are true at once: the feature is enabled, the engine's active set contains this album, and there is a progress snapshot carrying a phase. Any one alone is wrong — the active set is true during the pre-run planning window when there's nothing to show, and a snapshot could outlive a run that already ended.
+**The overlay** (`StorageMoveStatusOverlay`) is shown when three things are true at once: the feature is enabled, the engine's active set contains this album, and there is a progress snapshot carrying a phase. Any one alone is wrong — the active set is true during the pre-run planning window when there's nothing to show, and a snapshot could outlive a run that already ended.
 
 **The floating pill** and the overlay are mutually exclusive (`AlbumDetailViewModel.bottomStrip` resolves to `.migrationOverlay` ahead of `.progressPill`): one run must never be reported twice on the same screen.
 
@@ -239,7 +239,7 @@ iCloud Drive has no atomic "create if absent" and the server album listing is ev
 
 The two-pass rule does not apply to this flow; per-item delete after verify does. Each item is materialized, uploaded by creating its record and verified, and then its file is deleted through the one verified delete (`ICloudDriveVerifiedDelete`), which deletes only when the folder's marker names the album and a fresh `fetchRecordMetadata` finds the record in the album with the file's size. It does not check for an open viewer or player: those read the file only while loading, and a load that loses the race retries from the record. iCloud Drive and the CloudKit private database draw on the same iCloud quota, so keeping both copies for a move that runs for days would double the album's footprint and make `quotaExceeded` likely for exactly the users with the largest libraries. The two-pass rule exists so a stopped move leaves its source album whole and visible; here there is no separate source album, only one album whose items are in one of two places. The parity sweep removes, through the same verified delete, any file left behind after its upload landed.
 
-There is no cancel, since once the album has flipped there is nothing to roll back to: the engine refuses one for a move into a linked album, and the blob migration only pauses (`PauseReason`: Low Power Mode, thermal state, a full iCloud, no account, an undeployed schema). An item that can't move right now is deferred: it stays `pending` with a `deferralReason`, keeps its file, stays readable from iCloud Drive and is retried last, on Wi-Fi only. The album is never covered by `MigrationStatusOverlay`; its banner reports the move and opens the migration screen, which shows the same progress and keeps the screen on while items are moving.
+There is no cancel, since once the album has flipped there is nothing to roll back to: the engine refuses one for a move into a linked album, and the blob migration only pauses (`PauseReason`: Low Power Mode, thermal state, a full iCloud, no account, an undeployed schema). An item that can't move right now is deferred: it stays `pending` with a `deferralReason`, keeps its file, stays readable from iCloud Drive and is retried last, on Wi-Fi only. The album is never covered by `StorageMoveStatusOverlay`; its banner reports the move and opens the migration screen, which shows the same progress and keeps the screen on while items are moving.
 
 ## Several devices, no lease
 

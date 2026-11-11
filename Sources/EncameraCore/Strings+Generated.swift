@@ -811,12 +811,12 @@ public enum L10n {
     public static let itemChangedDuringMove = L10n.tr("Localizable", "CloudKitMigration.ItemChangedDuringMove", fallback: "This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.")
     /// Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.
     public static let membershipCheckFailed = L10n.tr("Localizable", "CloudKitMigration.MembershipCheckFailed", fallback: "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.")
-    /// %@ %@ can't be moved right now
+    /// %@ %@ can't be upgraded right now
     public static func migrationBannerFailedCount(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerFailedCount", String(describing: p1), String(describing: p2), fallback: "%@ %@ can't be moved right now")
+      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerFailedCount", String(describing: p1), String(describing: p2), fallback: "%@ %@ can't be upgraded right now")
     }
     /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift
-    public static let migrationBannerMovingTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerMovingTitle", fallback: "Moving to iCloud")
+    public static let migrationBannerMovingTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerMovingTitle", fallback: "Upgrading iCloud Storage")
     /// Paused until you sign in to iCloud in Settings.
     public static let migrationBannerPausedAccountUnavailable = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedAccountUnavailable", fallback: "Paused until you sign in to iCloud in Settings.")
     /// Paused while Low Power Mode is on.
@@ -825,26 +825,26 @@ public enum L10n {
     public static let migrationBannerPausedSchemaNotDeployed = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedSchemaNotDeployed", fallback: "Paused until iCloud is ready for this version of Encamera. Make sure Encamera is up to date.")
     /// Paused while your device cools down.
     public static let migrationBannerPausedThermal = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedThermal", fallback: "Paused while your device cools down.")
-    /// Move to iCloud paused
-    public static let migrationBannerPausedTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedTitle", fallback: "Move to iCloud paused")
+    /// iCloud Storage upgrade paused
+    public static let migrationBannerPausedTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedTitle", fallback: "iCloud Storage upgrade paused")
     /// Paused until your device is on Wi-Fi.
     public static let migrationBannerPausedWaitingForWiFi = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedWaitingForWiFi", fallback: "Paused until your device is on Wi-Fi.")
-    /// %@ of %@ moved
+    /// %@ of %@ upgraded
     public static func migrationBannerProgress(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerProgress", String(describing: p1), String(describing: p2), fallback: "%@ of %@ moved")
+      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerProgress", String(describing: p1), String(describing: p2), fallback: "%@ of %@ upgraded")
     }
     /// Open Settings
     public static let migrationBannerQuotaOpenSettings = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaOpenSettings", fallback: "Open Settings")
-    /// This album needs about %@ more iCloud storage to finish moving.
+    /// This album needs about %@ more iCloud storage to finish upgrading.
     public static func migrationBannerQuotaSpaceNeeded(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceNeeded", String(describing: p1), fallback: "This album needs about %@ more iCloud storage to finish moving.")
+      return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceNeeded", String(describing: p1), fallback: "This album needs about %@ more iCloud storage to finish upgrading.")
     }
-    /// Free up iCloud storage to finish moving this album.
-    public static let migrationBannerQuotaSpaceUnknown = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceUnknown", fallback: "Free up iCloud storage to finish moving this album.")
+    /// Free up iCloud storage to finish upgrading this album.
+    public static let migrationBannerQuotaSpaceUnknown = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceUnknown", fallback: "Free up iCloud storage to finish upgrading this album.")
     /// iCloud storage full, paused
     public static let migrationBannerQuotaTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaTitle", fallback: "iCloud storage full, paused")
-    /// Your device stays awake while this screen is open and items are moving.
-    public static let migrationScreenKeepsAwake = L10n.tr("Localizable", "CloudKitMigration.MigrationScreenKeepsAwake", fallback: "Your device stays awake while this screen is open and items are moving.")
+    /// Your device stays awake while this screen is open and the upgrade is running.
+    public static let migrationScreenKeepsAwake = L10n.tr("Localizable", "CloudKitMigration.MigrationScreenKeepsAwake", fallback: "Your device stays awake while this screen is open and the upgrade is running.")
     /// Use Cellular Data
     public static let migrationScreenUseCellular = L10n.tr("Localizable", "CloudKitMigration.MigrationScreenUseCellular", fallback: "Use Cellular Data")
     /// Use Wi-Fi Only
@@ -901,7 +901,7 @@ public enum L10n {
     public static func overlayTimeRemaining(_ p1: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.OverlayTimeRemaining", String(describing: p1), fallback: "About %@ remaining")
     }
-    /// ./Encamera/AlbumManagement/MigrationStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud
+    /// ./Encamera/AlbumManagement/StorageMoveStatusOverlay.swift - Blocking status view shown for the duration of a move to iCloud
     public static let overlayTitle = L10n.tr("Localizable", "CloudKitMigration.OverlayTitle", fallback: "Moving to iCloud")
     /// Moving to This Device
     public static let overlayTitleToLocal = L10n.tr("Localizable", "CloudKitMigration.OverlayTitleToLocal", fallback: "Moving to This Device")
