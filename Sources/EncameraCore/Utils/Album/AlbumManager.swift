@@ -217,14 +217,23 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                                      creationDate: creationDate,
                                                      storedKeys: storedKeys)
             if album == nil {
-                let probed = self.lockedContentProbes.outcome(for: url,
-                                                              keyLibrary: self.keyLibraryIdentity(storedKeys: storedKeys))
+                // The listing reads no media file: the required key and whether
+                // the contents open both come from the background probe, and
+                // stay unknown until it finishes.
+                let keyLibrary = self.keyLibraryIdentity(storedKeys: storedKeys)
+                let probed = self.lockedContentProbes.result(for: url, keyLibrary: keyLibrary)
+                if probed == nil {
+                    self.startContentProbe(directoryURL: url,
+                                           storageType: storageType,
+                                           storedKeys: storedKeys,
+                                           keyLibrary: keyLibrary)
+                }
                 lockedPlaceholders.append(LockedAlbumPlaceholder(
                     encryptedDirectoryName: directoryName,
                     storageOption: storageType,
                     creationDate: creationDate,
-                    requiredKey: LockedAlbumKeyProbe.requiredKey(albumDirectory: url),
-                    contentsUnreadable: probed == .noneOpened
+                    requiredKey: probed?.requiredKey,
+                    contentsUnreadable: probed?.outcome == .noneOpened
                 ))
             }
             return album
@@ -1429,7 +1438,10 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                            storedKeys: [PrivateKey]) -> Album? {
         let keyLibrary = keyLibraryIdentity(storedKeys: storedKeys)
         guard let outcome = lockedContentProbes.outcome(for: directoryURL, keyLibrary: keyLibrary) else {
-            startContentProbe(directoryURL: directoryURL, storedKeys: storedKeys, keyLibrary: keyLibrary)
+            startContentProbe(directoryURL: directoryURL,
+                              storageType: storageType,
+                              storedKeys: storedKeys,
+                              keyLibrary: keyLibrary)
             return nil
         }
         guard case .readable(let key, _) = outcome else {
@@ -1438,17 +1450,27 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         return Album(encryptedName: albumName, storageOption: storageType, creationDate: creationDate, key: key)
     }
 
+    /// Probes a locked directory album in the background: which held key opens
+    /// its media and, for a local album, which key its stamps name. A new listing
+    /// is announced only when the result differs from the one cached before, so
+    /// a re-probe after the directory's modification date changes does not
+    /// trigger another listing on its own.
     @discardableResult
     func startContentProbe(directoryURL: URL,
+                           storageType: StorageType,
                            storedKeys: [PrivateKey],
-                           keyLibrary: Set<String>) -> Task<LockedAlbumContentProbe.Outcome, Never> {
+                           keyLibrary: Set<String>) -> Task<LockedAlbumContentProbeCache.Result, Never> {
         let keyManager = self.keyManager
+        let readsStamps = storageType == .local
         return lockedContentProbes.probe(directory: directoryURL, keyLibrary: keyLibrary, run: {
-            await LockedAlbumContentProbe.probe(albumDirectory: directoryURL,
-                                                keyManager: keyManager,
-                                                storedKeys: storedKeys)
-        }, onFinished: { [weak self] outcome in
-            guard outcome != .nothingTested else { return }
+            let outcome = await LockedAlbumContentProbe.probe(albumDirectory: directoryURL,
+                                                              keyManager: keyManager,
+                                                              storedKeys: storedKeys)
+            // iCloud Drive files are never stamped (`DiskFileAccess.shouldStampFile`).
+            let requiredKey = readsStamps ? LockedAlbumKeyProbe.requiredKey(albumDirectory: directoryURL) : nil
+            return LockedAlbumContentProbeCache.Result(outcome: outcome, requiredKey: requiredKey)
+        }, onFinished: { [weak self] _, changed in
+            guard changed else { return }
             DispatchQueue.main.async {
                 self?.broadcastAlbumsUpdated()
             }

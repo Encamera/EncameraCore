@@ -31,11 +31,12 @@ public enum LockedAlbumContentProbe {
         /// Files were tested and none opened with any held key.
         case noneOpened
         /// Nothing could be tested: no media, or none of it readable yet (an
-        /// iCloud Drive file still downloading, or damaged bytes).
+        /// iCloud Drive file not downloaded, or damaged bytes).
         case nothingTested
     }
 
-    /// Probes the album directory at `albumDirectory`. Performs no writes.
+    /// Probes the album directory at `albumDirectory`. Performs no writes, and
+    /// skips files whose bytes are not on disk without starting a download.
     ///
     /// - Parameter onFileProbed: called once per file read, so tests can check
     ///   the sample bound.
@@ -43,14 +44,10 @@ public enum LockedAlbumContentProbe {
                              keyManager: KeyManager,
                              storedKeys: [PrivateKey],
                              onFileProbed: ((URL) -> Void)? = nil) async -> Outcome {
-        let mediaExtensions: Set<String> = [MediaType.photo.encryptedFileExtension,
-                                            MediaType.video.encryptedFileExtension]
-        guard let contents = try? FileManager.default.contentsOfDirectory(at: albumDirectory,
-                                                                          includingPropertiesForKeys: nil) else {
+        guard let files = LockedAlbumProbeFiles.downloadedMediaFiles(in: albumDirectory) else {
             return .nothingTested
         }
-        let sample = contents
-            .filter { mediaExtensions.contains($0.pathExtension) }
+        let sample = files
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
             .prefix(maxFilesSampled)
 
@@ -58,6 +55,7 @@ public enum LockedAlbumContentProbe {
         var lockedFileNames = Set<String>()
         for url in sample {
             onFileProbed?(url)
+            LockedAlbumProbeFiles.onMediaFileOpened?(url)
             switch await KeyDiscovery.discoverKeyOutcome(for: url,
                                                          keyManager: keyManager,
                                                          storedKeysSnapshot: storedKeys) {
@@ -84,8 +82,9 @@ public enum LockedAlbumContentProbe {
     }
 }
 
-/// Probe outcomes per album directory for the life of one `AlbumManager`, so a
-/// listing reads a directory's files at most once per key library.
+/// Probe results per album directory for the life of one `AlbumManager`, so a
+/// listing reads no media file and a directory's files are read at most once per
+/// key library.
 ///
 /// An entry is reused only while the key library it was computed against and the
 /// directory's modification date are unchanged: a new key may open what nothing
@@ -93,19 +92,30 @@ public enum LockedAlbumContentProbe {
 /// directory.
 final class LockedAlbumContentProbeCache: @unchecked Sendable {
 
-    private struct Entry {
+    /// What one probe of a directory found.
+    struct Result: Equatable {
         let outcome: LockedAlbumContentProbe.Outcome
+        /// The key the album's stamps name (`LockedAlbumKeyProbe`). Always nil
+        /// for iCloud Drive, whose files are never stamped.
+        let requiredKey: RequiredKeyIdentity?
+
+        /// What a listing shows for a directory not probed yet.
+        static let unprobed = Result(outcome: .nothingTested, requiredKey: nil)
+    }
+
+    private struct Entry {
+        let result: Result
         let keyLibrary: Set<String>
         let directoryModified: Date?
     }
 
     private let lock = NSLock()
     private var entries: [String: Entry] = [:]
-    private var inFlight: [String: Task<LockedAlbumContentProbe.Outcome, Never>] = [:]
+    private var inFlight: [String: Task<Result, Never>] = [:]
 
-    /// The cached outcome for `directory`, or nil when it has not been probed
+    /// The cached result for `directory`, or nil when it has not been probed
     /// against `keyLibrary`.
-    func outcome(for directory: URL, keyLibrary: Set<String>) -> LockedAlbumContentProbe.Outcome? {
+    func result(for directory: URL, keyLibrary: Set<String>) -> Result? {
         lock.lock()
         defer { lock.unlock() }
         guard let entry = entries[directory.standardizedFileURL.path],
@@ -113,17 +123,25 @@ final class LockedAlbumContentProbeCache: @unchecked Sendable {
               entry.directoryModified == Self.modificationDate(of: directory) else {
             return nil
         }
-        return entry.outcome
+        return entry.result
+    }
+
+    /// The cached outcome for `directory`, or nil when it has not been probed
+    /// against `keyLibrary`.
+    func outcome(for directory: URL, keyLibrary: Set<String>) -> LockedAlbumContentProbe.Outcome? {
+        result(for: directory, keyLibrary: keyLibrary)?.outcome
     }
 
     /// Probes `directory` off the caller's actor, joining a probe already running
     /// for it, and caches the result. `onFinished` runs once, only for the call
-    /// that started the probe.
+    /// that started the probe, with the new result and whether it differs from
+    /// what was cached for the directory before, under any key library
+    /// (`Result.unprobed` when nothing was).
     @discardableResult
     func probe(directory: URL,
                keyLibrary: Set<String>,
-               run: @escaping @Sendable () async -> LockedAlbumContentProbe.Outcome,
-               onFinished: (@Sendable (LockedAlbumContentProbe.Outcome) -> Void)? = nil) -> Task<LockedAlbumContentProbe.Outcome, Never> {
+               run: @escaping @Sendable () async -> Result,
+               onFinished: (@Sendable (_ result: Result, _ changed: Bool) -> Void)? = nil) -> Task<Result, Never> {
         let path = directory.standardizedFileURL.path
         let directoryModified = Self.modificationDate(of: directory)
         lock.lock()
@@ -131,12 +149,13 @@ final class LockedAlbumContentProbeCache: @unchecked Sendable {
             lock.unlock()
             return running
         }
-        let task = Task.detached(priority: .utility) { [weak self] () -> LockedAlbumContentProbe.Outcome in
-            let outcome = await run()
+        let previous = entries[path]?.result ?? .unprobed
+        let task = Task.detached(priority: .utility) { [weak self] () -> Result in
+            let result = await run()
             self?.finish(path: path,
-                         entry: Entry(outcome: outcome, keyLibrary: keyLibrary, directoryModified: directoryModified))
-            onFinished?(outcome)
-            return outcome
+                         entry: Entry(result: result, keyLibrary: keyLibrary, directoryModified: directoryModified))
+            onFinished?(result, result != previous)
+            return result
         }
         inFlight[path] = task
         lock.unlock()
@@ -145,7 +164,7 @@ final class LockedAlbumContentProbeCache: @unchecked Sendable {
 
     /// Waits for every probe running now.
     func waitForProbes() async {
-        let running: [Task<LockedAlbumContentProbe.Outcome, Never>] = {
+        let running: [Task<Result, Never>] = {
             lock.lock()
             defer { lock.unlock() }
             return Array(inFlight.values)

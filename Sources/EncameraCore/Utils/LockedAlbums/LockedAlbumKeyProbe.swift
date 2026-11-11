@@ -23,20 +23,50 @@ public enum LockedAlbumKeyProbe {
     /// stamped or two stamped files disagree. A disagreement means the stamps
     /// cannot say which key encrypted the album's name, and naming the wrong
     /// one would reject the phrase that actually opens it.
+    ///
+    /// Reads files, so it runs only inside the background content probe
+    /// (`AlbumManager.startContentProbe`), never from a listing.
     public static func requiredKey(albumDirectory: URL) -> RequiredKeyIdentity? {
-        let mediaExtensions: Set<String> = [MediaType.photo.encryptedFileExtension,
-                                            MediaType.video.encryptedFileExtension]
-        guard let contents = try? FileManager.default.contentsOfDirectory(at: albumDirectory,
-                                                                          includingPropertiesForKeys: nil) else {
+        guard let files = LockedAlbumProbeFiles.downloadedMediaFiles(in: albumDirectory) else {
             return nil
         }
-        let stamps = Set(contents
-            .filter { mediaExtensions.contains($0.pathExtension) }
+        let stamps = Set(files
             .prefix(maxFilesProbed)
-            .compactMap(KeyStampSlot.readStamp(url:)))
+            .compactMap { url -> UInt32? in
+                LockedAlbumProbeFiles.onMediaFileOpened?(url)
+                return KeyStampSlot.readStamp(url: url)
+            })
         guard stamps.count == 1, let stamp = stamps.first else {
             return nil
         }
         return .stampPrefix(stamp)
+    }
+}
+
+/// The media files the locked-album probes may read.
+enum LockedAlbumProbeFiles {
+
+    /// Whether a file's bytes are not on disk. A read of such a file waits on an
+    /// iCloud Drive download, which may never finish offline, so the probes skip
+    /// it rather than start or wait for one. Reads resource values only.
+    @TaskLocal static var needsDownload: @Sendable (URL) -> Bool = { iCloudFileStatusUtil.needsDownload(url: $0) }
+
+    /// Called before a probe reads a media file, for tests. Task-local, so a
+    /// probe running on its own detached task does not report to it.
+    @TaskLocal static var onMediaFileOpened: (@Sendable (URL) -> Void)?
+
+    /// The encrypted photos and videos in `directory` whose bytes are on disk,
+    /// or nil when the directory cannot be listed.
+    static func downloadedMediaFiles(in directory: URL) -> [URL]? {
+        let mediaExtensions: Set<String> = [MediaType.photo.encryptedFileExtension,
+                                            MediaType.video.encryptedFileExtension]
+        guard let contents = try? FileManager.default.contentsOfDirectory(at: directory,
+                                                                          includingPropertiesForKeys: nil) else {
+            return nil
+        }
+        let skipUndownloaded = needsDownload
+        return contents
+            .filter { mediaExtensions.contains($0.pathExtension) }
+            .filter { !skipUndownloaded($0) }
     }
 }

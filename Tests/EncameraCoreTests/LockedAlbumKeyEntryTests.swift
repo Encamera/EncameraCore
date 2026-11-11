@@ -1,5 +1,24 @@
+import Combine
 import XCTest
 @testable import EncameraCore
+
+/// Collects values from `@Sendable` closures.
+private final class Recorder<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [Value] = []
+
+    func append(_ value: Value) {
+        lock.lock()
+        defer { lock.unlock() }
+        storage.append(value)
+    }
+
+    var values: [Value] {
+        lock.lock()
+        defer { lock.unlock() }
+        return storage
+    }
+}
 
 /// Adding the key a locked album needs, gated on the album's recorded
 /// fingerprint and proved against its encrypted name.
@@ -353,10 +372,163 @@ final class LockedAlbumKeyEntryTests: XCTestCase {
         let cache = LockedAlbumContentProbeCache()
         XCTAssertNil(cache.outcome(for: tempDirectory, keyLibrary: ["a"]))
 
-        _ = await cache.probe(directory: tempDirectory, keyLibrary: ["a"], run: { .noneOpened }).value
+        _ = await cache.probe(directory: tempDirectory, keyLibrary: ["a"], run: {
+            LockedAlbumContentProbeCache.Result(outcome: .noneOpened, requiredKey: nil)
+        }).value
 
         XCTAssertEqual(cache.outcome(for: tempDirectory, keyLibrary: ["a"]), .noneOpened)
         XCTAssertNil(cache.outcome(for: tempDirectory, keyLibrary: ["a", "b"]))
+    }
+
+    // MARK: - Listing never reads media
+
+    func testListingOpensNoMediaFileForLockedAlbum() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "a", in: directory, key: nameKey, stamp: true)
+        try await writeMedia(named: "b", in: directory, key: nameKey, stamp: true)
+        let opened = Recorder<URL>()
+
+        LockedAlbumProbeFiles.$onMediaFileOpened.withValue({ opened.append($0) }) {
+            _ = manager.fetchAlbumsFromSources(includingHidden: true)
+        }
+        await manager.waitForLockedContentProbes()
+        LockedAlbumProbeFiles.$onMediaFileOpened.withValue({ opened.append($0) }) {
+            _ = manager.fetchAlbumsFromSources(includingHidden: true)
+        }
+
+        XCTAssertEqual(opened.values, [], "a listing must read no media file, cold or cached")
+        XCTAssertTrue(manager.lockedAlbums.contains { $0.encryptedDirectoryName == directory.lastPathComponent })
+    }
+
+    func testLockedLocalAlbumRequiredKeyComesFromTheProbeCache() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        // Created first, so its own launch listing never sees the album.
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "a", in: directory, key: nameKey, stamp: true)
+        try await writeMedia(named: "b", in: directory, key: nameKey, stamp: true)
+        let placeholder = { manager.lockedAlbums.first { $0.encryptedDirectoryName == directory.lastPathComponent } }
+
+        _ = manager.fetchAlbumsFromSources(includingHidden: true)
+        XCTAssertNotNil(placeholder())
+        XCTAssertNil(placeholder()?.requiredKey, "unknown until the probe finishes")
+
+        await manager.waitForLockedContentProbes()
+        _ = manager.fetchAlbumsFromSources(includingHidden: true)
+
+        XCTAssertEqual(placeholder()?.requiredKey, .stampPrefix(nameKey.stampPrefix))
+        XCTAssertEqual(placeholder()?.contentsUnreadable, true)
+    }
+
+    /// iCloud Drive files are never stamped, so the probe does not read stamps
+    /// for an iCloud Drive album even when its files carry one.
+    func testLockedICloudDriveAlbumHasNoRequiredKeyAndNoStampRead() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        try await writeMedia(named: "a", in: tempDirectory, key: nameKey, stamp: true)
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+        let keyLibrary = manager.keyLibraryIdentity(storedKeys: [deviceKey])
+
+        let iCloud = await manager.startContentProbe(directoryURL: tempDirectory,
+                                                     storageType: .icloud,
+                                                     storedKeys: [deviceKey],
+                                                     keyLibrary: keyLibrary).value
+
+        XCTAssertNil(iCloud.requiredKey)
+        XCTAssertNil(manager.lockedContentProbes.result(for: tempDirectory, keyLibrary: keyLibrary)?.requiredKey)
+        XCTAssertEqual(iCloud.outcome, .noneOpened)
+
+        let local = await albumManager(holding: [deviceKey], current: deviceKey)
+            .startContentProbe(directoryURL: tempDirectory,
+                               storageType: .local,
+                               storedKeys: [deviceKey],
+                               keyLibrary: keyLibrary).value
+        XCTAssertEqual(local.requiredKey, .stampPrefix(nameKey.stampPrefix), "the same files read as local do name the key")
+    }
+
+    func testContentProbeSkipsFilesThatNeedDownload() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        try await writeMedia(named: "a", in: tempDirectory, key: deviceKey, stamp: true)
+        try await writeMedia(named: "b", in: tempDirectory, key: nameKey, stamp: true)
+        let keyManager = DemoKeyManager(keys: [deviceKey])
+        keyManager.currentKey = deviceKey
+        let opened = Recorder<URL>()
+        let probed = Recorder<URL>()
+
+        let (outcome, requiredKey) = await LockedAlbumProbeFiles.$needsDownload.withValue({ _ in true }) {
+            await LockedAlbumProbeFiles.$onMediaFileOpened.withValue({ opened.append($0) }) {
+                let outcome = await LockedAlbumContentProbe.probe(albumDirectory: tempDirectory,
+                                                                  keyManager: keyManager,
+                                                                  storedKeys: [deviceKey],
+                                                                  onFileProbed: { probed.append($0) })
+                return (outcome, LockedAlbumKeyProbe.requiredKey(albumDirectory: tempDirectory))
+            }
+        }
+
+        XCTAssertEqual(outcome, .nothingTested)
+        XCTAssertNil(requiredKey)
+        XCTAssertEqual(opened.values, [])
+        XCTAssertEqual(probed.values, [])
+    }
+
+    /// Only downloaded files count toward the sample bound.
+    func testContentProbeSamplesOnlyDownloadedFiles() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        for index in 0..<LockedAlbumContentProbe.maxFilesSampled {
+            try await writeMedia(named: "evicted-\(index)", in: tempDirectory, key: nameKey, stamp: false)
+        }
+        try await writeMedia(named: "local", in: tempDirectory, key: deviceKey, stamp: false)
+        let keyManager = DemoKeyManager(keys: [deviceKey])
+        keyManager.currentKey = deviceKey
+        let probed = Recorder<URL>()
+
+        let outcome = await LockedAlbumProbeFiles.$needsDownload.withValue({ $0.lastPathComponent.hasPrefix("evicted-") }) {
+            await LockedAlbumContentProbe.probe(albumDirectory: tempDirectory,
+                                                keyManager: keyManager,
+                                                storedKeys: [deviceKey],
+                                                onFileProbed: { probed.append($0) })
+        }
+
+        XCTAssertEqual(outcome, .readable(key: deviceKey, lockedFileNames: []))
+        XCTAssertEqual(probed.values.map(\.lastPathComponent), ["local.\(MediaType.photo.encryptedFileExtension)"])
+    }
+
+    func testUnchangedProbeOutcomeDoesNotBroadcast() async throws {
+        let nameKey = try PrivateKey(passphrase: KeyPassphrase(words: foreignPhrase))
+        let manager = albumManager(holding: [deviceKey], current: deviceKey)
+        await manager.waitForLockedContentProbes()
+        let directory = try seedLocalAlbumDirectory(nameKey: nameKey)
+        try await writeMedia(named: "a", in: directory, key: nameKey, stamp: false)
+        let keyLibrary = manager.keyLibraryIdentity(storedKeys: [deviceKey])
+        let broadcasts = Recorder<Void>()
+        let subscription = manager.albumOperationPublisher.sink { operation in
+            if case .albumsUpdated = operation { broadcasts.append(()) }
+        }
+        defer { subscription.cancel() }
+        let storedKeys = [deviceKey]
+        let probe = {
+            _ = await manager.startContentProbe(directoryURL: directory,
+                                                storageType: .local,
+                                                storedKeys: storedKeys,
+                                                keyLibrary: keyLibrary).value
+            await manager.waitForLockedContentProbes()
+            // `onFinished` announces on the main queue.
+            await MainActor.run {}
+        }
+
+        await probe()
+        let afterFirst = broadcasts.values.count
+        XCTAssertEqual(afterFirst, 1, "a first result that changes the placeholder is announced")
+
+        // A changed modification date invalidates the entry, as an iCloud Drive
+        // folder's does when anything in it changes.
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSinceNow: 60)],
+                                              ofItemAtPath: directory.path)
+        XCTAssertNil(manager.lockedContentProbes.result(for: directory, keyLibrary: keyLibrary))
+        await probe()
+
+        XCTAssertEqual(broadcasts.values.count, afterFirst, "an unchanged result must not trigger a new listing")
     }
 
     func testUserNameWithTheAlbumPrefixIsNotReportedUnavailable() {
