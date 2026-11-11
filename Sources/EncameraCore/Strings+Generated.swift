@@ -1675,6 +1675,10 @@ public enum L10n {
     public static let addKeyPromptUnknown = L10n.tr("Localizable", "MissingKey.AddKeyPromptUnknown", fallback: "Enter the recovery key for the key this media needs. It will only be used to open existing media — new photos keep using this device's key.")
     /// Add a key
     public static let addKeyTitle = L10n.tr("Localizable", "MissingKey.AddKeyTitle", fallback: "Add a key")
+    /// Tap to add the key
+    public static let albumBannerSubtitle = L10n.tr("Localizable", "MissingKey.AlbumBannerSubtitle", fallback: "Tap to add the key")
+    /// Missing key for this album
+    public static let albumBannerTitle = L10n.tr("Localizable", "MissingKey.AlbumBannerTitle", fallback: "Missing key for this album")
     /// None of this album's photos or videos could be opened with any key on this device.
     public static let albumContentsUnreadable = L10n.tr("Localizable", "MissingKey.AlbumContentsUnreadable", fallback: "None of this album's photos or videos could be opened with any key on this device.")
     /// Name unavailable

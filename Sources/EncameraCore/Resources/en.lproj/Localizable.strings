@@ -984,6 +984,8 @@
 "MissingKey.AlbumSubtitleWithFingerprint" = "This album was encrypted with key %@, which isn't on this device.";
 "MissingKey.AlbumContentsUnreadable" = "None of this album's photos or videos could be opened with any key on this device.";
 "MissingKey.AlbumNameUnavailable" = "Name unavailable";
+"MissingKey.AlbumBannerTitle" = "Missing key for this album";
+"MissingKey.AlbumBannerSubtitle" = "Tap to add the key";
 
 /* ./Encamera/Settings/StorageInsightsView.swift - Storage Insights screen */
 "StorageInsights.Title" = "Storage";
