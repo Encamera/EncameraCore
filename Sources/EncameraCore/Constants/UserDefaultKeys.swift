@@ -91,6 +91,9 @@ public enum UserDefaultKey {
     /// finished migration apart from an install that started on CloudKit in
     /// the storage distribution telemetry.
     case hasHadICloudDriveAlbums
+    /// Key backup actions taken on this device (`KeyBackupRecord.Method` raw
+    /// values), reported on the visitor profile as `key_backup_state`.
+    case keyBackupMethodsRecorded
 
     var rawValue: String {
         switch self {
@@ -181,7 +184,8 @@ public enum UserDefaultKey {
              .useCellularForICloudDriveBlobMigration,
              // Telemetry about what this device has observed; another device
              // reports its own history.
-             .hasHadICloudDriveAlbums:
+             .hasHadICloudDriveAlbums,
+             .keyBackupMethodsRecorded:
             return false
         }
     }
