@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/RevenueCat/purchases-ios-spm.git",
       "state" : {
-        "revision" : "c69a23f56c63bdfe96096fa64a1c65334d2592db",
-        "version" : "5.83.0"
+        "revision" : "7276de1d6f8b2cd1fe184c1239a6389a53383600",
+        "version" : "5.103.0"
       }
     },
     {
@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/siteline/SwiftUI-Introspect",
       "state" : {
-        "revision" : "821a3d468fcf603cc4aa66ddb8542e91bd80b6c2",
-        "version" : "26.1.0"
+        "revision" : "453fe2e2ee3cc90885a68cb61bc5067637e7ad98",
+        "version" : "26.2.0"
       }
     },
     {

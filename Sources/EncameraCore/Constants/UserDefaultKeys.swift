@@ -86,6 +86,11 @@ public enum UserDefaultKey {
     /// Whether the iCloud Drive blob migration may use cellular data. Unset
     /// means off. See `ICloudDriveBlobMigrationCellularPreference`.
     case useCellularForICloudDriveBlobMigration
+    /// Sticky, device-local record that this device has seen at least one
+    /// iCloud Drive album. Once the Drive albums are gone it is what tells a
+    /// finished migration apart from an install that started on CloudKit in
+    /// the storage distribution telemetry.
+    case hasHadICloudDriveAlbums
 
     var rawValue: String {
         switch self {
@@ -173,7 +178,10 @@ public enum UserDefaultKey {
              .lastFetchedNotificationIDs,
              .seenNotificationIDs,
              // Cellular use is a choice about this device's data plan.
-             .useCellularForICloudDriveBlobMigration:
+             .useCellularForICloudDriveBlobMigration,
+             // Telemetry about what this device has observed; another device
+             // reports its own history.
+             .hasHadICloudDriveAlbums:
             return false
         }
     }
