@@ -603,7 +603,7 @@ public enum L10n {
   public enum BackgroundTaskProgress {
     /// Edit canceled
     public static let editCancelled = L10n.tr("Localizable", "BackgroundTaskProgress.EditCancelled", fallback: "Edit canceled")
-    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - Edit Operations
     public static let editCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.EditCompleted", fallback: "Edit completed")
     /// Editing…
     public static let editing = L10n.tr("Localizable", "BackgroundTaskProgress.Editing", fallback: "Editing…")
@@ -611,7 +611,7 @@ public enum L10n {
     public static let editStopped = L10n.tr("Localizable", "BackgroundTaskProgress.EditStopped", fallback: "Edit stopped")
     /// Move to iCloud canceled
     public static let migrateCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateCanceled", fallback: "Move to iCloud canceled")
-    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - CloudKit Migration
     public static let migrateCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateCompleted", fallback: "Moved to iCloud")
     /// Move to iCloud stopped
     public static let migrateStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MigrateStopped", fallback: "Move to iCloud stopped")
@@ -639,7 +639,7 @@ public enum L10n {
     }
     /// Move canceled
     public static let moveCanceled = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCanceled", fallback: "Move canceled")
-    /// ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - Move Operations
     public static let moveCompleted = L10n.tr("Localizable", "BackgroundTaskProgress.MoveCompleted", fallback: "Move completed")
     /// Move stopped
     public static let moveStopped = L10n.tr("Localizable", "BackgroundTaskProgress.MoveStopped", fallback: "Move stopped")
@@ -813,7 +813,7 @@ public enum L10n {
     public static func migrationBannerFailedCount(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerFailedCount", String(describing: p1), String(describing: p2), fallback: "%@ %@ can't be upgraded right now")
     }
-    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBannerViewModel.swift
     public static let migrationBannerMovingTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerMovingTitle", fallback: "Upgrading iCloud Storage")
     /// Paused until you sign in to iCloud in Settings.
     public static let migrationBannerPausedAccountUnavailable = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerPausedAccountUnavailable", fallback: "Paused until you sign in to iCloud in Settings.")
@@ -941,6 +941,12 @@ public enum L10n {
     public static let schemaNotDeployedMessage = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedMessage", fallback: "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.")
     /// iCloud can't accept this album yet
     public static let schemaNotDeployedTitle = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedTitle", fallback: "iCloud can't accept this album yet")
+    /// Paused in Low Power Mode
+    public static let taskRowPausedLowPowerModeTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedLowPowerModeTitle", fallback: "Paused in Low Power Mode")
+    /// Upgrade paused: device must cool
+    public static let taskRowPausedThermalTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedThermalTitle", fallback: "Upgrade paused: device must cool")
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressContent.swift
+    public static let taskRowPausedWiFiTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedWiFiTitle", fallback: "Upgrade paused: need Wi-Fi")
   }
   public enum CloudKitUpgrade {
     /// Upgrade it now for faster, more reliable syncing
@@ -1397,6 +1403,8 @@ public enum L10n {
     }
     /// Delete from Photos Library?
     public static let deleteFromPhotoLibraryAlert = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotoLibraryAlert", fallback: "Delete from Photos Library?")
+    /// Delete from Photos
+    public static let deleteFromPhotosButton = L10n.tr("Localizable", "GlobalImportProgress.DeleteFromPhotosButton", fallback: "Delete from Photos")
     /// Import canceled
     public static let importCanceled = L10n.tr("Localizable", "GlobalImportProgress.ImportCanceled", fallback: "Import canceled")
     /// ./Encamera/Components/ImportProgress/GlobalImportProgressView.swift

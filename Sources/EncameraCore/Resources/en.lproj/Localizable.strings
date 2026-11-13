@@ -508,12 +508,13 @@
 "GlobalImportProgress.ImportingProgress" = "Importing %@ of %@";
 "GlobalImportProgress.ImportingBatches" = "Importing %@ batches";
 "GlobalImportProgress.DeleteFromPhotoLibraryAlert" = "Delete from Photos Library?";
+"GlobalImportProgress.DeleteFromPhotosButton" = "Delete from Photos";
 "GlobalImportProgress.DeleteCountMessage" = "This will delete %@ photo(s) from your Photos library.";
 "GlobalImportProgress.DeleteCountMessageSkipping" = "This will delete %@ photo(s) from your Photos library. %@ imported photo(s) are no longer in Encamera, so their originals will be kept.";
 "GlobalImportProgress.PhotosDeleted" = "Deleted from Photos library";
 "GlobalImportProgress.Remaining" = "Remaining";
 
-/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Move Operations */
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - Move Operations */
 "BackgroundTaskProgress.MoveCompleted" = "Move completed";
 "BackgroundTaskProgress.MoveStopped" = "Move stopped";
 "BackgroundTaskProgress.MoveCanceled" = "Move canceled";
@@ -521,13 +522,13 @@
 "BackgroundTaskProgress.MovingBatches" = "Moving %@ batches";
 "BackgroundTaskProgress.NoActiveTasks" = "No active tasks";
 
-/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - Edit Operations */
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - Edit Operations */
 "BackgroundTaskProgress.EditCompleted" = "Edit completed";
 "BackgroundTaskProgress.EditStopped" = "Edit stopped";
 "BackgroundTaskProgress.EditCancelled" = "Edit canceled";
 "BackgroundTaskProgress.Editing" = "Editing…";
 
-/* ./Encamera/Components/ImportProgress/BackgroundTaskProgressView.swift - CloudKit Migration */
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressViewModel.swift - CloudKit Migration */
 "BackgroundTaskProgress.MigrateCompleted" = "Moved to iCloud";
 "BackgroundTaskProgress.MigrateStopped" = "Move to iCloud stopped";
 "BackgroundTaskProgress.MigrateCanceled" = "Move to iCloud canceled";
@@ -608,7 +609,7 @@
 "CloudKitMigration.OverlayCancel" = "Stop the move";
 "CloudKitMigration.OverlayCancelUnavailable" = "Every item is already on this device. This last step can't be stopped, or the album would be left half-removed from iCloud.";
 
-/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBanner.swift */
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/MigrationBannerViewModel.swift */
 "CloudKitMigration.MigrationBannerMovingTitle" = "Upgrading iCloud Storage";
 "CloudKitMigration.MigrationScreenUseCellular" = "Use Cellular Data";
 "CloudKitMigration.MigrationScreenUseWifiOnly" = "Use Wi-Fi Only";
@@ -625,6 +626,11 @@
 "CloudKitMigration.MigrationBannerQuotaSpaceUnknown" = "Free up iCloud storage to finish upgrading this album.";
 "CloudKitMigration.MigrationBannerQuotaOpenSettings" = "Open Settings";
 "CloudKitMigration.MigrationBannerFailedCount" = "%@ %@ can't be upgraded right now";
+
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressContent.swift */
+"CloudKitMigration.TaskRowPausedWiFiTitle" = "Upgrade paused: need Wi-Fi";
+"CloudKitMigration.TaskRowPausedLowPowerModeTitle" = "Paused in Low Power Mode";
+"CloudKitMigration.TaskRowPausedThermalTitle" = "Upgrade paused: device must cool";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";
