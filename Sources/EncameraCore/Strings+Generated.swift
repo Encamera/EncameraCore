@@ -1879,6 +1879,8 @@ public enum L10n {
     public static let premium = L10n.tr("Localizable", "PaywallView.Premium", fallback: "Premium")
     /// Privacy Policy
     public static let privacyPolicy = L10n.tr("Localizable", "PaywallView.PrivacyPolicy", fallback: "Privacy Policy")
+    /// Purchased
+    public static let purchased = L10n.tr("Localizable", "PaywallView.Purchased", fallback: "Purchased")
     /// Restore Purchases
     public static let restorePurchase = L10n.tr("Localizable", "PaywallView.RestorePurchase", fallback: "Restore Purchases")
     /// Billed yearly

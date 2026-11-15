@@ -362,6 +362,7 @@
 // MARK: - PaywallView
 "PaywallView.Premium" = "Premium";
 "PaywallView.CurrentPlan" = "CURRENT PLAN";
+"PaywallView.Purchased" = "Purchased";
 "PaywallView.UnlimitedAnnualSubtext" = "Billed yearly";
 "PaywallView.GetButton" = "Get %@";
 "PaywallView.RestorePurchase" = "Restore Purchases";
