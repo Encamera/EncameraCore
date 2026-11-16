@@ -19,8 +19,14 @@ public class AppGroupFileAccess: DebugPrintable {
     
     // MARK: - Properties
     
+    /// Set by tests to stage media in a scratch directory instead of the App Group.
+    private let directoryOverride: URL?
+
     /// The root URL for the shared container's import directory
     public var importDirectoryURL: URL? {
+        if let directoryOverride {
+            return directoryOverride
+        }
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: UserDefaultUtils.appGroup) else {
             printDebug("ERROR: Could not get App Group container URL for identifier: \(UserDefaultUtils.appGroup)")
             return nil
@@ -31,6 +37,12 @@ public class AppGroupFileAccess: DebugPrintable {
     // MARK: - Initialization
     
     public init() {
+        directoryOverride = nil
+        initializeDirectoryIfNeeded()
+    }
+
+    init(importDirectoryURL: URL) {
+        directoryOverride = importDirectoryURL
         initializeDirectoryIfNeeded()
     }
     
@@ -72,6 +84,7 @@ public class AppGroupFileAccess: DebugPrintable {
             
             printDebug("Saving media data to: \(destinationURL.path)")
             try data.write(to: destinationURL)
+            try markStaged(destinationURL)
             progress(1.0)
             return destinationURL
             
@@ -87,11 +100,41 @@ public class AppGroupFileAccess: DebugPrintable {
             }
             
             try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+            try markStaged(destinationURL)
             progress(1.0)
             return destinationURL
         }
     }
     
+    /// Stamps a just-saved file with the time it was staged and, on iOS, keeps it
+    /// encrypted while the device is locked. The modification date is the staged
+    /// time because a copy keeps the source's dates; the creation date is left as
+    /// the media's own.
+    private func markStaged(_ url: URL) throws {
+        var attributes: [FileAttributeKey: Any] = [.modificationDate: Date()]
+        #if os(iOS)
+        attributes[.protectionKey] = FileProtectionType.complete
+        #endif
+        try FileManager.default.setAttributes(attributes, ofItemAtPath: url.path)
+    }
+
+    /// Lets the files be read while the device is locked, so an import the user
+    /// started keeps going if they lock the phone before it finishes.
+    public func allowReadingWhileLocked(_ urls: [URL]) {
+        #if os(iOS)
+        for url in urls {
+            do {
+                try FileManager.default.setAttributes(
+                    [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                    ofItemAtPath: url.path
+                )
+            } catch {
+                printDebug("WARNING: Could not relax protection on \(url.lastPathComponent): \(error)")
+            }
+        }
+        #endif
+    }
+
     /// Normalizes file extensions for consistency
     private func normalizeFileExtension(_ ext: String) -> String {
         let lowercased = ext.lowercased()
@@ -143,22 +186,24 @@ public class AppGroupFileAccess: DebugPrintable {
     
     /// Returns the count of pending media files without loading them all
     public func pendingMediaCount() -> Int {
-        guard let containerURL = importDirectoryURL else { return 0 }
-        
+        pendingMediaURLs().count
+    }
+
+    /// The pending media files, without reading them.
+    public func pendingMediaURLs() -> [URL] {
+        guard let containerURL = importDirectoryURL else { return [] }
+
         do {
             let fileURLs = try FileManager.default.contentsOfDirectory(
                 at: containerURL,
-                includingPropertiesForKeys: nil,
+                includingPropertiesForKeys: [.contentModificationDateKey],
                 options: [.skipsHiddenFiles]
             )
-            
-            let count = fileURLs.filter { url in
+            return fileURLs.filter { url in
                 MediaType.from(url: url) != .unknown
-            }.count
-            
-            return count
+            }
         } catch {
-            return 0
+            return []
         }
     }
     
@@ -186,6 +231,29 @@ public class AppGroupFileAccess: DebugPrintable {
         }
     }
     
+    /// Deletes pending media staged before `cutoff`, leaving the files in
+    /// `excluded` alone.
+    /// - Returns: How many files were deleted.
+    @discardableResult
+    public func deleteMedia(stagedBefore cutoff: Date, excluding excluded: Set<URL> = []) -> Int {
+        let excludedPaths = Set(excluded.map(\.standardizedFileURL.path))
+        var deleted = 0
+        for url in pendingMediaURLs() where !excludedPaths.contains(url.standardizedFileURL.path) {
+            guard let stagedAt = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
+                  stagedAt < cutoff else { continue }
+            do {
+                try FileManager.default.removeItem(at: url)
+                deleted += 1
+            } catch {
+                printDebug("WARNING: Could not delete expired pending media \(url.lastPathComponent): \(error)")
+            }
+        }
+        if deleted > 0 {
+            printDebug("Deleted \(deleted) pending media files staged before \(cutoff)")
+        }
+        return deleted
+    }
+
     /// Deletes all media files in the import directory
     public func deleteAllMedia() async throws {
         guard let containerURL = importDirectoryURL else {

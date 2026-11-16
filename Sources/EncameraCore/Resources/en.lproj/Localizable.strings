@@ -308,6 +308,11 @@
 "Import from files" = "Import from Files";
 
 /* ShareViewController.swift */
+"ShareExtension.SavedTitle" = "Share successful";
+"ShareExtension.SavedSubtitle" = "Return to Encamera to finish saving.";
+"ShareExtension.OpenEncamera" = "Open Encamera";
+"ShareExtension.FailedTitle" = "Couldn't share to Encamera";
+"ShareExtension.FailedSubtitle" = "Nothing you shared could be saved. Try sharing it again.";
 
 /* Widget */
 "QuicklyTakePictures" = "Quickly take photos and videos.";

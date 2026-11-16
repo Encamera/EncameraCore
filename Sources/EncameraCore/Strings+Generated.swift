@@ -2182,6 +2182,18 @@ public enum L10n {
       public static let storage = L10n.tr("Localizable", "SettingsView.SectionHeader.Storage", fallback: "STORAGE")
     }
   }
+  public enum ShareExtension {
+    /// Nothing you shared could be saved. Try sharing it again.
+    public static let failedSubtitle = L10n.tr("Localizable", "ShareExtension.FailedSubtitle", fallback: "Nothing you shared could be saved. Try sharing it again.")
+    /// Couldn't share to Encamera
+    public static let failedTitle = L10n.tr("Localizable", "ShareExtension.FailedTitle", fallback: "Couldn't share to Encamera")
+    /// Open Encamera
+    public static let openEncamera = L10n.tr("Localizable", "ShareExtension.OpenEncamera", fallback: "Open Encamera")
+    /// Return to Encamera to finish saving.
+    public static let savedSubtitle = L10n.tr("Localizable", "ShareExtension.SavedSubtitle", fallback: "Return to Encamera to finish saving.")
+    /// ShareViewController.swift
+    public static let savedTitle = L10n.tr("Localizable", "ShareExtension.SavedTitle", fallback: "Share successful")
+  }
   public enum SplashScreen {
     /// Secure Your Memories
     public static let subline = L10n.tr("Localizable", "SplashScreen.Subline", fallback: "Secure Your Memories")

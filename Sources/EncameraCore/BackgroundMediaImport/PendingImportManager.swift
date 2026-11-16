@@ -57,14 +57,24 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     @Published public private(set) var pendingMedia: [CleartextMedia] = []
     
     // MARK: - Private Properties
-    
-    private let appGroupFileAccess = AppGroupFileAccess.shared
-    private let pendingMediaCount: @Sendable () -> Int
+
+    /// How long shared media waits in the App Group for the user to pick an
+    /// album. Older media is deleted at the next check, so unencrypted copies do
+    /// not outlive a share the user forgot about.
+    public static let pendingMediaLifetime: TimeInterval = 24 * 60 * 60
+
+    private let staging: PendingImportStaging
+    private let now: @Sendable () -> Date
     private var cancellables = Set<AnyCancellable>()
 
     /// The check in progress, which an overlapping caller waits on so it reads
     /// that check's result instead of the value from before it.
     private var runningCheck: Task<Void, Never>?
+
+    /// Files an import has claimed. They stay in the App Group until the import
+    /// finishes, so they are left out of the count, the expiry and Cancel;
+    /// otherwise the picker would offer them a second time.
+    private var claimedURLs: Set<URL> = []
     
     /// UserDefaults key for tracking when imports were last added (used by extension)
     private static let lastImportTimestampKey = "PendingImport_LastTimestamp"
@@ -80,21 +90,21 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     // MARK: - Initialization
     
     public convenience init() {
-        let fileAccess = AppGroupFileAccess.shared
-        self.init(pendingMediaCount: { fileAccess.pendingMediaCount() })
+        self.init(staging: AppGroupFileAccess.shared)
     }
 
-    init(pendingMediaCount: @escaping @Sendable () -> Int) {
-        self.pendingMediaCount = pendingMediaCount
+    init(staging: PendingImportStaging, now: @escaping @Sendable () -> Date = { Date() }) {
+        self.staging = staging
+        self.now = now
         setupNotificationObservers()
     }
     
     // MARK: - Public API
     
-    /// Checks for pending imports from the Share Extension
-    /// Call this when the app becomes active or when triggered by a deep link.
-    /// A call that overlaps a running check waits for it, so `hasPendingImports`
-    /// is current when this returns.
+    /// Deletes shared media older than `pendingMediaLifetime`, then checks for
+    /// what is left. Call this when the app becomes active or when triggered by
+    /// a deep link. A call that overlaps a running check waits for it, so
+    /// `hasPendingImports` is current when this returns.
     public func checkForPendingImports() async {
         if let runningCheck {
             printDebug("Already checking for pending imports, waiting for that check")
@@ -112,9 +122,12 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
 
         printDebug("Checking for pending imports from Share Extension...")
 
-        let pendingMediaCount = pendingMediaCount
+        let staging = staging
+        let claimed = claimedURLs
+        let cutoff = now().addingTimeInterval(-Self.pendingMediaLifetime)
         let count = await Task.detached(priority: .utility) {
-            pendingMediaCount()
+            staging.deleteMedia(stagedBefore: cutoff, excluding: claimed)
+            return PendingImportManager.unclaimed(staging.pendingMediaURLs(), claimed: claimed).count
         }.value
 
         let hadPending = hasPendingImports
@@ -132,7 +145,7 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     /// Loads all pending media items (call when showing the import UI)
     public func loadPendingMedia() async {
         printDebug("Loading pending media items...")
-        let media = await appGroupFileAccess.enumerateMedia()
+        let media = await unclaimedMedia()
         pendingMedia = media
         pendingCount = media.count
         hasPendingImports = !media.isEmpty
@@ -154,21 +167,13 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
 
         MediaImportHandler.shared.configure(albumManager: albumManager)
 
-        await loadPendingMedia()
-        
-        guard !pendingMedia.isEmpty else {
+        let mediaToImport = await claimPendingMedia()
+        guard !mediaToImport.isEmpty else {
             printDebug("No pending media to import")
             return 0
         }
-        
-        let mediaToImport = pendingMedia
         let count = mediaToImport.count
-        
-        pendingMedia = []
-        pendingCount = 0
-        hasPendingImports = false
-        clearPendingMetadata()
-        
+
         Task.detached { [weak self] in
             do {
                 let result = try await MediaImportHandler.shared.startImport(
@@ -185,17 +190,47 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
             } catch {
                 await PendingImportOutcome.shared.record("error=\(error):album=\(albumId)")
                 await self?.printDebug("Import failed: \(error)")
+                await self?.releaseClaim(on: mediaToImport)
             }
         }
         
         return count
     }
+
+    /// Takes every unclaimed pending item for an import: marks it claimed, lets
+    /// it be read while the device is locked and clears the published state.
+    func claimPendingMedia() async -> [CleartextMedia] {
+        let media = await unclaimedMedia()
+        guard !media.isEmpty else {
+            pendingMedia = []
+            pendingCount = 0
+            hasPendingImports = false
+            return []
+        }
+
+        let urls = media.compactMap(\.fileURL)
+        claimedURLs.formUnion(urls)
+        staging.allowReadingWhileLocked(urls)
+
+        pendingMedia = []
+        pendingCount = 0
+        hasPendingImports = false
+        clearPendingMetadata()
+        return media
+    }
+
+    /// Returns media an import gave up on to the pending set, so the next check
+    /// offers it again.
+    func releaseClaim(on media: [CleartextMedia]) {
+        claimedURLs.subtract(media.compactMap(\.fileURL))
+    }
     
-    /// Cancels/dismisses pending imports without importing them
+    /// Cancels/dismisses pending imports without importing them. Media an
+    /// import has already claimed is left for that import.
     public func cancelPendingImports() async throws {
         printDebug("Cancelling pending imports - deleting files from app group")
         
-        try await appGroupFileAccess.deleteAllMedia()
+        try await staging.delete(mediaList: await unclaimedMedia())
         
         pendingMedia = []
         pendingCount = 0
@@ -216,21 +251,34 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     }
     
     // MARK: - Private Methods
+
+    private func unclaimedMedia() async -> [CleartextMedia] {
+        let claimedPaths = Self.paths(of: claimedURLs)
+        return await staging.enumerateMedia().filter { media in
+            guard let url = media.fileURL else { return true }
+            return !claimedPaths.contains(url.standardizedFileURL.path)
+        }
+    }
+
+    nonisolated private static func unclaimed(_ urls: [URL], claimed: Set<URL>) -> [URL] {
+        let claimedPaths = paths(of: claimed)
+        return urls.filter { !claimedPaths.contains($0.standardizedFileURL.path) }
+    }
+
+    nonisolated private static func paths(of urls: Set<URL>) -> Set<String> {
+        Set(urls.map(\.standardizedFileURL.path))
+    }
     
     private func cleanupAfterImport(importedMedia: [CleartextMedia]) async {
         printDebug("Cleaning up \(importedMedia.count) imported files from app group")
         
         do {
-            try await appGroupFileAccess.delete(mediaList: importedMedia)
+            try await staging.delete(mediaList: importedMedia)
             printDebug("Successfully cleaned up imported files")
         } catch {
             printDebug("WARNING: Failed to clean up some imported files: \(error)")
         }
-        
-        pendingMedia = []
-        pendingCount = 0
-        hasPendingImports = false
-        clearPendingMetadata()
+        releaseClaim(on: importedMedia)
     }
     
     private func setupNotificationObservers() {
@@ -244,6 +292,26 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
                 }
             }
             .store(in: &cancellables)
+    }
+}
+
+/// The App Group folder the share extension stages media in, as
+/// `PendingImportManager` uses it.
+public protocol PendingImportStaging: AnyObject {
+    func pendingMediaURLs() -> [URL]
+    func enumerateMedia() async -> [CleartextMedia]
+    func delete(mediaList: [CleartextMedia]) async throws
+    @discardableResult
+    func deleteMedia(stagedBefore cutoff: Date, excluding excluded: Set<URL>) -> Int
+    func allowReadingWhileLocked(_ urls: [URL])
+}
+
+extension AppGroupFileAccess: PendingImportStaging {}
+
+private extension CleartextMedia {
+    var fileURL: URL? {
+        guard case .url(let url) = source else { return nil }
+        return url
     }
 }
 
