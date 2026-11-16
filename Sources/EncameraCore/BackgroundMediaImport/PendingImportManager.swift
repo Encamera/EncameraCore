@@ -56,13 +56,15 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     /// The pending media items (loaded on demand)
     @Published public private(set) var pendingMedia: [CleartextMedia] = []
     
-    /// Whether we're currently checking for pending imports
-    @Published public private(set) var isChecking: Bool = false
-    
     // MARK: - Private Properties
     
     private let appGroupFileAccess = AppGroupFileAccess.shared
+    private let pendingMediaCount: @Sendable () -> Int
     private var cancellables = Set<AnyCancellable>()
+
+    /// The check in progress, which an overlapping caller waits on so it reads
+    /// that check's result instead of the value from before it.
+    private var runningCheck: Task<Void, Never>?
     
     /// UserDefaults key for tracking when imports were last added (used by extension)
     private static let lastImportTimestampKey = "PendingImport_LastTimestamp"
@@ -77,42 +79,56 @@ public class PendingImportManager: ObservableObject, DebugPrintable {
     
     // MARK: - Initialization
     
-    public init() {
+    public convenience init() {
+        let fileAccess = AppGroupFileAccess.shared
+        self.init(pendingMediaCount: { fileAccess.pendingMediaCount() })
+    }
+
+    init(pendingMediaCount: @escaping @Sendable () -> Int) {
+        self.pendingMediaCount = pendingMediaCount
         setupNotificationObservers()
     }
     
     // MARK: - Public API
     
     /// Checks for pending imports from the Share Extension
-    /// Call this when the app becomes active or when triggered by a deep link
+    /// Call this when the app becomes active or when triggered by a deep link.
+    /// A call that overlaps a running check waits for it, so `hasPendingImports`
+    /// is current when this returns.
     public func checkForPendingImports() async {
-        guard !isChecking else {
-            printDebug("Already checking for pending imports, skipping")
+        if let runningCheck {
+            printDebug("Already checking for pending imports, waiting for that check")
+            await runningCheck.value
             return
         }
-        
-        isChecking = true
-        defer { isChecking = false }
-        
+
+        let check = Task { await performCheck() }
+        runningCheck = check
+        await check.value
+    }
+
+    private func performCheck() async {
+        defer { runningCheck = nil }
+
         printDebug("Checking for pending imports from Share Extension...")
-        
-        let fileAccess = appGroupFileAccess
+
+        let pendingMediaCount = pendingMediaCount
         let count = await Task.detached(priority: .utility) {
-            fileAccess.pendingMediaCount()
+            pendingMediaCount()
         }.value
-        
+
         let hadPending = hasPendingImports
-        
+
         pendingCount = count
         hasPendingImports = count > 0
-        
+
         if hasPendingImports {
             printDebug("Found \(count) pending media files")
         } else if hadPending {
             printDebug("No more pending imports")
         }
     }
-    
+
     /// Loads all pending media items (call when showing the import UI)
     public func loadPendingMedia() async {
         printDebug("Loading pending media items...")
