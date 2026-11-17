@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 App Store Localization Script
-Translates and updates App Store Connect metadata using OpenAI and the App Store Connect API.
+Translates and updates App Store Connect metadata using Claude (Anthropic API) and the App Store Connect API.
 
 Requires the `asc` library: pip install -e scripts/asc
 """
@@ -9,13 +9,12 @@ Requires the `asc` library: pip install -e scripts/asc
 import argparse
 import json
 import os
-import re
 import sys
-from itertools import islice
 from pathlib import Path
 
-import openai
+import anthropic
 import yaml
+from pydantic import BaseModel
 
 try:
     from asc.auth import Credentials
@@ -34,7 +33,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     print("Missing required packages. Please install with:")
-    print("pip install inquirer tabulate keyring tqdm")
+    print("pip install anthropic pydantic inquirer tabulate keyring tqdm")
     sys.exit(1)
 
 
@@ -88,19 +87,30 @@ class AppStoreConnectAPI:
         return create_version_localization(self._client, version_id, locale, **fields)
 
 
+DEFAULT_MODEL = "claude-opus-5-5"
+DEFAULT_KEYCHAIN_SERVICE = "encamera_translation_anthropic_key"
+STRING_CHUNK_SIZE = 5
+
+# Server-side fallback: if the model declines a request, the API retries it on
+# Anthropic's recommended fallback model within the same call.
+FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+
+class TranslationBatch(BaseModel):
+    translations: list[str]
+
+
 class LocalizationTranslator:
-    """Handles translation using OpenAI API."""
-    
-    def __init__(self, api_key, model="gpt-4", max_tokens=2000, temperature=0.3):
-        self.api_key = api_key
+    """Handles translation using the Anthropic API."""
+
+    def __init__(self, api_key, model=DEFAULT_MODEL, effort="medium"):
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.model = model
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        openai.api_key = api_key
-    
+        self.effort = effort
+
     def translate_content(self, content, from_lang, to_lang, context_note=""):
-        """Translate content using OpenAI."""
-        system_message = f"""Translate the following {from_lang} app store listing content to {to_lang}. 
+        """Translate free-form listing text. Returns None on failure."""
+        system_message = f"""Translate the following {from_lang} app store listing content to {to_lang}.
 Maintain the original formatting, line breaks, and bullet points.
 Keep any placeholders like %s, {{0}}, etc. unchanged.
 Context: {context_note}
@@ -108,21 +118,71 @@ Context: {context_note}
 Return only the translated text without any additional commentary."""
 
         try:
-            response = openai.chat.completions.create(
+            response = self.client.beta.messages.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": content}
-                ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_tokens=16000,
+                betas=[FALLBACK_BETA],
+                fallbacks="default",
+                output_config={"effort": self.effort},
+                system=system_message,
+                messages=[{"role": "user", "content": content}],
             )
-            
-            return response.choices[0].message.content.strip()
-        
-        except Exception as e:
-            print(f"❌ Translation error: {e}")
+        except anthropic.APIStatusError as e:
+            print(f"❌ Translation API error ({e.status_code}): {e.message}")
             return None
+        except anthropic.APIConnectionError as e:
+            print(f"❌ Translation network error: {e}")
+            return None
+
+        if response.stop_reason == "refusal":
+            category = response.stop_details.category if response.stop_details else None
+            print(f"❌ Translation refused (category: {category})")
+            return None
+        if response.stop_reason == "max_tokens":
+            print("❌ Translation was cut off at max_tokens")
+            return None
+
+        text = "".join(block.text for block in response.content if block.type == "text").strip()
+        return text or None
+
+    def translate_batch(self, values, from_lang, to_lang):
+        """Translate a list of strings, preserving order. Returns None on failure."""
+        system_message = f"""You translate user-facing strings for an iOS app from {from_lang} to {to_lang}.
+You receive a JSON object with a "translations" array. Return the same number of strings, in the same order, each one translated.
+Keep format specifiers (%@, %d, %lld, %1$@, ...), escape sequences (\\n, \\"), and markup exactly as they appear.
+Write native characters, never Unicode escape sequences."""
+
+        try:
+            response = self.client.beta.messages.parse(
+                model=self.model,
+                max_tokens=16000,
+                betas=[FALLBACK_BETA],
+                fallbacks="default",
+                output_config={"effort": self.effort},
+                system=system_message,
+                messages=[{"role": "user", "content": json.dumps({"translations": values}, ensure_ascii=False)}],
+                output_format=TranslationBatch,
+            )
+        except anthropic.APIStatusError as e:
+            tqdm.write(f"❌ API error ({e.status_code}): {e.message}")
+            return None
+        except anthropic.APIConnectionError as e:
+            tqdm.write(f"❌ Network error: {e}")
+            return None
+
+        if response.stop_reason == "refusal":
+            category = response.stop_details.category if response.stop_details else None
+            tqdm.write(f"❌ Batch refused (category: {category})")
+            return None
+        if response.stop_reason == "max_tokens" or response.parsed_output is None:
+            tqdm.write(f"❌ Batch reply cut off or unparseable (stop_reason: {response.stop_reason})")
+            return None
+
+        translated = response.parsed_output.translations
+        if len(translated) != len(values):
+            tqdm.write(f"❌ Expected {len(values)} translations, got {len(translated)}")
+            return None
+        return translated
 
 
 # String localization functions integrated from string_diff.py
@@ -138,83 +198,18 @@ def load_strings_from_file(file_path):
 
 
 def get_string_translations(keys_and_values, from_lang, to_lang, translator):
-    """Translate strings using the existing LocalizationTranslator with progress bar."""
-    chunks = [dict(islice(keys_and_values.items(), i, i + 5)) for i in range(0, len(keys_and_values), 5)]
+    """Translate strings in batches with a progress bar. Failed batches are skipped."""
+    items = list(keys_and_values.items())
+    chunks = [dict(items[i:i + STRING_CHUNK_SIZE]) for i in range(0, len(items), STRING_CHUNK_SIZE)]
     translations = []
-    
+
     with tqdm(total=len(chunks), desc=f"Translating to {to_lang}", unit="batch") as pbar:
         for chunk in chunks:
-            # Convert values to list
-            values = list(chunk.values())
-            
-            # Create content for translation
-            content = json.dumps({"translations": values})
-            
-            # Use the existing translator with custom system message for string translation
-            system_message = f"""Translate the following {from_lang} text to {to_lang}. 
-Return JSON and preserve the order provided. DO NOT change the order of the strings.
-IMPORTANT: Use native characters (not Unicode escape sequences) for languages like Chinese, Japanese, Korean, etc.
-Example good response: {{"translations": ["你好", "谢谢"]}}
-Example bad response: {{"translations": ["\\u4f60\\u597d", "\\u8c22\\u8c22"]}}"""
-            
-            try:
-                response = openai.chat.completions.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": system_message},
-                        {"role": "user", "content": content}
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.5,
-                    max_tokens=512
-                )
-                
-                raw_content = response.choices[0].message.content
-                
-                try:
-                    translation_text = json.loads(raw_content)['translations']
-                    translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_text)])
-                except json.JSONDecodeError as e:
-                    # Try multiple approaches to fix JSON parsing issues
-                    fixed = False
-                    
-                    # Approach 1: Fix invalid Unicode escapes
-                    try:
-                        fixed_content = re.sub(r'\\u([0-9a-fA-F]{0,3}[^0-9a-fA-F])', r'\\\\u\1', raw_content)
-                        translation_data = json.loads(fixed_content)['translations']
-                        translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_data)])
-                        fixed = True
-                    except Exception:
-                        pass
-                    
-                    # Approach 2: Manual parsing fallback
-                    if not fixed:
-                        try:
-                            match = re.search(r'"translations"\s*:\s*\[(.*?)\]', raw_content, re.DOTALL)
-                            if match:
-                                translations_str = match.group(1)
-                                manual_translations = []
-                                parts = translations_str.split('","')
-                                for part in parts:
-                                    clean_part = part.strip().strip('"').strip("'")
-                                    if clean_part:
-                                        manual_translations.append(clean_part)
-                                
-                                translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), manual_translations)])
-                                fixed = True
-                        except Exception:
-                            pass
-                    
-                    if not fixed:
-                        # Skip this batch on parsing failure
-                        continue
-                        
-            except Exception as e:
-                # Skip this batch on API failure
-                continue
-                
+            translated = translator.translate_batch(list(chunk.values()), from_lang, to_lang)
+            if translated is not None:
+                translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translated)])
             pbar.update(1)
-    
+
     return translations
 
 
@@ -441,26 +436,31 @@ def load_yaml_config(file_path):
         return None
 
 
-def get_openai_api_key(config):
-    """Get OpenAI API key from keychain or prompt user."""
-    service_name = config.get("encamera_translation_openai_key", "encamera_translation_openai_key")
-    key_name = config.get("encamera_translation_openai_key", "encamera_translation_openai_key")
-    
+def get_anthropic_api_key(config):
+    """Get the Anthropic API key from ANTHROPIC_API_KEY, the keychain, or a prompt."""
+    env_key = os.environ.get("ANTHROPIC_API_KEY")
+    if env_key:
+        print("🔑 Using Anthropic API key from ANTHROPIC_API_KEY")
+        return env_key
+
+    service_name = config.get("api_key_keychain_service", DEFAULT_KEYCHAIN_SERVICE)
+    key_name = config.get("api_key_keychain_account", DEFAULT_KEYCHAIN_SERVICE)
+
     try:
         # Try to get the key from keychain
         api_key = keyring.get_password(service_name, key_name)
         
         if api_key:
-            print("🔑 Found OpenAI API key in keychain")
+            print("🔑 Found Anthropic API key in keychain")
             return api_key
         else:
-            print("🔑 OpenAI API key not found in keychain")
+            print("🔑 Anthropic API key not found in keychain")
             
     except Exception as e:
         print(f"⚠️  Could not access keychain: {e}")
     
     # Prompt user for API key
-    print("Please enter your OpenAI API key:")
+    print("Please enter your Anthropic API key:")
     api_key = getpass.getpass("API Key: ").strip()
     
     if not api_key:
@@ -752,18 +752,17 @@ class Localizer:
         print(f"🎯 Target languages: {', '.join(target_languages)}")
         print(f"🌍 All languages to process: {', '.join(all_languages)}")
     
-        # Get OpenAI API key
-        openai_config = credentials_config.get("openai", {})
-        api_key = get_openai_api_key(openai_config)
+        # Get Anthropic API key
+        anthropic_config = credentials_config.get("anthropic", {})
+        api_key = get_anthropic_api_key(anthropic_config)
         if not api_key:
             return False
     
         # Initialize translator
         translator = LocalizationTranslator(
             api_key=api_key,
-            model=openai_config.get("model", "gpt-4"),
-            max_tokens=openai_config.get("max_tokens", 2000),
-            temperature=openai_config.get("temperature", 0.3)
+            model=anthropic_config.get("model", DEFAULT_MODEL),
+            effort=anthropic_config.get("effort", "medium"),
         )
     
         # Check and create missing string localizations if requested
@@ -784,7 +783,7 @@ class Localizer:
     
         print(f"📋 Fields to process: {', '.join(listing.keys())}")
     
-        # Check if description needs retranslation (to save OpenAI API tokens)
+        # Check if description needs retranslation (to save API tokens)
         skip_description_translation = False
         if not self.skip_preflight and api and app_id:
             local_description = listing.get("description", "")
@@ -1133,7 +1132,7 @@ class Localizer:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Translate and update App Store metadata and create missing string localizations using OpenAI and App Store Connect API.',
+        description='Translate and update App Store metadata and create missing string localizations using Claude (Anthropic API) and App Store Connect API.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

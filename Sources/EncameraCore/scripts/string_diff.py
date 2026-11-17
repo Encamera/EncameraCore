@@ -2,12 +2,14 @@
 import argparse
 import json
 import os
+import plistlib
 import re
 import sys
-from itertools import islice
 from pathlib import Path
+from typing import Literal
 
-import openai
+import anthropic
+from pydantic import BaseModel
 
 try:
     import getpass
@@ -17,7 +19,7 @@ try:
     from tabulate import tabulate
 except ImportError:
     print("Missing required packages. Please install with:")
-    print("pip install inquirer tabulate keyring")
+    print("pip install anthropic pydantic inquirer tabulate keyring")
     sys.exit(1)
 
 
@@ -100,98 +102,302 @@ def load_strings_from_file(file_path):
                 keys_and_values[key.strip()] = value.strip().rstrip(';').rstrip('"').lstrip('"')
     return keys_and_values
 
+TRANSLATION_MODEL = "claude-opus-5-5"
+TRANSLATION_CHUNK_SIZE = 5
+
+# Set in main() once the API key is known.
+client = None
+
+
+class TranslationBatch(BaseModel):
+    translations: list[str]
+
+
 def get_translations(keys_and_values, from_lang, to_lang):
-    chunks = [dict(islice(keys_and_values.items(), i, i + 5)) for i in range(0, len(keys_and_values), 5)]
+    items = list(keys_and_values.items())
+    chunks = [dict(items[i:i + TRANSLATION_CHUNK_SIZE]) for i in range(0, len(items), TRANSLATION_CHUNK_SIZE)]
+    system_message = f"""You translate user-facing strings for an iOS app from {from_lang} to {to_lang}.
+You receive a JSON object with a "translations" array. Return the same number of strings, in the same order, each one translated.
+Keep format specifiers (%@, %d, %lld, %1$@, ...), escape sequences (\\n, \\"), and markup exactly as they appear.
+Write native characters, never Unicode escape sequences."""
+
     translations = []
     for chunk in chunks:
-        # convert values to list
         values = list(chunk.values())
-        # prompt = " ".join([f"{value}" for value in values])
-        system_message = f"""Translate the following {from_lang} text to {to_lang}. 
-Return JSON and preserve the order provided. DO NOT change the order of the strings.
-IMPORTANT: Use native characters (not Unicode escape sequences) for languages like Chinese, Japanese, Korean, etc.
-Example good response: {{"translations": ["你好", "谢谢"]}}
-Example bad response: {{"translations": ["\\u4f60\\u597d", "\\u8c22\\u8c22"]}}"""
-
-        messages = [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": json.dumps({"translations": values})}
-            ]
-        # import ipdb; ipdb.set_trace()
-        response = openai.chat.completions.create(
-            model="gpt-4.1",
-            messages=messages,
-            response_format={"type": "json_object" },
-            temperature=0.5,
-            max_tokens=256
-        )
-        
-        # Debug: print raw response content
-        raw_content = response.choices[0].message.content
-        print(f"Raw API response: {raw_content[:200]}...")  # Show first 200 chars
-        
         try:
-            translation_text = json.loads(raw_content)['translations']
-            print(translation_text)
-            translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_text)])
-        except json.JSONDecodeError as e:
-            print(f"❌ JSON parsing error: {e}")
-            print(f"❌ Raw response content: {raw_content}")
-            print(f"❌ Error at position {e.pos}: '{raw_content[max(0, e.pos-10):e.pos+10]}'")
-            
-            # Try multiple approaches to fix the issue
-            print("🔧 Attempting to fix JSON parsing issue...")
-            fixed = False
-            
-            # Approach 1: Try to fix invalid Unicode escapes by making them literal
-            try:
-                # Find and fix malformed Unicode escapes
-                fixed_content = re.sub(r'\\u([0-9a-fA-F]{0,3}[^0-9a-fA-F])', r'\\\\u\1', raw_content)
-                translation_data = json.loads(fixed_content)['translations']
-                print(f"✅ Fixed with regex Unicode repair: {translation_data}")
-                translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_data)])
-                fixed = True
-            except Exception:
-                pass
-            
-            # Approach 2: Try decoding as raw strings
-            if not fixed:
-                try:
-                    # Parse as JSON with a more lenient approach
-                    decoded_content = raw_content.encode().decode('unicode_escape')
-                    translation_data = json.loads(decoded_content)['translations']
-                    print(f"✅ Fixed with unicode_escape decoding: {translation_data}")
-                    translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translation_data)])
-                    fixed = True
-                except Exception:
-                    pass
-            
-            # Approach 3: Manual parsing fallback
-            if not fixed:
-                try:
-                    # Extract translations array manually using regex
-                    match = re.search(r'"translations"\s*:\s*\[(.*?)\]', raw_content, re.DOTALL)
-                    if match:
-                        translations_str = match.group(1)
-                        # Split by comma and clean up
-                        manual_translations = []
-                        parts = translations_str.split('",')
-                        for part in parts:
-                            clean_part = part.strip().strip('"').strip("'")
-                            if clean_part:
-                                manual_translations.append(clean_part)
-                        
-                        print(f"✅ Fixed with manual parsing: {manual_translations}")
-                        translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), manual_translations)])
-                        fixed = True
-                except Exception as manual_error:
-                    print(f"❌ Manual parsing also failed: {manual_error}")
-            
-            if not fixed:
-                print("❌ Could not fix JSON parsing issue with any method")
-                print("⏭️  Skipping this batch of translations due to encoding error")
-                continue
+            response = client.beta.messages.parse(
+                model=TRANSLATION_MODEL,
+                max_tokens=16000,
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                output_config={"effort": "medium"},
+                system=system_message,
+                messages=[{"role": "user", "content": json.dumps({"translations": values}, ensure_ascii=False)}],
+                output_format=TranslationBatch,
+            )
+        except anthropic.APIStatusError as e:
+            print(f"❌ API error ({e.status_code}): {e.message}")
+            print("⏭️  Skipping this batch of translations")
+            continue
+        except anthropic.APIConnectionError as e:
+            print(f"❌ Network error: {e}")
+            print("⏭️  Skipping this batch of translations")
+            continue
+
+        if response.stop_reason == "refusal":
+            category = response.stop_details.category if response.stop_details else None
+            print(f"❌ Request refused (category: {category})")
+            print("⏭️  Skipping this batch of translations")
+            continue
+        if response.stop_reason == "max_tokens" or response.parsed_output is None:
+            print(f"❌ Response was cut off or unparseable (stop_reason: {response.stop_reason})")
+            print("⏭️  Skipping this batch of translations")
+            continue
+
+        translated = response.parsed_output.translations
+        if len(translated) != len(values):
+            print(f"❌ Expected {len(values)} translations, got {len(translated)}")
+            print("⏭️  Skipping this batch of translations")
+            continue
+
+        print(translated)
+        translations.extend([f"{key} = \"{translation}\";" for key, translation in zip(chunk.keys(), translated)])
     return translations
+
+# --- Plural strings (Localizable.stringsdict) ---
+
+STRINGSDICT_NAME = "Localizable.stringsdict"
+FORMAT_KEY = "NSStringLocalizedFormatKey"
+PLURAL_SPEC_KEYS = ("NSStringFormatSpecTypeKey", "NSStringFormatValueTypeKey")
+PLURAL_CATEGORIES = ("zero", "one", "two", "few", "many", "other")
+
+# Matches %d, %1$d, %@, %2$@, %lld and the like, but not the %#@var@ references.
+FORMAT_SPECIFIER = re.compile(r"%(?:\d+\$)?(?:ll|l|h)?[@dDuUxXoOfeEgGcCsSp]")
+VARIABLE_REFERENCE = re.compile(r"%(?:\d+\$)?#@(\w+)@")
+
+
+class PluralForm(BaseModel):
+    category: Literal["zero", "one", "two", "few", "many", "other"]
+    text: str
+
+
+class PluralVariable(BaseModel):
+    name: str
+    forms: list[PluralForm]
+
+
+class PluralEntry(BaseModel):
+    key: str
+    format_key: str
+    variables: list[PluralVariable]
+
+
+class PluralBatch(BaseModel):
+    entries: list[PluralEntry]
+
+
+def load_stringsdict(path):
+    if not path.exists():
+        return {}
+    with open(path, "rb") as file:
+        return plistlib.load(file)
+
+
+def write_stringsdict(path, entries):
+    with open(path, "wb") as file:
+        plistlib.dump(entries, file, fmt=plistlib.FMT_XML, sort_keys=False)
+
+
+def plural_variables(entry):
+    """Return {variable name: {category: text}} for an English stringsdict entry."""
+    return {
+        name: {category: value[category] for category in PLURAL_CATEGORIES if category in value}
+        for name, value in entry.items()
+        if isinstance(value, dict)
+    }
+
+
+def language_name_for(locale_dir):
+    """Read the language name from the header string_diff.py writes, else use the folder's locale code."""
+    code = locale_dir.name.removesuffix(".lproj")
+    strings_path = locale_dir / "Localizable.strings"
+    if strings_path.exists():
+        with open(strings_path, encoding="utf-8") as file:
+            match = re.match(r"/\*\s*(.+?) Localization\s*\*/", file.readline())
+        if match:
+            return f"{match.group(1)} ({code})"
+    return f"the language with Apple locale code '{code}'"
+
+
+def validate_plural_entry(english, translated):
+    """Return a reason the translation can't be used, or None if it's sound."""
+    english_variables = plural_variables(english)
+    translated_variables = {variable.name: variable for variable in translated.variables}
+
+    if set(VARIABLE_REFERENCE.findall(translated.format_key)) != set(VARIABLE_REFERENCE.findall(english[FORMAT_KEY])):
+        return "format key references different plural variables"
+    if sorted(FORMAT_SPECIFIER.findall(translated.format_key)) != sorted(FORMAT_SPECIFIER.findall(english[FORMAT_KEY])):
+        return "format key changes its format specifiers"
+    if set(translated_variables) != set(english_variables):
+        return f"variables {sorted(translated_variables)} don't match {sorted(english_variables)}"
+
+    for name, variable in translated_variables.items():
+        categories = [form.category for form in variable.forms]
+        if "other" not in categories:
+            return f"variable '{name}' has no 'other' form"
+        if len(categories) != len(set(categories)):
+            return f"variable '{name}' repeats a plural category"
+        allowed = {spec for text in english_variables[name].values() for spec in FORMAT_SPECIFIER.findall(text)}
+        for form in variable.forms:
+            unexpected = set(FORMAT_SPECIFIER.findall(form.text)) - allowed
+            if unexpected:
+                return f"variable '{name}' form '{form.category}' adds format specifiers {sorted(unexpected)}"
+    return None
+
+
+def build_plural_entry(english, translated):
+    """Rebuild a stringsdict entry from a translation, keeping the English spec and value types."""
+    entry = {FORMAT_KEY: translated.format_key}
+    for variable in translated.variables:
+        forms = {form.category: form.text for form in variable.forms}
+        value = {spec_key: english[variable.name][spec_key] for spec_key in PLURAL_SPEC_KEYS if spec_key in english[variable.name]}
+        value.update({category: forms[category] for category in PLURAL_CATEGORIES if category in forms})
+        entry[variable.name] = value
+    return entry
+
+
+def translate_plural_entries(entries, from_lang, to_lang):
+    """Translate stringsdict entries in one request. Returns {key: entry} for the ones that pass validation."""
+    request = [
+        {"key": key, "format_key": entry[FORMAT_KEY], "variables": plural_variables(entry)}
+        for key, entry in entries.items()
+    ]
+    system_message = f"""You translate plural strings from an iOS app's Localizable.stringsdict from {from_lang} to {to_lang}.
+Each entry has a format_key and plural variables. A %#@name@ reference in format_key is replaced by the plural form of variable "name" chosen for the count.
+
+For every entry, return the same key, a translated format_key, and each variable with its forms translated:
+- Keep every %#@name@ reference (including any positional prefix such as %1$#@name@) and every other format specifier (%d, %1$d, %@, %2$@, ...) exactly as written. Word order around them may change.
+- Give each variable the plural categories {to_lang} uses for cardinal numbers under CLDR rules, always including "other". For example Arabic uses zero, one, two, few, many and other; Russian uses one, few, many and other; Japanese and Chinese use only other.
+- Also include a "zero" form whenever the {from_lang} variable has one: iOS uses it for a count of 0 in every language.
+- A form may leave out the count specifier when the wording already says the number (for example "one file"), but must not add specifiers the {from_lang} forms don't use.
+Write native characters, never Unicode escape sequences."""
+
+    try:
+        response = client.beta.messages.parse(
+            model=TRANSLATION_MODEL,
+            max_tokens=16000,
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
+            output_config={"effort": "medium"},
+            system=system_message,
+            messages=[{"role": "user", "content": json.dumps({"entries": request}, ensure_ascii=False)}],
+            output_format=PluralBatch,
+        )
+    except anthropic.APIStatusError as e:
+        print(f"❌ API error ({e.status_code}): {e.message}")
+        return {}
+    except anthropic.APIConnectionError as e:
+        print(f"❌ Network error: {e}")
+        return {}
+
+    if response.stop_reason == "refusal":
+        category = response.stop_details.category if response.stop_details else None
+        print(f"❌ Request refused (category: {category})")
+        return {}
+    if response.stop_reason == "max_tokens" or response.parsed_output is None:
+        print(f"❌ Response was cut off or unparseable (stop_reason: {response.stop_reason})")
+        return {}
+
+    translated = {}
+    for item in response.parsed_output.entries:
+        if item.key not in entries:
+            print(f"  ⚠️  Ignoring unexpected key {item.key}")
+            continue
+        problem = validate_plural_entry(entries[item.key], item)
+        if problem:
+            print(f"  ❌ {item.key}: {problem}; skipped")
+            continue
+        translated[item.key] = build_plural_entry(entries[item.key], item)
+
+    for key in entries.keys() - translated.keys():
+        if not any(item.key == key for item in response.parsed_output.entries):
+            print(f"  ❌ {key}: missing from the response; skipped")
+    return translated
+
+
+def sync_locale_stringsdict(master_dir, locale_dir, from_lang="English"):
+    """Bring one locale's stringsdict in line with the master: translate missing keys, drop removed ones.
+
+    Returns (translated keys, removed keys, keys still missing).
+    """
+    master = load_stringsdict(master_dir / STRINGSDICT_NAME)
+    path = locale_dir / STRINGSDICT_NAME
+    existing = load_stringsdict(path)
+
+    removed = [key for key in existing if key not in master]
+    missing = {key: entry for key, entry in master.items() if key not in existing}
+    if not missing and not removed:
+        return [], [], []
+
+    translated = {}
+    if missing:
+        to_lang = language_name_for(locale_dir)
+        print(f"🔄 Translating {len(missing)} plural string(s) to {to_lang}...")
+        translated = translate_plural_entries(missing, from_lang, to_lang)
+
+    merged = {key: existing.get(key) or translated.get(key) for key in master}
+    merged = {key: entry for key, entry in merged.items() if entry is not None}
+    write_stringsdict(path, merged)
+    return sorted(translated), sorted(removed), sorted(missing.keys() - translated.keys())
+
+
+def interactive_translate_plurals(master_dir, from_lang="English"):
+    """Translate missing stringsdict entries for every existing localization."""
+    if not (master_dir / STRINGSDICT_NAME).exists():
+        print(f"❌ No {STRINGSDICT_NAME} in {master_dir}")
+        return
+
+    master_keys = set(load_stringsdict(master_dir / STRINGSDICT_NAME))
+    locale_dirs = sorted(
+        d for d in master_dir.parent.iterdir()
+        if d.is_dir() and d != master_dir and d.name.endswith(".lproj")
+    )
+
+    rows = []
+    pending = []
+    for locale_dir in locale_dirs:
+        existing = set(load_stringsdict(locale_dir / STRINGSDICT_NAME))
+        missing, removed = master_keys - existing, existing - master_keys
+        rows.append([locale_dir.name, len(master_keys & existing), len(missing), len(removed)])
+        if missing or removed:
+            pending.append(locale_dir)
+
+    print(f"\n🌍 Plural strings ({len(master_keys)} keys in {master_dir.name}/{STRINGSDICT_NAME})")
+    print(tabulate(rows, headers=["Locale", "Translated", "Missing", "Removed from master"], tablefmt="grid"))
+
+    if not pending:
+        print("🎉 Every localization has all plural strings.")
+        return
+
+    confirmed = inquirer.prompt([
+        inquirer.Confirm('confirm',
+                         message=f"Translate missing and drop removed plural strings in {len(pending)} localization(s)?",
+                         default=True),
+    ])['confirm']
+    if not confirmed:
+        print("⏭️  Cancelled")
+        return
+
+    for locale_dir in pending:
+        print(f"\n📁 {locale_dir.name}")
+        translated, removed, still_missing = sync_locale_stringsdict(master_dir, locale_dir, from_lang)
+        if translated:
+            print(f"  ✅ Added {len(translated)}: {', '.join(translated)}")
+        if removed:
+            print(f"  🗑️  Removed {len(removed)} no longer in master: {', '.join(removed)}")
+        if still_missing:
+            print(f"  ⚠️  Still missing {len(still_missing)}: {', '.join(still_missing)}")
+
 
 def compare_and_translate(master_keys_and_values, directory, master_dir, from_lang, to_lang, silent=False):
     loc_path = Path(directory) / "Localizable.strings"
@@ -283,9 +489,11 @@ def create_new_localization(master_keys_and_values, master_dir, lang_code, lang_
     
     print(f"✅ Created {loc_path}")
 
-    # Ensure the main app has matching placeholder files for this new locale
-    print(f"\n📱 Ensuring main app has locale placeholder for {lang_code}...")
-    ensure_main_app_locale_placeholders(master_dir, verbose=True)
+    if (master_dir / STRINGSDICT_NAME).exists():
+        translated, _, still_missing = sync_locale_stringsdict(master_dir, new_dir, from_lang)
+        print(f"✅ Created {new_dir / STRINGSDICT_NAME} with {len(translated)} plural string(s)")
+        if still_missing:
+            print(f"⚠️  Plural strings still missing: {', '.join(still_missing)}")
 
     return True
 
@@ -352,6 +560,7 @@ def interactive_menu():
                      choices=[
                          'Translate missing strings for existing localizations',
                          'Add new localization and translate',
+                         'Translate missing plural strings (stringsdict)',
                          'Verify main-app locale placeholders',
                          'Exit'
                      ],
@@ -404,63 +613,79 @@ def interactive_translate_missing(master_keys_and_values, master_dir, from_lang=
         print("⏭️  Translation cancelled")
 
 def interactive_add_localization(master_keys_and_values, master_dir, from_lang="English"):
-    """Interactive workflow for adding a new localization."""
-    # Get language code
-    questions = [
-        inquirer.Text('lang_code',
-                     message="Enter language code (e.g., 'ko', 'jp', 'ro')"),
-    ]
-    lang_code = inquirer.prompt(questions)['lang_code'].strip().lower()
-    
-    if not lang_code:
-        print("❌ Invalid language code")
-        return
-    
-    # Get language name
-    questions = [
-        inquirer.Text('lang_name',
-                     message="Enter full language name (e.g., 'Korean', 'Japanese', 'Romanian')"),
-    ]
-    lang_name = inquirer.prompt(questions)['lang_name'].strip()
-    
-    if not lang_name:
-        print("❌ Invalid language name")
-        return
-    
-    # Confirm
-    questions = [
-        inquirer.Confirm('confirm',
-                        message=f"Create localization for {lang_name} ({lang_code}.lproj) with {len(master_keys_and_values)} strings?",
-                        default=True),
-    ]
-    
-    if inquirer.prompt(questions)['confirm']:
-        success = create_new_localization(master_keys_and_values, master_dir, lang_code, lang_name, from_lang)
-        if success:
-            print(f"🎉 Successfully created {lang_name} localization!")
-    else:
-        print("❌ Cancelled")
+    """Interactive workflow for adding one or more new localizations."""
+    answer = inquirer.prompt([
+        inquirer.Text('lang_codes',
+                      message="Enter language codes, space separated (e.g. 'ko ja ro pt-BR zh-Hans')"),
+    ])['lang_codes']
 
-def get_openai_api_key():
-    """Get OpenAI API key from keychain, prompt user if not found, and save it."""
-    service_name = "encamera_translation_openai_key"
-    key_name = "encamera_translation_openai_key"
+    lang_codes = list(dict.fromkeys(answer.split()))
+    if not lang_codes:
+        print("❌ No language codes entered")
+        return
+
+    existing = [code for code in lang_codes if (master_dir.parent / f"{code}.lproj").exists()]
+    for code in existing:
+        print(f"⏭️  Skipping {code}: {code}.lproj already exists")
+    lang_codes = [code for code in lang_codes if code not in existing]
+    if not lang_codes:
+        return
+
+    # The name goes into the translation prompt and the file header.
+    languages = []
+    for code in lang_codes:
+        lang_name = inquirer.prompt([
+            inquirer.Text('lang_name', message=f"Full language name for '{code}' (e.g. 'Korean', 'Brazilian Portuguese')"),
+        ])['lang_name'].strip()
+        if not lang_name:
+            print(f"⏭️  Skipping {code}: no language name given")
+            continue
+        languages.append((code, lang_name))
+
+    if not languages:
+        return
+
+    summary = ", ".join(f"{name} ({code})" for code, name in languages)
+    confirmed = inquirer.prompt([
+        inquirer.Confirm('confirm',
+                         message=f"Create {len(languages)} localization(s) with {len(master_keys_and_values)} strings each: {summary}?",
+                         default=True),
+    ])['confirm']
+    if not confirmed:
+        print("❌ Cancelled")
+        return
+
+    created = []
+    for index, (code, lang_name) in enumerate(languages, start=1):
+        print(f"\n🔄 [{index}/{len(languages)}] {lang_name} ({code})")
+        if create_new_localization(master_keys_and_values, master_dir, code, lang_name, from_lang):
+            created.append(f"{lang_name} ({code})")
+
+    if created:
+        print(f"\n🎉 Created {len(created)} localization(s): {', '.join(created)}")
+        print("\n📱 Ensuring main app has locale placeholders...")
+        ensure_main_app_locale_placeholders(master_dir, verbose=True)
+
+def get_anthropic_api_key():
+    """Get Anthropic API key from keychain, prompt user if not found, and save it."""
+    service_name = "encamera_translation_anthropic_key"
+    key_name = "encamera_translation_anthropic_key"
     
     try:
         # Try to get the key from keychain
         api_key = keyring.get_password(service_name, key_name)
         
         if api_key:
-            print("🔑 Found OpenAI API key in keychain")
+            print("🔑 Found Anthropic API key in keychain")
             return api_key
         else:
-            print("🔑 OpenAI API key not found in keychain")
+            print("🔑 Anthropic API key not found in keychain")
             
     except Exception as e:
         print(f"⚠️  Could not access keychain: {e}")
     
     # Prompt user for API key
-    print("Please enter your OpenAI API key:")
+    print("Please enter your Anthropic API key:")
     api_key = getpass.getpass("API Key: ").strip()
     
     if not api_key:
@@ -478,7 +703,7 @@ def get_openai_api_key():
         if inquirer.prompt(questions)['save_to_keychain']:
             try:
                 keyring.set_password(service_name, key_name, api_key)
-                print("✅ API key saved to keychain as 'encamera_translation_openai_key'")
+                print("✅ API key saved to keychain as 'encamera_translation_anthropic_key'")
             except Exception as e:
                 print(f"⚠️  Could not save to keychain: {e}")
         
@@ -488,7 +713,7 @@ def get_openai_api_key():
         if response in ['y', 'yes']:
             try:
                 keyring.set_password(service_name, key_name, api_key)
-                print("✅ API key saved to keychain as 'encamera_translation_openai_key'")
+                print("✅ API key saved to keychain as 'encamera_translation_anthropic_key'")
             except Exception as e:
                 print(f"⚠️  Could not save to keychain: {e}")
     
@@ -508,12 +733,13 @@ Examples:
     parser.add_argument('--master', type=str, help='Path to the master localization directory.')
     args = parser.parse_args()
 
-    api_key = get_openai_api_key()
+    global client
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or get_anthropic_api_key()
     if not api_key:
-        print("❌ OpenAI API key is required to proceed.")
+        print("❌ Anthropic API key is required to proceed.")
         return
 
-    openai.api_key = api_key
+    client = anthropic.Anthropic(api_key=api_key)
 
     # Auto-detect master directory if not provided
     if not args.master:
@@ -561,6 +787,8 @@ Examples:
                 interactive_translate_missing(master_keys_and_values, master_dir, from_lang)
             elif action == 'Add new localization and translate':
                 interactive_add_localization(master_keys_and_values, master_dir, from_lang)
+            elif action == 'Translate missing plural strings (stringsdict)':
+                interactive_translate_plurals(master_dir, from_lang)
             elif action == 'Verify main-app locale placeholders':
                 print("\n📱 Verifying main-app locale placeholders...")
                 ensure_main_app_locale_placeholders(master_dir, verbose=True)

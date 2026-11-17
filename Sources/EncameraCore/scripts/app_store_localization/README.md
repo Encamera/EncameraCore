@@ -1,10 +1,10 @@
 # App Store Localization Script
 
-This script helps translate and update App Store Connect metadata using OpenAI and the App Store Connect API. It provides a single source of truth for all your App Store listing content, handling both base language updates and translations in one workflow.
+This script helps translate and update App Store Connect metadata using Claude (Anthropic API) and the App Store Connect API. It provides a single source of truth for all your App Store listing content, handling both base language updates and translations in one workflow.
 
 ## Features
 
-- 🌍 Translates App Store listing content using OpenAI
+- 🌍 Translates App Store listing content using Claude
 - 🏠 Updates base language content directly (no translation needed)
 - 🔄 Updates App Store Connect metadata via API for ALL languages
 - 🔍 Performs preflight checks to verify API connectivity
@@ -46,13 +46,13 @@ app_store_connect:
   issuer_id: "YOUR_ISSUER_ID"              # Your Issuer ID (UUID format)
   private_key_file: "AuthKey_KEY_ID.p8"    # Path to your .p8 private key file
 
-# OpenAI Configuration
-openai:
-  api_key_keychain_service: "MyApp"        # Service name for keychain storage
-  api_key_keychain_account: "openai_api_key" # Account name for keychain
-  model: "gpt-4"                           # or gpt-3.5-turbo
-  max_tokens: 2000
-  temperature: 0.3                         # Lower for more consistent translations
+# Anthropic Configuration (optional; these are the defaults)
+# The API key is read from ANTHROPIC_API_KEY, then the keychain, then a prompt.
+anthropic:
+  api_key_keychain_service: "encamera_translation_anthropic_key" # Service name for keychain storage
+  api_key_keychain_account: "encamera_translation_anthropic_key" # Account name for keychain
+  model: "claude-opus-5-5"
+  effort: "medium"                         # low | medium | high | xhigh | max
 
 # App Configuration
 app:
@@ -171,7 +171,7 @@ Currently supports processing these fields:
 
 **For each field:**
 - **Base Language**: Uses content directly from `app_store.yml` (no translation)
-- **Target Languages**: Translates content using OpenAI
+- **Target Languages**: Translates content using Claude
 - **App Store**: Updates localizations for ALL languages
 
 ## Language Mapping
@@ -193,7 +193,7 @@ The script automatically maps language codes to App Store locales:
 ## Error Handling
 
 - **API Errors** - Detailed error messages for App Store Connect issues
-- **Translation Errors** - Graceful handling of OpenAI API failures  
+- **Translation Errors** - Graceful handling of Anthropic API failures  
 - **Preflight Checks** - Early detection of authentication problems
 - **Individual Language Failures** - Script continues if one language fails
 
@@ -233,7 +233,7 @@ The script now provides comprehensive troubleshooting output when authentication
    - Add `target_languages` list to your `app_store.yml` file
 
 4. **"Translation failed"**
-   - Verify your OpenAI API key is valid
+   - Verify your Anthropic API key is valid
    - Check your internet connection
    - Try reducing the content length
 
@@ -275,5 +275,5 @@ The script now provides comprehensive debugging information:
 
 - Python 3.7+
 - Valid App Store Connect API access
-- OpenAI API key
+- Anthropic API key
 - Internet connection
