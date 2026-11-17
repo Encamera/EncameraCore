@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Item(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>elementer</string>
+			<key>one</key>
+			<string>element</string>
+			<key>other</key>
+			<string>elementer</string>
+		</dict>
+	</dict>
+	<key>AlbumDetailView.FileCountOnLocation</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@file_count@ på %2$@</string>
+		<key>file_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d filer</string>
+			<key>one</key>
+			<string>%d fil</string>
+			<key>other</key>
+			<string>%d filer</string>
+		</dict>
+	</dict>
+	<key>CloudKitMigration.PartialMoveBannerMessage</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@moved@ %2$@, %3$#@remaining@</string>
+		<key>moved</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%1$d element blev flyttet til</string>
+			<key>other</key>
+			<string>%1$d elementer blev flyttet til</string>
+		</dict>
+		<key>remaining</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%3$d er stadig her</string>
+			<key>other</key>
+			<string>%3$d er stadig her</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.IntroIncludes</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>Denne opgradering omfatter %#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d iCloud-albummer</string>
+			<key>one</key>
+			<string>%d iCloud-album</string>
+			<key>other</key>
+			<string>%d iCloud-albummer</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.AlbumItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d elementer</string>
+			<key>one</key>
+			<string>%d element</string>
+			<key>other</key>
+			<string>%d elementer</string>
+		</dict>
+	</dict>
+	<key>AlbumGridItem.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d elementer</string>
+			<key>one</key>
+			<string>%d element</string>
+			<key>other</key>
+			<string>%d elementer</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.KeyForAlbums</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Nøgle til %d album</string>
+			<key>other</key>
+			<string>Nøgle til %d albummer</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d element</string>
+			<key>other</key>
+			<string>%d elementer</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

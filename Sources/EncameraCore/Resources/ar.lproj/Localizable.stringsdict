@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Item(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>عنصر</string>
+			<key>one</key>
+			<string>عنصر</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>few</key>
+			<string>عناصر</string>
+			<key>many</key>
+			<string>عنصرًا</string>
+			<key>other</key>
+			<string>عنصر</string>
+		</dict>
+	</dict>
+	<key>AlbumDetailView.FileCountOnLocation</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@file_count@ في %2$@</string>
+		<key>file_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d ملف</string>
+			<key>one</key>
+			<string>ملف واحد</string>
+			<key>two</key>
+			<string>ملفان</string>
+			<key>few</key>
+			<string>%d ملفات</string>
+			<key>many</key>
+			<string>%d ملفًا</string>
+			<key>other</key>
+			<string>%d ملف</string>
+		</dict>
+	</dict>
+	<key>CloudKitMigration.PartialMoveBannerMessage</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@moved@ %2$@، %3$#@remaining@</string>
+		<key>moved</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>تم نقل %1$d عنصر إلى</string>
+			<key>one</key>
+			<string>تم نقل عنصر واحد إلى</string>
+			<key>two</key>
+			<string>تم نقل عنصرين إلى</string>
+			<key>few</key>
+			<string>تم نقل %1$d عناصر إلى</string>
+			<key>many</key>
+			<string>تم نقل %1$d عنصرًا إلى</string>
+			<key>other</key>
+			<string>تم نقل %1$d عنصر إلى</string>
+		</dict>
+		<key>remaining</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>ولا يزال %3$d هنا</string>
+			<key>one</key>
+			<string>ولا يزال عنصر واحد هنا</string>
+			<key>two</key>
+			<string>ولا يزال عنصران هنا</string>
+			<key>few</key>
+			<string>ولا تزال %3$d عناصر هنا</string>
+			<key>many</key>
+			<string>ولا يزال %3$d عنصرًا هنا</string>
+			<key>other</key>
+			<string>ولا يزال %3$d عنصر هنا</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.IntroIncludes</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>تتضمن هذه الترقية %#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d ألبوم على iCloud</string>
+			<key>one</key>
+			<string>ألبومًا واحدًا على iCloud</string>
+			<key>two</key>
+			<string>ألبومين على iCloud</string>
+			<key>few</key>
+			<string>%d ألبومات على iCloud</string>
+			<key>many</key>
+			<string>%d ألبومًا على iCloud</string>
+			<key>other</key>
+			<string>%d ألبوم على iCloud</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.AlbumItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d عنصر</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>few</key>
+			<string>%d عناصر</string>
+			<key>many</key>
+			<string>%d عنصرًا</string>
+			<key>other</key>
+			<string>%d عنصر</string>
+		</dict>
+	</dict>
+	<key>AlbumGridItem.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d عنصر</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>few</key>
+			<string>%d عناصر</string>
+			<key>many</key>
+			<string>%d عنصرًا</string>
+			<key>other</key>
+			<string>%d عنصر</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.KeyForAlbums</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>مفتاح لـ %d ألبوم</string>
+			<key>one</key>
+			<string>مفتاح لألبوم واحد</string>
+			<key>two</key>
+			<string>مفتاح لألبومين</string>
+			<key>few</key>
+			<string>مفتاح لـ %d ألبومات</string>
+			<key>many</key>
+			<string>مفتاح لـ %d ألبومًا</string>
+			<key>other</key>
+			<string>مفتاح لـ %d ألبوم</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>%d عنصر</string>
+			<key>one</key>
+			<string>عنصر واحد</string>
+			<key>two</key>
+			<string>عنصران</string>
+			<key>few</key>
+			<string>%d عناصر</string>
+			<key>many</key>
+			<string>%d عنصرًا</string>
+			<key>other</key>
+			<string>%d عنصر</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

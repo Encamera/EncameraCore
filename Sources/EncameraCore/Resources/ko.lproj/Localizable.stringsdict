@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>%@ Item(s)</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>항목</string>
+			<key>other</key>
+			<string>항목</string>
+		</dict>
+	</dict>
+	<key>AlbumDetailView.FileCountOnLocation</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%2$@에 있는 %#@file_count@</string>
+		<key>file_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>파일 %d개</string>
+			<key>other</key>
+			<string>파일 %d개</string>
+		</dict>
+	</dict>
+	<key>CloudKitMigration.PartialMoveBannerMessage</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%1$#@moved@ %2$@(으)로 이동되었으며, %3$#@remaining@</string>
+		<key>moved</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%1$d개 항목이</string>
+		</dict>
+		<key>remaining</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%3$d개는 아직 여기에 있습니다</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.IntroIncludes</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>이번 업그레이드에 포함된 항목: %#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>iCloud 앨범 %d개</string>
+			<key>other</key>
+			<string>iCloud 앨범 %d개</string>
+		</dict>
+	</dict>
+	<key>CloudKitUpgrade.AlbumItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>항목 %d개</string>
+			<key>other</key>
+			<string>항목 %d개</string>
+		</dict>
+	</dict>
+	<key>AlbumGridItem.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>zero</key>
+			<string>항목 %d개</string>
+			<key>other</key>
+			<string>항목 %d개</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.KeyForAlbums</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@album_count@</string>
+		<key>album_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>앨범 %d개용 키</string>
+		</dict>
+	</dict>
+	<key>KeyPhrasePicker.ItemCount</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>항목 %d개</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
