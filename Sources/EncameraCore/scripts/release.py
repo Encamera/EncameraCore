@@ -5,13 +5,27 @@ Run:
 
     python release.py [--credentials PATH] [--skip-preflights] [--dry-run] [--interactive]
 
-Preflights (cheap/local checks first, network calls last):
-  1. HEAD is on RELEASE_BRANCH (see module constants).
-  2. Working tree has no staged/unstaged changes.
-  3. Local RELEASE_BRANCH matches origin/RELEASE_BRANCH (no diverging commits).
-  4. app_store.yml has changed since the last git tag (what's new updated).
-  5. All .lproj files are in sync with en.lproj (no missing translations).
-  6. The CloudKit Production schema has been deployed (interactive confirmation).
+Release branches: every minor version ships from its own branch,
+release/<major>.<minor> (e.g. release/3.0 carries 3.0.0, 3.0.1, ...). The
+release version is the editable appStoreVersion on ASC, so it is resolved
+first, and the driver then upserts its branch:
+  • no release/<major>.<minor> yet: cut it from origin/main, check it out, and
+    push it to origin (prompted, default yes).
+  • it already exists: check it out as-is. It is NEVER updated from main —
+    fixes land on main first and are cherry-picked onto it. The driver warns
+    how many commits it is behind main, and lists its commits that have no
+    patch-equivalent on main (fixes that still need to land there).
+
+Preflights:
+  1. Working tree has no staged/unstaged changes (checked before switching branches).
+  2. Local release branch matches origin (no diverging commits).
+  3. app_store.yml has changed since the last version tag (what's new updated).
+  4. All .lproj files are in sync with en.lproj (no missing translations).
+  5. The CloudKit Production schema has been deployed (interactive confirmation).
+  6. If a "Build Release for App Store" run is already building HEAD, wait for
+     it to finish and for Apple to process its upload into a VALID TestFlight
+     build (prompted, default yes), so the checks below see — and the release
+     selects — that build instead of failing on a version still in flight.
   7. The version we're targeting lines up everywhere: project.yml
      marketing_version == the editable ASC version == a VALID TestFlight build.
   8. No TestFlight builds for the release version are still PROCESSING.
@@ -111,10 +125,11 @@ LOCALIZED_HASH_FILE = SCRIPT_DIR / ".last_localized.hash"
 # whatever is mid-flight.
 TESTFLIGHT_WORKFLOW_ID = "0fe065ac-1630-4bd4-9158-c43af076cbd9"
 
-# Xcode Cloud "Build Release for App Store" workflow — manual start, with its
-# source pinned to the `release` branch. That pin is the whole point: a build
-# that came out of THIS workflow is the only kind we can prove was archived from
-# release and nothing else, so it's the only kind we're willing to ship.
+# Xcode Cloud "Build Release for App Store" workflow — its start conditions only
+# accept branches named release/<...>. That restriction is the whole point: a
+# build that came out of THIS workflow is the only kind we can prove was
+# archived from a release branch and nothing else, so it's the only kind we're
+# willing to ship.
 RELEASE_WORKFLOW_ID = "ADD12807-AE85-4814-88C2-F580FFE0C39D"
 
 # (label, id) for every workflow that must be idle before we cut a release. The
@@ -137,17 +152,33 @@ PROVENANCE_WAIT = "WAIT"       # a run for HEAD is already in flight — wait fo
 PROVENANCE_REBUILD = "REBUILD" # need a fresh run on HEAD
 PROVENANCE_BLOCKED = "BLOCKED" # a rebuild would not fix it
 
-# Git branch releases are cut from; local must match origin/<RELEASE_BRANCH>.
-RELEASE_BRANCH = "release"
-ORIGIN_RELEASE_BRANCH = f"origin/{RELEASE_BRANCH}"
+# Release branches are release/<major>.<minor>, cut from MAIN_BRANCH on origin.
+RELEASE_BRANCH_PREFIX = "release/"
+MAIN_BRANCH = "main"
+ORIGIN_MAIN = f"origin/{MAIN_BRANCH}"
+
+# Tags that mark a shipped version (2.10.0, 3.0). Other tags in the repo
+# (pr-284-artifacts, backup/...) must never be mistaken for the last release.
+VERSION_TAG_PATTERN = re.compile(r"^\d+(\.\d+){1,2}$")
 
 # Make Localizer importable
 sys.path.insert(0, str(LOCALIZATION_DIR))
 
 
-def confirm(prompt):
-    """Prompt y/N; return True on y/yes, False otherwise (default No)."""
-    return input(f"{prompt} (y/N): ").strip().lower() in ("y", "yes")
+def confirm(prompt, default=False):
+    """Prompt y/N (or Y/n when ``default`` is True); Enter accepts the default."""
+    hint = "Y/n" if default else "y/N"
+    answer = input(f"{prompt} ({hint}): ").strip().lower()
+    if not answer:
+        return default
+    return answer in ("y", "yes")
+
+
+def git(*args):
+    """Run git in the repo root and return the CompletedProcess (never raises)."""
+    return subprocess.run(
+        ["git", *args], cwd=REPO_ROOT, capture_output=True, text=True, check=False
+    )
 
 
 def read_marketing_version(project_yml=PROJECT_YML):
@@ -297,23 +328,130 @@ def newest_valid_build(client, app_id, version_string):
     return max(valid, key=lambda b: b.get("attributes", {}).get("uploadedDate") or "")
 
 
-def preflight_on_release_branch():
-    f"""True if HEAD is on the '{RELEASE_BRANCH}' branch.
+def latest_version_tag():
+    """The highest version tag in the repo (e.g. 2.10.0), or None if there is none.
 
-    Releases must be cut from {RELEASE_BRANCH} — if HEAD is on a feature branch (or detached),
-    the tag would land in the wrong place.
+    Not ``git describe``: each release is tagged on its own release branch, so
+    the previous release's tag is usually not an ancestor of a branch freshly
+    cut from main, and describe would fall back to whatever unrelated tag it
+    can reach.
     """
-    result = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    branch = result.stdout.strip()
-    if branch != RELEASE_BRANCH:
-        print(f"  current branch: {branch}")
+    tags = git("tag", "--list", "--sort=-v:refname")
+    if tags.returncode != 0:
+        print(f"  git tag failed: {tags.stderr.strip()}")
+        return None
+    for tag in tags.stdout.split():
+        if VERSION_TAG_PATTERN.match(tag):
+            return tag
+    return None
+
+
+def release_branch_for(version_string):
+    """release/<major>.<minor> for ``version_string`` (3.0.1 -> release/3.0)."""
+    return RELEASE_BRANCH_PREFIX + ".".join(version_string.split(".")[:2])
+
+
+def current_branch():
+    """The checked-out branch name ('HEAD' when detached), or None if git fails."""
+    result = git("rev-parse", "--abbrev-ref", "HEAD")
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def report_release_branch_drift(branch, main_ref=ORIGIN_MAIN):
+    """Warn how far ``branch`` trails main, and which of its fixes main lacks.
+
+    A release branch is deliberately never updated from main, so being behind
+    is expected — the count is there so a stale branch is a visible choice.
+    Commits on the branch with no patch-equivalent on main are fixes that must
+    still land on main, or the next release cut from main regresses them. Main
+    taking a fix as part of a squash merge also shows up here, so the list is a
+    prompt to check, not proof of a gap.
+    """
+    behind = git("rev-list", "--count", f"{branch}..{main_ref}")
+    if behind.returncode == 0 and int(behind.stdout.strip() or 0) > 0:
+        print(
+            f"  WARNING: {branch} is {behind.stdout.strip()} commit(s) behind {main_ref}. "
+            "It is not updated from main — cherry-pick fixes onto it."
+        )
+
+    cherry = git("cherry", "-v", main_ref, branch)
+    if cherry.returncode != 0:
+        return
+    missing = [line[2:] for line in cherry.stdout.splitlines() if line.startswith("+ ")]
+    if missing:
+        print(
+            f"  WARNING: {len(missing)} commit(s) on {branch} have no patch-equivalent "
+            f"on {main_ref}. Make sure each fix also landed on main:"
+        )
+        for line in missing:
+            sha, _, subject = line.partition(" ")
+            print(f"    {sha[:9]} {subject[:90]}")
+
+
+def upsert_release_branch(branch, *, dry_run=False, confirm_fn=confirm):
+    """Check out ``branch``, cutting it from origin/main and pushing it if it doesn't exist.
+
+    An existing branch is checked out exactly as it is — never merged with or
+    rebased onto main. Returns True when HEAD is on ``branch`` and the release
+    can carry on; False when it can't (git failed, the user declined, or this is
+    a dry run that would have had to create the branch).
+    """
+    fetch = git("fetch", "origin", MAIN_BRANCH)
+    if fetch.returncode != 0:
+        print(f"  git fetch origin {MAIN_BRANCH} failed: {fetch.stderr.strip()}")
         return False
+
+    remote_exists = git("ls-remote", "--exit-code", "--heads", "origin", branch).returncode == 0
+    if remote_exists:
+        fetch = git("fetch", "origin", branch)
+        if fetch.returncode != 0:
+            print(f"  git fetch origin {branch} failed: {fetch.stderr.strip()}")
+            return False
+    local_exists = git("rev-parse", "--verify", "--quiet", f"refs/heads/{branch}").returncode == 0
+
+    if not remote_exists and not local_exists:
+        main_sha = git("rev-parse", ORIGIN_MAIN).stdout.strip()
+        print(f"  {branch} does not exist yet — it will be cut from {ORIGIN_MAIN} ({main_sha[:8]}).")
+        if dry_run:
+            print(
+                f"  [dry-run] would create {branch} from {ORIGIN_MAIN}, check it out and "
+                "push it. Re-run without --dry-run to cut it; the remaining checks "
+                "need the branch."
+            )
+            return False
+        if not confirm_fn(f"Cut {branch} from {ORIGIN_MAIN} and push it to origin?", default=True):
+            print("  Aborted by user — no branch was created.")
+            return False
+        # --no-track: the new branch's upstream is origin/<branch> (set by the
+        # push below), never origin/main.
+        create = git("checkout", "--no-track", "-b", branch, ORIGIN_MAIN)
+        if create.returncode != 0:
+            print(f"  git checkout -b {branch} failed: {create.stderr.strip()}")
+            return False
+        push = git("push", "-u", "origin", branch)
+        if push.returncode != 0:
+            print(
+                f"  git push -u origin {branch} failed: {push.stderr.strip()}\n"
+                f"  The branch exists locally; push it by hand and re-run."
+            )
+            return False
+        print(f"  Cut {branch} from {ORIGIN_MAIN} ({main_sha[:8]}) and pushed it to origin")
+        return True
+
+    if current_branch() != branch:
+        if local_exists:
+            checkout = git("checkout", branch)
+        else:
+            checkout = git("checkout", "--track", f"origin/{branch}")
+        if checkout.returncode != 0:
+            # Most often: the branch is already checked out in another worktree.
+            print(f"  git checkout {branch} failed: {checkout.stderr.strip()}")
+            return False
+        print(f"  Checked out existing {branch} (left as-is, not updated from main)")
+    else:
+        print(f"  Already on {branch} (left as-is, not updated from main)")
+
+    report_release_branch_drift(branch)
     return True
 
 
@@ -366,40 +504,23 @@ def preflight_cloudkit_schema_deployed(input_fn=input):
     return answer.strip().lower() in ("y", "yes")
 
 
-def preflight_local_release_matches_remote():
-    f"""True if local {RELEASE_BRANCH} is at the same commit as {ORIGIN_RELEASE_BRANCH}.
+def preflight_local_release_matches_remote(branch):
+    """True if local ``branch`` is at the same commit as origin/``branch``.
 
-    Runs `git fetch origin {RELEASE_BRANCH}` first so the comparison reflects the current
+    Runs `git fetch origin <branch>` first so the comparison reflects the current
     remote state, not a stale FETCH_HEAD. Returns False if local is ahead,
     behind, or diverged.
     """
-    fetch = subprocess.run(
-        ["git", "fetch", "origin", RELEASE_BRANCH],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    origin_branch = f"origin/{branch}"
+    fetch = git("fetch", "origin", branch)
     if fetch.returncode != 0:
-        print(f"  git fetch origin {RELEASE_BRANCH} failed: {fetch.stderr.strip()}")
+        print(f"  git fetch origin {branch} failed: {fetch.stderr.strip()}")
         return False
 
-    local = subprocess.run(
-        ["git", "rev-parse", RELEASE_BRANCH],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    remote = subprocess.run(
-        ["git", "rev-parse", ORIGIN_RELEASE_BRANCH],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    local = git("rev-parse", branch)
+    remote = git("rev-parse", origin_branch)
     if local.returncode != 0 or remote.returncode != 0:
-        print(f"  could not resolve {RELEASE_BRANCH} / {ORIGIN_RELEASE_BRANCH} SHAs")
+        print(f"  could not resolve {branch} / {origin_branch} SHAs")
         return False
 
     local_sha = local.stdout.strip()
@@ -407,20 +528,10 @@ def preflight_local_release_matches_remote():
     if local_sha == remote_sha:
         return True
 
-    rev_range = f"{RELEASE_BRANCH}...{ORIGIN_RELEASE_BRANCH}"
-    counts = subprocess.run(
-        ["git", "rev-list", "--left-right", "--count", rev_range],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    counts = git("rev-list", "--left-right", "--count", f"{branch}...{origin_branch}")
     if counts.returncode == 0:
         ahead, behind = counts.stdout.strip().split()
-        print(
-            f"  local {RELEASE_BRANCH} is ahead {ahead}, behind {behind} "
-            f"vs {ORIGIN_RELEASE_BRANCH}"
-        )
+        print(f"  local {branch} is ahead {ahead}, behind {behind} vs {origin_branch}")
     print(f"  local  {local_sha}")
     print(f"  remote {remote_sha}")
     return False
@@ -690,11 +801,11 @@ def format_elapsed(seconds):
     return f"{minutes}m {secs:02d}s"
 
 
-def start_release_build(client, branch=RELEASE_BRANCH, workflow_id=RELEASE_WORKFLOW_ID):
+def start_release_build(client, branch, workflow_id=RELEASE_WORKFLOW_ID):
     """Start a release-workflow run on ``branch``, or None if it couldn't start.
 
     Xcode Cloud builds a *reference*, not a sha: it archives whatever the tip of
-    ``branch`` is when the run starts. Preflight 3 has already proven local and
+    ``branch`` is when the run starts. Preflight 2 has already proven local and
     origin/<branch> are the same commit, so that tip is HEAD — and the provenance
     re-check afterwards confirms it rather than assuming it.
     """
@@ -782,7 +893,7 @@ def wait_for_valid_build(client, run_id, timeout_minutes=BUILD_WAIT_TIMEOUT_MINU
 
 
 def build_release_on_xcode_cloud(
-    client, outcome, run, *, branch=RELEASE_BRANCH, timeout_minutes=BUILD_WAIT_TIMEOUT_MINUTES
+    client, outcome, run, *, branch, timeout_minutes=BUILD_WAIT_TIMEOUT_MINUTES
 ):
     """Offer to build HEAD on the release workflow, then wait for a VALID build.
 
@@ -795,7 +906,11 @@ def build_release_on_xcode_cloud(
         print(
             f"  Run #{run.number} is already building HEAD on '{branch}'."
         )
-        if not confirm(f"Wait for run #{run.number} to finish and then continue the release?"):
+        if not confirm(
+            f"Wait for run #{run.number} to finish (up to {timeout_minutes} min) "
+            "and then continue the release?",
+            default=True,
+        ):
             print("  Aborted by user — re-run this script once the build lands.")
             return False
         target = run
@@ -838,6 +953,62 @@ def build_release_on_xcode_cloud(
         return False
     print(f"  Build {build.version} is VALID on TestFlight (uploaded {build.uploaded_date})")
     return True
+
+
+def find_active_release_run(client, workflow_id=RELEASE_WORKFLOW_ID):
+    """The PENDING/RUNNING run on the release workflow, or None if it's idle."""
+    runs = list_build_runs_for_workflow(client, workflow_id, limit=5)
+    for run in runs:
+        if run.execution_progress in ACTIVE_BUILD_PROGRESS:
+            return run
+    return None
+
+
+def preflight_wait_for_inflight_release_build(
+    client, branch, *, dry_run=False, timeout_minutes=BUILD_WAIT_TIMEOUT_MINUTES
+):
+    """Wait out a release-workflow run that is already building HEAD.
+
+    The version/processing preflights that follow want a VALID TestFlight build
+    to exist *now*, so a release run that is still archiving (or whose upload
+    Apple is still processing) would fail them before the provenance check ever
+    got a chance to wait for it. Pushing a freshly cut release branch starts
+    such a run. Waiting here lets that run finish and go VALID, after which the
+    later checks see — and the release attaches — the build it produced.
+
+    A run on some other commit is left alone: its build could never pass the
+    provenance check, which will offer a fresh build of HEAD instead.
+
+    Returns True if the release can carry on (nothing in flight, or the wait
+    produced a VALID build); False if the user declined or the build failed.
+    """
+    run = find_active_release_run(client)
+    if run is None:
+        print("  'Build Release for App Store' is idle")
+        return True
+
+    head_sha = git_head_sha() or ""
+    run_sha = run.source_commit_sha or ""
+    print(
+        f"  run #{run.number} is {run.execution_progress} on {run_sha[:8] or '?'} "
+        f"(started {run.started_date or '-'})"
+    )
+    if not head_sha or run_sha.lower() != head_sha.lower():
+        print(
+            f"  It is not building HEAD ({head_sha[:8] or '?'}), so its build can't be "
+            "the one that ships — the provenance check below will offer a fresh build."
+        )
+        return True
+
+    if dry_run:
+        print(
+            f"  [dry-run] would wait for run #{run.number} to finish and for its "
+            "upload to go VALID on TestFlight"
+        )
+        return True
+    return build_release_on_xcode_cloud(
+        client, PROVENANCE_WAIT, run, branch=branch, timeout_minutes=timeout_minutes
+    )
 
 
 # --- release steps ------------------------------------------------------------
@@ -976,7 +1147,10 @@ def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Run preflights and print planned actions, but do not localize/tag/attach/submit",
+        help=(
+            "Run preflights and print planned actions, but do not localize/tag/attach/submit. "
+            "Checks out an existing release branch, but never creates or pushes one"
+        ),
     )
     parser.add_argument(
         "--interactive",
@@ -1009,96 +1183,17 @@ def main():
         print("*** INTERACTIVE — will prompt to confirm whats_new and selected build ***")
     print()
 
-    # --- cheap local preflights run first so we fail fast without hitting the API ---
-    try:
-        last_tag = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-    except subprocess.CalledProcessError:
+    last_tag = latest_version_tag()
+    if last_tag is None:
         print(
-            "Could not determine the last git tag (no tags in this repository?).\n"
-            "Tag the repo at least once before running preflights, or use --skip-preflights."
+            "Could not find a version tag (e.g. 2.10.0) in this repository.\n"
+            "Tag the last release before running preflights, or use --skip-preflights."
         )
         sys.exit(1)
-    print(f"Last git tag: {last_tag}")
+    print(f"Last version tag: {last_tag}")
     print()
 
-    if not args.skip_preflights:
-        print(f"[1/10] On the {RELEASE_BRANCH} branch?")
-        if not preflight_on_release_branch():
-            print(
-                f"  FAIL: releases must be cut from {RELEASE_BRANCH}. "
-                f"Check out {RELEASE_BRANCH} and re-run, "
-                "or use --skip-preflights if you really know what you're doing."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print("[2/10] Working tree clean (no staged or unstaged changes)?")
-        if not preflight_clean_tree():
-            print(
-                "  FAIL: working tree has uncommitted changes. Commit or stash them "
-                "before releasing — the tag must capture exactly what's on HEAD."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print(f"[3/10] Local {RELEASE_BRANCH} matches {ORIGIN_RELEASE_BRANCH}?")
-        if not preflight_local_release_matches_remote():
-            print(
-                f"  FAIL: local {RELEASE_BRANCH} has diverged from {ORIGIN_RELEASE_BRANCH}. "
-                "Push or pull so they match before releasing — the tag must point at what's on origin."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print(f"[4/10] app_store.yml changed since tag {last_tag}?")
-        yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
-        if yml_changed is None:
-            print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
-            sys.exit(1)
-        if not yml_changed:
-            print(
-                f"  FAIL: app_store.yml has no changes since {last_tag}. "
-                "Update the 'whats_new' (and any other release-relevant fields) "
-                "before releasing."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print("[5/10] All .lproj files in sync with en.lproj?")
-        if not preflight_strings_in_sync(EN_LPROJ):
-            print(
-                "  FAIL: missing translations. Run scripts/string_diff.py to "
-                "translate the missing keys."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-
-        print("[6/10] CloudKit Production schema deployed?")
-        if not preflight_cloudkit_schema_deployed():
-            print(
-                "  FAIL: deploy the schema to Production first "
-                "(Documentation/cloudkit-schema-deploy.md), then re-run. "
-                "A build shipped without it fails every CloudKit write at runtime."
-            )
-            sys.exit(1)
-        print("  OK")
-        print()
-    else:
-        print("Skipping local preflights (--skip-preflights)")
-        print()
-
-    # --- ASC-dependent setup (needed for the remaining preflights + release) ---
+    # --- the release version decides which branch to work on, so resolve it first ---
     print(f"Loading credentials from: {credentials_path}")
     creds = Credentials.load(credentials_path)
     client = ASCClient(creds)
@@ -1115,12 +1210,103 @@ def main():
         )
         sys.exit(1)
     version_string = version.version_string
+    release_branch = release_branch_for(version_string)
     print(
-        f"  Releasing v{version_string} "
+        f"  Releasing v{version_string} from {release_branch} "
         f"(state={version.state}, release_type={version.release_type or 'unset'}, "
         f"build={version.build_version or '-'})"
     )
     print()
+
+    if not args.skip_preflights:
+        print("[1/10] Working tree clean (no staged or unstaged changes)?")
+        if not preflight_clean_tree():
+            print(
+                "  FAIL: working tree has uncommitted changes. Commit or stash them "
+                "before releasing — the release branch is about to be checked out, "
+                "and the tag must capture exactly what's on HEAD."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+    # Not a preflight: --skip-preflights still needs HEAD on the release branch,
+    # because that is what Xcode Cloud builds and what the tag lands on.
+    print(f"Upserting {release_branch}...")
+    if not upsert_release_branch(release_branch, dry_run=args.dry_run):
+        if args.dry_run:
+            sys.exit(0)
+        print(f"  FAIL: could not get HEAD onto {release_branch}.")
+        sys.exit(1)
+    print()
+
+    if not args.skip_preflights:
+        print(f"[2/10] Local {release_branch} matches origin/{release_branch}?")
+        if not preflight_local_release_matches_remote(release_branch):
+            print(
+                f"  FAIL: local {release_branch} has diverged from origin/{release_branch}. "
+                "Push or pull so they match before releasing — the tag must point at what's on origin."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print(f"[3/10] app_store.yml changed since tag {last_tag}?")
+        yml_changed = preflight_app_store_yml_changed(APP_STORE_YML, last_tag)
+        if yml_changed is None:
+            print("  FAIL: could not run git diff — check REPO_ROOT and tag validity.")
+            sys.exit(1)
+        if not yml_changed:
+            print(
+                f"  FAIL: app_store.yml has no changes since {last_tag}. "
+                "Update the 'whats_new' (and any other release-relevant fields) "
+                "before releasing."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[4/10] All .lproj files in sync with en.lproj?")
+        if not preflight_strings_in_sync(EN_LPROJ):
+            print(
+                "  FAIL: missing translations. Run scripts/string_diff.py to "
+                "translate the missing keys."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[5/10] CloudKit Production schema deployed?")
+        if not preflight_cloudkit_schema_deployed():
+            print(
+                "  FAIL: deploy the schema to Production first "
+                "(Documentation/cloudkit-schema-deploy.md), then re-run. "
+                "A build shipped without it fails every CloudKit write at runtime."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
+
+        print("[6/10] Is a 'Build Release for App Store' run already building HEAD?")
+        try:
+            waited = preflight_wait_for_inflight_release_build(
+                client, release_branch,
+                dry_run=args.dry_run, timeout_minutes=args.build_timeout,
+            )
+        except KeyboardInterrupt:
+            print(
+                "\n  Interrupted — the Xcode Cloud build keeps running. Re-run this "
+                "script when it's VALID on TestFlight."
+            )
+            sys.exit(1)
+        if not waited:
+            print(
+                "  FAIL: the in-flight release build did not produce a VALID "
+                "TestFlight build, so there is nothing provably built from HEAD to ship."
+            )
+            sys.exit(1)
+        print("  OK")
+        print()
 
     if not args.skip_preflights:
         marketing_version = read_marketing_version()
@@ -1176,7 +1362,7 @@ def main():
                 if args.dry_run:
                     print(
                         "  [dry-run] would offer to build "
-                        f"'{RELEASE_BRANCH}' on 'Build Release for App Store' and wait "
+                        f"'{release_branch}' on 'Build Release for App Store' and wait "
                         "for a VALID TestFlight build"
                     )
                 print(
@@ -1188,7 +1374,7 @@ def main():
             try:
                 built = build_release_on_xcode_cloud(
                     client, outcome, run,
-                    timeout_minutes=args.build_timeout,
+                    branch=release_branch, timeout_minutes=args.build_timeout,
                 )
             except KeyboardInterrupt:
                 print(
@@ -1218,7 +1404,7 @@ def main():
         print("  OK")
         print()
     else:
-        print("Skipping ASC preflights (--skip-preflights)")
+        print("Skipping preflights (--skip-preflights)")
         print()
 
     # --- release ---
@@ -1244,7 +1430,7 @@ def main():
         print(f"  3. set releaseType=MANUAL on version {version.id}")
         print(f"  4. stage version {version.id} on a review submission (Ready for Review)")
         print(f"  5. prompt to fully submit for review (confirm the submission)")
-        print(f"  6. git tag {version_string} (then prompt to push)")
+        print(f"  6. git tag {version_string} on {release_branch} (then prompt to push)")
         print()
         print("Dry run complete — no changes made.")
         return
@@ -1308,7 +1494,7 @@ def main():
 
     # Tag last of all: the release is now fully prepared (and maybe submitted),
     # so the tag marks a meaningful, finished state rather than a mid-flight one.
-    print(f"[release 6/6] Tagging git as {version_string}...")
+    print(f"[release 6/6] Tagging {release_branch} as {version_string}...")
     tag_release(version_string)
 
 
