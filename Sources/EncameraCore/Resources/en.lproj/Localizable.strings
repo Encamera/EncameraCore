@@ -181,14 +181,12 @@
 "AlbumDetailView.LargeImportWarningTitle" = "For Faster Imports";
 "AlbumDetailView.LargeImportWarningMessage" = "Leave Encamera open and connected to Wi-Fi for best results.";
 "AlbumDetailView.ImportPartialSkipToast" = "Imported %@ of %@ items. %@ skipped (%@).";
-"AlbumDetailView.ImportFailedAlertTitle" = "Import Failed";
 "AlbumDetailView.InsufficientSpaceTitle" = "Not Enough Space";
 "AlbumDetailView.InsufficientSpaceMessage" = "This import needs about %@, but this device has %@ free. About %@ of %@ %@ will fit.";
 "AlbumDetailView.InsufficientSpaceCancel" = "Cancel Import";
 "AlbumDetailView.InsufficientSpaceContinue" = "Continue Until Full";
 "AlbumDetailView.InsufficientSpaceChangeSelection" = "Change Selection";
 "AlbumDetailView.ImportStoppedForSpaceToast" = "Imported %@ of %@. This device is full.";
-"AlbumDetailView.ImportFailedAlertMessage" = "None of the selected items could be imported (%@).";
 "AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
 "AlbumDetailView.MoveFailedAlertTitle" = "Couldn’t Move Album";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle" = "Some Items Stayed in iCloud Drive";

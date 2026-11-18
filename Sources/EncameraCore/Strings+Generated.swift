@@ -345,12 +345,6 @@ public enum L10n {
     public static let hideAlbumRowTitle = L10n.tr("Localizable", "AlbumDetailView.HideAlbumRowTitle", fallback: "Hide")
     /// Import
     public static let importButton = L10n.tr("Localizable", "AlbumDetailView.ImportButton", fallback: "Import")
-    /// None of the selected items could be imported (%@).
-    public static func importFailedAlertMessage(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.ImportFailedAlertMessage", String(describing: p1), fallback: "None of the selected items could be imported (%@).")
-    }
-    /// Import Failed
-    public static let importFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.ImportFailedAlertTitle", fallback: "Import Failed")
     /// Imported %@ of %@ items. %@ skipped (%@).
     public static func importPartialSkipToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.ImportPartialSkipToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Imported %@ of %@ items. %@ skipped (%@).")
