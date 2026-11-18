@@ -18,7 +18,6 @@ public enum UserDefaultKey {
     case viewGalleryCount
     case reviewRequestedMetric
     case lastVersionReviewRequested
-    case hasOpenedAlbum
     case keyTutorialClosed
     case currentAlbumID
     case launchCountKey
@@ -126,7 +125,6 @@ public enum UserDefaultKey {
              .savedSettings,
              .currentAlbumID,
              .keyTutorialClosed,
-             .hasOpenedAlbum,
              .defaultStorageLocation,
              .livePhotosActivated,
              .gridZoomLevel,

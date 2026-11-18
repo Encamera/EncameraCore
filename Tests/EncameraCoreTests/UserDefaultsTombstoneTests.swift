@@ -77,11 +77,11 @@ final class UserDefaultsTombstoneTests: XCTestCase {
     func testBlockedWritesRefuseSettingsButKeepTheEraseMarkers() {
         UserDefaultUtils.blockWritesForErase()
 
-        UserDefaultUtils.set(true, forKey: .hasOpenedAlbum)
+        UserDefaultUtils.set(true, forKey: .keyTutorialClosed)
         UserDefaultUtils.set(true, forKey: .pendingCloudDataWipe)
 
-        XCTAssertNil(groupDefaults.object(forKey: UserDefaultKey.hasOpenedAlbum.rawValue),
-                     "an album-grid refresh fired by the erase's own deletions must not write settings back")
+        XCTAssertNil(groupDefaults.object(forKey: UserDefaultKey.keyTutorialClosed.rawValue),
+                     "a settings write fired during the erase must not land")
         XCTAssertTrue(UserDefaultUtils.bool(forKey: .pendingCloudDataWipe))
     }
 

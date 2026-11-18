@@ -306,7 +306,7 @@ public final class UserDefaultUtils: DebugPrintable {
 
     private static let syncableKeys: [UserDefaultKey] = [
         .onboardingState, .savedSettings, .currentAlbumID,
-        .keyTutorialClosed, .hasOpenedAlbum, .defaultStorageLocation, .livePhotosActivated,
+        .keyTutorialClosed, .defaultStorageLocation, .livePhotosActivated,
         .gridZoomLevel, .gridSortOption, .currentKey,
         .hasBeenShownHideAlbumTutorial
     ]

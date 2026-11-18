@@ -60,7 +60,7 @@ final class UserDefaultsKVSTests: XCTestCase {
     func testBoolNullableReturnsLocalValue() {
         let defaults = UserDefaults(suiteName: UserDefaultUtils.appGroup) ?? .standard
         let kvs = NSUbiquitousKeyValueStore.default
-        let key = UserDefaultKey.hasOpenedAlbum
+        let key = UserDefaultKey.hasBeenShownHideAlbumTutorial
 
         defaults.set(true, forKey: key.rawValue)
         kvs.set(false, forKey: key.rawValue)
