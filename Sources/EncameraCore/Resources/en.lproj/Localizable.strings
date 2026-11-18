@@ -171,11 +171,9 @@
 "AlbumDetailView.CoverImageRemovedToast" = "Album cover hidden";
 "AlbumDetailView.CoverImageResetToast" = "Album cover set to latest item";
 "AlbumDetailView.MovedToast" = "Moved %@ %@ to %@";
-"AlbumDetailView.MoveErrorToast" = "Failed to move %@ %@";
 "AlbumDetailView.MovePartialToast" = "Moved %@ %@, %@ %@ failed";
 "AlbumDetailView.MoveBusyToast" = "A move is already running for one of these albums. Try again when it finishes.";
 "AlbumDetailView.MoveCancelledToast" = "Move canceled: %@ %@ moved to %@";
-"AlbumDetailView.MoveNeedsUpgradeToast" = "Upgrade “%@” first, then move items into it";
 "AlbumDetailView.AlbumHiddenToast" = "Album is now hidden";
 "AlbumDetailView.AlbumUnhiddenToast" = "Album unhidden";
 "AlbumDetailView.LargeImportWarningTitle" = "For Faster Imports";
@@ -187,13 +185,11 @@
 "AlbumDetailView.InsufficientSpaceContinue" = "Continue Until Full";
 "AlbumDetailView.InsufficientSpaceChangeSelection" = "Change Selection";
 "AlbumDetailView.ImportStoppedForSpaceToast" = "Imported %@ of %@. This device is full.";
-"AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
 "AlbumDetailView.MoveFailedAlertTitle" = "Couldn’t Move Album";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle" = "Some Items Stayed in iCloud Drive";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage" = "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to this device, so the album now shows in both places. Try the move again when you're online to move the rest.";
 "AlbumMove.ItemsStayedInICloudDrive" = "%@ items stayed in iCloud Drive because they couldn't be downloaded.";
 "AlbumDetailView.StorageChangeNeedsKeyTitle" = "Key Needed";
-"AlbumDetailView.StorageChangeNeedsKeyMessage" = "Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.";
 "AlbumDetailView.ImportReasonUnsupportedFormat" = "unsupported format";
 "AlbumDetailView.ImportReasonTranscodeFailed" = "could not be converted";
 "AlbumDetailView.ImportReasonReadError" = "file could not be read";

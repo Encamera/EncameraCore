@@ -395,14 +395,6 @@ public enum L10n {
     public static func movedToast(_ p1: Any, _ p2: Any, _ p3: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovedToast", String(describing: p1), String(describing: p2), String(describing: p3), fallback: "Moved %@ %@ to %@")
     }
-    /// Failed to move %@ %@
-    public static func moveErrorToast(_ p1: Any, _ p2: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveErrorToast", String(describing: p1), String(describing: p2), fallback: "Failed to move %@ %@")
-    }
-    /// The album was not moved and stays where it is. %@
-    public static func moveFailedAlertMessage(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertMessage", String(describing: p1), fallback: "The album was not moved and stays where it is. %@")
-    }
     /// Couldn’t Move Album
     public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn’t Move Album")
     /// %@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to this device, so the album now shows in both places. Try the move again when you're online to move the rest.
@@ -411,10 +403,6 @@ public enum L10n {
     }
     /// Some Items Stayed in iCloud Drive
     public static let moveLeftItemsInICloudDriveAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle", fallback: "Some Items Stayed in iCloud Drive")
-    /// Upgrade “%@” first, then move items into it
-    public static func moveNeedsUpgradeToast(_ p1: Any) -> String {
-      return L10n.tr("Localizable", "AlbumDetailView.MoveNeedsUpgradeToast", String(describing: p1), fallback: "Upgrade “%@” first, then move items into it")
-    }
     /// Moved %@ %@, %@ %@ failed
     public static func movePartialToast(_ p1: Any, _ p2: Any, _ p3: Any, _ p4: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MovePartialToast", String(describing: p1), String(describing: p2), String(describing: p3), String(describing: p4), fallback: "Moved %@ %@, %@ %@ failed")
@@ -433,8 +421,6 @@ public enum L10n {
     public static let resetCoverImage = L10n.tr("Localizable", "AlbumDetailView.ResetCoverImage", fallback: "Use Latest Item")
     /// Select
     public static let select = L10n.tr("Localizable", "AlbumDetailView.Select", fallback: "Select")
-    /// Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.
-    public static let storageChangeNeedsKeyMessage = L10n.tr("Localizable", "AlbumDetailView.StorageChangeNeedsKeyMessage", fallback: "Items whose key does not exist on this device cannot change their storage at this time. Please enter the matching key and try again.")
     /// Key Needed
     public static let storageChangeNeedsKeyTitle = L10n.tr("Localizable", "AlbumDetailView.StorageChangeNeedsKeyTitle", fallback: "Key Needed")
     /// this device
