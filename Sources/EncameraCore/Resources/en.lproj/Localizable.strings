@@ -189,8 +189,8 @@
 "AlbumDetailView.InsufficientSpaceChangeSelection" = "Change Selection";
 "AlbumDetailView.ImportStoppedForSpaceToast" = "Imported %@ of %@. This device is full.";
 "AlbumDetailView.ImportFailedAlertMessage" = "None of the selected items could be imported (%@).";
-"AlbumDetailView.MoveFailedAlertTitle" = "Couldn't Move Album";
 "AlbumDetailView.MoveFailedAlertMessage" = "The album was not moved and stays where it is. %@";
+"AlbumDetailView.MoveFailedAlertTitle" = "Couldn’t Move Album";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertTitle" = "Some Items Stayed in iCloud Drive";
 "AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage" = "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to this device, so the album now shows in both places. Try the move again when you're online to move the rest.";
 "AlbumMove.ItemsStayedInICloudDrive" = "%@ items stayed in iCloud Drive because they couldn't be downloaded.";
@@ -755,6 +755,36 @@
 "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.MovedToThisDeviceBody" = "Everything in it is now stored only on this device. It no longer syncs to your other devices.";
 "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.GotIt" = "Got It";
 "EncameraDrawerFactory.PartialMigrationDrawer.ToLocalBody" = "Resume to move the rest of the album to this device. Cancel the move to put back what has already moved, and the album stays in iCloud.";
+
+/* Album error drawer */
+"AlbumErrorDrawer.ChangeName" = "Change Name";
+"AlbumErrorDrawer.AddKey" = "Add Key";
+"AlbumErrorDrawer.DeleteMediaTitle" = "Couldn’t Delete Items";
+"AlbumErrorDrawer.DeleteMediaSomeNotDeleted" = "%@ of %@ items couldn’t be deleted.";
+"AlbumErrorDrawer.DeleteMediaNoneDeleted" = "None of the %@ items could be deleted.";
+"AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "Some of these items are still in iCloud Drive, which isn’t available right now. Check that you’re signed in to iCloud with iCloud Drive turned on.";
+"AlbumErrorDrawer.DeleteAlbumTitle" = "Couldn’t Delete Album";
+"AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "This album is still moving. Finish or cancel the move, then delete it.";
+"AlbumErrorDrawer.CreateAlbumTitle" = "Couldn’t Create Album";
+"AlbumErrorDrawer.RenameAlbumTitle" = "Couldn’t Rename Album";
+"AlbumErrorDrawer.PhotoImportTitle" = "Couldn’t Import Photos";
+"AlbumErrorDrawer.FileImportTitle" = "Couldn’t Import Files";
+"AlbumErrorDrawer.FileImportMessage" = "Some files weren’t added to the album (%@).";
+"AlbumErrorDrawer.MediaMoveTitle" = "Couldn’t Move Items";
+"AlbumErrorDrawer.MediaMoveBusyTitle" = "A Move Is Running";
+"AlbumErrorDrawer.MediaMoveNeedsUpgradeTitle" = "Album Needs Upgrading";
+"AlbumErrorDrawer.MediaMoveNeedsUpgradeMessage" = "Upgrade “%@” first, then move the items into it.";
+"AlbumErrorDrawer.MigrationStoppedTitle" = "Move to iCloud Didn’t Finish";
+"AlbumErrorDrawer.MigrationToLocalStoppedTitle" = "Move to Device Didn’t Finish";
+"AlbumErrorDrawer.StorageChangeNeedsKeyMessage" = "The key for some items in this album isn’t on this device. Add the key, then try again.";
+"AlbumErrorDrawer.CancelMoveTitle" = "Couldn’t Cancel Move";
+"AlbumErrorDrawer.ShareTitle" = "Couldn’t Share";
+"AlbumErrorDrawer.SelectAllTitle" = "Couldn’t Select All";
+"AlbumErrorDrawer.SelectAllMessage" = "Not every item in the album could be loaded. Try again.";
+"AlbumErrorDrawer.DeleteOriginalsTitle" = "Couldn’t Delete Originals";
+"AlbumErrorDrawer.DeleteOriginalsMessage" = "The originals are still in your photo library. Try again.";
+"AlbumErrorDrawer.DeleteOriginalsNoAccessTitle" = "No Access to Photos";
+"AlbumErrorDrawer.DeleteOriginalsNoAccessMessage" = "Give Encamera full access to Photos in Settings to delete the originals.";
 
 /* Shown when biometrics is the only way into the app and it cannot run. */
 "BiometricAvailability.GenericName" = "Face ID or Touch ID";

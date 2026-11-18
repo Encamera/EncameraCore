@@ -413,8 +413,8 @@ public enum L10n {
     public static func moveFailedAlertMessage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertMessage", String(describing: p1), fallback: "The album was not moved and stays where it is. %@")
     }
-    /// Couldn't Move Album
-    public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn't Move Album")
+    /// Couldn’t Move Album
+    public static let moveFailedAlertTitle = L10n.tr("Localizable", "AlbumDetailView.MoveFailedAlertTitle", fallback: "Couldn’t Move Album")
     /// %@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to this device, so the album now shows in both places. Try the move again when you're online to move the rest.
     public static func moveLeftItemsInICloudDriveAlertMessage(_ p1: Any) -> String {
       return L10n.tr("Localizable", "AlbumDetailView.MoveLeftItemsInICloudDriveAlertMessage", String(describing: p1), fallback: "%@ items stayed in iCloud Drive because they couldn't be downloaded. Everything else was moved to this device, so the album now shows in both places. Try the move again when you're online to move the rest.")
@@ -465,6 +465,72 @@ public enum L10n {
       /// Date Captured: Oldest First
       public static let dateCapturedOldest = L10n.tr("Localizable", "AlbumDetailView.SortFilter.DateCapturedOldest", fallback: "Date Captured: Oldest First")
     }
+  }
+  public enum AlbumErrorDrawer {
+    /// Add Key
+    public static let addKey = L10n.tr("Localizable", "AlbumErrorDrawer.AddKey", fallback: "Add Key")
+    /// Couldn’t Cancel Move
+    public static let cancelMoveTitle = L10n.tr("Localizable", "AlbumErrorDrawer.CancelMoveTitle", fallback: "Couldn’t Cancel Move")
+    /// Album error drawer
+    public static let changeName = L10n.tr("Localizable", "AlbumErrorDrawer.ChangeName", fallback: "Change Name")
+    /// Couldn’t Create Album
+    public static let createAlbumTitle = L10n.tr("Localizable", "AlbumErrorDrawer.CreateAlbumTitle", fallback: "Couldn’t Create Album")
+    /// This album is still moving. Finish or cancel the move, then delete it.
+    public static let deleteAlbumMoveInProgressMessage = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage", fallback: "This album is still moving. Finish or cancel the move, then delete it.")
+    /// Couldn’t Delete Album
+    public static let deleteAlbumTitle = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteAlbumTitle", fallback: "Couldn’t Delete Album")
+    /// Some of these items are still in iCloud Drive, which isn’t available right now. Check that you’re signed in to iCloud with iCloud Drive turned on.
+    public static let deleteMediaICloudDriveUnavailable = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable", fallback: "Some of these items are still in iCloud Drive, which isn’t available right now. Check that you’re signed in to iCloud with iCloud Drive turned on.")
+    /// None of the %@ items could be deleted.
+    public static func deleteMediaNoneDeleted(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumErrorDrawer.DeleteMediaNoneDeleted", String(describing: p1), fallback: "None of the %@ items could be deleted.")
+    }
+    /// %@ of %@ items couldn’t be deleted.
+    public static func deleteMediaSomeNotDeleted(_ p1: Any, _ p2: Any) -> String {
+      return L10n.tr("Localizable", "AlbumErrorDrawer.DeleteMediaSomeNotDeleted", String(describing: p1), String(describing: p2), fallback: "%@ of %@ items couldn’t be deleted.")
+    }
+    /// Couldn’t Delete Items
+    public static let deleteMediaTitle = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteMediaTitle", fallback: "Couldn’t Delete Items")
+    /// The originals are still in your photo library. Try again.
+    public static let deleteOriginalsMessage = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteOriginalsMessage", fallback: "The originals are still in your photo library. Try again.")
+    /// Give Encamera full access to Photos in Settings to delete the originals.
+    public static let deleteOriginalsNoAccessMessage = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteOriginalsNoAccessMessage", fallback: "Give Encamera full access to Photos in Settings to delete the originals.")
+    /// No Access to Photos
+    public static let deleteOriginalsNoAccessTitle = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteOriginalsNoAccessTitle", fallback: "No Access to Photos")
+    /// Couldn’t Delete Originals
+    public static let deleteOriginalsTitle = L10n.tr("Localizable", "AlbumErrorDrawer.DeleteOriginalsTitle", fallback: "Couldn’t Delete Originals")
+    /// Some files weren’t added to the album (%@).
+    public static func fileImportMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumErrorDrawer.FileImportMessage", String(describing: p1), fallback: "Some files weren’t added to the album (%@).")
+    }
+    /// Couldn’t Import Files
+    public static let fileImportTitle = L10n.tr("Localizable", "AlbumErrorDrawer.FileImportTitle", fallback: "Couldn’t Import Files")
+    /// A Move Is Running
+    public static let mediaMoveBusyTitle = L10n.tr("Localizable", "AlbumErrorDrawer.MediaMoveBusyTitle", fallback: "A Move Is Running")
+    /// Upgrade “%@” first, then move the items into it.
+    public static func mediaMoveNeedsUpgradeMessage(_ p1: Any) -> String {
+      return L10n.tr("Localizable", "AlbumErrorDrawer.MediaMoveNeedsUpgradeMessage", String(describing: p1), fallback: "Upgrade “%@” first, then move the items into it.")
+    }
+    /// Album Needs Upgrading
+    public static let mediaMoveNeedsUpgradeTitle = L10n.tr("Localizable", "AlbumErrorDrawer.MediaMoveNeedsUpgradeTitle", fallback: "Album Needs Upgrading")
+    /// Couldn’t Move Items
+    public static let mediaMoveTitle = L10n.tr("Localizable", "AlbumErrorDrawer.MediaMoveTitle", fallback: "Couldn’t Move Items")
+    /// Move to iCloud Didn’t Finish
+    public static let migrationStoppedTitle = L10n.tr("Localizable", "AlbumErrorDrawer.MigrationStoppedTitle", fallback: "Move to iCloud Didn’t Finish")
+    /// Move to Device Didn’t Finish
+    public static let migrationToLocalStoppedTitle = L10n.tr("Localizable", "AlbumErrorDrawer.MigrationToLocalStoppedTitle", fallback: "Move to Device Didn’t Finish")
+    /// Couldn’t Import Photos
+    public static let photoImportTitle = L10n.tr("Localizable", "AlbumErrorDrawer.PhotoImportTitle", fallback: "Couldn’t Import Photos")
+    /// Couldn’t Rename Album
+    public static let renameAlbumTitle = L10n.tr("Localizable", "AlbumErrorDrawer.RenameAlbumTitle", fallback: "Couldn’t Rename Album")
+    /// Not every item in the album could be loaded. Try again.
+    public static let selectAllMessage = L10n.tr("Localizable", "AlbumErrorDrawer.SelectAllMessage", fallback: "Not every item in the album could be loaded. Try again.")
+    /// Couldn’t Select All
+    public static let selectAllTitle = L10n.tr("Localizable", "AlbumErrorDrawer.SelectAllTitle", fallback: "Couldn’t Select All")
+    /// Couldn’t Share
+    public static let shareTitle = L10n.tr("Localizable", "AlbumErrorDrawer.ShareTitle", fallback: "Couldn’t Share")
+    /// The key for some items in this album isn’t on this device. Add the key, then try again.
+    public static let storageChangeNeedsKeyMessage = L10n.tr("Localizable", "AlbumErrorDrawer.StorageChangeNeedsKeyMessage", fallback: "The key for some items in this album isn’t on this device. Add the key, then try again.")
   }
   public enum AlbumGrid {
     public enum EmptyState {
