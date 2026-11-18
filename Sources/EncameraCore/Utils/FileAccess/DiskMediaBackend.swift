@@ -11,6 +11,11 @@
 
 import Foundation
 
+private enum DiskMediaBackendError: Error {
+    /// The backend was not configured with an album directory.
+    case noDirectory
+}
+
 public actor DiskMediaBackend: MediaBackend {
 
     private let fileAccess: DiskFileAccess
@@ -230,10 +235,11 @@ public actor DiskMediaBackend: MediaBackend {
         await upsertIntoIndex(moved)
     }
 
+    /// Throws without deleting anything when the album directory can't be listed.
     public func delete(media: [InteractableMedia<EncryptedMedia>]) async throws {
         let allMediaItems = Self.componentsOnDisk(
             forIDs: Set(media.map { $0.id }),
-            urlsByID: currentMediaURLsByID()
+            urlsByID: try currentMediaURLsByID()
         )
         try await fileAccess.delete(media: allMediaItems)
         do {
@@ -352,17 +358,25 @@ public actor DiskMediaBackend: MediaBackend {
     /// name only (no `stat`, no decryption), then incrementally drops entries for
     /// removed files and reads metadata for *only* the newly-added/modified files —
     /// so this stays cheap even on a large album. Returns whether the index
-    /// changed. Honors cancellation: a cancelled scan bails before writing.
+    /// changed. A directory that can't be listed, or an index that can't be
+    /// saved, returns `.failed` and leaves the index as it was. Honors
+    /// cancellation: a cancelled scan bails before writing.
     @discardableResult
     public func reconcile(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
-    ) async -> Bool {
-        guard let indexStore else { return false }
+    ) async -> MediaReconcileOutcome {
+        guard let indexStore else { return .unchanged }
 
         for _ in 0..<3 {
             let generation = await indexStore.currentGeneration()
 
-            let diskURLsByID = currentMediaURLsByID()
+            let diskURLsByID: [String: [URL]]
+            do {
+                diskURLsByID = try currentMediaURLsByID()
+            } catch {
+                debugPrint("[DiskMediaBackend] could not list the album directory; index left as it was: \(error)")
+                return .failed(error)
+            }
             let diskIDs = Set(diskURLsByID.keys)
             let existingEntries = (await indexStore.reloadFromDisk())?.entries ?? []
             let indexIDs = Set(existingEntries.map { $0.id })
@@ -388,10 +402,10 @@ public actor DiskMediaBackend: MediaBackend {
             let staleIDs = modifiedIDs.union(mismatchedIDs)
 
             guard !removedIDs.isEmpty || !addedIDs.isEmpty || !staleIDs.isEmpty else {
-                return false
+                return .unchanged
             }
 
-            if Task.isCancelled { return false }
+            if Task.isCancelled { return .failed(CancellationError()) }
 
             var entries = existingEntries.filter {
                 !removedIDs.contains($0.id) && !staleIDs.contains($0.id)
@@ -411,7 +425,7 @@ public actor DiskMediaBackend: MediaBackend {
                 entries.append(contentsOf: Self.makeEntries(fromFileLevelMetadata: withMetadata))
             }
 
-            if Task.isCancelled { return false }
+            if Task.isCancelled { return .failed(CancellationError()) }
 
             do {
                 guard try await indexStore.replace(with: entries, ifGenerationIs: generation) else {
@@ -419,11 +433,11 @@ public actor DiskMediaBackend: MediaBackend {
                 }
             } catch {
                 debugPrint("[DiskMediaBackend] failed to persist reconciled index: \(error)")
-                return false
+                return .failed(error)
             }
-            return true
+            return .changed
         }
-        return false
+        return .unchanged
     }
 
     // MARK: - Reconcile helpers
@@ -504,10 +518,11 @@ public actor DiskMediaBackend: MediaBackend {
     /// Media file URLs currently on disk, grouped by media id, from a cheap
     /// directory listing. The modification date is prefetched so the reconcile's
     /// in-place-edit check reads it from cache rather than issuing a fresh
-    /// `stat` per file.
-    private func currentMediaURLsByID() -> [String: [URL]] {
-        guard let directoryModel else { return [:] }
-        let urls = directoryModel.enumeratorForStorageDirectory(
+    /// `stat` per file. Throws when the directory can't be listed, or when the
+    /// backend has no directory, rather than reporting an empty album.
+    private func currentMediaURLsByID() throws -> [String: [URL]] {
+        guard let directoryModel else { throw DiskMediaBackendError.noDirectory }
+        let urls = try directoryModel.listStorageDirectory(
             resourceKeys: [.contentModificationDateKey],
             fileExtensionFilter: [
                 MediaType.photo.encryptedFileExtension,

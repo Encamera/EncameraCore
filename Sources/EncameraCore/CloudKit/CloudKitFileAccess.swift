@@ -1134,15 +1134,20 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     /// Brings the local index in sync with CloudKit: a delta walk of the zone,
     /// which brings every other CloudKit album's index current with it.
+    ///
+    /// A finished sync returns `.changed`: the coordinator does not say whether
+    /// this album's index moved, so callers re-read it. A failed sync returns the
+    /// error `sync()` threw (a `CloudKitMediaStoreError`, an index write error, or
+    /// `CancellationError` after `shutdown()`).
     @discardableResult
-    public func reconcile() async -> Bool {
+    public func reconcile() async -> MediaReconcileOutcome {
         do {
             try await coordinator.sync()
             printDebug("reconcile ok albumID=\(albumID)")
-            return true
+            return .changed
         } catch {
             printDebug("reconcile FAILED albumID=\(albumID) cancelled=\(error is CancellationError) raw=\(error)")
-            return false
+            return .failed(error)
         }
     }
 
@@ -1371,11 +1376,11 @@ extension CloudKitFileAccess {
     /// `MediaBackend.reconcile`. CloudKit has no per-file scan, so `onProgress` is
     /// not applicable and is ignored — the index is brought current by the delta
     /// sync. A cancelled parent task lets the sync's own `CancellationError`
-    /// propagate; `reconcile()` returns `false` in that case rather than retrying.
+    /// propagate; `reconcile()` returns `.failed` with it rather than retrying.
     @discardableResult
     public func reconcile(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
-    ) async -> Bool {
+    ) async -> MediaReconcileOutcome {
         await reconcile()
     }
 

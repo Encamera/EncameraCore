@@ -194,6 +194,23 @@ public extension FileWriter {
     }
 }
 
+/// What a `MediaBackend.reconcile` did to the album's index.
+public enum MediaReconcileOutcome {
+    /// The index was brought in line with the backing store and changed.
+    case changed
+    /// The backing store was read and the index already matched it.
+    case unchanged
+    /// The backing store could not be read, or the index could not be saved.
+    /// The index is left as it was.
+    case failed(Error)
+
+    /// The error a failed reconcile hit.
+    public var error: Error? {
+        if case .failed(let error) = self { return error }
+        return nil
+    }
+}
+
 /// The per-album backend contract: everything a disk or cloud backend must do.
 /// Composed from the existing `FileReader` / `FileWriter` protocols plus the two
 /// genuinely-new backend responsibilities (`reconcile`, `sourceURL`). NOT a
@@ -201,11 +218,12 @@ public extension FileWriter {
 public protocol MediaBackend: FileReader, FileWriter {
     /// Brings the album's media index in sync with its backing store. Disk does a
     /// directory scan (driving `onProgress` as it reads metadata); CloudKit does a
-    /// delta sync and ignores `onProgress`. Returns whether the index changed.
+    /// delta sync and ignores `onProgress`. Returns whether the index changed,
+    /// or the error that stopped the reconcile.
     @discardableResult
     func reconcile(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)?
-    ) async -> Bool
+    ) async -> MediaReconcileOutcome
 
     /// Whether `reconcile` waits on the network. True for CloudKit, whose
     /// reconcile is a delta sync that can take minutes on a bad link; false for

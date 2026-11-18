@@ -42,6 +42,12 @@ enum DataStorageModelError: Error {
 extension DataStorageModel {
 
     static func enumeratorForStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil, exclude: [String] = [], onlyDirectories: Bool = false) -> [URL] {
+        (try? listStorageDirectory(at: url, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter, exclude: exclude, onlyDirectories: onlyDirectories)) ?? []
+    }
+
+    /// The items in `url`, filtered. A directory that does not exist lists as
+    /// empty; any other listing failure throws.
+    static func listStorageDirectory(at url: URL, resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil, exclude: [String] = [], onlyDirectories: Bool = false) throws -> [URL] {
         let driveUrl = url
         _ = driveUrl.startAccessingSecurityScopedResource()
 
@@ -50,10 +56,11 @@ extension DataStorageModel {
             directoryContents = try FileManager.default.contentsOfDirectory(at: driveUrl, includingPropertiesForKeys: Array(resourceKeys), options: [])
         } catch {
             driveUrl.stopAccessingSecurityScopedResource()
-            if !Self.isMissingDirectory(error) {
-                print("Error while enumerating files \(driveUrl.path): \(error.localizedDescription)")
+            if Self.isMissingDirectory(error) {
+                return []
             }
-            return []
+            print("Error while enumerating files \(driveUrl.path): \(error.localizedDescription)")
+            throw error
         }
 
         driveUrl.stopAccessingSecurityScopedResource()
@@ -286,6 +293,11 @@ extension DataStorageModel {
     func enumeratorForStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) -> [URL] {
         return Self.enumeratorForStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
     }
+
+    /// The album directory's items. Throws when the directory exists but can't be listed.
+    func listStorageDirectory(resourceKeys: Set<URLResourceKey> = [], fileExtensionFilter: [String]? = nil) throws -> [URL] {
+        return try Self.listStorageDirectory(at: baseURL, resourceKeys: resourceKeys, fileExtensionFilter: fileExtensionFilter)
+    }
     
     func enumeratePreviewFiles() -> [URL] {
         return Self.enumeratorForStorageDirectory(
@@ -315,7 +327,7 @@ extension DataStorageModel {
     }
 
     static func deleteAllFiles() throws {
-        for url in enumeratorForStorageDirectory(at: Self.albumsURL) {
+        for url in try listStorageDirectory(at: Self.albumsURL) {
             do {
                 try FileManager.default.removeItem(at: url)
                 debugPrint("Deleted item at \(url)")

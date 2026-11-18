@@ -40,6 +40,8 @@ public enum ICloudDriveFolderScanSkipReason: Equatable, Sendable {
     case markerNamesAnotherAlbum(albumID: String)
     /// The index could not be saved.
     case indexWriteFailed
+    /// The folder could not be listed.
+    case listingFailed
 }
 
 public enum ICloudDriveFolderScanResult: Equatable, Sendable {
@@ -162,7 +164,13 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
             return .skipped(skip.reason)
         }
 
-        let listed = Self.listComponents(in: folder)
+        let listed: [FolderComponent]
+        do {
+            listed = try Self.listComponents(in: folder)
+        } catch {
+            printDebug("scan skipped albumID=\(album.albumID ?? "nil") listing the folder failed error=\(error)")
+            return .skipped(.listingFailed)
+        }
         let entries = await indexStore.reloadFromDisk()?.entries ?? []
 
         let newComponents = listed.filter { !entries.hasComponent(mediaID: $0.mediaID, type: $0.type) }
@@ -389,10 +397,10 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
     ]
 
     /// Every `<mediaID>.<ext>` file in `folder`, in either form. The marker and
-    /// anything else are skipped.
-    private static func listComponents(in folder: URL) -> [FolderComponent] {
-        let urls = iCloudStorageModel.enumeratorForStorageDirectory(at: folder,
-                                                                    fileExtensionFilter: Array(mediaTypesByExtension.keys))
+    /// anything else are skipped. Throws when the folder can't be listed.
+    private static func listComponents(in folder: URL) throws -> [FolderComponent] {
+        let urls = try iCloudStorageModel.listStorageDirectory(at: folder,
+                                                               fileExtensionFilter: Array(mediaTypesByExtension.keys))
         var seen = Set<String>()
         var components: [FolderComponent] = []
         for url in urls {

@@ -17,7 +17,7 @@ import CloudKit
 
 // MARK: - Observable state
 
-public enum MigrationFailureReason: Equatable, Sendable {
+public enum MigrationFailureReason: Hashable, Sendable {
     case quota                  // iCloud is full — recoverable once the user frees space
     case accountUnavailable     // not signed into iCloud
     /// The server rejected the record shape (`CKError.invalidArguments`, e.g.

@@ -62,11 +62,11 @@ actor MediaBackendMock: MediaBackend {
 
     // MediaBackend
     @discardableResult
-    func reconcile(onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)?) async -> Bool {
-        guard let store = reconcileIndexStore else { return false }
+    func reconcile(onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)?) async -> MediaReconcileOutcome {
+        guard let store = reconcileIndexStore else { return .unchanged }
         try? await store.save(MediaIndex(entries: reconcileEntries))
         reconcileWroteIndex = true
-        return true
+        return .changed
     }
     func sourceURL(id: String, type: MediaType) async -> URL {
         URL(fileURLWithPath: "/mock/\(id).\(type.rawValue)")
@@ -175,8 +175,8 @@ final class MediaBackendStrategyTests: XCTestCase {
         let access = InteractableMediaFileAccess()
         await access._testSetBackend(mock)
 
-        let changed = await access.reconcileIndex()
-        XCTAssertTrue(changed)
+        let outcome = await access.reconcileIndex()
+        guard case .changed = outcome else { return XCTFail("expected .changed, got \(outcome)") }
 
         let viaFacade = await access.mediaIndex()
         let onDisk = await store.load()
@@ -228,15 +228,96 @@ final class MediaBackendStrategyTests: XCTestCase {
 
         XCTAssertFalse(MediaIndexStore.hasIndex(for: album), "precondition: no index yet")
 
-        let task = Task { () -> Bool in
+        let task = Task { () -> MediaReconcileOutcome in
             while !Task.isCancelled { await Task.yield() }
             return await backend.reconcile()
         }
         task.cancel()
-        let changed = await task.value
+        let outcome = await task.value
 
-        XCTAssertFalse(changed, "A cancelled reconcile must report no change")
+        if case .changed = outcome { XCTFail("A cancelled reconcile must report no change") }
         XCTAssertFalse(MediaIndexStore.hasIndex(for: album), "A cancelled reconcile must not write the index")
+    }
+
+    // MARK: - Disk reconcile outcome
+
+    /// A local album with its directories on disk; removed after the test.
+    private func makeDiskAlbum() throws -> (Album, DataStorageModel) {
+        let album = makeAlbum(storage: .local)
+        let model = album.storageOption.modelForType.init(album: album)
+        try model.initializeDirectories()
+        addTeardownBlock {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: model.baseURL.path)
+            try? FileManager.default.removeItem(at: model.baseURL)
+            try? FileManager.default.removeItem(at: MediaIndexStore.indexURL(for: album))
+        }
+        return (album, model)
+    }
+
+    private func makeDiskBackend(for album: Album) async -> DiskMediaBackend {
+        let backend = DiskMediaBackend()
+        await backend.configure(for: album, albumManager: makeManager(for: album))
+        return backend
+    }
+
+    @discardableResult
+    private func addPhoto(to model: DataStorageModel) throws -> String {
+        let id = UUID().uuidString
+        try Data([0, 1, 2, 3]).write(to: model.driveURLForMedia(withID: id, type: .photo))
+        return id
+    }
+
+    func testDiskReconcileReportsChangedThenUnchanged() async throws {
+        let (album, model) = try makeDiskAlbum()
+        let id = try addPhoto(to: model)
+        let backend = await makeDiskBackend(for: album)
+
+        let first = await backend.reconcile()
+        let second = await backend.reconcile()
+
+        guard case .changed = first else { return XCTFail("expected .changed, got \(first)") }
+        guard case .unchanged = second else { return XCTFail("expected .unchanged, got \(second)") }
+        let ids = await backend.mediaIndex()?.entries.map(\.id)
+        XCTAssertEqual(ids, [id])
+    }
+
+    /// An unreadable directory must never read as an empty album.
+    func testDiskReconcileListingFailureLeavesIndexUntouchedAndFails() async throws {
+        let (album, model) = try makeDiskAlbum()
+        let id = try addPhoto(to: model)
+        let backend = await makeDiskBackend(for: album)
+        _ = await backend.reconcile()
+        let indexURL = MediaIndexStore.indexURL(for: album)
+        let indexBefore = try Data(contentsOf: indexURL)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: model.baseURL.path)
+        let outcome = await backend.reconcile()
+        XCTAssertThrowsError(try model.listStorageDirectory())
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: model.baseURL.path)
+
+        guard case .failed = outcome else { return XCTFail("expected .failed, got \(outcome)") }
+        XCTAssertEqual(try Data(contentsOf: indexURL), indexBefore, "the index file must not be rewritten")
+        let ids = await backend.mediaIndex()?.entries.map(\.id)
+        XCTAssertEqual(ids, [id], "an unreadable directory must not empty the index")
+    }
+
+    func testMissingStorageDirectoryListsAsEmpty() throws {
+        let (_, model) = try makeDiskAlbum()
+        try FileManager.default.removeItem(at: model.baseURL)
+
+        XCTAssertEqual(try model.listStorageDirectory(), [])
+    }
+
+    func testDiskReconcileThatCannotSaveTheIndexFails() async throws {
+        let (album, model) = try makeDiskAlbum()
+        try addPhoto(to: model)
+        let backend = await makeDiskBackend(for: album)
+        // A directory where the index file goes makes the atomic write fail.
+        try FileManager.default.createDirectory(at: MediaIndexStore.indexURL(for: album), withIntermediateDirectories: true)
+
+        let outcome = await backend.reconcile()
+
+        guard case .failed = outcome else { return XCTFail("expected .failed, got \(outcome)") }
     }
 
     // MARK: - Cloud-specific decisions (§6)

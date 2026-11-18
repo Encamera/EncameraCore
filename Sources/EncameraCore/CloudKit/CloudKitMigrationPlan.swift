@@ -338,7 +338,7 @@ public enum MigrationScope: String, Codable, Sendable {
     case items
 }
 
-public enum MigrationDirection: Sendable, Equatable {
+public enum MigrationDirection: Sendable, Hashable {
     /// Source `.local` or `.icloud`, destination `.cloudKit`.
     case toCloudKit
     /// Source `.cloudKit`, destination `.local`.

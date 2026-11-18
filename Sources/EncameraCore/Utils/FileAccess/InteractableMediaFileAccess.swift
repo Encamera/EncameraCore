@@ -215,7 +215,7 @@ public actor InteractableMediaFileAccess: FileAccess {
     @discardableResult
     public func reconcile(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
-    ) async -> Bool {
+    ) async -> MediaReconcileOutcome {
         await reconcileIndex(onProgress: onProgress)
     }
 
@@ -240,17 +240,18 @@ public actor InteractableMediaFileAccess: FileAccess {
     /// - Parameter onProgress: Optional `(filesRead, totalFiles)` callback that
     ///   fires while a disk backend reads metadata for added/modified files
     ///   (ignored by the CloudKit backend).
+    /// - Returns: the backend's outcome; `.unchanged` before `configure(for:)`.
     @discardableResult
     public func reconcileIndex(
         onProgress: (@Sendable (_ filesRead: Int, _ totalFiles: Int) async -> Void)? = nil
-    ) async -> Bool {
+    ) async -> MediaReconcileOutcome {
         /* begin fault injection hook */
         let delayMs = MediaIndexTestHooks.reconcileDelayMs
         if delayMs > 0 {
             try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
         }
         /* end fault injection hook */
-        return await backend?.reconcile(onProgress: onProgress) ?? false
+        return await backend?.reconcile(onProgress: onProgress) ?? .unchanged
     }
 
     /// Forwards to the configured backend; `false` before `configure(for:)`.

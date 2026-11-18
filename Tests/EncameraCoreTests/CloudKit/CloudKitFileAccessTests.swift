@@ -3208,7 +3208,7 @@ extension CloudKitFileAccessTests {
         XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path), "the scan keeps the preview")
 
         let synced = await f.access.reconcile()
-        XCTAssertTrue(synced)
+        if case .failed(let error) = synced { XCTFail("the sync failed: \(error)") }
         let entry = await f.albumManager.mediaIndexStore(for: f.album).current()?.entries.first { $0.id == id }
         XCTAssertEqual(entry?.photoLocation, .cloudKit, "precondition: the record's arrival flipped the component")
         let scanAfterSync = await scanner(for: f).scan()
