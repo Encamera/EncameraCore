@@ -13,6 +13,21 @@ public typealias TaskCancellationHandler = () -> Void
 /// A cancellation handler that may refuse: returns whether the task will stop.
 public typealias RefusableTaskCancellationHandler = () -> Bool
 
+/// Why a task was taken out of `BackgroundTaskManager.currentTasks`. Logged with
+/// every removal so a device log names what removed a task.
+public enum TaskRemovalReason: String {
+    /// `cancelTask` found no cancellation handler for the task.
+    case cancelledWithoutHandler
+    /// The task stopped (cancelled or failed) without importing anything.
+    case stoppedWithNothingImported
+    /// The task's originals were deleted from the photo library.
+    case originalsDeleted
+    /// `clearCompletedTasks` swept finished tasks.
+    case clearCompleted
+    /// `clearAllTasks` reset the manager.
+    case clearAll
+}
+
 /// Generic task manager for tracking and observing long-running background tasks.
 /// Uses the BackgroundFileTask protocol to support any task type (imports, exports, etc.)
 @MainActor
@@ -55,7 +70,12 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     
     // MARK: - Initialization
     
-    public init() {}
+    /// How long a stopped task stays visible before `removeTaskAfterDelay` removes it.
+    private let removalDelay: TimeInterval
+
+    public init(removalDelay: TimeInterval = 2.0) {
+        self.removalDelay = removalDelay
+    }
     
     // MARK: - Task Lifecycle
     
@@ -74,7 +94,16 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
             return
         }
         
-        currentTasks[taskIndex].progress = progress
+        // A stopped task keeps its state; only `markTaskRunning` makes a task running.
+        let storedState = currentTasks[taskIndex].progress.state
+        var update = progress
+        switch storedState {
+        case .cancelled, .completed, .failed:
+            update.state = storedState
+        default:
+            break
+        }
+        currentTasks[taskIndex].progress = update
         publishProgress(for: currentTasks[taskIndex])
     }
 
@@ -146,26 +175,32 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     /// refuse, which leaves the task's state and handler untouched.
     public func cancelTask(taskId: String) {
         printDebug("Cancelling task: \(taskId)")
-        guard task(withId: taskId) != nil else {
+        guard let existing = task(withId: taskId) else {
             printDebug("Failed to find task to cancel: \(taskId)")
+            return
+        }
+        if existing.progress.state == .cancelled {
+            printDebug("Cancel ignored - task \(taskId) is already cancelling")
             return
         }
 
         switch cancellationHandlers[taskId] {
         case .refusable(let handler)?:
-            printDebug("Invoking refusable cancellation handler for task: \(taskId)")
+            printDebug("Cancel task \(taskId) branch=refusable state=\(existing.progress.state)")
             guard handler() else {
                 printDebug("Cancellation refused for task: \(taskId)")
                 return
             }
             markTaskCancelled(taskId: taskId)
         case .unconditional(let handler)?:
+            printDebug("Cancel task \(taskId) branch=unconditional state=\(existing.progress.state)")
             markTaskCancelled(taskId: taskId)
             printDebug("Invoking cancellation handler for task: \(taskId)")
             handler()
         case nil:
+            printDebug("Cancel task \(taskId) branch=noHandler state=\(existing.progress.state)")
             markTaskCancelled(taskId: taskId)
-            removeTaskAfterDelay(taskId: taskId)
+            removeTaskAfterDelay(taskId: taskId, reason: .cancelledWithoutHandler)
         }
 
         unregisterCancellationHandler(for: taskId)
@@ -232,7 +267,7 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         publishProgress(for: currentTasks[taskIndex])
 
         if shouldRemove {
-            removeTaskAfterDelay(taskId: taskId)
+            removeTaskAfterDelay(taskId: taskId, reason: .stoppedWithNothingImported)
         }
 
         updateOverallProgress()
@@ -252,24 +287,48 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     }
 
     /// Removes a specific task by ID
-    public func removeTask(taskId: String) {
-        printDebug("Removing task: \(taskId)")
+    public func removeTask(taskId: String, reason: TaskRemovalReason,
+                           file: StaticString = #fileID, line: UInt = #line) {
+        logRemoval(taskId: taskId, reason: reason, file: file, line: line)
         currentTasks.removeAll { $0.id == taskId }
         updateOverallProgress()
         updateIsProcessing()
     }
     
     /// Removes a task after a delay (for showing cancelled/completed state briefly)
-    public func removeTaskAfterDelay(taskId: String, delay: TimeInterval = 2.0) {
+    public func removeTaskAfterDelay(taskId: String, delay: TimeInterval? = nil, reason: TaskRemovalReason,
+                                     file: StaticString = #fileID, line: UInt = #line) {
+        let delay = delay ?? removalDelay
+        printDebug("Scheduling removal of task \(taskId) in \(delay)s state=\(task(withId: taskId).map { "\($0.progress.state)" } ?? "missing") reason=\(reason) caller=\(file):\(line)")
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            self.printDebug("Removing task after delay: \(taskId)")
+            self.logRemoval(taskId: taskId, reason: reason, file: file, line: line)
             self.currentTasks.removeAll { $0.id == taskId }
             self.updateOverallProgress()
         }
     }
+
+    /// Writes the one log line every removal leaves: id, type, state, reason and
+    /// caller, as a warning when the task is still running or paused.
+    private func logRemoval(taskId: String, reason: TaskRemovalReason, file: StaticString, line: UInt) {
+        guard let removed = task(withId: taskId) else {
+            printDebug("Removing task \(taskId) - already gone reason=\(reason) caller=\(file):\(line)")
+            return
+        }
+        logRemoval(of: removed, reason: reason, caller: "\(file):\(line)")
+    }
+
+    private func logRemoval(of removed: any BackgroundFileTask, reason: TaskRemovalReason, caller: String) {
+        let details = "\(removed.id) type=\(removed.taskType) state=\(removed.progress.state) reason=\(reason) caller=\(caller)"
+        switch removed.progress.state {
+        case .running, .paused:
+            printDebug("⚠️ Removing a running task \(details)")
+        default:
+            printDebug("Removing task \(details)")
+        }
+    }
     
     /// Removes all completed, cancelled, or failed tasks
-    public func clearCompletedTasks() {
+    public func clearCompletedTasks(file: StaticString = #fileID, line: UInt = #line) {
         let tasksToRemove = currentTasks.filter { task in
             switch task.progress.state {
             case .completed, .cancelled, .failed:
@@ -280,22 +339,22 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
         }
         
         printDebug("Removing \(tasksToRemove.count) completed/cancelled/failed tasks")
-        currentTasks.removeAll { task in
-            switch task.progress.state {
-            case .completed, .cancelled, .failed:
-                return true
-            default:
-                return false
-            }
+        for removed in tasksToRemove {
+            logRemoval(of: removed, reason: .clearCompleted, caller: "\(file):\(line)")
         }
+        let removedIds = Set(tasksToRemove.map(\.id))
+        currentTasks.removeAll { removedIds.contains($0.id) }
         updateOverallProgress()
     }
     
     /// Clears all tasks and resets state
-    public func clearAllTasks() {
+    public func clearAllTasks(file: StaticString = #fileID, line: UInt = #line) {
         printDebug("Clearing all tasks and resetting state")
         
         let taskCount = currentTasks.count
+        for removed in currentTasks {
+            logRemoval(of: removed, reason: .clearAll, caller: "\(file):\(line)")
+        }
         currentTasks.removeAll()
         printDebug("Cleared \(taskCount) tasks")
         
@@ -309,6 +368,11 @@ public class BackgroundTaskManager: ObservableObject, DebugPrintable {
     
     // MARK: - Task Queries
     
+    /// Whether a task with the given ID is still tracked.
+    public func hasTask(_ taskId: String) -> Bool {
+        task(withId: taskId) != nil
+    }
+
     /// Returns the task with the given ID, if it exists
     public func task(withId taskId: String) -> (any BackgroundFileTask)? {
         currentTasks.first { $0.id == taskId }

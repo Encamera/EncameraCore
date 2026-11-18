@@ -109,9 +109,11 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     
     // MARK: - Private Properties
     
-    private var activeBackgroundTask: BackgroundTaskID = .invalid
     private var cancellables = Set<AnyCancellable>()
-    private var currentImportTask: Task<Void, Error>?
+    /// Imports between the start of their run and its end, including one that
+    /// was cancelled and is still finishing its current item. Temp files are
+    /// only cleaned up when this is zero.
+    private var runningImportCount = 0
     private let mediaLoader: ImportMediaLoading
     private let saveOperation: ImportSaveOperation
     private var freeSpace: DeviceFreeSpaceProviding
@@ -203,30 +205,6 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         return try await executeImportTask(task, mediaSource: .preloaded(media), plannedSizes: plannedSizes)
     }
     
-    /// Pauses an in-progress import task
-    public func pauseImport(taskId: String) {
-        printDebug("Pausing import task: \(taskId)")
-        guard taskManager.task(withId: taskId) != nil else {
-            printDebug("Failed to find task to pause: \(taskId)")
-            return
-        }
-        
-        taskManager.markTaskPaused(taskId: taskId)
-        currentImportTask?.cancel()
-    }
-    
-    /// Resumes a paused import task
-    public func resumeImport(taskId: String) async throws {
-        printDebug("Resuming import task: \(taskId)")
-        guard let task = taskManager.task(withId: taskId) as? ImportTask,
-              task.progress.state == .paused else {
-            printDebug("Failed to find paused task to resume: \(taskId)")
-            return
-        }
-        
-        try await executeImportTask(task)
-    }
-    
     /// Marks the batches these tasks belong to as deleted from the photo library in
     /// each album's import history, after their originals were deleted elsewhere
     /// (the progress pill).
@@ -273,11 +251,6 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         
         taskManager.addTask(task)
         
-        taskManager.registerCancellationHandler(for: taskId) { [weak self] in
-            self?.printDebug("Cancellation handler invoked for task: \(taskId)")
-            self?.currentImportTask?.cancel()
-        }
-        
         printDebug("Created import task with ID: \(taskId) for \(task.progress.totalFiles) items")
         
         return task
@@ -315,8 +288,13 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
 
         taskManager.markTaskRunning(taskId: task.id)
 
-        printDebug("Starting background task for import: \(task.id)")
-        startBackgroundTask()
+        let backgroundTask = beginBackgroundTask(for: task.id)
+        runningImportCount += 1
+        defer {
+            runningImportCount -= 1
+            endBackgroundTask(backgroundTask)
+            cleanupTempFilesIfSafe()
+        }
         taskManager.resetTimeEstimationState()
 
         var successCount = 0
@@ -332,7 +310,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         let isPreloaded: Bool
         if case .preloaded = mediaSource { isPreloaded = true } else { isPreloaded = false }
 
-        currentImportTask = Task {
+        let importTask = Task {
             let fileAccess = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
 
             switch mediaSource {
@@ -360,9 +338,15 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 }
             }
         }
+        // Registered right after the Task exists, with no suspension since
+        // `addTask`, so a Stop always reaches this import's own Task.
+        taskManager.registerCancellationHandler(for: task.id) { [weak self] in
+            self?.printDebug("Cancel handler for \(task.id)")
+            importTask.cancel()
+        }
 
         do {
-            try await currentImportTask?.value
+            try await importTask.value
 
             await MainActor.run {
                 if wasCancelled {
@@ -398,8 +382,6 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                                        requestedCount: mediaSource.count, assetIdentifiers: deletableIdentifiers,
                                        mediaIdsByAssetId: collectedMediaIds)
                 }
-                self.endBackgroundTask()
-                self.cleanupTempFilesIfSafe()
             }
         } catch is CancellationError {
             let partialIdentifiers = !collectedAssetIdentifiers.isEmpty ? collectedAssetIdentifiers : task.assetIdentifiers
@@ -407,14 +389,10 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
                 self.printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
                 self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers,
                                                        mediaIdsByAssetId: collectedMediaIds)
-                self.endBackgroundTask()
-                self.cleanupTempFilesIfSafe()
             }
         } catch {
             await MainActor.run {
                 self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
-                self.endBackgroundTask()
-                self.cleanupTempFilesIfSafe()
             }
             throw error
         }
@@ -453,11 +431,6 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         }
     }
 
-    /// Legacy overload for backward compatibility with resumeImport
-    private func executeImportTask(_ task: ImportTask) async throws {
-        _ = try await executeImportTask(task, mediaSource: .preloaded(task.media))
-    }
-    
     /// Outcome of importing a single media group within a batch.
     private enum MediaGroupOutcome: Sendable {
         case success
@@ -468,7 +441,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     ///
     /// Fault-tolerant per media group: a group that fails to import is recorded and
     /// skipped instead of aborting the whole task, mirroring the streaming path's
-    /// per-item catch. Cancellation still propagates so pause/cancel halt the import.
+    /// per-item catch. Cancellation still propagates so a cancel halts the import.
     /// Stops before a batch that won't fit, and after a batch in which a write
     /// ran out of space.
     private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
@@ -490,6 +463,10 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
 
         for (batchIndex, batch) in batches.enumerated() {
             try Task.checkCancellation()
+            guard taskManager.hasTask(task.id) else {
+                logStoppingForRemovedTask(task.id)
+                break
+            }
 
             let batchStart = batchIndex * batchSize
             let batchSizes = (batchStart..<batchStart + batch.count).map { plannedSize(at: $0, in: plannedSizes) }
@@ -594,6 +571,10 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             // with these asset identifiers, which the import history needs to offer
             // deleting exactly the originals that made it in.
             if Task.isCancelled { break }
+            guard taskManager.hasTask(task.id) else {
+                logStoppingForRemovedTask(task.id)
+                break
+            }
 
             guard hasRoom(forItemSizes: [plannedSize(at: index, in: plannedSizes)]) else {
                 printDebug("Not enough space for item \(index + 1) - stopping import")
@@ -929,12 +910,12 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         }
     }
     
+    private func logStoppingForRemovedTask(_ taskId: String) {
+        printDebug("Import \(taskId) stopping: its task was removed from BackgroundTaskManager")
+    }
+
     private func cleanupTempFilesIfSafe() {
-        printDebug("cleanupTempFilesIfSafe() called")
-        
-        let hasActiveImports = taskManager.currentTasks.contains { task in
-            task.progress.state == .running
-        }
+        printDebug("cleanupTempFilesIfSafe() called, running imports: \(runningImportCount)")
         
         printDebug("Current tasks count: \(taskManager.currentTasks.count)")
         for (index, task) in taskManager.currentTasks.enumerated() {
@@ -943,42 +924,38 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             }
         }
         
-        if !hasActiveImports {
-            printDebug("No active imports - cleaning up temporary files")
+        if runningImportCount == 0 {
+            printDebug("No running imports - cleaning up temporary files")
             TempFileAccess.cleanupTemporaryFiles()
             printDebug("TempFileAccess.cleanupTemporaryFiles() completed")
         } else {
-            let activeCount = taskManager.currentTasks.filter { $0.progress.state == .running }.count
-            printDebug("Active imports detected (\(activeCount)) - keeping temp files")
+            printDebug("Running imports (\(runningImportCount)) - keeping temp files")
         }
     }
     
     // MARK: - Background Task Management
     
-    private func startBackgroundTask() {
-        printDebug("Starting UIBackgroundTask")
-        endBackgroundTask()
-        
-        activeBackgroundTask = BackgroundExecution.begin(name: "MediaImport") {
-            self.printDebug("UIBackgroundTask expiration handler called - time limit reached")
-            self.endBackgroundTask()
+    /// Begins this import's own background task. The expiration handler and the
+    /// run's end share one `ImportBackgroundTask`, so it is ended exactly once.
+    private func beginBackgroundTask(for taskId: String) -> ImportBackgroundTask {
+        let backgroundTask = ImportBackgroundTask()
+        backgroundTask.id = BackgroundExecution.begin(name: "MediaImport") { [weak self] in
+            self?.printDebug("UIBackgroundTask for import \(taskId) expired - time limit reached")
+            self?.endBackgroundTask(backgroundTask)
         }
-        
-        if activeBackgroundTask == .invalid {
-            printDebug("Failed to start UIBackgroundTask - got invalid identifier")
+        if backgroundTask.id == .invalid {
+            printDebug("Failed to start UIBackgroundTask for import \(taskId) - got invalid identifier")
         } else {
-            printDebug("UIBackgroundTask started with identifier: \(activeBackgroundTask.rawValue)")
+            printDebug("UIBackgroundTask \(backgroundTask.id.rawValue) started for import \(taskId)")
         }
+        return backgroundTask
     }
-    
-    private func endBackgroundTask() {
-        if activeBackgroundTask != .invalid {
-            printDebug("Ending UIBackgroundTask with identifier: \(activeBackgroundTask.rawValue)")
-            BackgroundExecution.end(activeBackgroundTask)
-            activeBackgroundTask = .invalid
-        } else {
-            printDebug("No active UIBackgroundTask to end")
-        }
+
+    private func endBackgroundTask(_ backgroundTask: ImportBackgroundTask) {
+        guard backgroundTask.id != .invalid else { return }
+        printDebug("Ending UIBackgroundTask with identifier: \(backgroundTask.id.rawValue)")
+        BackgroundExecution.end(backgroundTask.id)
+        backgroundTask.id = .invalid
     }
     
     // MARK: - Notification Observers
@@ -1006,6 +983,13 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             }
             .store(in: &cancellables)
     }
+}
+
+/// One import's background-task id, shared by its expiration handler and the
+/// end of its run.
+@MainActor
+private final class ImportBackgroundTask {
+    var id: BackgroundTaskID = .invalid
 }
 
 // MARK: - Array Extension
