@@ -540,6 +540,14 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         activeAlbumIDs.contains(albumID)
     }
 
+    /// Holds `albumID` as a run's claim does while `body` runs, so a test can see
+    /// what a run in flight means for its albums without driving one.
+    static func whileClaiming<T>(albumID: String, _ body: () async throws -> T) async rethrows -> T {
+        activeAlbumIDs.insert(albumID)
+        defer { activeAlbumIDs.remove(albumID) }
+        return try await body()
+    }
+
     /// Slows each CloudKit -> local download so a UI test can observe the run,
     /// mirroring the mock store's upload delay. Zero outside UI tests.
     public static var downloadDelay: Duration {

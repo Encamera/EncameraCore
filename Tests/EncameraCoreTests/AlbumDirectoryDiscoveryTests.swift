@@ -454,4 +454,66 @@ final class AlbumDirectoryDiscoveryTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: sourceURL.path),
                       "with no CloudKit album of its name, a local album's directory is created as before")
     }
+
+    /// The move to CloudKit removes the source directory when it finalizes, then
+    /// still holds the CloudKit album until the run ends. A gallery refresh for the
+    /// local album in that window must not re-create the directory, or an empty
+    /// local album of the old name outlives the move.
+    @MainActor
+    func testConfiguringFileAccessWhileTheMoveToCloudKitFinishesDoesNotRecreateTheDirectory() async throws {
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+                             creationDate: Date())
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "finishing-\(UUID().uuidString)", storageOption: .cloudKit,
+                               creationDate: Date(), key: key, albumID: albumID)
+        let movedSource = Album.localTwin(of: cloudAlbum)
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        let sourceURL = LocalStorageModel(album: movedSource).baseURL
+        defer {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            try? FileManager.default.removeItem(at: sourceURL)
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+
+        MigrationRunRoles.shared.begin(source: movedSource.id, destination: cloudAlbum.id, direction: .toCloudKit)
+        defer { MigrationRunRoles.shared.end(source: movedSource.id, destination: cloudAlbum.id) }
+        await CloudKitMigrationManager.whileClaiming(albumID: cloudAlbum.id) {
+            _ = await DiskFileAccess(for: movedSource, albumManager: albumManager)
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: sourceURL.path),
+                       "the directory the finishing move drained stays gone")
+    }
+
+    /// A move back to this device holds the CloudKit album too, and fills the local
+    /// album, so its directory is created.
+    @MainActor
+    func testConfiguringFileAccessForTheLocalAlbumAMoveBackFillsCreatesItsDirectory() async throws {
+        let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) },
+                             creationDate: Date())
+        let albumID = UUID().uuidString
+        let cloudAlbum = Album(name: "returning-\(UUID().uuidString)", storageOption: .cloudKit,
+                               creationDate: Date(), key: key, albumID: albumID)
+        let destination = Album.localTwin(of: cloudAlbum)
+        let keyManager = DemoKeyManager(keys: [key])
+        keyManager.currentKey = key
+        let albumManager = AlbumManager(keyManager: keyManager, syncedDataStore: nil)
+        let destinationURL = LocalStorageModel(album: destination).baseURL
+        defer {
+            try? CloudKitAlbumMarker.remove(albumID: albumID)
+            try? FileManager.default.removeItem(at: destinationURL)
+        }
+        try CloudKitAlbumMarker(album: cloudAlbum, isHidden: false).write(albumID: albumID)
+
+        MigrationRunRoles.shared.begin(source: cloudAlbum.id, destination: destination.id, direction: .toLocal)
+        defer { MigrationRunRoles.shared.end(source: cloudAlbum.id, destination: destination.id) }
+        await CloudKitMigrationManager.whileClaiming(albumID: cloudAlbum.id) {
+            _ = await DiskFileAccess(for: destination, albumManager: albumManager)
+        }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: destinationURL.path),
+                      "the move back's destination directory is created")
+    }
 }

@@ -189,20 +189,27 @@ extension DataStorageModel {
         return CloudKitAlbumMarker.albumID(matching: album) != nil
     }
 
-    /// Whether this local album is the drained source of a finished move to
-    /// CloudKit: its directory is gone and this device holds a CloudKit album with
-    /// its name and key, with no move back to this device running or planned (that
-    /// move's destination is the same local album). Never true for an iCloud Drive
-    /// folder, whose drained case is `isDrainedICloudDriveSource`.
+    /// Whether this local album is the drained source of a move to CloudKit: its
+    /// directory is gone and this device holds a CloudKit album with its name and
+    /// key, with no move back to this device running or planned (that move's
+    /// destination is the same local album). A move to CloudKit from this album
+    /// that is still finishing has drained it too, though the run still holds
+    /// the CloudKit album. Never true for an iCloud Drive folder, whose drained
+    /// case is `isDrainedICloudDriveSource`.
     var isDrainedSourceOfCloudKitMove: Bool {
         guard storageType == .local,
               !FileManager.default.fileExists(atPath: baseURL.path),
-              let albumID = CloudKitAlbumMarker.albumID(matching: album),
-              !CloudKitMigrationManager.isActive(albumID: "\(albumID)_\(StorageType.cloudKit.rawValue)") else {
+              let albumID = CloudKitAlbumMarker.albumID(matching: album) else {
             return false
         }
-        if case .destination(.toLocal, _) = MigrationPlanStore.planRole(forAlbumID: album.id) { return false }
-        return true
+        switch MigrationPlanStore.planRole(forAlbumID: album.id) {
+        case .destination(.toLocal, _):
+            return false
+        case .source(.toCloudKit, _):
+            return true
+        default:
+            return !CloudKitMigrationManager.isActive(albumID: "\(albumID)_\(StorageType.cloudKit.rawValue)")
+        }
     }
 
     public func initializeDirectories() throws {
