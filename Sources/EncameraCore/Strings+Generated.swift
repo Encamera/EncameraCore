@@ -2393,6 +2393,13 @@ public enum L10n {
     public static let subtitle = L10n.tr("Localizable", "VerticalPaywall.subtitle", fallback: "Keep all your photos and videos in Encamera with unlimited, automatic encryption.")
     /// ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282)
     public static let title = L10n.tr("Localizable", "VerticalPaywall.title", fallback: "Encrypt Everything")
+    public enum Standard {
+      /// Keep all your photos and videos in Encamera with unlimited albums & automatic encryption
+      public static let subtitle = L10n.tr("Localizable", "VerticalPaywall.Standard.subtitle", fallback: "Keep all your photos and videos in Encamera with unlimited albums & automatic encryption")
+      /// Albums, Photos, Videos
+      /// All Unlimited
+      public static let title = L10n.tr("Localizable", "VerticalPaywall.Standard.title", fallback: "Albums, Photos, Videos\nAll Unlimited")
+    }
   }
   public enum ZipExport {
     /// Cancel

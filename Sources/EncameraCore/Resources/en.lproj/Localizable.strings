@@ -1138,6 +1138,8 @@
 /* ./Encamera/Store/VerticalPaywall/VerticalPaywallView.swift - Vertical paywall layout (ENC-282) */
 "VerticalPaywall.title" = "Encrypt Everything";
 "VerticalPaywall.subtitle" = "Keep all your photos and videos in Encamera with unlimited, automatic encryption.";
+"VerticalPaywall.Standard.title" = "Albums, Photos, Videos\nAll Unlimited";
+"VerticalPaywall.Standard.subtitle" = "Keep all your photos and videos in Encamera with unlimited albums & automatic encryption";
 "VerticalPaywall.noPaymentDueNow" = "No payment due now";
 "VerticalPaywall.billedMonthly" = "Billed monthly";
 "VerticalPaywall.payOnceAccessForever" = "Pay once, access forever";
