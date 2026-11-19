@@ -337,6 +337,10 @@ public enum L10n {
     public static let filterButton = L10n.tr("Localizable", "AlbumDetailView.FilterButton", fallback: "Filter")
     /// Sort and filter
     public static let filterButtonAccessibilityLabel = L10n.tr("Localizable", "AlbumDetailView.FilterButtonAccessibilityLabel", fallback: "Sort and filter")
+    /// %1$d/%2$d free files on %3$@
+    public static func freeFileCountOnLocation(_ p1: Int, _ p2: Int, _ p3: Any) -> String {
+      return L10n.tr("Localizable", "AlbumDetailView.FreeFileCountOnLocation", p1, p2, String(describing: p3), fallback: "%1$d/%2$d free files on %3$@")
+    }
     /// Are you sure you want to hide this album? You MUST remember the name of this album to access it again.
     public static let hideAlbumAlertMessage = L10n.tr("Localizable", "AlbumDetailView.HideAlbumAlertMessage", fallback: "Are you sure you want to hide this album? You MUST remember the name of this album to access it again.")
     /// Hide this album?
