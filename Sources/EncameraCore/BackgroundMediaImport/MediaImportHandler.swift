@@ -77,20 +77,21 @@ public protocol MediaImporting: AnyObject {
 }
 
 /// Loads one selected item into temporary cleartext files, reporting 0...1
-/// while it does. Progress may arrive on any queue.
-@MainActor
-public protocol ImportMediaLoading {
+/// while it does. Progress may arrive on any queue. Not main-actor isolated,
+/// so a nonisolated loader does its work off the main thread.
+public protocol ImportMediaLoading: Sendable {
     func loadSingleMedia(from result: MediaSelectionResult, progress: @escaping @Sendable (Double) -> Void) async throws -> LoadedMediaItem
 }
 
 extension MediaLoaderService: ImportMediaLoading {}
 
 /// Writes one media group into the album. Injected so tests can fail a save.
-public typealias ImportSaveOperation = (
+/// Called off the main thread; `progress` may be called from any queue.
+public typealias ImportSaveOperation = @Sendable (
     _ fileAccess: FileAccess,
     _ media: InteractableMedia<CleartextMedia>,
     _ metadata: EncryptedFileMetadata?,
-    _ progress: @escaping (Double) -> Void
+    _ progress: @escaping @Sendable (Double) -> Void
 ) async throws -> Void
 
 // MARK: - Media Import Handler
@@ -117,6 +118,9 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
     private let mediaLoader: ImportMediaLoading
     private let saveOperation: ImportSaveOperation
     private var freeSpace: DeviceFreeSpaceProviding
+    /// Called each time an import's progress is about to hop to the main
+    /// actor, from the thread that reported it. Lets tests count the hops.
+    var onProgressHopToMain: (@Sendable () -> Void)?
     
     // MARK: - Initialization
     
@@ -129,7 +133,7 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         self.taskManager = taskManager
         self.freeSpace = freeSpace
         self.mediaLoader = mediaLoader ?? MediaLoaderService()
-        self.saveOperation = saveOperation ?? { fileAccess, media, metadata, progress in
+        self.saveOperation = saveOperation ?? { @Sendable fileAccess, media, metadata, progress in
             try await fileAccess.save(media: media, metadata: metadata, progress: progress)
         }
         setupNotificationObservers()
@@ -297,45 +301,43 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         }
         taskManager.resetTimeEstimationState()
 
-        var successCount = 0
-        var failureCount = 0
-        var failedItems: [ImportItemFailure] = []
-        var collectedAssetIdentifiers: [String] = []
-        // Which album item each original became; `nil` for preloaded media, whose
-        // asset ids are the caller's and not paired with items.
-        var collectedMediaIds: [String: String]?
-        var wasCancelled = false
-        var stoppedForSpace = false
-        var notAttemptedCount = 0
         let isPreloaded: Bool
         if case .preloaded = mediaSource { isPreloaded = true } else { isPreloaded = false }
+        let totalItems = mediaSource.count
+        let startTime = Date()
+        let sink = ImportProgressSink(aggregator: ImportProgressAggregator(totalItems: totalItems),
+                                      onMainHop: onProgressHopToMain) { [weak self] item, mediaId, aggregator in
+            self?.updateImportProgress(task: task, groupIndex: item, totalGroups: totalItems,
+                                       startTime: startTime, mediaId: mediaId, progress: aggregator)
+        }
+        let taskManager = taskManager
+        let pipeline = ImportPipeline(
+            mediaLoader: mediaLoader,
+            saveOperation: saveOperation,
+            freeSpace: freeSpace,
+            isTaskActive: { taskManager.hasTask(task.id) },
+            canDeleteTempFiles: task.source.canDeleteTempFilesAfterImport,
+            testHooks: MediaImportTestHooks.Snapshot(),
+            sink: sink
+        )
 
-        let importTask = Task {
+        // Inherits this actor, but only to start: the pipeline's methods are
+        // nonisolated, so the per-item work runs off the main thread.
+        let importTask = Task { () -> ImportRunOutcome in
             let fileAccess = await InteractableMediaFileAccess(for: album, albumManager: albumManager)
 
             switch mediaSource {
             case .preloaded(let media):
-                let summary = try await performBatchImport(task: task, media: media, fileAccess: fileAccess, plannedSizes: plannedSizes)
-                successCount = summary.success
-                failureCount = summary.failure
-                failedItems = summary.failedItems
-                stoppedForSpace = summary.stoppedForSpace
-                notAttemptedCount = summary.notAttemptedCount
-                collectedAssetIdentifiers = task.assetIdentifiers
+                let summary = try await pipeline.runBatch(task: task, media: media, fileAccess: fileAccess, plannedSizes: plannedSizes)
+                return ImportRunOutcome(summary: summary, assetIdentifiers: task.assetIdentifiers,
+                                        mediaIdsByAssetId: nil, wasCancelled: false)
 
             case .streaming(let results):
-                let outcome = try await performStreamingImport(task: task, results: results, fileAccess: fileAccess, plannedSizes: plannedSizes)
-                successCount = outcome.summary.success
-                failureCount = outcome.summary.failure
-                failedItems = outcome.summary.failedItems
-                stoppedForSpace = outcome.summary.stoppedForSpace
-                notAttemptedCount = outcome.summary.notAttemptedCount
-                collectedAssetIdentifiers = outcome.assetIdentifiers
-                collectedMediaIds = outcome.mediaIdsByAssetId
-
-                if successCount + failureCount + notAttemptedCount < results.count {
-                    wasCancelled = true
-                }
+                let outcome = await pipeline.runStreaming(task: task, results: results, fileAccess: fileAccess, plannedSizes: plannedSizes)
+                let summary = outcome.summary
+                return ImportRunOutcome(summary: summary, assetIdentifiers: outcome.assetIdentifiers,
+                                        mediaIdsByAssetId: outcome.mediaIdsByAssetId,
+                                        wasCancelled: summary.success + summary.failure + summary.notAttemptedCount < results.count)
             }
         }
         // Registered right after the Task exists, with no suspension since
@@ -345,65 +347,64 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             importTask.cancel()
         }
 
+        let outcome: ImportRunOutcome
         do {
-            try await importTask.value
-
-            await MainActor.run {
-                if wasCancelled {
-                    self.printDebug("Streaming import was cancelled with \(collectedAssetIdentifiers.count) partial imports")
-                    self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: collectedAssetIdentifiers,
-                                                           mediaIdsByAssetId: collectedMediaIds)
-                    self.recordHistory(for: task, album: album, state: .cancelled, importedCount: successCount,
-                                       requestedCount: mediaSource.count, assetIdentifiers: collectedAssetIdentifiers,
-                                       mediaIdsByAssetId: collectedMediaIds)
-                } else if stoppedForSpace {
-                    self.printDebug("Import stopped for space after \(successCount) imports, \(notAttemptedCount) not attempted")
-                    if successCount > 0 {
-                        let identifiers = isPreloaded ? [] : collectedAssetIdentifiers
-                        self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers,
-                                                               mediaIdsByAssetId: collectedMediaIds)
-                        self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
-                                           requestedCount: mediaSource.count, assetIdentifiers: identifiers,
-                                           mediaIdsByAssetId: collectedMediaIds)
-                    } else {
-                        self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.outOfSpace)
-                    }
-                } else if successCount == 0 && failureCount > 0 {
-                    self.printDebug("Import had \(failureCount) failures and no successes - finalizing failed")
-                    self.taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
-                } else {
-                    let completedItems = (isPreloaded && successCount > 0) ? successCount : mediaSource.count
-                    self.taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: collectedAssetIdentifiers,
-                                                           mediaIdsByAssetId: collectedMediaIds)
-                    // Preloaded identifiers are the caller's, not per item, so once anything
-                    // failed there is no telling which original did not make it in.
-                    let deletableIdentifiers = isPreloaded && failureCount > 0 ? [] : collectedAssetIdentifiers
-                    self.recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
-                                       requestedCount: mediaSource.count, assetIdentifiers: deletableIdentifiers,
-                                       mediaIdsByAssetId: collectedMediaIds)
-                }
-            }
+            outcome = try await importTask.value
+            sink.close()
         } catch is CancellationError {
-            let partialIdentifiers = !collectedAssetIdentifiers.isEmpty ? collectedAssetIdentifiers : task.assetIdentifiers
-            await MainActor.run {
-                self.printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
-                self.taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers,
-                                                       mediaIdsByAssetId: collectedMediaIds)
-            }
+            // Only a batch run throws on cancel; a streaming run returns its
+            // partial outcome instead.
+            sink.close()
+            let partialIdentifiers = task.assetIdentifiers
+            printDebug("Import was cancelled with \(partialIdentifiers.count) asset identifiers")
+            taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: partialIdentifiers)
+            return ImportResultSummary(success: 0, failure: 0)
         } catch {
-            await MainActor.run {
-                self.taskManager.finalizeTaskFailed(taskId: task.id, error: error)
-            }
+            sink.close()
+            taskManager.finalizeTaskFailed(taskId: task.id, error: error)
             throw error
         }
-        
-        return ImportResultSummary(
-            success: successCount,
-            failure: failureCount,
-            failedItems: failedItems,
-            stoppedForSpace: stoppedForSpace,
-            notAttemptedCount: notAttemptedCount
-        )
+
+        let summary = outcome.summary
+        let successCount = summary.success
+        let failureCount = summary.failure
+        let assetIdentifiers = outcome.assetIdentifiers
+        let mediaIds = outcome.mediaIdsByAssetId
+        if outcome.wasCancelled {
+            printDebug("Streaming import was cancelled with \(assetIdentifiers.count) partial imports")
+            taskManager.finalizeTaskCancelled(taskId: task.id, assetIdentifiers: assetIdentifiers,
+                                              mediaIdsByAssetId: mediaIds)
+            recordHistory(for: task, album: album, state: .cancelled, importedCount: successCount,
+                          requestedCount: totalItems, assetIdentifiers: assetIdentifiers,
+                          mediaIdsByAssetId: mediaIds)
+        } else if summary.stoppedForSpace {
+            printDebug("Import stopped for space after \(successCount) imports, \(summary.notAttemptedCount) not attempted")
+            if successCount > 0 {
+                let identifiers = isPreloaded ? [] : assetIdentifiers
+                taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: successCount, assetIdentifiers: identifiers,
+                                                  mediaIdsByAssetId: mediaIds)
+                recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
+                              requestedCount: totalItems, assetIdentifiers: identifiers,
+                              mediaIdsByAssetId: mediaIds)
+            } else {
+                taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.outOfSpace)
+            }
+        } else if successCount == 0 && failureCount > 0 {
+            printDebug("Import had \(failureCount) failures and no successes - finalizing failed")
+            taskManager.finalizeTaskFailed(taskId: task.id, error: BackgroundImportError.allImportsFailed(failureCount: failureCount))
+        } else {
+            let completedItems = (isPreloaded && successCount > 0) ? successCount : totalItems
+            taskManager.finalizeTaskCompleted(taskId: task.id, totalItems: completedItems, assetIdentifiers: assetIdentifiers,
+                                              mediaIdsByAssetId: mediaIds)
+            // Preloaded identifiers are the caller's, not per item, so once anything
+            // failed there is no telling which original did not make it in.
+            let deletableIdentifiers = isPreloaded && failureCount > 0 ? [] : assetIdentifiers
+            recordHistory(for: task, album: album, state: .completed, importedCount: successCount,
+                          requestedCount: totalItems, assetIdentifiers: deletableIdentifiers,
+                          mediaIdsByAssetId: mediaIds)
+        }
+
+        return summary
     }
 
     /// Adds the finished batch to the album's import history. An import that
@@ -431,392 +432,21 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         }
     }
 
-    /// Outcome of importing a single media group within a batch.
-    private enum MediaGroupOutcome: Sendable {
-        case success
-        case failure(ImportItemFailure)
+    /// What one import run returns to the coordinator to finalize.
+    private struct ImportRunOutcome: Sendable {
+        let summary: ImportResultSummary
+        let assetIdentifiers: [String]
+        /// Which album item each original became; `nil` for preloaded media,
+        /// whose asset ids are the caller's and not paired with items.
+        let mediaIdsByAssetId: [String: String]?
+        let wasCancelled: Bool
     }
 
-    /// Performs batch import for preloaded media with concurrent processing.
-    ///
-    /// Fault-tolerant per media group: a group that fails to import is recorded and
-    /// skipped instead of aborting the whole task, mirroring the streaming path's
-    /// per-item catch. Cancellation still propagates so a cancel halts the import.
-    /// Stops before a batch that won't fit, and after a batch in which a write
-    /// ran out of space.
-    private func performBatchImport(task: ImportTask, media: [CleartextMedia], fileAccess: FileAccess, plannedSizes: [Int64?]? = nil) async throws -> ImportResultSummary {
-        printDebug("Performing batch import for task: \(task.id)")
-        let startTime = Date()
-        var processedGroups = 0
-        var successCount = 0
-        var failedItems: [ImportItemFailure] = []
-        var stoppedForSpace = false
+    /// Share of a picked item's progress spent loading it; see `ImportPipeline`.
+    static let streamingLoadShare = ImportPipeline.streamingLoadShare
 
-        let mediaGroups = groupMediaById(media)
-        let totalGroups = mediaGroups.count
-        let progress = ImportProgressAggregator(totalItems: totalGroups)
-        printDebug("Grouped \(media.count) media items into \(totalGroups) groups (live photos count as 1)")
-
-        let batchSize = 3
-        let batches = mediaGroups.chunked(into: batchSize)
-        printDebug("Processing \(batches.count) batches of size \(batchSize)")
-
-        for (batchIndex, batch) in batches.enumerated() {
-            try Task.checkCancellation()
-            guard taskManager.hasTask(task.id) else {
-                logStoppingForRemovedTask(task.id)
-                break
-            }
-
-            let batchStart = batchIndex * batchSize
-            let batchSizes = (batchStart..<batchStart + batch.count).map { plannedSize(at: $0, in: plannedSizes) }
-            guard hasRoom(forItemSizes: batchSizes) else {
-                printDebug("Not enough space for batch \(batchIndex + 1) - stopping import")
-                stoppedForSpace = true
-                break
-            }
-
-            printDebug("Processing batch \(batchIndex + 1)/\(batches.count) with \(batch.count) media groups")
-
-            let outcomes = try await withThrowingTaskGroup(of: MediaGroupOutcome.self) { group -> [MediaGroupOutcome] in
-                for (groupIndex, mediaGroup) in batch.enumerated() {
-                    group.addTask {
-                        let globalIndex = batchIndex * batchSize + groupIndex
-                        let mediaId = mediaGroup.first?.id ?? "unknown"
-                        do {
-                            try await self.processMediaGroup(
-                                mediaGroup: mediaGroup,
-                                fileAccess: fileAccess,
-                                task: task,
-                                groupIndex: globalIndex,
-                                totalGroups: totalGroups,
-                                startTime: startTime,
-                                progress: progress
-                            )
-                            return .success
-                        } catch is CancellationError {
-                            throw CancellationError()
-                        } catch {
-                            self.printDebug("❌ Skipping media \(mediaId): \(error)")
-                            return .failure(ImportItemFailure(id: mediaId, error: error))
-                        }
-                    }
-                }
-
-                var collected: [MediaGroupOutcome] = []
-                for try await outcome in group {
-                    collected.append(outcome)
-                }
-                return collected
-            }
-
-            for outcome in outcomes {
-                switch outcome {
-                case .success:
-                    successCount += 1
-                case .failure(let failure):
-                    failedItems.append(failure)
-                    if ImportSkipReason.isOutOfSpace(failure.error) {
-                        stoppedForSpace = true
-                    }
-                }
-            }
-
-            for index in batchStart..<batchStart + batch.count {
-                finishItem(index, task: task, totalGroups: totalGroups, startTime: startTime, progress: progress)
-            }
-            processedGroups += batch.count
-            printDebug("Completed batch \(batchIndex + 1)/\(batches.count), total processed: \(processedGroups)/\(totalGroups)")
-
-            if stoppedForSpace {
-                printDebug("A write ran out of space - stopping import")
-                break
-            }
-        }
-
-        printDebug("Batch import completed for task: \(task.id) - success: \(successCount), failed: \(failedItems.count)")
-        return ImportResultSummary(
-            success: successCount,
-            failure: failedItems.count,
-            failedItems: failedItems,
-            stoppedForSpace: stoppedForSpace,
-            notAttemptedCount: totalGroups - processedGroups
-        )
-    }
-    
-    /// Performs streaming import for MediaSelectionResults with sequential processing.
-    ///
-    /// Stops before an item that won't fit, and after an item whose load or
-    /// write ran out of space, so nothing more is downloaded onto a full disk.
-    private func performStreamingImport(
-        task: ImportTask,
-        results: [MediaSelectionResult],
-        fileAccess: FileAccess,
-        plannedSizes: [Int64?]? = nil
-    ) async throws -> (summary: ImportResultSummary, assetIdentifiers: [String], mediaIdsByAssetId: [String: String]) {
-        printDebug("Performing streaming import for task: \(task.id) with \(results.count) results")
-        let startTime = Date()
-        var processedCount = 0
-        var successCount = 0
-        var failedItems: [ImportItemFailure] = []
-        var collectedAssetIdentifiers: [String] = []
-        var mediaIdsByAssetId: [String: String] = [:]
-        var attemptedCount = 0
-        var stoppedForSpace = false
-        let progress = ImportProgressAggregator(totalItems: results.count)
-
-        for (index, result) in results.enumerated() {
-            // Cancelling stops the loop but keeps what already landed: the caller
-            // sees fewer processed items than requested and finalizes as cancelled
-            // with these asset identifiers, which the import history needs to offer
-            // deleting exactly the originals that made it in.
-            if Task.isCancelled { break }
-            guard taskManager.hasTask(task.id) else {
-                logStoppingForRemovedTask(task.id)
-                break
-            }
-
-            guard hasRoom(forItemSizes: [plannedSize(at: index, in: plannedSizes)]) else {
-                printDebug("Not enough space for item \(index + 1) - stopping import")
-                stoppedForSpace = true
-                break
-            }
-            attemptedCount += 1
-            
-            printDebug("📄 Processing item \(index + 1)/\(results.count)")
-            
-            var loaded: LoadedMediaItem?
-            defer {
-                if !Task.isCancelled {
-                    finishItem(index, task: task, totalGroups: results.count, startTime: startTime, progress: progress)
-                }
-            }
-            do {
-                let item = try await mediaLoader.loadSingleMedia(from: result) { loadFraction in
-                    Task { @MainActor in
-                        self.reportItemProgress(loadFraction * Self.streamingLoadShare,
-                                                item: index,
-                                                task: task,
-                                                totalGroups: results.count,
-                                                startTime: startTime,
-                                                mediaId: nil,
-                                                progress: progress)
-                    }
-                }
-                loaded = item
-
-                try await importSingleItem(
-                    mediaGroup: item.media,
-                    metadata: item.metadata,
-                    fileAccess: fileAccess,
-                    task: task,
-                    groupIndex: index,
-                    totalGroups: results.count,
-                    startTime: startTime,
-                    progress: progress,
-                    saveStart: Self.streamingLoadShare
-                )
-                
-                if task.source.canDeleteTempFilesAfterImport {
-                    deleteTempFiles(for: item.media)
-                }
-                
-                if let assetId = item.assetIdentifier {
-                    collectedAssetIdentifiers.append(assetId)
-                    if let mediaId = item.media.first?.id {
-                        mediaIdsByAssetId[assetId] = mediaId
-                    }
-                }
-                
-                successCount += 1
-                processedCount += 1
-                printDebug("✅ Successfully imported item \(index + 1)/\(results.count)")
-                
-            } catch is CancellationError {
-                break
-            } catch {
-                failedItems.append(ImportItemFailure(id: loaded?.assetIdentifier ?? "\(index)", error: error))
-                printDebug("❌ Error processing item \(index + 1): \(error)")
-                if ImportSkipReason.isOutOfSpace(error) {
-                    if let loaded, task.source.canDeleteTempFilesAfterImport {
-                        deleteTempFiles(for: loaded.media)
-                    }
-                    printDebug("Item \(index + 1) ran out of space - stopping import")
-                    stoppedForSpace = true
-                    break
-                }
-            }
-        }
-        
-        printDebug("📈 Streaming import complete - Processed: \(processedCount)/\(results.count) (Success: \(successCount), Failed: \(failedItems.count), AssetIDs: \(collectedAssetIdentifiers.count))")
-        let summary = ImportResultSummary(
-            success: successCount,
-            failure: failedItems.count,
-            failedItems: failedItems,
-            stoppedForSpace: stoppedForSpace,
-            notAttemptedCount: stoppedForSpace ? results.count - attemptedCount : 0
-        )
-        return (summary, collectedAssetIdentifiers, mediaIdsByAssetId)
-    }
-
-    // MARK: - Free Space
-
-    private func plannedSize(at index: Int, in plannedSizes: [Int64?]?) -> Int64? {
-        guard let plannedSizes, plannedSizes.indices.contains(index) else { return nil }
-        return plannedSizes[index]
-    }
-
-    /// Whether writing items of these sizes leaves the reserve untouched.
-    /// Unknown sizes count as zero, so only the reserve is checked for them.
-    private func hasRoom(forItemSizes sizes: [Int64?]) -> Bool {
-        guard let free = freeSpace.availableBytesForImport() else { return true }
-        let needed = sizes.compactMap { $0 }.reduce(Int64(0)) { $0 + ImportSpaceBudget.storedBytes(forItemOfSize: $1) }
-        return free >= ImportSpaceBudget.reserveBytes + needed
-    }
-    
-    // MARK: - Media Processing
-    
-    /// Share of a picked item's progress spent loading it out of the photo
-    /// library; the rest is the save. Loading dominates for anything iCloud has
-    /// to download, and is near-instant for what is already on the device.
-    static let streamingLoadShare = 0.5
-
-    /// Helper to process a single item (load -> save -> progress)
-    private func importSingleItem(
-        mediaGroup: [CleartextMedia],
-        metadata: EncryptedFileMetadata? = nil,
-        fileAccess: FileAccess,
-        task: ImportTask,
-        groupIndex: Int,
-        totalGroups: Int,
-        startTime: Date,
-        progress: ImportProgressAggregator,
-        saveStart: Double = 0.0
-    ) async throws {
-        try await MediaImportTestHooks.beforeSavingItem(at: groupIndex)
-        let mediaId = mediaGroup.first?.id ?? "unknown"
-        let interactableMedia = try InteractableMedia(underlyingMedia: mediaGroup)
-        
-        try await saveMedia(
-            interactableMedia,
-            metadata: metadata,
-            mediaGroup: mediaGroup,
-            mediaId: mediaId,
-            fileAccess: fileAccess,
-            task: task,
-            groupIndex: groupIndex,
-            totalGroups: totalGroups,
-            startTime: startTime,
-            progress: progress,
-            saveStart: saveStart
-        )
-    }
-    
-    /// Processes a group of CleartextMedia items as a single InteractableMedia.
-    private func processMediaGroup(
-        mediaGroup: [CleartextMedia],
-        fileAccess: FileAccess,
-        task: ImportTask,
-        groupIndex: Int,
-        totalGroups: Int,
-        startTime: Date,
-        progress: ImportProgressAggregator
-    ) async throws {
-        let mediaId = mediaGroup.first?.id ?? "unknown"
-        let isLivePhoto = mediaGroup.count > 1
-        printDebug("Processing \(isLivePhoto ? "live photo" : "media") \(groupIndex + 1)/\(totalGroups): \(mediaId) (\(mediaGroup.count) component(s))")
-        
-        logSourceFileStatus(for: mediaGroup)
-        
-        var metadata: EncryptedFileMetadata?
-        if MediaMetadataExtractor.isImportMetadataEnabled, let firstMedia = mediaGroup.first, let url = firstMedia.url {
-            let extractor = MediaMetadataExtractor()
-            metadata = await extractor.extractMetadata(from: url, mediaType: firstMedia.mediaType)
-            if let originalFilename = firstMedia.originalFilename {
-                metadata?.originalFilename = originalFilename
-            }
-        }
-        
-        try await importSingleItem(
-            mediaGroup: mediaGroup,
-            metadata: metadata,
-            fileAccess: fileAccess,
-            task: task,
-            groupIndex: groupIndex,
-            totalGroups: totalGroups,
-            startTime: startTime,
-            progress: progress
-        )
-        
-        printDebug("Successfully saved \(isLivePhoto ? "live photo" : "media") \(groupIndex + 1)/\(totalGroups): \(mediaId)")
-    }
-    
-    /// Saves the InteractableMedia to disk and updates progress. The save's own
-    /// 0...1 maps onto the item's progress from `saveStart` to 1.
-    private func saveMedia(
-        _ interactableMedia: InteractableMedia<CleartextMedia>,
-        metadata: EncryptedFileMetadata? = nil,
-        mediaGroup: [CleartextMedia],
-        mediaId: String,
-        fileAccess: FileAccess,
-        task: ImportTask,
-        groupIndex: Int,
-        totalGroups: Int,
-        startTime: Date,
-        progress: ImportProgressAggregator,
-        saveStart: Double
-    ) async throws {
-        do {
-            try await saveOperation(fileAccess, interactableMedia, metadata) { fileProgress in
-                Task { @MainActor in
-                    self.reportItemProgress(
-                        saveStart + (1.0 - saveStart) * fileProgress,
-                        item: groupIndex,
-                        task: task,
-                        totalGroups: totalGroups,
-                        startTime: startTime,
-                        mediaId: mediaId,
-                        progress: progress
-                    )
-                }
-            }
-        } catch {
-            logSaveError(error, mediaGroup: mediaGroup, mediaId: mediaId)
-            throw error
-        }
-        finishItem(groupIndex, task: task, totalGroups: totalGroups, startTime: startTime, progress: progress)
-    }
-
-    /// Records one item's progress and publishes it when the aggregator says
-    /// the change is worth it.
-    private func reportItemProgress(
-        _ itemFraction: Double,
-        item groupIndex: Int,
-        task: ImportTask,
-        totalGroups: Int,
-        startTime: Date,
-        mediaId: String?,
-        progress: ImportProgressAggregator
-    ) {
-        guard progress.update(item: groupIndex, fraction: itemFraction) else { return }
-        updateImportProgress(task: task, groupIndex: groupIndex, totalGroups: totalGroups,
-                             startTime: startTime, mediaId: mediaId, progress: progress)
-    }
-
-    /// Counts an item as done, imported or failed, and publishes the new total.
-    private func finishItem(
-        _ groupIndex: Int,
-        task: ImportTask,
-        totalGroups: Int,
-        startTime: Date,
-        progress: ImportProgressAggregator
-    ) {
-        guard progress.finish(item: groupIndex) else { return }
-        updateImportProgress(task: task, groupIndex: groupIndex, totalGroups: totalGroups,
-                             startTime: startTime, mediaId: nil, progress: progress)
-    }
-
-    /// Updates progress during import
+    /// Publishes the import's current progress. Runs on main, through the
+    /// pipeline's progress sink.
     private func updateImportProgress(
         task: ImportTask,
         groupIndex: Int,
@@ -842,78 +472,6 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
         taskManager.updateTaskProgress(taskId: task.id, progress: progress)
     }
     
-    // MARK: - Helper Methods
-    
-    /// Groups CleartextMedia items by their ID so that live photo components are processed together.
-    private func groupMediaById(_ media: [CleartextMedia]) -> [[CleartextMedia]] {
-        var groups: [String: [CleartextMedia]] = [:]
-        for item in media {
-            groups[item.id, default: []].append(item)
-        }
-        var seen = Set<String>()
-        return media.compactMap { item -> [CleartextMedia]? in
-            guard !seen.contains(item.id) else { return nil }
-            seen.insert(item.id)
-            return groups[item.id]
-        }
-    }
-    
-    /// Logs source file status for debugging temp file issues.
-    private func logSourceFileStatus(for mediaGroup: [CleartextMedia]) {
-        for media in mediaGroup {
-            guard case .url(let sourceURL) = media.source else { continue }
-            
-            let fileManager = FileManager.default
-            let exists = fileManager.fileExists(atPath: sourceURL.path)
-            printDebug("Source: \(sourceURL.lastPathComponent), exists: \(exists)")
-            
-            if !exists {
-                printDebug("WARNING: Source file missing at \(sourceURL.path)")
-            } else if sourceURL.path.contains("/tmp/") {
-                printDebug("Note: File is in temp directory")
-            }
-        }
-    }
-    
-    /// Logs detailed error information when save fails.
-    private func logSaveError(_ error: Error, mediaGroup: [CleartextMedia], mediaId: String) {
-        printDebug("Failed to save media \(mediaId): \(error)")
-        
-        if let nsError = error as NSError? {
-            printDebug("Error domain: \(nsError.domain), code: \(nsError.code)")
-            
-            if nsError.domain == NSCocoaErrorDomain && nsError.code == 4 {
-                printDebug("File not found - temp files may have been cleaned up")
-                for media in mediaGroup {
-                    if case .url(let url) = media.source {
-                        printDebug("Post-error check - \(url.lastPathComponent) exists: \(FileManager.default.fileExists(atPath: url.path))")
-                    }
-                }
-            }
-        }
-    }
-    
-    /// Deletes temporary files for the given media items.
-    private func deleteTempFiles(for media: [CleartextMedia]) {
-        let tempDirPath = URL.tempMediaDirectory.path
-        for item in media {
-            if case .url(let url) = item.source {
-                if url.path.hasPrefix(tempDirPath) {
-                    do {
-                        try FileManager.default.removeItem(at: url)
-                        printDebug("🗑️ Deleted temp file: \(url.lastPathComponent)")
-                    } catch {
-                        printDebug("⚠️ Failed to delete temp file \(url.lastPathComponent): \(error)")
-                    }
-                }
-            }
-        }
-    }
-    
-    private func logStoppingForRemovedTask(_ taskId: String) {
-        printDebug("Import \(taskId) stopping: its task was removed from BackgroundTaskManager")
-    }
-
     private func cleanupTempFilesIfSafe() {
         printDebug("cleanupTempFilesIfSafe() called, running imports: \(runningImportCount)")
         

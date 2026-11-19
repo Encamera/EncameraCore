@@ -280,23 +280,22 @@ public struct MediaMetadataExtractor {
     }
     
     private func extractCameraInfo(from asset: PHAsset) async -> EncryptedFileMetadata.CameraInfo? {
-        return await withCheckedContinuation { continuation in
+        // PhotoKit may call the completion on the main queue, so it only hands
+        // the input over. The image header is read after the await, off main.
+        let input: PHContentEditingInput? = await withCheckedContinuation { continuation in
             let options = PHContentEditingInputRequestOptions()
             options.isNetworkAccessAllowed = true
             
             asset.requestContentEditingInput(with: options) { input, _ in
-                guard let input = input,
-                      let fullImageURL = input.fullSizeImageURL,
-                      let imageSource = CGImageSourceCreateWithURL(fullImageURL as CFURL, nil),
-                      let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                
-                let camera = self.extractCameraInfo(from: properties)
-                continuation.resume(returning: camera)
+                continuation.resume(returning: input)
             }
         }
+        guard let fullImageURL = input?.fullSizeImageURL,
+              let imageSource = CGImageSourceCreateWithURL(fullImageURL as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any] else {
+            return nil
+        }
+        return extractCameraInfo(from: properties)
     }
     
     private func extractDimensions(from properties: [String: Any]) -> EncryptedFileMetadata.Dimensions? {

@@ -9,9 +9,13 @@
 
 import Foundation
 
-/// Test-only configuration `MediaImportHandler` consults before saving each item,
-/// so a UI test can cancel an import partway through or fail specific items
+/// Test-only configuration applied before each item of an import is saved, so
+/// a UI test can cancel an import partway through or fail specific items
 /// deterministically.
+///
+/// Set the hooks on the main thread before starting an import.
+/// `MediaImportHandler` copies them into a `Snapshot` there when a run starts,
+/// and the run, which saves items off the main thread, reads only its copy.
 public enum MediaImportTestHooks {
     /// Sleep applied before each item is saved. Long enough to let a test tap
     /// Cancel after a known number of items have landed.
@@ -23,12 +27,25 @@ public enum MediaImportTestHooks {
 
     public struct InjectedFailure: Error {}
 
-    static func beforeSavingItem(at index: Int) async throws {
-        if itemDelayMs > 0 {
-            try await Task.sleep(nanoseconds: UInt64(itemDelayMs) * 1_000_000)
+    /// The hook values one import run uses, fixed for the whole run.
+    struct Snapshot: Sendable {
+        let itemDelayMs: Int
+        let failItemIndexes: Set<Int>
+
+        /// Copies the current hook values. Call on the main actor.
+        @MainActor
+        init() {
+            itemDelayMs = MediaImportTestHooks.itemDelayMs
+            failItemIndexes = MediaImportTestHooks.failItemIndexes
         }
-        if failItemIndexes.contains(index) {
-            throw InjectedFailure()
+
+        func applyBeforeSavingItem(at index: Int) async throws {
+            if itemDelayMs > 0 {
+                try await Task.sleep(nanoseconds: UInt64(itemDelayMs) * 1_000_000)
+            }
+            if failItemIndexes.contains(index) {
+                throw InjectedFailure()
+            }
         }
     }
 }

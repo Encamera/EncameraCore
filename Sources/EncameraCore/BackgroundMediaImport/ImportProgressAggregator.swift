@@ -12,22 +12,27 @@ import Foundation
 /// Encryptors report every block, thousands of times per file. Publishing all
 /// of them floods the main thread, so a change is only published once it moves
 /// the total by `minimumStep` or `minimumInterval` has passed since the last.
-@MainActor
-final class ImportProgressAggregator {
+///
+/// Thread-safe: encryptors and loaders call it from their own queues, and it
+/// decides there, before anything hops to the main thread.
+final class ImportProgressAggregator: @unchecked Sendable {
     private let totalItems: Int
     private let minimumStep: Double
     private let minimumInterval: TimeInterval
-    private let now: () -> Date
+    private let now: @Sendable () -> Date
 
+    private let lock = NSLock()
     private var inFlight: [Int: Double] = [:]
     private var finished = Set<Int>()
     private var lastPublishedFraction: Double?
     private var lastPublishedAt: Date?
+    /// The highest fraction reported so far.
+    private var highestFraction = 0.0
 
     init(totalItems: Int,
          minimumStep: Double = 0.005,
          minimumInterval: TimeInterval = 0.1,
-         now: @escaping () -> Date = Date.init) {
+         now: @escaping @Sendable () -> Date = Date.init) {
         self.totalItems = totalItems
         self.minimumStep = minimumStep
         self.minimumInterval = minimumInterval
@@ -36,37 +41,55 @@ final class ImportProgressAggregator {
 
     /// The import's overall fraction, 0...1.
     var fraction: Double {
-        guard totalItems > 0 else { return 1.0 }
-        let total = Double(finished.count) + inFlight.values.reduce(0, +)
-        return min(1.0, total / Double(totalItems))
+        lock.withLock { currentFraction() }
     }
 
     /// The fraction recorded for one item.
     func fraction(ofItem index: Int) -> Double {
-        finished.contains(index) ? 1.0 : inFlight[index] ?? 0.0
+        lock.withLock { finished.contains(index) ? 1.0 : inFlight[index] ?? 0.0 }
+    }
+
+    /// Whether the item has been marked done.
+    func hasFinishedItem(at index: Int) -> Bool {
+        lock.withLock { finished.contains(index) }
     }
 
     /// Records an item's progress. Returns whether the change should be published.
     func update(item index: Int, fraction itemFraction: Double) -> Bool {
-        guard !finished.contains(index) else { return false }
-        let clamped = min(max(itemFraction, 0.0), 1.0)
-        guard clamped > inFlight[index] ?? 0.0 else { return false }
-        inFlight[index] = clamped
-        return shouldPublish(force: false)
+        lock.withLock {
+            guard !finished.contains(index) else { return false }
+            let clamped = min(max(itemFraction, 0.0), 1.0)
+            guard clamped > inFlight[index] ?? 0.0 else { return false }
+            inFlight[index] = clamped
+            return shouldPublish(force: false)
+        }
     }
 
     /// Marks an item done, whether it imported or failed. Always publishes the
     /// first time, so the total lands on each item boundary.
     @discardableResult
     func finish(item index: Int) -> Bool {
-        guard !finished.contains(index) else { return false }
-        inFlight[index] = nil
-        finished.insert(index)
-        return shouldPublish(force: true)
+        lock.withLock {
+            guard !finished.contains(index) else { return false }
+            inFlight[index] = nil
+            finished.insert(index)
+            return shouldPublish(force: true)
+        }
     }
 
+    /// Call with `lock` held. Never lower than a value it returned before: the
+    /// in-flight sum runs in dictionary order, which changes as items come and
+    /// go, so the same total can round one ulp lower.
+    private func currentFraction() -> Double {
+        guard totalItems > 0 else { return 1.0 }
+        let total = Double(finished.count) + inFlight.values.reduce(0, +)
+        highestFraction = max(highestFraction, min(1.0, total / Double(totalItems)))
+        return highestFraction
+    }
+
+    /// Call with `lock` held.
     private func shouldPublish(force: Bool) -> Bool {
-        let current = fraction
+        let current = currentFraction()
         let date = now()
         if !force, let lastFraction = lastPublishedFraction, let lastAt = lastPublishedAt {
             let movedEnough = current - lastFraction >= minimumStep

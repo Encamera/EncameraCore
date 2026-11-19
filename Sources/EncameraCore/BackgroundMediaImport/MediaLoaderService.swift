@@ -25,11 +25,10 @@ public struct LoadedMediaItem {
 }
 
 /// Service responsible for loading media from the Photos library into temporary storage
-/// This handles extraction of PHAssets and PHPickerResults into CleartextMedia objects
-@MainActor
-public class MediaLoaderService: DebugPrintable {
-    
-    private var tempDirectoryChecked = false
+/// This handles extraction of PHAssets and PHPickerResults into CleartextMedia objects.
+/// Not main-actor isolated: its async methods run off the main thread, and it
+/// holds no mutable state.
+public final class MediaLoaderService: DebugPrintable, @unchecked Sendable {
     
     /// Metadata extractor for extracting media metadata
     private let metadataExtractor = MediaMetadataExtractor()
@@ -211,7 +210,9 @@ public class MediaLoaderService: DebugPrintable {
         let id = UUID().uuidString
         let originalFilename = MediaMetadataExtractor.primaryResourceFilename(for: asset)
         
-        return try await withCheckedThrowingContinuation { continuation in
+        // PhotoKit calls this handler on the main queue, so it only hands the
+        // bytes over. They are written to disk after the await, off main.
+        let data: Data = try await withCheckedThrowingContinuation { continuation in
             let options = PHImageRequestOptions()
             options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
@@ -223,18 +224,28 @@ public class MediaLoaderService: DebugPrintable {
                     continuation.resume(throwing: BackgroundImportError.fromPhotoKitInfo(info))
                     return
                 }
-                
-                let fileName = id + ".jpeg"
-                let destinationURL = URL.tempMediaDirectory.appendingPathComponent(fileName)
-                
-                do {
-                    try data.write(to: destinationURL)
-                    let media = CleartextMedia(source: destinationURL, mediaType: .photo, id: id, originalFilename: originalFilename)
-                    continuation.resume(returning: media)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+                continuation.resume(returning: data)
             }
+        }
+
+        let destinationURL = URL.tempMediaDirectory.appendingPathComponent(id + ".jpeg")
+        try await Self.persistImageData(data, to: destinationURL)
+        return CleartextMedia(source: destinationURL, mediaType: .photo, id: id, originalFilename: originalFilename)
+    }
+
+    /// Writes a photo's bytes to `url`. Nonisolated and async, so it runs off
+    /// the main thread even when called from main. On a failed write any
+    /// partial file is removed.
+    nonisolated static func persistImageData(
+        _ data: Data,
+        to url: URL,
+        writer: @Sendable (Data, URL) throws -> Void = { try $0.write(to: $1) }
+    ) async throws {
+        do {
+            try writer(data, url)
+        } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
     }
     
@@ -297,19 +308,9 @@ public class MediaLoaderService: DebugPrintable {
         }
     }
 
+    /// Creates the temp media directory if it is missing. Cheap when it
+    /// exists, and safe to call from any thread.
     private func ensureTempDirectoryExists() async throws {
-        if tempDirectoryChecked { return }
-        
-        let tempDir = URL.tempMediaDirectory
-        var isDirectory: ObjCBool = false
-        
-        if !FileManager.default.fileExists(atPath: tempDir.path, isDirectory: &isDirectory) || !isDirectory.boolValue {
-            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true, attributes: nil)
-            printDebug("🗂️ Created temp directory: \(tempDir.path)")
-        } else {
-            printDebug("🗂️ Temp directory already exists: \(tempDir.path)")
-        }
-        
-        tempDirectoryChecked = true
+        try FileManager.default.createDirectory(at: URL.tempMediaDirectory, withIntermediateDirectories: true, attributes: nil)
     }
 }
