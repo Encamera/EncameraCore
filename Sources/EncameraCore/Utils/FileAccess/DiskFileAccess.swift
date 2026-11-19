@@ -602,6 +602,11 @@ extension DiskFileAccess {
         Self.previewCache.setObject(PreviewModelWrapper(result), forKey: cacheKey)
         return result
     }
+
+    /// Drops one preview from the shared in-memory cache, so the next load reads its file.
+    static func removeCachedPreview(forMediaID id: String) {
+        previewCache.removeObject(forKey: id as NSString)
+    }
     /// The shape of a decrypted preview, never its content: its length and
     /// whether it opens and closes like a JSON object. A preview that decrypts
     /// but stops short of its closing brace lost its tail.
@@ -739,6 +744,7 @@ extension DiskFileAccess {
             try await savePreview(preview: preview,
                                   sourceMedia: media,
                                   underKey: await sourceKey(of: media))
+            Self.previewCache.setObject(PreviewModelWrapper(preview), forKey: media.id as NSString)
             return preview
         } catch {
             printDebug("createPreview: Error creating preview for \(media.id) mediaType=\(media.mediaType) source=[\(Self.describeSource(of: media))] raw=\(error)")
@@ -990,32 +996,58 @@ extension DiskFileAccess {
     /// `underKey` is the key the source media is encrypted with. It defaults to the
     /// album's key, which is correct only when the source is under that key — pass the
     /// resolved key for anything read off disk.
+    ///
+    /// The preview is written to a temporary file beside its final path and renamed
+    /// over it, so a reader sees the old preview or the new one, never a mix. A
+    /// reader that already opened the old file keeps reading it. A failed or
+    /// cancelled write removes only its temporary file.
     @discardableResult public func savePreview<T: MediaDescribing>(preview: PreviewModel,
                                                                    sourceMedia: T,
                                                                    underKey: PrivateKey? = nil) async throws -> CleartextMedia {
         guard let key = underKey ?? key else {
             throw FileAccessError.missingPrivateKey
         }
+        guard let destinationURL = directoryModel?.previewURLForMedia(sourceMedia) else {
+            throw FileAccessError.missingDirectoryModel
+        }
         let data = try JSONEncoder().encode(preview)
-        let destinationURL = directoryModel?.previewURLForMedia(sourceMedia)
         let cleartextPreview = CleartextMedia(source: data, mediaType: .preview, id: sourceMedia.id)
+        let tempURL = Self.temporaryPreviewURL(for: destinationURL, mediaID: sourceMedia.id)
 
-        let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: destinationURL)
+        do {
+            let fileHandler = SecretFileHandler(keyBytes: key.keyBytes, source: cleartextPreview, targetURL: tempURL)
+            _ = try await fileHandler.encrypt()
+            try Task.checkCancellation()
 
-        let encrypted = try await fileHandler.encrypt()
-        
-        if var encryptedURL = encrypted.url {
-            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: encryptedURL)
-            
+            try? ExtendedAttributesUtil.setKeyUUID(key.uuid, for: tempURL)
             if directoryModel?.storageType == .local {
+                var tempFile = tempURL
                 var resourceValues = URLResourceValues()
                 resourceValues.isExcludedFromBackup = false
-                try? encryptedURL.setResourceValues(resourceValues)
+                try? tempFile.setResourceValues(resourceValues)
             }
+
+            // POSIX rename replaces an existing preview in one step; FileManager's
+            // moveItem fails when the destination exists.
+            guard rename(tempURL.path, destinationURL.path) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            printDebug("savePreview FAILED id=\(sourceMedia.id) temp=\(tempURL.lastPathComponent) raw=\(error)")
+            throw error
         }
-        
-        printDebug("Saved preview for \(sourceMedia.id) key=\(key.keyFingerprint) previewJSONBytes=\(data.count) preview=[\(FileFingerprint.describe(encrypted.url))]")
+
+        printDebug("Saved preview for \(sourceMedia.id) key=\(key.keyFingerprint) previewJSONBytes=\(data.count) preview=[\(FileFingerprint.describe(destinationURL))]")
         return cleartextPreview
+    }
+
+    /// A hidden file in the preview's own directory, so the rename never crosses a
+    /// volume. Its extension is not the preview extension, so preview listings and
+    /// storage totals skip it.
+    static func temporaryPreviewURL(for previewURL: URL, mediaID: String) -> URL {
+        previewURL.deletingLastPathComponent()
+            .appendingPathComponent(".\(mediaID).\(UUID().uuidString).\(previewURL.pathExtension).tmp")
     }
 
     /// Deliberately has NO storage-type availability gate. Adding media to an album
@@ -1024,7 +1056,12 @@ extension DiskFileAccess {
     /// into the ones users already have. Gating this on
     /// `DataStorageAvailabilityUtil.isStorageTypeAvailable` would silently break
     /// exactly that case; `ICloudDriveLegacyContractTests` fails if anyone does.
-    @discardableResult public func save(media: CleartextMedia, metadata: EncryptedFileMetadata? = nil, progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
+    /// `writesPreview` is false for a component whose preview another component of
+    /// the same media writes, such as a Live Photo's video.
+    @discardableResult public func save(media: CleartextMedia,
+                                        metadata: EncryptedFileMetadata? = nil,
+                                        writesPreview: Bool = true,
+                                        progress: @escaping (Double) -> Void) async throws -> EncryptedMedia? {
         try Task.checkCancellation()
         
         guard let key = key else {
@@ -1091,8 +1128,10 @@ extension DiskFileAccess {
             }
         }
         
-        Self.previewCache.removeObject(forKey: media.id as NSString)
-        try await createPreview(for: media, slowMotion: metadata?.video?.slowMotion)
+        if writesPreview {
+            Self.previewCache.removeObject(forKey: media.id as NSString)
+            try await createPreview(for: media, slowMotion: metadata?.video?.slowMotion)
+        }
         operationBus.didCreate(encrypted)
         return encrypted
     }

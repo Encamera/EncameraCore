@@ -63,6 +63,9 @@ class DiskBlockReader: FileLikeBlockReader {
             FileManager.default.createFile(atPath: source.path, contents: "".data(using: .utf8))
         }
         fileHandle = try FileHandle(forWritingTo: source)
+        // Every writer rewrites the whole file. A shorter stream written over a
+        // longer one would otherwise leave the old tail after its final block.
+        try fileHandle?.truncate(atOffset: 0)
     }
     
     func write(contentsOf data: Data) throws {

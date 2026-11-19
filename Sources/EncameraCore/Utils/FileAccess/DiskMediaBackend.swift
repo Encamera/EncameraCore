@@ -184,12 +184,22 @@ public actor DiskMediaBackend: MediaBackend {
     // MARK: - Write
 
     public func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? {
+        // A Live Photo's components share one preview file, keyed by media id. It
+        // belongs to the photo, so the photo is saved first and the video never
+        // writes it.
+        let isLivePhoto = media.mediaType == .livePhoto
+        let components = isLivePhoto
+            ? media.underlyingMedia.sorted { $0.mediaType == .photo && $1.mediaType != .photo }
+            : media.underlyingMedia
         var encrypted: [EncryptedMedia] = []
-        let weights = ComponentProgressWeights(urls: media.underlyingMedia.map(\.url))
-        for (index, mediaItem) in media.underlyingMedia.enumerated() {
+        let weights = ComponentProgressWeights(urls: components.map(\.url))
+        for (index, mediaItem) in components.enumerated() {
             try Task.checkCancellation()
             let componentProgress: (Double) -> Void = { progress(weights.overall(component: index, fraction: $0)) }
-            if let encryptedMedia = try await fileAccess.save(media: mediaItem, metadata: metadata, progress: componentProgress) {
+            if let encryptedMedia = try await fileAccess.save(media: mediaItem,
+                                                              metadata: metadata,
+                                                              writesPreview: !(isLivePhoto && mediaItem.mediaType == .video),
+                                                              progress: componentProgress) {
                 encrypted.append(encryptedMedia)
             }
         }

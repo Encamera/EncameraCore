@@ -193,6 +193,34 @@ final class DiskFileAccessTests: XCTestCase {
 
     /// The grid's own path, and the one that decides which glyph a user sees.
     ///
+    /// Encrypting over an existing, longer file leaves exactly the new stream:
+    /// bytes past its final block would fail authentication on the next read.
+    func testRewritingAShorterFileThroughSecretFileHandlerTruncates() async throws {
+        let rewritten = tempDirectory.appendingPathComponent("rewritten.enc")
+        let fresh = tempDirectory.appendingPathComponent("fresh.enc")
+        let longer = Data(repeating: 0x01, count: 70_000)
+        let shorter = Data(repeating: 0x02, count: 5_000)
+
+        _ = try await SecretFileHandler(keyBytes: keyA.keyBytes,
+                                        source: CleartextMedia(source: longer, mediaType: .photo, id: "long"),
+                                        targetURL: rewritten).encrypt()
+        _ = try await SecretFileHandler(keyBytes: keyA.keyBytes,
+                                        source: CleartextMedia(source: shorter, mediaType: .photo, id: "short"),
+                                        targetURL: rewritten).encrypt()
+        _ = try await SecretFileHandler(keyBytes: keyA.keyBytes,
+                                        source: CleartextMedia(source: shorter, mediaType: .photo, id: "short"),
+                                        targetURL: fresh).encrypt()
+
+        let rewrittenSize = try FileManager.default.attributesOfItem(atPath: rewritten.path)[.size] as? UInt64
+        let freshSize = try FileManager.default.attributesOfItem(atPath: fresh.path)[.size] as? UInt64
+        XCTAssertEqual(rewrittenSize, freshSize, "the rewritten file is as long as the same stream written fresh")
+
+        let decrypted = try await SecretFileHandler(keyBytes: keyA.keyBytes,
+                                                    source: EncryptedMedia(source: .url(rewritten), mediaType: .photo, id: "short"))
+            .decryptInMemory()
+        XCTAssertEqual(decrypted.data, shorter)
+    }
+
     /// A thumbnail that needs an absent key must surface as `missingKeyForMedia`,
     /// not be retried as if it were simply absent. The retry decrypts the same
     /// media with the same key, so it can only fail — and when the media is not

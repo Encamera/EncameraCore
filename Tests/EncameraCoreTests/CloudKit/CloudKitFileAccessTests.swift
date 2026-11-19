@@ -2016,6 +2016,8 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path),
                       "precondition: the save wrote a preview", file: file, line: line)
         try FileManager.default.removeItem(at: previewURL)
+        // The save also left its preview in the process-wide memory cache.
+        DiskFileAccess.removeCachedPreview(forMediaID: media.id)
         deviceAStore.stopFailingUploads()
         await deviceA.drainUploads()
 
@@ -2046,6 +2048,9 @@ final class CloudKitFileAccessTests: XCTestCase {
                              store: CloudKitMediaStoring? = nil,
                              chunkStore: ChunkedBlobStoring? = nil) async throws -> CloudKitFileAccess {
         try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: saved.id))
+        // Both devices run in this process, and the preview memory cache is
+        // process-wide: the fresh device must not see `holder`'s cached preview.
+        DiskFileAccess.removeCachedPreview(forMediaID: saved.id)
         for recordName in saved.recordNames {
             try? FileManager.default.removeItem(at: decryptedCopyURL(id: saved.id, type: MediaRecordName.mediaType(from: recordName)))
         }
