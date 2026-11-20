@@ -575,4 +575,106 @@ final class BlobMigrationLockStateTests: XCTestCase {
         await downloadAhead(onWiFi: true).requestNextBatchForHeldAlbums()
         XCTAssertEqual(Set(requested), Set(urls), "on Wi-Fi the batch is requested")
     }
+
+    // MARK: - Upload queue drain while locked
+
+    private let captureTaken = Date(timeIntervalSince1970: 1_400_000_000)
+    private let captureEncrypted = Date(timeIntervalSince1970: 1_750_000_000)
+    private let queuedCreatedAt = Date(timeIntervalSince1970: 1_800_000_000)
+
+    /// A coordinator over `albumManager` and the shared mock store, draining `uploadQueue`.
+    private func makeUploadCoordinator(uploadQueue: CloudKitUploadQueue) -> CloudKitSyncCoordinator {
+        let deleteSuite = "blob-lock-state-delete-\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults().removePersistentDomain(forName: deleteSuite) }
+        return CloudKitSyncCoordinator(store: store,
+                                       cache: CloudKitBlobCache(baseDir: scratch.appendingPathComponent("cache-\(UUID().uuidString)"),
+                                                                maxBytes: 64 * 1024 * 1024),
+                                       albumManager: albumManager,
+                                       bus: FileOperationBus(),
+                                       uploadQueue: uploadQueue,
+                                       deleteQueue: CloudKitMediaDeleteQueue(suiteName: deleteSuite),
+                                       zoneWalkRequests: CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults()))
+    }
+
+    /// A capture queued for upload to `albumID` and put in the album's index the
+    /// way `CloudKitFileAccess.saveSingle` does: its `encMetadata` sealed under the
+    /// album key, which the capture holds, and a `createdAt` unlike either of
+    /// the metadata's dates.
+    private func registerQueuedCapture(albumID: String,
+                                       coordinator: CloudKitSyncCoordinator,
+                                       queue: CloudKitUploadQueue) async throws -> CloudKitMediaUpload {
+        let mediaID = UUID().uuidString
+        let recordName = photoRecordName(mediaID)
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = captureTaken
+        metadata.encryptionDate = captureEncrypted
+        metadata.originalMediaType = "photo"
+        let file = scratch.appendingPathComponent("\(mediaID).photo")
+        try Data("ciphertext".utf8).write(to: file)
+        let descriptor = CloudKitMediaRecordDescriptor(
+            albumID: albumID, mediaID: mediaID, recordName: recordName, mediaType: .photo,
+            createdAt: queuedCreatedAt, sizeBytes: 10, keyFingerprint: key.keyFingerprint,
+            encMetadata: try CloudKitRecordMetadataHandler.encryptMetadata(metadata, recordName: recordName, keyBytes: key.keyBytes))
+        let queued = try await queue.enqueue(CloudKitMediaUpload(descriptor: descriptor,
+                                                                 encryptedFileURL: file, encryptedThumbURL: nil))
+        try await coordinator.registerLocally(queued, metadataKeyBytes: key.keyBytes)
+        return queued
+    }
+
+    private func indexEntry(_ mediaID: String, albumID: String) async throws -> MediaIndexEntry {
+        let index = try XCTUnwrap(albumManager.mediaIndexStore(forAlbumID: albumID))
+        let entry = await index.current()?.entries.first { $0.id == mediaID }
+        return try XCTUnwrap(entry)
+    }
+
+    func testLockedUploadDrainReadsNoKeychainAndKeepsCaptureDates() async throws {
+        let prepared = try await prepareAlbum(photos: 1, video: false)
+        let queue = CloudKitUploadQueue(baseDir: scratch.appendingPathComponent("uploads", isDirectory: true))
+        let coordinator = makeUploadCoordinator(uploadQueue: queue)
+        let capture = try await registerQueuedCapture(albumID: prepared.albumID, coordinator: coordinator, queue: queue)
+        let registered = try await indexEntry(capture.mediaID, albumID: prepared.albumID)
+        XCTAssertEqual(registered.dateEncrypted, captureEncrypted, "precondition: the capture is indexed from its encMetadata")
+        XCTAssertEqual(registered.dateTaken, captureTaken)
+        let uploader = CloudKitUploader(queue: queue, coordinator: coordinator, statusReporter: CloudKitSyncStatusReporter())
+        addTeardownBlock { await uploader.shutdown() }
+        keyManager.armed = true
+
+        await uploader.drainNow()
+
+        XCTAssertTrue(store.uploadCalls.contains(capture.mediaID), "precondition: the capture uploaded")
+        let remaining = await queue.all()
+        XCTAssertEqual(remaining.map(\.recordName), [], "the drain completed the item")
+        XCTAssertEqual(keyManager.reads, [], "no keychain read while the locked drain indexed the upload")
+        let uploaded = try await indexEntry(capture.mediaID, albumID: prepared.albumID)
+        XCTAssertEqual(uploaded.dateEncrypted, captureEncrypted, "Date Added is still the metadata's, not createdAt")
+        XCTAssertEqual(uploaded.dateTaken, captureTaken, "Date Taken is still the metadata's, not createdAt")
+    }
+
+    func testLockedUploadDrainAdoptingALandedRecordReadsNoKeychainAndKeepsCaptureDates() async throws {
+        let prepared = try await prepareAlbum(photos: 1, video: false)
+        let queue = CloudKitUploadQueue(baseDir: scratch.appendingPathComponent("uploads", isDirectory: true))
+        let coordinator = makeUploadCoordinator(uploadQueue: queue)
+        let capture = try await registerQueuedCapture(albumID: prepared.albumID, coordinator: coordinator, queue: queue)
+        store.metadataToReturn = [CloudKitMediaMetadata(recordName: capture.recordName, albumID: capture.albumID,
+                                                        mediaID: capture.mediaID, mediaType: capture.mediaType,
+                                                        createdAt: capture.createdAt, sizeBytes: capture.sizeBytes,
+                                                        creationDeviceID: "device", schemaVersion: capture.schemaVersion,
+                                                        keyFingerprint: capture.keyFingerprint,
+                                                        recordChangeTag: "tag-server", encMetadata: capture.encMetadata)]
+        store.uploadFailures[capture.recordName] = CloudKitMediaStoreError.partial(
+            failed: [capture.recordName: CKErrorFactory.error(.serverRecordChanged)])
+        let uploader = CloudKitUploader(queue: queue, coordinator: coordinator, statusReporter: CloudKitSyncStatusReporter())
+        addTeardownBlock { await uploader.shutdown() }
+        keyManager.armed = true
+
+        await uploader.drainNow()
+
+        XCTAssertTrue(store.fetchRecordMetadataCalls.contains(capture.recordName), "precondition: the conflict was adopted")
+        let remaining = await queue.all()
+        XCTAssertEqual(remaining.map(\.recordName), [], "adopting the landed record completed the item")
+        XCTAssertEqual(keyManager.reads, [], "no keychain read while the locked drain adopted the record")
+        let adopted = try await indexEntry(capture.mediaID, albumID: prepared.albumID)
+        XCTAssertEqual(adopted.dateEncrypted, captureEncrypted)
+        XCTAssertEqual(adopted.dateTaken, captureTaken)
+    }
 }

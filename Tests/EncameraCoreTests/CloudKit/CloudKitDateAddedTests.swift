@@ -4,8 +4,9 @@
 //
 //  How a CloudKit album's index entries get their "Date Added", "Date Taken"
 //  and subtype: from a record, through a merge, and across a move in either
-//  direction. A record carries one date, `createdAt`: when the media was taken,
-//  falling back to when it was added.
+//  direction. A record's sealed `encMetadata` carries both dates; without it the
+//  record has one date, `createdAt`: when the media was taken, falling back to
+//  when it was added.
 //
 
 import XCTest
@@ -28,9 +29,12 @@ final class CloudKitDateAddedTests: XCTestCase {
         try? FileManager.default.removeItem(at: tempDirectory)
     }
 
-    private func descriptor(id: String, type: MediaType = .photo, createdAt: Date) -> CloudKitMediaRecordDescriptor {
-        CloudKitMediaRecordDescriptor(albumID: "album", mediaID: id, mediaType: type,
-                                      createdAt: createdAt, sizeBytes: 1, keyFingerprint: "")
+    private func descriptor(id: String, type: MediaType = .photo, createdAt: Date,
+                            encMetadata: EncryptedFileMetadata? = nil) throws -> CloudKitMediaRecordDescriptor {
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: type)
+        let sealed = try encMetadata.map { try CloudKitRecordMetadataHandler.encryptMetadata($0, recordName: recordName, keyBytes: key.keyBytes) }
+        return CloudKitMediaRecordDescriptor(albumID: "album", mediaID: id, recordName: recordName, mediaType: type,
+                                             createdAt: createdAt, sizeBytes: 1, keyFingerprint: "", encMetadata: sealed)
     }
 
     private func meta(_ descriptor: CloudKitMediaRecordDescriptor) -> CloudKitMediaMetadata {
@@ -51,20 +55,50 @@ final class CloudKitDateAddedTests: XCTestCase {
 
     // MARK: - Record -> index
 
-    func testIndexEntryTakesBothDatesFromCreatedAt() {
-        let entry = CloudKitSyncCoordinator.indexEntry(from: meta(descriptor(id: "a", createdAt: taken)))
+    func testIndexEntryTakesBothDatesFromCreatedAt() async throws {
+        let entry = await CloudKitSyncCoordinator.indexEntry(from: meta(try descriptor(id: "a", createdAt: taken)),
+                                                             keyBytes: key.keyBytes)
         XCTAssertEqual(entry.dateEncrypted, taken)
         XCTAssertEqual(entry.dateTaken, taken)
     }
 
-    func testIndexEntrySubtypeFollowsComponentType() {
-        let video = CloudKitSyncCoordinator.indexEntry(from: meta(descriptor(id: "v", type: .video, createdAt: taken)))
-        let photo = CloudKitSyncCoordinator.indexEntry(from: meta(descriptor(id: "p", type: .photo, createdAt: taken)))
+    func testIndexEntrySubtypeFollowsComponentType() async throws {
+        let video = await CloudKitSyncCoordinator.indexEntry(from: meta(try descriptor(id: "v", type: .video, createdAt: taken)),
+                                                             keyBytes: key.keyBytes)
+        let photo = await CloudKitSyncCoordinator.indexEntry(from: meta(try descriptor(id: "p", type: .photo, createdAt: taken)),
+                                                             keyBytes: key.keyBytes)
         XCTAssertEqual(video.subtypeRawValue, MediaFilterOptions.video.rawValue)
         XCTAssertEqual(photo.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
         let index = MediaIndex(entries: [video, photo])
         XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .video).map(\.id), ["v"],
                        "A video filter must not match CloudKit stills")
+    }
+
+    /// The reported bug: a capture made before an import of an older photo sorted
+    /// after it under "Date Added, oldest first", because both records were dated
+    /// by `createdAt`, the capture date.
+    func testDateAddedSortsAnImportOfAnOlderPhotoAfterAnEarlierCapture() async throws {
+        let captureTime = Date(timeIntervalSince1970: 1_800_000_000)
+        let importTime = captureTime.addingTimeInterval(60)
+        var captureMetadata = EncryptedFileMetadata()
+        captureMetadata.captureDate = captureTime
+        captureMetadata.encryptionDate = captureTime
+        var importMetadata = EncryptedFileMetadata()
+        importMetadata.captureDate = taken
+        importMetadata.encryptionDate = importTime
+        let capture = try descriptor(id: "capture", createdAt: captureTime, encMetadata: captureMetadata)
+        let importedOldPhoto = try descriptor(id: "import", createdAt: taken, encMetadata: importMetadata)
+
+        var entries: [MediaIndexEntry] = []
+        for record in [importedOldPhoto, capture] {
+            entries.append(await CloudKitSyncCoordinator.indexEntry(from: meta(record), keyBytes: key.keyBytes))
+        }
+        let index = MediaIndex(entries: entries)
+
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .all).map(\.id),
+                       ["capture", "import"])
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateTaken(ascending: true), filterBy: .all).map(\.id),
+                       ["import", "capture"])
     }
 
     // MARK: - Merge
@@ -78,9 +112,11 @@ final class CloudKitDateAddedTests: XCTestCase {
         XCTAssertEqual(legacy.merged(with: fresh).subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
     }
 
-    func testLivePhotoWhoseVideoArrivesFirstMergesToAStill() {
-        let video = CloudKitSyncCoordinator.indexEntry(from: meta(descriptor(id: "live", type: .video, createdAt: taken)))
-        let photo = CloudKitSyncCoordinator.indexEntry(from: meta(descriptor(id: "live", type: .photo, createdAt: taken)))
+    func testLivePhotoWhoseVideoArrivesFirstMergesToAStill() async throws {
+        let video = await CloudKitSyncCoordinator.indexEntry(from: meta(try descriptor(id: "live", type: .video, createdAt: taken)),
+                                                             keyBytes: key.keyBytes)
+        let photo = await CloudKitSyncCoordinator.indexEntry(from: meta(try descriptor(id: "live", type: .photo, createdAt: taken)),
+                                                             keyBytes: key.keyBytes)
         let merged = video.merged(with: photo)
         XCTAssertTrue(merged.hasPhotoComponent && merged.hasVideoComponent)
         XCTAssertEqual(merged.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)

@@ -435,7 +435,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             throw error
         }
 
-        try await coordinator.registerLocally(queued)
+        try await coordinator.registerLocally(queued, metadataKeyBytes: keyBytes)
 
         await uploader.kick()
 
@@ -1475,7 +1475,7 @@ extension CloudKitFileAccess {
             await blobCache.relocate(recordName: recordName, toAlbumID: albumID)
 
             if let meta = try await store.fetchRecordMetadata(recordName: recordName) {
-                let entry = CloudKitSyncCoordinator.indexEntry(from: meta)
+                let entry = await CloudKitSyncCoordinator.indexEntry(from: meta, keyBytes: keyBytes)
                 _ = try await indexStore.upsert([entry])
             }
         }

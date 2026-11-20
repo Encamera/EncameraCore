@@ -287,6 +287,7 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             let uploadStart = transferStart + (1 - transferStart) * (reencryptScratch == nil ? 0 : reencryptShare)
             do {
                 try await Self.uploadWithRetry(upload, coordinator: context.coordinator, plan: plan, itemName: item.mediaID,
+                                               metadataKeyBytes: proven.key.keyBytes,
                                                cacheInsertion: context.cacheInsertion(item),
                                                setPhase: context.setPhase) { fraction in
                     report(index, uploadStart + (1 - uploadStart) * fraction)
@@ -485,13 +486,15 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                                         coordinator: CloudKitSyncCoordinator,
                                         plan: MigrationPlan,
                                         itemName: String,
+                                        metadataKeyBytes: [UInt8],
                                         cacheInsertion: CloudKitBlobCache.Insertion,
                                         setPhase: (MigrationPhase?, MigrationPlan, String?) -> Void,
                                         progress: @escaping @Sendable (Double) -> Void) async throws {
         var attempt = 0
         while true {
             do {
-                _ = try await coordinator.upload(upload, progress: progress, cacheInsertion: cacheInsertion)
+                _ = try await coordinator.upload(upload, progress: progress, cacheInsertion: cacheInsertion,
+                                                 metadataKeyBytes: metadataKeyBytes)
                 return
             } catch let error as CloudKitMediaStoreError {
                 guard case .retry(let after) = CloudKitMigrationManager.unwrapPartial(error) else { throw error }

@@ -2293,6 +2293,47 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(lockedIDs, ["l1", "l2"])
     }
 
+    /// The walk resolves every album's key from one album listing, not one
+    /// listing per album: on a real album manager each listing is a full
+    /// keychain read. Each album still opens its records' `encMetadata`.
+    func testZoneSyncResolvesEveryAlbumKeyFromOneAlbumListing() async throws {
+        let store = MockCloudKitMediaStore()
+        let albumIDs = ["a1", "a2", "a3"]
+        let indexes = albumIDs.map { _ in makeIndexStore() }
+        let (coord, albumManager) = CloudKitSyncCoordinator.forTesting(albums: Array(zip(albumIDs, indexes).map { ($0, $1, nil) }),
+                                                                       store: store, cache: makeCache(),
+                                                                       bus: FileOperationBus(),
+                                                                       deleteQueue: makeDeleteQueue())
+        let taken = Date(timeIntervalSince1970: 1_400_000_000)
+        let encrypted = Date(timeIntervalSince1970: 1_750_000_000)
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = taken
+        metadata.encryptionDate = encrypted
+        metadata.originalMediaType = "photo"
+        let records = try albumIDs.map { albumID in
+            let recordName = MediaRecordName.componentRecordName(mediaID: "m-\(albumID)", type: .photo)
+            return CloudKitMediaMetadata(recordName: recordName, albumID: albumID, mediaID: "m-\(albumID)",
+                                         mediaType: .photo, createdAt: Date(timeIntervalSince1970: 100),
+                                         sizeBytes: 10, creationDeviceID: "device", schemaVersion: 1,
+                                         keyFingerprint: MockAlbumManager.testAlbumKey.keyFingerprint,
+                                         recordChangeTag: "tag-\(albumID)",
+                                         encMetadata: try CloudKitRecordMetadataHandler.encryptMetadata(metadata, recordName: recordName,
+                                                                                                        keyBytes: MockAlbumManager.testAlbumKey.keyBytes))
+        }
+        store.changeSet = CloudKitChangeSet(changed: records, deleted: [], token: nil, moreComing: false)
+        let listingsBefore = albumManager.fetchIncludingHiddenCalls.count
+
+        try await coord.sync()
+
+        XCTAssertEqual(albumManager.fetchIncludingHiddenCalls.count - listingsBefore, 1,
+                       "one album listing, so one keychain read, for every album's key")
+        for (albumID, index) in zip(albumIDs, indexes) {
+            let entry = await index.current()?.entries.first { $0.id == "m-\(albumID)" }
+            XCTAssertEqual(entry?.dateEncrypted, encrypted, "album \(albumID) opened its record's encMetadata")
+            XCTAssertEqual(entry?.dateTaken, taken)
+        }
+    }
+
     /// One walk carries both albums' records; each lands in its own album's index,
     /// and a delete leaves the index that never held the record alone.
     func testZoneSyncRoutesRecordsToTheirAlbumIndex() async throws {
@@ -2349,8 +2390,8 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     func testFullWalkReapsPerAlbumOnlyWhenAcknowledged() async throws {
         let store = MockCloudKitMediaStore()
         let (coord, a1, a2) = makeTwoAlbumCoordinator(store: store)
-        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("kept", in: "a1"))])
-        try await a2.upsert([CloudKitSyncCoordinator.indexEntry(from: record("gone", in: "a2"))])
+        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("kept", in: "a1"), keyBytes: nil)])
+        try await a2.upsert([CloudKitSyncCoordinator.indexEntry(from: record("gone", in: "a2"), keyBytes: nil)])
 
         store.changeSet = CloudKitChangeSet(changed: [record("kept", in: "a1")], deleted: [],
                                             token: nil, moreComing: false, snapshotComplete: false)
@@ -2392,7 +2433,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
     func testMissingAlbumIndexForcesWholeZoneWalk() async throws {
         let store = MockCloudKitMediaStore()
         let (coord, a1, a2) = makeTwoAlbumCoordinator(store: store)
-        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("m1", in: "a1"))])
+        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("m1", in: "a1"), keyBytes: nil)])
         store.hasChangeTokenValue = true
         store.changeSet = CloudKitChangeSet(changed: [record("m1", in: "a1")], deleted: [],
                                             token: nil, moreComing: false, snapshotComplete: true)
@@ -2422,7 +2463,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                                             bus: FileOperationBus(),
                                                             deleteQueue: makeDeleteQueue(),
                                                             zoneWalkRequests: requests)
-        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("m1", in: "a1"))])
+        try await a1.upsert([CloudKitSyncCoordinator.indexEntry(from: record("m1", in: "a1"), keyBytes: nil)])
         try await a2.upsert([driveEntry("drive")])
         store.hasChangeTokenValue = true
         store.changeSet = CloudKitChangeSet(changed: [record("m1", in: "a1"), record("n1", in: "a2")], deleted: [],
@@ -2539,7 +2580,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                                                        indexStore: index, bus: bus, deleteQueue: deleteQueue)
         try await index.upsert([driveEntry("drive"),
                                 driveEntry("driveLive", photo: .iCloudDrive, video: .iCloudDrive),
-                                CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo))])
+                                CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo), keyBytes: nil)])
         let preview = try writePreview(forMediaID: "drive")
         let livePreview = try writePreview(forMediaID: "driveLive")
 
@@ -2667,7 +2708,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let (coord, a1, a2) = makeTwoAlbumCoordinator(store: store)
         try await a1.upsert([driveEntry("drive"),
                              driveEntry("half", photo: .cloudKit, video: .iCloudDrive),
-                             CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo))])
+                             CloudKitSyncCoordinator.indexEntry(from: metaComponent(recordName: "gone#0", mediaID: "gone", type: .photo), keyBytes: nil)])
         store.hasChangeTokenValue = true
         store.changeSet = CloudKitChangeSet(changed: [metaComponent(recordName: "half#0", mediaID: "half", type: .photo),
                                                       record("n1", in: "a2")],

@@ -487,6 +487,151 @@ final class CloudKitRecordMetadataHandlerTests: XCTestCase {
                        albumKeyMetadata)
     }
 
+    // MARK: - Index entries a sync builds
+
+    private let syncedCreatedAt = Date(timeIntervalSince1970: 1_400_000_000)
+    private let screenshotTaken = Date(timeIntervalSince1970: 1_400_000_000)
+    private let screenshotImported = Date(timeIntervalSince1970: 1_750_000_000)
+
+    /// A screenshot taken long before it was imported.
+    private func importedScreenshotMetadata() -> EncryptedFileMetadata {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = screenshotTaken
+        metadata.encryptionDate = screenshotImported
+        metadata.originalMediaType = "photo"
+        metadata.originalFilename = "IMG_SECRET_0002.PNG"
+        metadata.contentAnalysis = .init(isScreenshot: true)
+        return metadata
+    }
+
+    /// A photo record of album "a1" dated `syncedCreatedAt`, carrying `metadata`
+    /// sealed under `sealingKey` when given.
+    private func syncedRecord(_ mediaID: String,
+                              metadata: EncryptedFileMetadata?,
+                              sealingKey: [UInt8] = MockAlbumManager.testAlbumKey.keyBytes) throws -> CloudKitMediaMetadata {
+        let recordName = MediaRecordName.componentRecordName(mediaID: mediaID, type: .photo)
+        let sealed = try metadata.map { try CloudKitRecordMetadataHandler.encryptMetadata($0, recordName: recordName, keyBytes: sealingKey) }
+        return CloudKitMediaMetadata(recordName: recordName, albumID: "a1", mediaID: mediaID, mediaType: .photo,
+                                     createdAt: syncedCreatedAt, sizeBytes: 10, creationDeviceID: "device",
+                                     schemaVersion: 1,
+                                     keyFingerprint: KeyFingerprint.fingerprint(keyBytes: sealingKey).map { String(format: "%02x", $0) }.joined(),
+                                     recordChangeTag: "tag-\(mediaID)", encMetadata: sealed)
+    }
+
+    /// A coordinator over album "a1", unlocked under `MockAlbumManager.testAlbumKey`.
+    private func makeSyncingCoordinator(store: MockCloudKitMediaStore) -> (CloudKitSyncCoordinator, MediaIndexStore) {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitRecordMetadataHandlerTests-sync-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
+        let index = MediaIndexStore(keyBytes: MockAlbumManager.testAlbumKey.keyBytes,
+                                    indexURL: root.appendingPathComponent("a1.encindex"))
+        let deleteQueueSuite = "ck-delete-\(UUID().uuidString)"
+        addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: deleteQueueSuite) }
+        let (coordinator, _) = CloudKitSyncCoordinator.forTesting(
+            albums: [("a1", index, nil)], store: store,
+            cache: CloudKitBlobCache(baseDir: root.appendingPathComponent("cache"), maxBytes: 1024 * 1024),
+            bus: FileOperationBus(),
+            uploadQueue: CloudKitUploadQueue(baseDir: root.appendingPathComponent("queue")),
+            deleteQueue: CloudKitMediaDeleteQueue(suiteName: deleteQueueSuite))
+        return (coordinator, index)
+    }
+
+    /// The index entries a sync of `records` leaves in album "a1", by media id.
+    private func entriesAfterSyncing(_ records: [CloudKitMediaMetadata],
+                                     store: MockCloudKitMediaStore = MockCloudKitMediaStore()) async throws -> [String: MediaIndexEntry] {
+        let (coordinator, index) = makeSyncingCoordinator(store: store)
+        store.changeSet = CloudKitChangeSet(changed: records, deleted: [], token: nil, moreComing: false)
+        try await coordinator.sync()
+        let entries = await index.current()?.entries ?? []
+        return Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
+    }
+
+    func testSyncedEntryTakesDatesAndSubtypeFromEncMetadata() async throws {
+        let entries = try await entriesAfterSyncing([syncedRecord("shot", metadata: importedScreenshotMetadata())])
+        let entry = try XCTUnwrap(entries["shot"])
+        XCTAssertEqual(entry.dateEncrypted, screenshotImported, "Date Added is the metadata's encryption date")
+        XCTAssertEqual(entry.dateTaken, screenshotTaken, "Date Taken is the metadata's capture date")
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.screenshot.rawValue)
+    }
+
+    func testSyncedEntryWithoutEncMetadataFallsBackToCreatedAt() async throws {
+        let entries = try await entriesAfterSyncing([syncedRecord("plain", metadata: nil)])
+        let entry = try XCTUnwrap(entries["plain"])
+        XCTAssertEqual(entry.dateEncrypted, syncedCreatedAt)
+        XCTAssertEqual(entry.dateTaken, syncedCreatedAt)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
+    }
+
+    func testSyncedEntryWithDatelessEncMetadataFallsBackToCreatedAt() async throws {
+        var older = EncryptedFileMetadata()
+        older.encryptionDate = syncedCreatedAt.addingTimeInterval(-60)
+        older.captureDate = syncedCreatedAt.addingTimeInterval(-60)
+        let entries = try await entriesAfterSyncing([syncedRecord("dateless", metadata: EncryptedFileMetadata()),
+                                                     syncedRecord("older", metadata: older)])
+        let entry = try XCTUnwrap(entries["dateless"])
+        XCTAssertEqual(entry.dateEncrypted, syncedCreatedAt)
+        XCTAssertEqual(entry.dateTaken, syncedCreatedAt)
+        let index = MediaIndex(entries: Array(entries.values))
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .all).map(\.id),
+                       ["older", "dateless"])
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all).map(\.id),
+                       ["dateless", "older"], "an item with dateless metadata must not sort last")
+    }
+
+    func testSyncedEntryUnderForeignKeyFallsBackToCreatedAt() async throws {
+        let foreignKey: [UInt8] = Array(repeating: 0x55, count: 32)
+        let entries = try await entriesAfterSyncing([syncedRecord("foreign", metadata: importedScreenshotMetadata(),
+                                                                  sealingKey: foreignKey)])
+        let entry = try XCTUnwrap(entries["foreign"])
+        XCTAssertEqual(entry.dateEncrypted, syncedCreatedAt)
+        XCTAssertEqual(entry.dateTaken, syncedCreatedAt)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
+    }
+
+    func testIndexEntryNeverFetchesBlob() async throws {
+        let store = MockCloudKitMediaStore()
+        let entries = try await entriesAfterSyncing([syncedRecord("shot", metadata: importedScreenshotMetadata()),
+                                                     syncedRecord("dateless", metadata: EncryptedFileMetadata())],
+                                                    store: store)
+        XCTAssertEqual(entries.count, 2)
+        XCTAssertEqual(entries["shot"]?.dateEncrypted, screenshotImported)
+        XCTAssertEqual(store.fetchBlobCount, 0, "building an index entry must not fetch a blob")
+        XCTAssertFalse(store.callOrder.contains { if case .fetchBlob = $0 { return true } else { return false } })
+    }
+
+    func testSyncLogCarriesNoDecryptedMetadataValues() async throws {
+        let wasCapturing = DebugLogBuffer.shared.isCapturing
+        DebugLogBuffer.shared.setCapturing(true)
+        DebugLogBuffer.shared.clear()
+        defer { DebugLogBuffer.shared.setCapturing(wasCapturing) }
+        let metadata = importedScreenshotMetadata()
+
+        _ = try await entriesAfterSyncing([syncedRecord("shot", metadata: metadata)])
+
+        let lines = DebugLogBuffer.shared.snapshot(newestFirst: false).map(\.message)
+        XCTAssertTrue(lines.contains { $0.contains("sort keys mediaID=shot") }, "the sync logs the item's sort key source")
+        assertNoLine(lines, leaks: metadata)
+    }
+
+    func testLocallyRegisteredCaptureTakesDatesFromEncMetadata() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coordinator, index) = makeSyncingCoordinator(store: store)
+        let record = try syncedRecord("capture", metadata: importedScreenshotMetadata())
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("enc-\(UUID().uuidString)")
+        try Data("ciphertext".utf8).write(to: file)
+        addTeardownBlock { try? FileManager.default.removeItem(at: file) }
+
+        try await coordinator.registerLocally(CloudKitMediaUpload(descriptor: record.descriptor,
+                                                                  encryptedFileURL: file, encryptedThumbURL: nil))
+
+        let entries = await index.current()?.entries ?? []
+        let entry = try XCTUnwrap(entries.first { $0.id == "capture" })
+        XCTAssertEqual(entry.dateEncrypted, screenshotImported)
+        XCTAssertEqual(entry.dateTaken, screenshotTaken)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.screenshot.rawValue)
+        XCTAssertEqual(store.fetchBlobCount, 0)
+    }
+
     private func assertNoLine(_ lines: [String], leaks metadata: EncryptedFileMetadata,
                               file: StaticString = #filePath, line: UInt = #line) {
         let values = [metadata.location?.placeName, metadata.originalFilename,

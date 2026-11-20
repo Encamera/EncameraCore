@@ -278,6 +278,13 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         albumManager.mediaIndexStore(forAlbumID: albumID)
     }
 
+    /// The key `item`'s `encMetadata` opens under at capture: `heldKeyBytes`
+    /// when the caller holds it, otherwise the album's key, which reads the
+    /// keychain.
+    private func captureMetadataKeyBytes(for item: CloudKitMediaUpload, heldKeyBytes: [UInt8]?) -> [UInt8]? {
+        heldKeyBytes ?? albumManager.cloudKitAlbum(withID: item.albumID)?.key.keyBytes
+    }
+
     /// Writes captured record sizes to the album's size sidecar.
     ///
     /// Only the sizes of `.cloudKit` components: a component the album's live
@@ -494,6 +501,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private struct AlbumApply {
         let albumID: String
         let indexStore: MediaIndexStore
+        /// The album's key, for the metadata sealed on its records. Nil when the
+        /// album is locked on this device.
+        let keyBytes: [UInt8]?
         /// Whether the album had a readable index before the walk.
         let hadIndex: Bool
         var entries: [MediaIndexEntry]
@@ -624,25 +634,31 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         return Set(moved.map { MediaComponent(mediaID: $0.mediaID, mediaType: $0.mediaType) })
     }
 
-    /// The ids of the CloudKit albums on this device, locked ones included: their
-    /// records are indexed too, so the album lists its media without its key.
-    private func localAlbumIDs() -> [String] {
-        let albumIDs = albumManager.fetchAlbumsFromSources(includingHidden: true)
-            .filter { $0.storageOption == .cloudKit }
-            .compactMap(\.albumID)
-        let lockedIDs = albumManager.lockedAlbums
-            .filter { $0.storageOption == .cloudKit }
-            .compactMap(\.albumID)
-        return albumIDs + lockedIDs.filter { !albumIDs.contains($0) }
+    /// The CloudKit albums on this device, locked ones included: their records
+    /// are indexed too, so the album lists its media without its key. An
+    /// unlocked album carries its key, nil for a locked one. Every key comes
+    /// from one album listing, which is one keychain read for the whole set.
+    private func localAlbumKeys() -> [(albumID: String, keyBytes: [UInt8]?)] {
+        var albums: [(albumID: String, keyBytes: [UInt8]?)] = []
+        var listed: Set<String> = []
+        for album in albumManager.fetchAlbumsFromSources(includingHidden: true) where album.storageOption == .cloudKit {
+            guard let albumID = album.albumID, listed.insert(albumID).inserted else { continue }
+            albums.append((albumID, album.key.keyBytes))
+        }
+        for locked in albumManager.lockedAlbums where locked.storageOption == .cloudKit {
+            guard let albumID = locked.albumID, listed.insert(albumID).inserted else { continue }
+            albums.append((albumID, nil))
+        }
+        return albums
     }
 
     /// Each local CloudKit album's index as it is on disk now, keyed by album id.
     private func loadAlbumIndexes() async -> [String: AlbumApply] {
         var albums: [String: AlbumApply] = [:]
-        for albumID in localAlbumIDs() {
+        for (albumID, keyBytes) in localAlbumKeys() {
             guard let indexStore = indexStore(forAlbumID: albumID) else { continue }
             let loaded = await indexStore.reloadFromDisk()
-            albums[albumID] = AlbumApply(albumID: albumID, indexStore: indexStore,
+            albums[albumID] = AlbumApply(albumID: albumID, indexStore: indexStore, keyBytes: keyBytes,
                                          hadIndex: loaded != nil, entries: loaded?.entries ?? [])
         }
         return albums
@@ -769,7 +785,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                                                          encHeader: meta.encHeader,
                                                          keyFingerprint: meta.keyFingerprint)
             target.seen.insert(MediaComponent(mediaID: mediaID, mediaType: meta.mediaType))
-            let incoming = Self.indexEntry(from: meta)
+            let incoming = await Self.indexEntry(from: meta, keyBytes: target.keyBytes)
             target.upserted.append(incoming)
             if target.entries.upsert(incoming) {
                 target.pendingCreates.append(Self.media(forRecordName: mediaID, albumID: meta.albumID, mediaType: meta.mediaType))
@@ -1280,13 +1296,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// Puts a capture into the local index and announces it, without touching
     /// CloudKit — the photo becomes visible in the album straight away and the
     /// upload follows behind it (`CloudKitUploader`).
-    public func registerLocally(_ item: CloudKitMediaUpload) async throws {
+    ///
+    /// - Parameter metadataKeyBytes: the key the item's `encMetadata` is sealed
+    ///   under, when the caller holds it. Nil reads the album's key from the
+    ///   keychain.
+    public func registerLocally(_ item: CloudKitMediaUpload, metadataKeyBytes: [UInt8]? = nil) async throws {
         guard let indexStore = indexStore(forAlbumID: item.albumID) else {
             printDebug("registerLocally FAILED recordName=\(item.recordName) albumID=\(item.albumID) — no album on this device has the id")
             throw CloudKitSyncCoordinatorError.unknownAlbum(item.albumID)
         }
         do {
-            try await indexStore.upsert([Self.indexEntry(fromUpload: item)])
+            try await indexStore.upsert([Self.indexEntry(fromUpload: item,
+                                                         keyBytes: captureMetadataKeyBytes(for: item, heldKeyBytes: metadataKeyBytes))])
         } catch {
             printDebug("registerLocally indexUpsert FAILED recordName=\(item.recordName) mediaID=\(item.mediaID) raw=\(error)")
             throw error
@@ -1301,10 +1322,17 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///   the gallery is not told twice about the same photo.
     /// - Parameter cacheInsertion: where the uploaded blob enters the blob
     ///   cache's eviction order.
+    /// - Parameter metadataKeyBytes: the key the item's `encMetadata` is sealed
+    ///   under, when the caller holds it, as the migration does while the phone
+    ///   is locked. Nil reads no keychain, so the uploader can drain while the
+    ///   phone is locked: the entry is built from the record's plaintext
+    ///   fields, and the dates `registerLocally` indexed at capture stay,
+    ///   because the index merge keeps an existing entry's dates.
     public func upload(_ item: CloudKitMediaUpload,
                        progress: @escaping @Sendable (Double) -> Void,
                        alreadyVisibleLocally: Bool = false,
-                       cacheInsertion: CloudKitBlobCache.Insertion = .warm) async throws -> CloudKitMediaRef {
+                       cacheInsertion: CloudKitBlobCache.Insertion = .warm,
+                       metadataKeyBytes: [UInt8]? = nil) async throws -> CloudKitMediaRef {
         printDebug("upload start recordName=\(item.recordName) albumID=\(item.albumID) mediaType=\(item.mediaType) sizeBytes=\(item.sizeBytes)")
         await forgetDeletion(of: item.recordName)
         let ref: CloudKitMediaRef
@@ -1332,7 +1360,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
         deleteQueue.forgetDeletion(of: ref.recordName)
         return try await recordLanded(item, ref: ref, alreadyVisibleLocally: alreadyVisibleLocally,
-                                      cacheInsertion: cacheInsertion)
+                                      cacheInsertion: cacheInsertion, metadataKeyBytes: metadataKeyBytes)
     }
 
     /// Adopts a record an earlier attempt of this upload already committed — the
@@ -1340,6 +1368,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// retry's save conflicts with its own record. Fetches the record by id and
     /// does the post-upload bookkeeping only when its album and size match `item`,
     /// so a conflict on someone else's record is never taken for ours.
+    ///
+    /// Indexes the item as `upload` does without a key, so it reads no keychain.
     ///
     /// - Throws: `.cancelled` when the item has been deleted on this device since
     ///   the save, as `upload` does for a save that lands after a delete; anything
@@ -1362,7 +1392,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                                    ref: CloudKitMediaRef(recordName: item.recordName,
                                                          recordChangeTag: landed.recordChangeTag),
                                    alreadyVisibleLocally: alreadyVisibleLocally,
-                                   cacheInsertion: .warm)
+                                   cacheInsertion: .warm,
+                                   metadataKeyBytes: nil)
         printDebug("adoptLandedUpload ok recordName=\(item.recordName)")
         return .adopted
     }
@@ -1388,7 +1419,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     private func recordLanded(_ item: CloudKitMediaUpload,
                               ref: CloudKitMediaRef,
                               alreadyVisibleLocally: Bool,
-                              cacheInsertion: CloudKitBlobCache.Insertion) async throws -> CloudKitMediaRef {
+                              cacheInsertion: CloudKitBlobCache.Insertion,
+                              metadataKeyBytes: [UInt8]?) async throws -> CloudKitMediaRef {
         if let tag = ref.recordChangeTag { changeTags[ref.recordName] = tag }
         let headerBytes = item.chunkCount > 0
             ? (try? SeekableEncryptedHeader.read(fromFileAt: item.encryptedFileURL))?.bytes
@@ -1408,7 +1440,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
         if let indexStore = indexStore(forAlbumID: item.albumID) {
             do {
-                try await indexStore.upsert([Self.indexEntry(fromUpload: item)])
+                try await indexStore.upsert([Self.indexEntry(fromUpload: item, keyBytes: metadataKeyBytes)])
             } catch {
                 printDebug("upload indexUpsert FAILED recordName=\(ref.recordName) mediaID=\(item.mediaID) — record is in CloudKit but not in the local index raw=\(error)")
                 throw error
@@ -1680,24 +1712,30 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// location is `.cloudKit`, so upserting it moves a component the index held
     /// on iCloud Drive to CloudKit while the entry keeps its date. `internal` for
     /// the disk/cloud index-equivalence test.
-    static func indexEntry(from meta: CloudKitMediaMetadata) -> MediaIndexEntry {
-        indexEntry(for: meta.descriptor)
+    static func indexEntry(from meta: CloudKitMediaMetadata, keyBytes: [UInt8]?) async -> MediaIndexEntry {
+        await indexEntry(for: meta.descriptor, keyBytes: keyBytes)
     }
 
-    private static func indexEntry(fromUpload item: CloudKitMediaUpload) -> MediaIndexEntry {
-        indexEntry(for: item.descriptor)
+    private static func indexEntry(fromUpload item: CloudKitMediaUpload, keyBytes: [UInt8]?) async -> MediaIndexEntry {
+        await indexEntry(for: item.descriptor, keyBytes: keyBytes)
     }
 
-    /// The entry's keys come from the record's plaintext fields. A record carries
-    /// one date, `createdAt`: the capture date, or the date added when that is
-    /// unknown. It stamps both "Date Added" and "Date Taken". The subtype comes
-    /// from the component type, as the disk index derives it; a Live Photo's
-    /// components collapse to a still in `MediaIndexEntry.merged`.
-    private static func indexEntry(for descriptor: CloudKitMediaRecordDescriptor) -> MediaIndexEntry {
-        MediaIndexEntry(id: descriptor.mediaID,
-                        hasPhotoComponent: descriptor.mediaType == .photo,
-                        hasVideoComponent: descriptor.mediaType == .video,
-                        keys: CloudKitRecordFieldsSortKeySource.sortKeys(forRecord: descriptor))
+    /// The entry's keys come from the standard resolver, given the record and no
+    /// file, so no blob is read. The metadata sealed in the record's
+    /// `encMetadata` under `keyBytes` supplies the dates and subtype; a record
+    /// without the field, or sealed under another key, falls through to its
+    /// plaintext `createdAt`, which stamps both "Date Added" and "Date Taken",
+    /// with the subtype from the component type. A Live Photo's components
+    /// collapse to a still in `MediaIndexEntry.merged`.
+    private static func indexEntry(for descriptor: CloudKitMediaRecordDescriptor,
+                                   keyBytes: [UInt8]?) async -> MediaIndexEntry {
+        let request = MediaSortKeyRequest(mediaID: descriptor.mediaID,
+                                          componentType: descriptor.mediaType,
+                                          record: descriptor)
+        return MediaIndexEntry(id: descriptor.mediaID,
+                               hasPhotoComponent: descriptor.mediaType == .photo,
+                               hasVideoComponent: descriptor.mediaType == .video,
+                               keys: await MediaSortKeyResolver.standard(keyBytes: keyBytes).sortKeys(for: request))
     }
 
     /// A lightweight `EncryptedMedia` carrying just the id/type so the gallery can

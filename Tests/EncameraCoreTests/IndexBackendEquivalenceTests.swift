@@ -12,9 +12,9 @@
 //  duplicated logic allowed.
 //
 //  A second case compares whole entries, dates and subtype included, for media
-//  whose taken and added dates match: a record carries one date, `createdAt`,
-//  and stamps both from it. Screenshots are the one subtype a record cannot
-//  carry.
+//  taken long before it was added, screenshots among them: the disk reads each
+//  file's encrypted metadata, and the cloud the same metadata sealed in each
+//  record's `encMetadata`.
 //
 
 import XCTest
@@ -47,44 +47,77 @@ final class IndexBackendEquivalenceTests: XCTestCase {
         )
     }
 
-    private func cloudMeta(id: String, type: MediaType) -> CloudKitMediaMetadata {
-        CloudKitMediaMetadata(
-            recordName: "\(id)#\(type.rawValue)",
+    private let key = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+
+    private func cloudMeta(id: String, type: MediaType, metadata: EncryptedFileMetadata? = nil) throws -> CloudKitMediaMetadata {
+        let recordName = "\(id)#\(type.rawValue)"
+        return CloudKitMediaMetadata(
+            recordName: recordName,
             albumID: "album",
             mediaID: id,
             mediaType: type,
-            createdAt: date,
+            createdAt: metadata?.captureDate ?? date,
             sizeBytes: 0,
             creationDeviceID: "device",
             schemaVersion: 1,
-            recordChangeTag: nil
+            keyFingerprint: "",
+            recordChangeTag: nil,
+            encMetadata: try metadata.map { try CloudKitRecordMetadataHandler.encryptMetadata($0, recordName: recordName, keyBytes: key.keyBytes) }
         )
     }
 
+    /// Metadata of media taken a year before it was added.
+    private func metadata(originalMediaType: String, isScreenshot: Bool = false, isLivePhoto: Bool = false) -> EncryptedFileMetadata {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = date
+        metadata.encryptionDate = date.addingTimeInterval(365 * 24 * 3600)
+        metadata.originalMediaType = originalMediaType
+        metadata.contentAnalysis = .init(isScreenshot: isScreenshot, isLivePhoto: isLivePhoto)
+        return metadata
+    }
+
     /// Same media, same full entries: dates, subtype and component flags.
-    func testDiskAndCloudProduceIdenticalEntriesIncludingDatesAndSubtype() {
+    func testDiskAndCloudProduceIdenticalEntriesIncludingDatesAndSubtype() async throws {
+        let components: [(id: String, type: MediaType, metadata: EncryptedFileMetadata)] = [
+            ("live", .video, metadata(originalMediaType: "livePhoto", isLivePhoto: true)),
+            ("live", .photo, metadata(originalMediaType: "livePhoto", isLivePhoto: true)),
+            ("video", .video, metadata(originalMediaType: "video")),
+            ("still", .photo, metadata(originalMediaType: "photo")),
+            ("screenshot", .photo, metadata(originalMediaType: "photo", isScreenshot: true)),
+        ]
+
+        var diskMedia: [EncryptedMedia] = []
+        var metadataMap: [URL: EncryptedFileMetadata] = [:]
+        for component in components {
+            let url = URL(fileURLWithPath: "/nonexistent/\(component.id).\(component.type.encryptedFileExtension)")
+            diskMedia.append(EncryptedMedia(source: .url(url), mediaType: component.type, id: component.id))
+            metadataMap[url] = component.metadata
+        }
+        let diskItems = await DiskFileAccess(key: key).buildMediaWithMetadataArray(
+            media: diskMedia, metadataMap: metadataMap, sortOption: .dateEncrypted(ascending: true), filterOptions: .all
+        )
         var diskIndex: [MediaIndexEntry] = []
-        for item in [diskItem(id: "live", type: .photo, subtype: .stillImage),
-                     diskItem(id: "live", type: .video, subtype: .stillImage),
-                     diskItem(id: "video", type: .video, subtype: .video),
-                     diskItem(id: "still", type: .photo, subtype: .stillImage)] {
+        for item in diskItems {
             diskIndex.upsert(DiskMediaBackend.entry(forFileLevelMetadata: item))
         }
         // The Live Photo's video arrives first, which must not make it filter as a video.
         var cloudIndex: [MediaIndexEntry] = []
-        for meta in [cloudMeta(id: "live", type: .video), cloudMeta(id: "live", type: .photo),
-                     cloudMeta(id: "video", type: .video), cloudMeta(id: "still", type: .photo)] {
-            cloudIndex.upsert(CloudKitSyncCoordinator.indexEntry(from: meta))
+        for component in components {
+            let meta = try cloudMeta(id: component.id, type: component.type, metadata: component.metadata)
+            cloudIndex.upsert(await CloudKitSyncCoordinator.indexEntry(from: meta, keyBytes: key.keyBytes))
         }
 
         let byID = { (entries: [MediaIndexEntry]) in Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) }) }
         XCTAssertEqual(byID(cloudIndex), byID(diskIndex))
+        let screenshot = byID(cloudIndex)["screenshot"]
+        XCTAssertEqual(screenshot?.subtypeRawValue, MediaFilterOptions.screenshot.rawValue)
+        XCTAssertNotEqual(screenshot?.dateEncrypted, screenshot?.dateTaken, "the dates must differ to be told apart")
     }
 
     /// Feed a Live Photo (photo + video components sharing an id) and a video-only
     /// item through both backends' mapping → upsert sequences; the resulting index
     /// shapes must be equal.
-    func testDiskAndCloudProduceEquivalentIndexForSameMedia() {
+    func testDiskAndCloudProduceEquivalentIndexForSameMedia() async throws {
         let livePhotoID = "live-photo-1"
         let videoID = "video-1"
 
@@ -99,11 +132,11 @@ final class IndexBackendEquivalenceTests: XCTestCase {
 
         var cloudIndex: [MediaIndexEntry] = []
         for meta in [
-            cloudMeta(id: livePhotoID, type: .photo),
-            cloudMeta(id: livePhotoID, type: .video),
-            cloudMeta(id: videoID, type: .video)
+            try cloudMeta(id: livePhotoID, type: .photo),
+            try cloudMeta(id: livePhotoID, type: .video),
+            try cloudMeta(id: videoID, type: .video)
         ] {
-            cloudIndex.upsert(CloudKitSyncCoordinator.indexEntry(from: meta))
+            cloudIndex.upsert(await CloudKitSyncCoordinator.indexEntry(from: meta, keyBytes: nil))
         }
 
         XCTAssertEqual(
