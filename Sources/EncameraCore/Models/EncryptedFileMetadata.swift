@@ -39,6 +39,14 @@ public enum EncryptedFileFormat {
 
 /// Encrypted file metadata - stored at the beginning of v2 encrypted files
 /// Enables fast sorting and filtering without decrypting the entire file content
+///
+/// The same JSON is also sealed onto CloudKit records (`CloudKitRecordMetadataHandler`),
+/// where builds of different ages read and re-save it. Evolution rules:
+/// - New fields must be optional, so JSON written before them still decodes.
+/// - Never change an existing field's type.
+/// - Use strings rather than enums, so a value an older build does not know
+///   still decodes.
+/// - An older build that re-saves metadata drops the fields it does not know.
 public struct EncryptedFileMetadata: Codable, Equatable, Sendable {
     
     /// Schema version for metadata format evolution
