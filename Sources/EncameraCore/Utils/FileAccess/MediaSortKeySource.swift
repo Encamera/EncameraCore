@@ -57,15 +57,15 @@ public struct MediaSortKeyResolver: Sendable, DebugPrintable {
         self.sources = sources
     }
 
-    /// The resolver every index builder that reads a file uses. Its order:
+    /// The resolver every index builder uses. Its order:
     ///
-    /// 1. The metadata encrypted into the CloudKit record (to be added ahead of
-    ///    the others).
+    /// 1. The metadata encrypted into the CloudKit record.
     /// 2. The metadata encrypted into the local file.
     /// 3. The CloudKit record's plaintext fields.
     /// 4. The local file's attributes.
     public static func standard(keyBytes: [UInt8]?) -> MediaSortKeyResolver {
         MediaSortKeyResolver(sources: [
+            EncryptedRecordMetadataSortKeySource(keyBytes: keyBytes),
             FileMetadataSortKeySource(keyBytes: keyBytes),
             CloudKitRecordFieldsSortKeySource(),
             FileAttributesSortKeySource(),
@@ -113,6 +113,27 @@ extension MediaSortKeys {
                       dateTaken: dateTaken ?? fallback.dateTaken,
                       subtype: subtype,
                       source: dateAdded == nil && fallback.dateAdded != nil ? fallback.source : source)
+    }
+}
+
+/// Reads the metadata sealed into the CloudKit record's `encMetadata` field.
+/// Answers nil without a key or a record, for a record without the field, and
+/// for one the key does not open, such as a record sealed under another key.
+/// Opening the field reads no blob.
+public struct EncryptedRecordMetadataSortKeySource: MediaSortKeySource {
+
+    private let keyBytes: [UInt8]?
+
+    public init(keyBytes: [UInt8]?) {
+        self.keyBytes = keyBytes
+    }
+
+    public func sortKeys(for request: MediaSortKeyRequest) async -> MediaSortKeys? {
+        guard let keyBytes, let record = request.record, let sealed = record.encMetadata,
+              let metadata = CloudKitRecordMetadataHandler.readMetadata(sealed, recordName: record.recordName, keyBytes: keyBytes) else {
+            return nil
+        }
+        return MediaSortKeys(metadata: metadata, componentType: request.componentType)
     }
 }
 

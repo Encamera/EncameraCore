@@ -55,6 +55,23 @@ final class MediaSortKeyResolverTests: XCTestCase {
                                       createdAt: createdAt, sizeBytes: 1, keyFingerprint: "")
     }
 
+    /// A photo record named "a#0" whose `encMetadata` seals the given dates under `sealingKey`.
+    private func recordWithEncMetadata(captureDate: Date?,
+                                       encryptionDate: Date?,
+                                       isScreenshot: Bool = false,
+                                       sealingKey: [UInt8]? = nil) throws -> CloudKitMediaRecordDescriptor {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = captureDate
+        metadata.encryptionDate = encryptionDate
+        if isScreenshot {
+            metadata.contentAnalysis = EncryptedFileMetadata.ContentAnalysis(isScreenshot: true)
+        }
+        let sealed = try CloudKitRecordMetadataHandler.encryptMetadata(metadata, recordName: "a#0", keyBytes: sealingKey ?? key.keyBytes)
+        return CloudKitMediaRecordDescriptor(albumID: "album", mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                             createdAt: recordCreatedAt, sizeBytes: 1, keyFingerprint: "",
+                                             encMetadata: sealed)
+    }
+
     /// An ENC2 photo whose embedded metadata carries the given dates.
     private func encryptedPhoto(captureDate: Date?, encryptionDate: Date?, isScreenshot: Bool = false) async throws -> URL {
         var metadata = EncryptedFileMetadata()
@@ -138,6 +155,22 @@ final class MediaSortKeyResolverTests: XCTestCase {
         XCTAssertEqual(keys.source, .recordFields)
     }
 
+    func testStandardResolverReadsTheRecordsEncMetadataBeforeTheFile() async throws {
+        let fileAdded = Date(timeIntervalSince1970: 1_650_000_000)
+        let url = try await encryptedPhoto(captureDate: nil, encryptionDate: fileAdded)
+        let record = try recordWithEncMetadata(captureDate: taken, encryptionDate: added, isScreenshot: true)
+        let keys = await MediaSortKeyResolver.standard(keyBytes: key.keyBytes)
+            .sortKeys(for: request(fileURL: url, record: record))
+        XCTAssertEqual(keys, MediaSortKeys(dateAdded: added, dateTaken: taken, subtype: .screenshot, source: .encryptedMetadata))
+    }
+
+    func testStandardResolverTakesUndatedEncMetadataDatesFromTheRecordFields() async throws {
+        let record = try recordWithEncMetadata(captureDate: nil, encryptionDate: nil, isScreenshot: true)
+        let keys = await MediaSortKeyResolver.standard(keyBytes: key.keyBytes).sortKeys(for: request(record: record))
+        XCTAssertEqual(keys, MediaSortKeys(dateAdded: recordCreatedAt, dateTaken: recordCreatedAt,
+                                           subtype: .screenshot, source: .recordFields))
+    }
+
     func testFileWithUndatedMetadataAndNoRecordSortsByItsCreationDate() async throws {
         let url = try await encryptedPhoto(captureDate: nil, encryptionDate: nil)
         let creationDate = try XCTUnwrap(url.resourceValues(forKeys: [.creationDateKey]).creationDate)
@@ -193,6 +226,40 @@ final class MediaSortKeyResolverTests: XCTestCase {
         try Data(repeating: 7, count: 64).write(to: url)
         let keys = await FileMetadataSortKeySource(keyBytes: key.keyBytes).sortKeys(for: request(fileURL: url))
         XCTAssertNil(keys)
+    }
+
+    func testEncryptedRecordSourceReadsDatesAndScreenshotFromEncMetadata() async throws {
+        let record = try recordWithEncMetadata(captureDate: taken, encryptionDate: added, isScreenshot: true)
+        let keys = await EncryptedRecordMetadataSortKeySource(keyBytes: key.keyBytes).sortKeys(for: request(record: record))
+        XCTAssertEqual(keys, MediaSortKeys(dateAdded: added, dateTaken: taken, subtype: .screenshot, source: .encryptedMetadata))
+    }
+
+    func testEncryptedRecordSourceTakesDateTakenFromDateAddedWithoutACaptureDate() async throws {
+        let record = try recordWithEncMetadata(captureDate: nil, encryptionDate: added)
+        let keys = await EncryptedRecordMetadataSortKeySource(keyBytes: key.keyBytes).sortKeys(for: request(record: record))
+        XCTAssertEqual(keys?.dateAdded, added)
+        XCTAssertEqual(keys?.dateTaken, added)
+    }
+
+    func testEncryptedRecordSourceReturnsNilForARecordWithoutTheField() async {
+        let keys = await EncryptedRecordMetadataSortKeySource(keyBytes: key.keyBytes)
+            .sortKeys(for: request(record: descriptor(createdAt: recordCreatedAt)))
+        XCTAssertNil(keys)
+    }
+
+    func testEncryptedRecordSourceReturnsNilUnderAnotherKey() async throws {
+        let record = try recordWithEncMetadata(captureDate: taken, encryptionDate: added,
+                                               sealingKey: Array(repeating: 0x43, count: 32))
+        let keys = await EncryptedRecordMetadataSortKeySource(keyBytes: key.keyBytes).sortKeys(for: request(record: record))
+        XCTAssertNil(keys)
+    }
+
+    func testEncryptedRecordSourceReturnsNilWithoutAKeyOrARecord() async throws {
+        let record = try recordWithEncMetadata(captureDate: taken, encryptionDate: added)
+        let withoutKey = await EncryptedRecordMetadataSortKeySource(keyBytes: nil).sortKeys(for: request(record: record))
+        let withoutRecord = await EncryptedRecordMetadataSortKeySource(keyBytes: key.keyBytes).sortKeys(for: request())
+        XCTAssertNil(withoutKey)
+        XCTAssertNil(withoutRecord)
     }
 
     func testRecordFieldsSourceUsesCreatedAtForBothDatesWithoutAddedAt() async {
