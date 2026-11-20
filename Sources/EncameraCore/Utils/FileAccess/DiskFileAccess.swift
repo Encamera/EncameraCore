@@ -330,7 +330,8 @@ public actor DiskFileAccess: DebugPrintable {
     ) -> (dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions) {
         
         if let metadata = v2Metadata {
-            let dateTaken = metadata.captureDate
+            // "Date Taken" falls back to the date added when the capture date is unknown.
+            let dateTaken = metadata.captureDate ?? metadata.encryptionDate
             let dateEncrypted = metadata.encryptionDate
             
             let subtype: MediaFilterOptions
