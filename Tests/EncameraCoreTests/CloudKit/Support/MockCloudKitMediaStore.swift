@@ -399,7 +399,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                         sizeBytes: old.sizeBytes,
                         keyFingerprint: old.keyFingerprint,
                         chunkCount: old.chunkCount,
-                        plaintextLength: old.plaintextLength
+                        plaintextLength: old.plaintextLength,
+                        encMetadata: old.encMetadata
                     )
                     let updated = CloudKitMediaMetadata(
                         descriptor: newDesc,

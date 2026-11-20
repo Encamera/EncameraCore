@@ -82,6 +82,9 @@ public enum CloudKitSchema {
         /// Plaintext byte length of a chunked video (duplicated out of `encHeader`
         /// so deletion and diagnostics never need to parse it).
         public static let plaintextLength = "plaintextLength"  // Int64
+        /// Album-key ciphertext of the item's `EncryptedFileMetadata`, bound to the
+        /// record name (`CloudKitRecordMetadataHandler`). Absent on older records.
+        public static let encMetadata    = "encMetadata"      // Bytes
     }
 
     /// The album record. Makes CloudKit the authoritative, cross-device source of

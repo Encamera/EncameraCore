@@ -51,7 +51,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         CloudKitSchema.EncMedia.keyFingerprint,
         CloudKitSchema.EncMedia.chunkCount,
         CloudKitSchema.EncMedia.plaintextLength,
-        CloudKitSchema.EncMedia.encHeader
+        CloudKitSchema.EncMedia.encHeader,
+        CloudKitSchema.EncMedia.encMetadata
     ]
 
     /// `desiredKeys` for the zone change feed, which carries BOTH record types.
@@ -229,6 +230,9 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         record[CloudKitSchema.EncMedia.creationDevice] = DeviceIdentity.currentID(defaults: defaults) as CKRecordValue
         record[CloudKitSchema.EncMedia.schemaVersion] = item.schemaVersion as CKRecordValue
         record[CloudKitSchema.EncMedia.keyFingerprint] = item.keyFingerprint as CKRecordValue
+        if let encMetadata = item.encMetadata {
+            record[CloudKitSchema.EncMedia.encMetadata] = encMetadata as CKRecordValue
+        }
         if let thumbnailURL {
             record[CloudKitSchema.EncMedia.encThumbnail] = CKAsset(fileURL: thumbnailURL)
         }
@@ -806,6 +810,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         let chunkCount = (record[CloudKitSchema.EncMedia.chunkCount] as? Int64).map(Int.init) ?? 0
         let plaintextLength = (record[CloudKitSchema.EncMedia.plaintextLength] as? Int64) ?? 0
         let encHeader = record[CloudKitSchema.EncMedia.encHeader] as? Data
+        let encMetadata = record[CloudKitSchema.EncMedia.encMetadata] as? Data
 
         let descriptor = CloudKitMediaRecordDescriptor(albumID: albumID,
                                                        mediaID: mediaID,
@@ -815,7 +820,8 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
                                                        sizeBytes: sizeBytes,
                                                        keyFingerprint: keyFingerprint,
                                                        chunkCount: chunkCount,
-                                                       plaintextLength: plaintextLength)
+                                                       plaintextLength: plaintextLength,
+                                                       encMetadata: encMetadata)
         return CloudKitMediaMetadata(descriptor: descriptor,
                                      creationDeviceID: creationDeviceID,
                                      schemaVersion: schemaVersion,

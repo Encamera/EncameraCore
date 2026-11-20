@@ -99,6 +99,96 @@ final class CloudKitRecordMetadataHandlerTests: XCTestCase {
         XCTAssertEqual(CloudKitRecordMetadataHandler.readMetadata(sealed, recordName: vector.recordName, keyBytes: vector.key), expected)
     }
 
+    // MARK: - The record field
+
+    func testDescriptorRoundTripsEncMetadataAndDecodesWithoutIt() throws {
+        let sealed = try CloudKitRecordMetadataHandler.encryptMetadata(fullyPopulatedMetadata(), recordName: recordName, keyBytes: key)
+        let descriptor = CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "media-1", recordName: recordName,
+                                                       mediaType: .video, createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                                       sizeBytes: 9, keyFingerprint: "abc", encMetadata: sealed)
+        let decoded = try JSONDecoder().decode(CloudKitMediaRecordDescriptor.self,
+                                               from: JSONEncoder().encode(descriptor))
+        XCTAssertEqual(decoded, descriptor)
+        XCTAssertEqual(decoded.encMetadata, sealed)
+
+        let withoutField = CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                                         mediaType: .photo, createdAt: Date(),
+                                                         sizeBytes: 1, keyFingerprint: "abc")
+        let encodedKeys = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(withoutField)) as? [String: Any]).keys
+        XCTAssertFalse(encodedKeys.contains("encMetadata"), "A descriptor without metadata writes the key set older builds read")
+
+        let older = """
+        {"albumID":"a1","mediaID":"m1","recordName":"m1#0","mediaTypeRawValue":0,\
+        "createdAt":0,"sizeBytes":1,"keyFingerprint":"abc"}
+        """
+        let olderDecoded = try JSONDecoder().decode(CloudKitMediaRecordDescriptor.self, from: Data(older.utf8))
+        XCTAssertNil(olderDecoded.encMetadata)
+        XCTAssertEqual(olderDecoded, CloudKitMediaRecordDescriptor(albumID: "a1", mediaID: "m1", recordName: "m1#0",
+                                                                   mediaType: .photo,
+                                                                   createdAt: Date(timeIntervalSinceReferenceDate: 0),
+                                                                   sizeBytes: 1, keyFingerprint: "abc"))
+    }
+
+    /// A queue manifest written before the field existed: its entry loads, rebuilds
+    /// and uploads, and the record carries no `encMetadata`.
+    func testUploadQueuedWithoutEncMetadataStillDecodesAndUploads() async throws {
+        let baseDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitRecordMetadataHandlerTests-\(UUID().uuidString)", isDirectory: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: baseDir) }
+        let albumDir = baseDir.appendingPathComponent(CloudKitBlobCache.albumFolderName("a1"), isDirectory: true)
+        try FileManager.default.createDirectory(at: albumDir, withIntermediateDirectories: true)
+        try Data("ciphertext".utf8).write(to: albumDir.appendingPathComponent("m1_0.photo"))
+        let manifest = """
+        [{"albumID":"a1","mediaID":"m1","recordName":"m1#0","mediaTypeRawValue":0,\
+        "createdAt":0,"sizeBytes":10,"fileName":"m1_0.photo","keyFingerprint":"abc",\
+        "queuedAt":5,"attempts":0,"hasGivenUp":false}]
+        """
+        try Data(manifest.utf8).write(to: baseDir.appendingPathComponent("queue.json"))
+
+        let queue = CloudKitUploadQueue(baseDir: baseDir)
+        let pending = await queue.pendingItem(recordName: "m1#0")
+        let item = try XCTUnwrap(pending, "The entry must decode from the older manifest")
+        XCTAssertNil(item.encMetadata)
+
+        let store = InMemoryCloudKitMediaStore()
+        let upload = await queue.rebuild(item, thumbURL: nil)
+        _ = try await store.upload(upload, progress: { _ in })
+        let fetched = try await store.fetchRecordMetadata(recordName: "m1#0")
+        let uploaded = try XCTUnwrap(fetched)
+        XCTAssertEqual(uploaded.albumID, "a1")
+        XCTAssertEqual(uploaded.keyFingerprint, "abc")
+        XCTAssertNil(uploaded.encMetadata)
+    }
+
+    func testReassignKeepsEncMetadata() async throws {
+        let sealed = try CloudKitRecordMetadataHandler.encryptMetadata(fullyPopulatedMetadata(), recordName: recordName, keyBytes: key)
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("enc-\(UUID().uuidString)")
+        try Data("ciphertext".utf8).write(to: file)
+        addTeardownBlock { try? FileManager.default.removeItem(at: file) }
+        let store = InMemoryCloudKitMediaStore()
+        let descriptor = CloudKitMediaRecordDescriptor(albumID: "source", mediaID: "media-1", recordName: recordName,
+                                                       mediaType: .photo, createdAt: Date(),
+                                                       sizeBytes: 10, keyFingerprint: "abc", encMetadata: sealed)
+        _ = try await store.upload(CloudKitMediaUpload(descriptor: descriptor, encryptedFileURL: file, encryptedThumbURL: nil),
+                                   progress: { _ in })
+
+        let notFound = try await store.reassignAlbum(recordNames: [recordName], toAlbumID: "destination")
+        XCTAssertEqual(notFound, [])
+        let fetched = try await store.fetchRecordMetadata(recordName: recordName)
+        let moved = try XCTUnwrap(fetched)
+        XCTAssertEqual(moved.albumID, "destination")
+        XCTAssertEqual(moved.encMetadata, sealed)
+        XCTAssertEqual(CloudKitRecordMetadataHandler.readMetadata(try XCTUnwrap(moved.encMetadata), recordName: recordName, keyBytes: key),
+                       fullyPopulatedMetadata())
+    }
+
+    func testMetadataKeysIncludeEncMetadataAndExcludeBlob() {
+        XCTAssertTrue(CloudKitMediaStore.metadataKeys.contains(CloudKitSchema.EncMedia.encMetadata))
+        XCTAssertTrue(CloudKitMediaStore.changeFeedKeys.contains(CloudKitSchema.EncMedia.encMetadata))
+        XCTAssertFalse(CloudKitMediaStore.metadataKeys.contains(CloudKitSchema.EncMedia.encBlob))
+        XCTAssertFalse(CloudKitMediaStore.changeFeedKeys.contains(CloudKitSchema.EncMedia.encBlob))
+    }
+
     private static func data(fromHex hex: String) -> Data? {
         let chars = Array(hex)
         guard chars.count.isMultiple(of: 2) else { return nil }

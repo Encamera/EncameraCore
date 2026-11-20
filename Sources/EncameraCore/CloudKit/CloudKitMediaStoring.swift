@@ -45,6 +45,10 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
     public let chunkCount: Int
     /// Plaintext byte length of a chunked blob (0 when monolithic).
     public let plaintextLength: Int64
+    /// `EncMedia.encMetadata`: the item's `EncryptedFileMetadata` sealed under the
+    /// album key and bound to `recordName` (`CloudKitRecordMetadataHandler`). `nil` when
+    /// the record carries none, as every record written before the field does.
+    public let encMetadata: Data?
 
     public init(albumID: String,
                 mediaID: String,
@@ -54,7 +58,8 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
                 sizeBytes: Int64,
                 keyFingerprint: String,
                 chunkCount: Int = 0,
-                plaintextLength: Int64 = 0) {
+                plaintextLength: Int64 = 0,
+                encMetadata: Data? = nil) {
         self.albumID = albumID
         self.mediaID = mediaID
         self.recordName = recordName ?? mediaID
@@ -64,10 +69,11 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
         self.keyFingerprint = keyFingerprint
         self.chunkCount = chunkCount
         self.plaintextLength = plaintextLength
+        self.encMetadata = encMetadata
     }
 
     private enum CodingKeys: String, CodingKey {
-        case albumID, mediaID, recordName, createdAt, sizeBytes, keyFingerprint, chunkCount, plaintextLength
+        case albumID, mediaID, recordName, createdAt, sizeBytes, keyFingerprint, chunkCount, plaintextLength, encMetadata
         case mediaType = "mediaTypeRawValue"
     }
 
@@ -82,6 +88,7 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
         keyFingerprint = try c.decode(String.self, forKey: .keyFingerprint)
         chunkCount = try c.decodeIfPresent(Int.self, forKey: .chunkCount) ?? 0
         plaintextLength = try c.decodeIfPresent(Int64.self, forKey: .plaintextLength) ?? 0
+        encMetadata = try c.decodeIfPresent(Data.self, forKey: .encMetadata)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -97,6 +104,7 @@ public struct CloudKitMediaRecordDescriptor: Codable, Sendable, Equatable {
             try c.encode(chunkCount, forKey: .chunkCount)
             try c.encode(plaintextLength, forKey: .plaintextLength)
         }
+        try c.encodeIfPresent(encMetadata, forKey: .encMetadata)
     }
 }
 
@@ -142,6 +150,7 @@ public struct CloudKitMediaUpload: Sendable {
                 keyFingerprint: String,
                 chunkCount: Int = 0,
                 plaintextLength: Int64 = 0,
+                encMetadata: Data? = nil,
                 schemaVersion: Int64 = CloudKitSchema.currentSchemaVersion) {
         self.init(descriptor: CloudKitMediaRecordDescriptor(albumID: albumID,
                                                             mediaID: mediaID,
@@ -151,7 +160,8 @@ public struct CloudKitMediaUpload: Sendable {
                                                             sizeBytes: sizeBytes,
                                                             keyFingerprint: keyFingerprint,
                                                             chunkCount: chunkCount,
-                                                            plaintextLength: plaintextLength),
+                                                            plaintextLength: plaintextLength,
+                                                            encMetadata: encMetadata),
                   encryptedFileURL: encryptedFileURL,
                   encryptedThumbURL: encryptedThumbURL,
                   schemaVersion: schemaVersion)
@@ -206,7 +216,8 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
                 recordChangeTag: String?,
                 chunkCount: Int = 0,
                 plaintextLength: Int64 = 0,
-                encHeader: Data? = nil) {
+                encHeader: Data? = nil,
+                encMetadata: Data? = nil) {
         self.init(descriptor: CloudKitMediaRecordDescriptor(albumID: albumID,
                                                             mediaID: mediaID,
                                                             recordName: recordName,
@@ -215,7 +226,8 @@ public struct CloudKitMediaMetadata: Sendable, Equatable {
                                                             sizeBytes: sizeBytes,
                                                             keyFingerprint: keyFingerprint,
                                                             chunkCount: chunkCount,
-                                                            plaintextLength: plaintextLength),
+                                                            plaintextLength: plaintextLength,
+                                                            encMetadata: encMetadata),
                   creationDeviceID: creationDeviceID,
                   schemaVersion: schemaVersion,
                   recordChangeTag: recordChangeTag,

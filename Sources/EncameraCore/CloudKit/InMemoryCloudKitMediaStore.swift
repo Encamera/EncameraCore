@@ -372,7 +372,8 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
                     sizeBytes: oldDesc.sizeBytes,
                     keyFingerprint: oldDesc.keyFingerprint,
                     chunkCount: oldDesc.chunkCount,
-                    plaintextLength: oldDesc.plaintextLength
+                    plaintextLength: oldDesc.plaintextLength,
+                    encMetadata: oldDesc.encMetadata
                 )
                 stored.metadata = CloudKitMediaMetadata(
                     descriptor: newDesc,

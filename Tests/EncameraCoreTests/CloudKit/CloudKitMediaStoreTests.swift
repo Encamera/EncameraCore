@@ -333,6 +333,43 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertNotNil(meta.first?.encHeader)
     }
 
+    func testUploadWritesEncMetadataOnlyWhenTheDescriptorCarriesIt() async throws {
+        let sealed = Data([0xA0, 0xA1, 0xA2])
+        let adapter = MockCloudKitDatabase()
+        let store = makeStore(adapter: adapter, defaults: freshDefaults())
+        let plain = makeUpload(mediaID: "plain")
+        let withMetadata = CloudKitMediaUpload(
+            descriptor: CloudKitMediaRecordDescriptor(albumID: plain.albumID, mediaID: "sealed",
+                                                      mediaType: plain.mediaType, createdAt: plain.createdAt,
+                                                      sizeBytes: plain.sizeBytes, keyFingerprint: "",
+                                                      encMetadata: sealed),
+            encryptedFileURL: plain.encryptedFileURL,
+            encryptedThumbURL: plain.encryptedThumbURL)
+
+        _ = try await store.upload(plain, progress: { _ in })
+        let plainRecord = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertNil(plainRecord[CloudKitSchema.EncMedia.encMetadata])
+
+        _ = try await store.upload(withMetadata, progress: { _ in })
+        let sealedRecord = try XCTUnwrap(adapter.savedRecordBatches.last?.first)
+        XCTAssertEqual(sealedRecord[CloudKitSchema.EncMedia.encMetadata] as? Data, sealed)
+    }
+
+    func testFetchedMetadataCarriesEncMetadataAndIsNilWithoutIt() async throws {
+        let sealed = Data([0xB0, 0xB1])
+        let withField = CloudKitTestFactory.encMediaRecord(recordName: "sealed", albumID: "a1")
+        withField[CloudKitSchema.EncMedia.encMetadata] = sealed as CKRecordValue
+        let mock = MockCloudKitDatabase()
+        mock.stubbedQueryRecords = [withField, CloudKitTestFactory.encMediaRecord(recordName: "legacy", albumID: "a1")]
+        let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+        let meta = try await store.fetchMetadata(albumID: "a1", includeThumbnail: false)
+        let byName = Dictionary(uniqueKeysWithValues: meta.map { ($0.recordName, $0) })
+        XCTAssertEqual(byName["sealed"]?.encMetadata, sealed)
+        XCTAssertNotNil(byName["legacy"])
+        XCTAssertNil(byName["legacy"]?.encMetadata)
+    }
+
     /// Companion to `testEveryDesiredKeysListRequestsTheKeyFingerprint`: every list
     /// that names fields must name these three, including the change feed — a delta
     /// sync that reads `chunkCount` as 0 does not merely fail to learn the geometry,
