@@ -94,14 +94,14 @@ final class CloudKitDateAddedTests: XCTestCase {
         let url = try await encryptedPhoto(id: "a", captureDate: taken, encryptionDate: added)
         let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
                                  createdAt: Date(timeIntervalSince1970: 0), sizeBytes: 1)
-        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        let createdAt = await LocalToCloudKitStep.recordSortKeys(for: item, at: url, keyBytes: key.keyBytes).dateTaken
         XCTAssertEqual(createdAt, taken)
     }
 
     func testMigratedRecordOfAFileWithNoCaptureDateIsTakenWhenAdded() async throws {
         let url = try await encryptedPhoto(id: "a", captureDate: nil, encryptionDate: added)
         let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo, createdAt: taken, sizeBytes: 1)
-        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        let createdAt = await LocalToCloudKitStep.recordSortKeys(for: item, at: url, keyBytes: key.keyBytes).dateTaken
         XCTAssertEqual(createdAt, added)
     }
 
@@ -109,19 +109,8 @@ final class CloudKitDateAddedTests: XCTestCase {
         let url = tempDirectory.appendingPathComponent("v1.encimage")
         try Data(repeating: 7, count: 64).write(to: url)
         let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo, createdAt: taken, sizeBytes: 1)
-        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        let createdAt = await LocalToCloudKitStep.recordSortKeys(for: item, at: url, keyBytes: key.keyBytes).dateTaken
         XCTAssertEqual(createdAt, taken)
-    }
-
-    /// A move back to the device indexes the landed file as the disk index would.
-    func testFileMovedToLocalIsIndexedFromItsOwnMetadata() async throws {
-        let url = try await encryptedPhoto(id: "a", captureDate: taken, encryptionDate: added)
-        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
-                                 createdAt: Date(timeIntervalSince1970: 0), sizeBytes: 1)
-        let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: url, item: item, key: key)
-        XCTAssertEqual(entry.dateEncrypted, added)
-        XCTAssertEqual(entry.dateTaken, taken)
-        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
     }
 
     func testFileMovedToLocalFallsBackToTheItemsDateWhenUnreadable() async {

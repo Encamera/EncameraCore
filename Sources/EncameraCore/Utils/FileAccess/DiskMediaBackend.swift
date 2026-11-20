@@ -589,23 +589,19 @@ public actor DiskMediaBackend: MediaBackend {
     }
 
     /// The index entry for a component a move just landed in a local album,
-    /// read from the file's own metadata as the disk index reads any file. The
-    /// item's planned `createdAt` stands in for both dates when the file cannot
-    /// be read.
+    /// read from the file's own encrypted metadata. The item's planned
+    /// `createdAt`, the date its record carried, stands in for any date the
+    /// metadata does not have, and for both when the file has no metadata or
+    /// cannot be read.
     static func indexEntry(forMovedFileAt url: URL?, item: MigrationItem, key: PrivateKey) async -> MediaIndexEntry {
-        if let url {
-            let media = EncryptedMedia(source: .url(url), mediaType: item.mediaType, id: item.mediaID)
-            if let read = await DiskFileAccess(key: key).encryptedMediaWithMetadata(for: [media]).first,
-               read.metadata != nil {
-                return entry(forFileLevelMetadata: read)
-            }
-        }
+        let request = MediaSortKeyRequest(mediaID: item.mediaID, componentType: item.mediaType, fileURL: url)
+        let keys = await MediaSortKeyResolver(sources: [FileMetadataSortKeySource(keyBytes: key.keyBytes)])
+            .sortKeys(for: request)
+            .fillingMissingDates(from: MediaSortKeys(recordCreatedAt: item.createdAt, componentType: item.mediaType))
         return MediaIndexEntry(id: item.mediaID,
                                hasPhotoComponent: item.mediaType == .photo,
                                hasVideoComponent: item.mediaType == .video,
-                               dateEncrypted: item.createdAt,
-                               dateTaken: item.createdAt,
-                               subtypeRawValue: MediaIndexEntry.subtype(forComponent: item.mediaType).rawValue)
+                               keys: keys)
     }
 
     // MARK: - Test hooks

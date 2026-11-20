@@ -450,9 +450,7 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
             return (component, MediaIndexEntry(id: component.mediaID,
                                                hasPhotoComponent: component.type == .photo,
                                                hasVideoComponent: component.type == .video,
-                                               dateEncrypted: createdAt,
-                                               dateTaken: createdAt,
-                                               subtypeRawValue: MediaIndexEntry.subtype(forComponent: component.type).rawValue,
+                                               keys: MediaSortKeys(recordCreatedAt: createdAt, componentType: component.type),
                                                photoLocation: .iCloudDrive,
                                                videoLocation: .iCloudDrive))
         }

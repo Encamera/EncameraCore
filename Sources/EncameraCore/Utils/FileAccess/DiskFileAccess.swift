@@ -331,11 +331,10 @@ public actor DiskFileAccess: DebugPrintable {
         if let metadata = v2Metadata {
             return MediaSortKeys(metadata: metadata, componentType: media.mediaType)
         }
-        var creationDate: Date?
         if case .url(let url) = media.source {
-            creationDate = try? url.resourceValues(forKeys: [.creationDateKey]).creationDate
+            return FileAttributesSortKeySource.sortKeys(forFileAt: url, componentType: media.mediaType)
         }
-        return MediaSortKeys(fileCreationDate: creationDate, componentType: media.mediaType)
+        return MediaSortKeys(fileCreationDate: nil, componentType: media.mediaType)
     }
     
     // MARK: - Enumeration with Metadata

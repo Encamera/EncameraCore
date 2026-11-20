@@ -1688,17 +1688,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         indexEntry(for: item.descriptor)
     }
 
-    /// A record carries one date, `createdAt`: the capture date, or the date
-    /// added when that is unknown. It stamps both "Date Added" and "Date Taken".
-    /// The subtype comes from the component type, as the disk index derives it;
-    /// a Live Photo's components collapse to a still in `MediaIndexEntry.merged`.
+    /// The entry's keys come from the record's plaintext fields. A record carries
+    /// one date, `createdAt`: the capture date, or the date added when that is
+    /// unknown. It stamps both "Date Added" and "Date Taken". The subtype comes
+    /// from the component type, as the disk index derives it; a Live Photo's
+    /// components collapse to a still in `MediaIndexEntry.merged`.
     private static func indexEntry(for descriptor: CloudKitMediaRecordDescriptor) -> MediaIndexEntry {
         MediaIndexEntry(id: descriptor.mediaID,
                         hasPhotoComponent: descriptor.mediaType == .photo,
                         hasVideoComponent: descriptor.mediaType == .video,
-                        dateEncrypted: descriptor.createdAt,
-                        dateTaken: descriptor.createdAt,
-                        subtypeRawValue: MediaIndexEntry.subtype(forComponent: descriptor.mediaType).rawValue)
+                        keys: CloudKitRecordFieldsSortKeySource.sortKeys(forRecord: descriptor))
     }
 
     /// A lightweight `EncryptedMedia` carrying just the id/type so the gallery can

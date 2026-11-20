@@ -204,12 +204,12 @@ public final class ICloudDriveItemMove: DebugPrintable {
         let read = await DiskFileAccess(key: target.key).encryptedMediaWithMetadata(for: landed)
         var entries = DiskMediaBackend.makeEntries(fromFileLevelMetadata: read)
         if entries.isEmpty {
+            let keys = MediaSortKeys(dateAdded: media.timestamp, dateTaken: media.timestamp,
+                                     subtype: [], source: .fileAttributes)
             entries = [MediaIndexEntry(id: media.id,
                                        hasPhotoComponent: copied.contains(.photo),
                                        hasVideoComponent: copied.contains(.video),
-                                       dateEncrypted: media.timestamp,
-                                       dateTaken: media.timestamp,
-                                       subtypeRawValue: 0)]
+                                       keys: keys)]
         }
         _ = try? await albumManager.mediaIndexStore(for: target).upsert(entries)
     }

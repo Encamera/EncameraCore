@@ -105,6 +105,17 @@ public struct MediaSortKeyResolver: Sendable, DebugPrintable {
     }
 }
 
+extension MediaSortKeys {
+    /// These keys with each missing date taken from `fallback`. `source` names
+    /// `fallback`'s source when it supplied `dateAdded`.
+    func fillingMissingDates(from fallback: MediaSortKeys) -> MediaSortKeys {
+        MediaSortKeys(dateAdded: dateAdded ?? fallback.dateAdded,
+                      dateTaken: dateTaken ?? fallback.dateTaken,
+                      subtype: subtype,
+                      source: dateAdded == nil && fallback.dateAdded != nil ? fallback.source : source)
+    }
+}
+
 /// Reads the metadata encrypted into the local file. Answers nil without a
 /// key or a file, for a V1 file, which has no metadata, and for an iCloud
 /// placeholder, which is not read.

@@ -147,6 +147,39 @@ final class MediaSortKeyResolverTests: XCTestCase {
         XCTAssertEqual(keys.source, .fileAttributes)
     }
 
+    // MARK: - Builders
+
+    /// A move back to the device indexes the landed file from its own metadata,
+    /// not from the date its plan recorded.
+    func testMovedFileIndexEntryComesFromTheFileNotThePlan() async throws {
+        let url = try await encryptedPhoto(captureDate: taken, encryptionDate: added)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                 createdAt: Date(timeIntervalSince1970: 0), sizeBytes: 1)
+        let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: url, item: item, key: key)
+        XCTAssertEqual(entry.dateEncrypted, added)
+        XCTAssertEqual(entry.dateTaken, taken)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
+    }
+
+    func testMovedFileWithUndatedMetadataTakesThePlansDate() async throws {
+        let url = try await encryptedPhoto(captureDate: nil, encryptionDate: nil, isScreenshot: true)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                 createdAt: recordCreatedAt, sizeBytes: 1)
+        let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: url, item: item, key: key)
+        XCTAssertEqual(entry.dateEncrypted, recordCreatedAt)
+        XCTAssertEqual(entry.dateTaken, recordCreatedAt)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.screenshot.rawValue)
+    }
+
+    func testRecordSortKeysOfUndatedMetadataTakeThePlansDate() async throws {
+        let url = try await encryptedPhoto(captureDate: nil, encryptionDate: nil)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                 createdAt: recordCreatedAt, sizeBytes: 1)
+        let keys = await LocalToCloudKitStep.recordSortKeys(for: item, at: url, keyBytes: key.keyBytes)
+        XCTAssertEqual(keys.dateAdded, recordCreatedAt)
+        XCTAssertEqual(keys.dateTaken, recordCreatedAt)
+    }
+
     // MARK: - Sources
 
     func testFileSourceReadsDatesAndScreenshotFromAnENC2File() async throws {
