@@ -189,6 +189,172 @@ final class CloudKitRecordMetadataHandlerTests: XCTestCase {
         XCTAssertFalse(CloudKitMediaStore.changeFeedKeys.contains(CloudKitSchema.EncMedia.encBlob))
     }
 
+    // MARK: - Records a save creates
+
+    /// Metadata with values a log line could leak, kept short of the fields a
+    /// save derives itself.
+    private func capturedMetadata(originalMediaType: String) -> EncryptedFileMetadata {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = Date(timeIntervalSince1970: 1_500_000_000)
+        metadata.encryptionDate = Date(timeIntervalSince1970: 1_700_000_000)
+        metadata.location = .init(latitude: 52.52, longitude: 13.405, placeName: "Alexanderplatz")
+        metadata.originalMediaType = originalMediaType
+        metadata.originalFilename = "IMG_SECRET_0001.HEIC"
+        return metadata
+    }
+
+    /// A CloudKit album under `key`, and an access that saves into `store`.
+    private func makeSavingAccess(store: InMemoryCloudKitMediaStore) async -> (CloudKitFileAccess, Album) {
+        let album = Album(name: "record-metadata-\(UUID().uuidString)", storageOption: .cloudKit, creationDate: Date(),
+                          key: PrivateKey(keyBytes: key, creationDate: Date()), albumID: UUID().uuidString)
+        let keyManager = DemoKeyManager()
+        keyManager.currentKey = album.key
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+        let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: store)
+        let albumBaseURL = CloudKitStorageModel(album: album).baseURL
+        let indexURL = MediaIndexStore.indexURL(for: album)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: albumBaseURL)
+            try? FileManager.default.removeItem(at: indexURL)
+        }
+        return (access, album)
+    }
+
+    private func removePreviewAfterTest(mediaID: String) {
+        addTeardownBlock { try? FileManager.default.removeItem(at: CloudKitStorageModel.previewURL(forMediaID: mediaID)) }
+    }
+
+    /// The metadata the record's `encMetadata` opens to under `keyBytes`, or nil.
+    private func openedRecordMetadata(in store: CloudKitMediaStoring,
+                                      recordName: String,
+                                      keyBytes: [UInt8]) async throws -> EncryptedFileMetadata? {
+        let fetched = try await store.fetchRecordMetadata(recordName: recordName)
+        let record = try XCTUnwrap(fetched, "no record named \(recordName)")
+        let sealed = try XCTUnwrap(record.encMetadata, "record \(recordName) carries no encMetadata")
+        return CloudKitRecordMetadataHandler.readMetadata(sealed, recordName: recordName, keyBytes: keyBytes)
+    }
+
+    /// The metadata encrypted into the record's blob.
+    private func blobMetadata(in store: CloudKitMediaStoring,
+                              recordName: String,
+                              keyBytes: [UInt8]) async throws -> EncryptedFileMetadata? {
+        let blobURL = FileManager.default.temporaryDirectory.appendingPathComponent("blob-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: blobURL) }
+        try await store.fetchBlob(recordName: recordName, to: blobURL, progress: { _ in })
+        return try await EncryptedMetadataHandler().readMetadata(from: blobURL, keyBytes: keyBytes)
+    }
+
+    func testSaveSingleWritesEncMetadataThatOpensToTheSavedMetadata() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        let (access, _) = await makeSavingAccess(store: store)
+
+        let photoID = UUID().uuidString
+        removePreviewAfterTest(mediaID: photoID)
+        let photoMetadata = capturedMetadata(originalMediaType: "photo")
+        let photo = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: photoID)
+        ])
+        _ = try await access.save(media: photo, metadata: photoMetadata, progress: { _ in })
+
+        let movieURL = FileManager.default.temporaryDirectory.appendingPathComponent("record-metadata-\(UUID().uuidString).mov")
+        try await EncryptedStreamResourceLoaderTests.writeTinyMovie(to: movieURL, seconds: 1)
+        defer { try? FileManager.default.removeItem(at: movieURL) }
+        let videoID = UUID().uuidString
+        removePreviewAfterTest(mediaID: videoID)
+        var videoMetadata = capturedMetadata(originalMediaType: "video")
+        videoMetadata.video = .init(duration: 1, frameRate: 30, codec: "avc1", hasAudio: false)
+        let video = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .url(movieURL), mediaType: .video, id: videoID)
+        ])
+        _ = try await access.save(media: video, metadata: videoMetadata, progress: { _ in })
+        await access.drainUploads()
+
+        for (id, type, saved) in [(photoID, MediaType.photo, photoMetadata), (videoID, .video, videoMetadata)] {
+            let recordName = MediaRecordName.componentRecordName(mediaID: id, type: type)
+            let opened = try await openedRecordMetadata(in: store, recordName: recordName, keyBytes: key)
+            XCTAssertEqual(opened, saved, "the \(type) record opens to the metadata it was saved with")
+            let inFile = try await blobMetadata(in: store, recordName: recordName, keyBytes: key)
+            XCTAssertEqual(opened, inFile, "the \(type) record and its file carry the same metadata")
+        }
+    }
+
+    func testSaveWithoutMetadataSealsTheEmptyMetadataItsFileCarries() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        let (access, _) = await makeSavingAccess(store: store)
+        let id = UUID().uuidString
+        removePreviewAfterTest(mediaID: id)
+        let photo = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: id)
+        ])
+
+        _ = try await access.save(media: photo, metadata: nil, progress: { _ in })
+        await access.drainUploads()
+
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
+        let opened = try await openedRecordMetadata(in: store, recordName: recordName, keyBytes: key)
+        XCTAssertEqual(opened, EncryptedFileMetadata())
+        let inFile = try await blobMetadata(in: store, recordName: recordName, keyBytes: key)
+        XCTAssertEqual(opened, inFile)
+    }
+
+    func testLivePhotoComponentsBothCarryEncMetadata() async throws {
+        let store = InMemoryCloudKitMediaStore()
+        let (access, _) = await makeSavingAccess(store: store)
+        let id = UUID().uuidString
+        removePreviewAfterTest(mediaID: id)
+        var metadata = capturedMetadata(originalMediaType: "livePhoto")
+        metadata.contentAnalysis = .init(isLivePhoto: true)
+        let live = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: id),
+            CleartextMedia(source: .data(Data("live photo video".utf8)), mediaType: .video, id: id),
+        ])
+        XCTAssertEqual(live.mediaType, .livePhoto)
+
+        _ = try await access.save(media: live, metadata: metadata, progress: { _ in })
+        await access.drainUploads()
+
+        for type in [MediaType.photo, .video] {
+            let recordName = MediaRecordName.componentRecordName(mediaID: id, type: type)
+            let opened = try await openedRecordMetadata(in: store, recordName: recordName, keyBytes: key)
+            XCTAssertEqual(opened, metadata, "the Live Photo's \(type) record carries its metadata")
+        }
+    }
+
+    func testSaveLogNamesTheRecordWithoutMetadataValues() async throws {
+        let wasCapturing = DebugLogBuffer.shared.isCapturing
+        DebugLogBuffer.shared.setCapturing(true)
+        DebugLogBuffer.shared.clear()
+        defer { DebugLogBuffer.shared.setCapturing(wasCapturing) }
+        let store = InMemoryCloudKitMediaStore()
+        let (access, _) = await makeSavingAccess(store: store)
+        let id = UUID().uuidString
+        removePreviewAfterTest(mediaID: id)
+        let metadata = capturedMetadata(originalMediaType: "photo")
+        let photo = try InteractableMedia(underlyingMedia: [
+            CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: id)
+        ])
+
+        _ = try await access.save(media: photo, metadata: metadata, progress: { _ in })
+        await access.drainUploads()
+
+        let lines = DebugLogBuffer.shared.snapshot(newestFirst: false).map(\.message)
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
+        XCTAssertTrue(lines.contains { $0.contains(recordName) }, "the upload log names the record")
+        assertNoLine(lines, leaks: metadata)
+    }
+
+    private func assertNoLine(_ lines: [String], leaks metadata: EncryptedFileMetadata,
+                              file: StaticString = #filePath, line: UInt = #line) {
+        let values = [metadata.location?.placeName, metadata.originalFilename,
+                      metadata.captureDate.map { "\($0)" }, metadata.encryptionDate.map { "\($0)" },
+                      metadata.location.map { "\($0.latitude)" }].compactMap { $0 }
+        for value in values {
+            XCTAssertFalse(lines.contains { $0.contains(value) }, "a log line carries the metadata value \(value)",
+                           file: file, line: line)
+        }
+    }
+
     private static func data(fromHex hex: String) -> Data? {
         let chars = Array(hex)
         guard chars.count.isMultiple(of: 2) else { return nil }

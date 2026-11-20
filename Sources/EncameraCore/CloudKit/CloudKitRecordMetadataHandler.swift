@@ -15,7 +15,7 @@ import Sodium
 /// ciphertext and tag of the metadata JSON (`EncryptedMetadataHandler.encodeMetadata`).
 /// The additional data is `"ENCKMETA"` plus the UTF-8 record name, so a sealed
 /// value copied onto another record does not decrypt there.
-public enum CloudKitRecordMetadataHandler {
+public enum CloudKitRecordMetadataHandler: DebugPrintable {
 
     /// Domain separator for the additional data, distinct from the ENC3 header's
     /// `"ENC3META"`.
@@ -34,6 +34,20 @@ public enum CloudKitRecordMetadataHandler {
             additionalData: additionalData(recordName: recordName)
         ) else { throw EncryptionError.encryptionFailed }
         return Data(sealed)
+    }
+
+    /// `metadata` encrypted for a new record's `encMetadata` field, or nil when it
+    /// cannot be encrypted: the field is optional, so the record saves without it.
+    /// A failure is logged by record name only.
+    public static func encryptMetadataForRecordField(_ metadata: EncryptedFileMetadata,
+                                                     recordName: String,
+                                                     keyBytes: [UInt8]) -> Data? {
+        do {
+            return try encryptMetadata(metadata, recordName: recordName, keyBytes: keyBytes)
+        } catch {
+            printDebug("encryptMetadata FAILED recordName=\(recordName) — the record saves without encMetadata")
+            return nil
+        }
     }
 
     /// Decrypts and decodes the metadata sealed in `sealed`, or nil when the key,

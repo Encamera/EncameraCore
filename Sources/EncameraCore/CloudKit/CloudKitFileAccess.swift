@@ -360,6 +360,8 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                             progress: @escaping @Sendable (Double) -> Void) async throws -> EncryptedMedia {
         let encURL = directoryModel.driveURLForMedia(withID: item.id, type: item.mediaType)
         try FileManager.default.createDirectory(at: directoryModel.baseURL, withIntermediateDirectories: true)
+        // The file and its record's `encMetadata` carry the same metadata.
+        let fileMetadata = metadata ?? EncryptedFileMetadata()
 
         let plaintextLength = item.url.flatMap { $0.fileSizeBytes() } ?? 0
         var chunkGeometry: (chunkCount: Int, plaintextLength: Int64)?
@@ -367,7 +369,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
            VideoChunkingPolicy.shouldWriteSeekableFormat(mediaType: item.mediaType,
                                                          plaintextLength: plaintextLength,
                                                          storageType: .cloudKit) {
-            let metadataJSON = try SeekableEncryptedFormat.encodeMetadata(metadata ?? EncryptedFileMetadata())
+            let metadataJSON = try SeekableEncryptedFormat.encodeMetadata(fileMetadata)
             let capturedKey = keyBytes
             let header = try await Task.detached(priority: .userInitiated) {
                 try SeekableEncryptedWriter(keyBytes: capturedKey)
@@ -381,7 +383,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             let sub = handler.progress
                 .receive(on: DispatchQueue.main)
                 .sink { percent in progress(percent) }
-            _ = try await handler.encryptWithMetadata(metadata ?? EncryptedFileMetadata())
+            _ = try await handler.encryptWithMetadata(fileMetadata)
             sub.cancel()
         }
 
@@ -409,16 +411,18 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         if size == 0 {
             printDebug("saveSingle size WARNING mediaID=\(item.id) mediaType=\(item.mediaType) sizeBytes=0 file=\(encURL.lastPathComponent)")
         }
+        let recordName = Self.componentRecordName(mediaID: item.id, type: item.mediaType)
         let descriptor = CloudKitMediaRecordDescriptor(
             albumID: albumID,
             mediaID: item.id,
-            recordName: Self.componentRecordName(mediaID: item.id, type: item.mediaType),
+            recordName: recordName,
             mediaType: item.mediaType,
             createdAt: metadata?.primaryDate ?? Date(),
             sizeBytes: size,
             keyFingerprint: proven.fingerprint,
             chunkCount: chunkGeometry?.chunkCount ?? 0,
-            plaintextLength: chunkGeometry?.plaintextLength ?? 0
+            plaintextLength: chunkGeometry?.plaintextLength ?? 0,
+            encMetadata: CloudKitRecordMetadataHandler.encryptMetadataForRecordField(fileMetadata, recordName: recordName, keyBytes: keyBytes)
         )
         let upload = CloudKitMediaUpload(descriptor: descriptor,
                                          encryptedFileURL: encURL,
