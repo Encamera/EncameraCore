@@ -344,6 +344,149 @@ final class CloudKitRecordMetadataHandlerTests: XCTestCase {
         assertNoLine(lines, leaks: metadata)
     }
 
+    // MARK: - Records a move to CloudKit creates
+
+    private let albumKey = PrivateKey(keyBytes: Array(repeating: 0xA1, count: 32), creationDate: Date(timeIntervalSince1970: 1_000))
+    private let otherKey = PrivateKey(keyBytes: Array(repeating: 0xB2, count: 32), creationDate: Date(timeIntervalSince1970: 2_000))
+
+    /// A local album under `albumKey` with its directories created, removed after the test.
+    private func makeLocalAlbum() throws -> Album {
+        let album = Album(name: "record-metadata-\(UUID().uuidString)", storageOption: .local, creationDate: Date(), key: albumKey)
+        try album.storageOption.modelForType.init(album: album).initializeDirectories()
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: album.storageOption.modelForType.init(album: album).baseURL)
+            try? FileManager.default.removeItem(at: MigrationPlanStore.planURL(for: album))
+            try? FileManager.default.removeItem(at: MigrationPlanStore.directoryURL(forSource: album))
+            if let markerID = CloudKitAlbumMarker.albumID(matching: album) {
+                try? CloudKitAlbumMarker.remove(albumID: markerID)
+            }
+            try? MediaIndexStore.clearAllIndexes()
+        }
+        return album
+    }
+
+    private func sourceURL(in album: Album, id: String, type: MediaType = .photo) -> URL {
+        album.storageOption.modelForType.init(album: album).driveURLForMedia(withID: id, type: type)
+    }
+
+    /// Writes an ENC2 photo carrying `metadata` under `key` at `url`.
+    private func writeENC2Photo(to url: URL, id: String, key: PrivateKey, metadata: EncryptedFileMetadata) async throws {
+        let source = CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: id)
+        _ = try await SecretFileHandlerV2(keyBytes: key.keyBytes, source: source, targetURL: url).encryptWithMetadata(metadata)
+    }
+
+    @MainActor
+    private func makeMigration(keys: [PrivateKey],
+                               store: MockCloudKitMediaStore) -> (CloudKitMigrationManager, MockAlbumManager) {
+        let keyManager = DemoKeyManager(keys: keys)
+        keyManager.currentKey = albumKey
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        return (CloudKitMigrationManager(albumManager: albumManager, storeFactory: { _ in store }), albumManager)
+    }
+
+    /// An item move of the photo `id` from `source` into a new CloudKit album.
+    @MainActor
+    private func moveItemToCloudKit(id: String, from source: Album,
+                                    store: MockCloudKitMediaStore) async throws -> CloudKitMigrationManager {
+        let destination = Album(name: "record-metadata-\(UUID().uuidString)", storageOption: .cloudKit,
+                                creationDate: Date(), key: albumKey, albumID: UUID().uuidString)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: CloudKitStorageModel(album: destination).baseURL)
+            if let albumID = destination.albumID { try? CloudKitAlbumMarker.remove(albumID: albumID) }
+        }
+        let (manager, albumManager) = makeMigration(keys: [albumKey], store: store)
+        albumManager.albumsOnDisk = [source, destination]
+        let url = sourceURL(in: source, id: id)
+        let plan = try MigrationPlan.items(source: source, destination: destination, items: [
+            MigrationItem(mediaID: id, recordName: MediaRecordName.componentRecordName(mediaID: id, type: .photo),
+                          mediaType: .photo, createdAt: Date(timeIntervalSince1970: 0),
+                          sizeBytes: try XCTUnwrap(url.fileSizeBytes()))
+        ])
+        await manager.start(plan: plan)
+        return manager
+    }
+
+    private func uploadedEncMetadata(_ store: MockCloudKitMediaStore, mediaID: String) throws -> (recordName: String, sealed: Data?) {
+        let upload = try XCTUnwrap(store.uploadedItems.first { $0.mediaID == mediaID }, "\(mediaID) was never uploaded")
+        return (upload.recordName, upload.encMetadata)
+    }
+
+    @MainActor
+    func testMoveToCloudKitWritesEncMetadataFromTheSourceFile() async throws {
+        let wasCapturing = DebugLogBuffer.shared.isCapturing
+        DebugLogBuffer.shared.setCapturing(true)
+        DebugLogBuffer.shared.clear()
+        defer { DebugLogBuffer.shared.setCapturing(wasCapturing) }
+        let source = try makeLocalAlbum()
+        let id = UUID().uuidString
+        var metadata = capturedMetadata(originalMediaType: "photo")
+        metadata.contentAnalysis = .init(isScreenshot: true)
+        try await writeENC2Photo(to: sourceURL(in: source, id: id), id: id, key: albumKey, metadata: metadata)
+        let store = MockCloudKitMediaStore()
+        store.reflectUploadsInMetadata = true
+
+        let manager = try await moveItemToCloudKit(id: id, from: source, store: store)
+
+        XCTAssertEqual(manager.state, .completed)
+        let (recordName, sealed) = try uploadedEncMetadata(store, mediaID: id)
+        let opened = CloudKitRecordMetadataHandler.readMetadata(try XCTUnwrap(sealed, "the moved record carries no encMetadata"),
+                                                                recordName: recordName, keyBytes: albumKey.keyBytes)
+        XCTAssertEqual(opened, metadata, "the record opens to the metadata in the moved file")
+        XCTAssertEqual(store.uploadedItems.first?.createdAt, metadata.captureDate, "createdAt is still the capture date")
+        let lines = DebugLogBuffer.shared.snapshot(newestFirst: false).map(\.message)
+        XCTAssertTrue(lines.contains { $0.contains(recordName) }, "the upload log names the record")
+        assertNoLine(lines, leaks: metadata)
+    }
+
+    @MainActor
+    func testMoveOfV1FileLeavesEncMetadataNil() async throws {
+        let source = try makeLocalAlbum()
+        let id = UUID().uuidString
+        let cleartext = CleartextMedia(source: .data(TestImageData.png()), mediaType: .photo, id: id)
+        _ = try await SecretFileHandler(keyBytes: albumKey.keyBytes, source: cleartext,
+                                        targetURL: sourceURL(in: source, id: id)).encrypt()
+        XCTAssertNotEqual(Array(try Data(contentsOf: sourceURL(in: source, id: id)).prefix(4)), EncryptedFileFormat.magic,
+                          "precondition: the file is V1")
+        let store = MockCloudKitMediaStore()
+        store.reflectUploadsInMetadata = true
+
+        let manager = try await moveItemToCloudKit(id: id, from: source, store: store)
+
+        XCTAssertEqual(manager.state, .completed)
+        XCTAssertNil(try uploadedEncMetadata(store, mediaID: id).sealed, "a V1 file has no metadata to seal")
+    }
+
+    /// A whole-album move of an album holding one file under another key.
+    @MainActor
+    func testEncMetadataIsSealedUnderTheFilesProvenKey() async throws {
+        let album = try makeLocalAlbum()
+        let albumKeyID = UUID().uuidString
+        let otherKeyID = UUID().uuidString
+        var albumKeyMetadata = capturedMetadata(originalMediaType: "photo")
+        albumKeyMetadata.originalFilename = "album-key.HEIC"
+        var otherKeyMetadata = capturedMetadata(originalMediaType: "photo")
+        otherKeyMetadata.originalFilename = "other-key.HEIC"
+        try await writeENC2Photo(to: sourceURL(in: album, id: albumKeyID), id: albumKeyID, key: albumKey, metadata: albumKeyMetadata)
+        try await writeENC2Photo(to: sourceURL(in: album, id: otherKeyID), id: otherKeyID, key: otherKey, metadata: otherKeyMetadata)
+        let store = MockCloudKitMediaStore()
+        store.reflectUploadsInMetadata = true
+        let (manager, _) = makeMigration(keys: [albumKey, otherKey], store: store)
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        let other = try uploadedEncMetadata(store, mediaID: otherKeyID)
+        let otherSealed = try XCTUnwrap(other.sealed)
+        XCTAssertEqual(CloudKitRecordMetadataHandler.readMetadata(otherSealed, recordName: other.recordName, keyBytes: otherKey.keyBytes),
+                       otherKeyMetadata, "the record opens under the key that encrypted its file")
+        XCTAssertNil(CloudKitRecordMetadataHandler.readMetadata(otherSealed, recordName: other.recordName, keyBytes: albumKey.keyBytes),
+                     "not under the album's key")
+        let own = try uploadedEncMetadata(store, mediaID: albumKeyID)
+        XCTAssertEqual(CloudKitRecordMetadataHandler.readMetadata(try XCTUnwrap(own.sealed), recordName: own.recordName,
+                                                                  keyBytes: albumKey.keyBytes),
+                       albumKeyMetadata)
+    }
+
     private func assertNoLine(_ lines: [String], leaks metadata: EncryptedFileMetadata,
                               file: StaticString = #filePath, line: UInt = #line) {
         let values = [metadata.location?.placeName, metadata.originalFilename,

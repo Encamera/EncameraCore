@@ -190,7 +190,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         
         do {
             let metadata = try Self.decodeMetadata(Data(decryptedBytes))
-            printDebug("readMetadata: Successfully parsed metadata, captureDate: \(String(describing: metadata.captureDate))")
+            printDebug("readMetadata: Successfully parsed metadata")
             return metadata
         } catch {
             printDebug("readMetadata: JSON decode error: \(error)")

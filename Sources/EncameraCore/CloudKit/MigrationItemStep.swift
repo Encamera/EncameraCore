@@ -260,17 +260,22 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 chunkGeometry = (reencrypted.header.chunkCount, Int64(reencrypted.header.plaintextLength))
             }
 
-            let sortKeys = await Self.recordSortKeys(for: item, at: encURL, keyBytes: proven.key.keyBytes)
+            let sourceFields = await Self.sourceFileRecordFields(for: item, at: encURL, keyBytes: proven.key.keyBytes)
+            // Sealed under the key that encrypted the file, which need not be the album's.
+            let encMetadata = sourceFields.metadata.flatMap {
+                CloudKitRecordMetadataHandler.encryptMetadataForRecordField($0, recordName: item.recordName, keyBytes: proven.key.keyBytes)
+            }
             let descriptor = CloudKitMediaRecordDescriptor(
                 albumID: context.cloudKitAlbumID,
                 mediaID: item.mediaID,
                 recordName: item.recordName,
                 mediaType: item.mediaType,
-                createdAt: sortKeys.dateTaken ?? item.createdAt,
+                createdAt: sourceFields.sortKeys.dateTaken ?? item.createdAt,
                 sizeBytes: item.sizeBytes,
                 keyFingerprint: proven.fingerprint,
                 chunkCount: chunkGeometry?.chunkCount ?? 0,
-                plaintextLength: chunkGeometry?.plaintextLength ?? 0
+                plaintextLength: chunkGeometry?.plaintextLength ?? 0,
+                encMetadata: encMetadata
             )
             // A re-encryption has a new file id every attempt, so chunks an earlier
             // attempt left behind would not decrypt under this attempt's header.
@@ -410,10 +415,39 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
     /// metadata cannot be read (a V1 file has none), since an item move plans
     /// with the file's creation date, not the capture date.
     static func recordSortKeys(for item: MigrationItem, at encURL: URL, keyBytes: [UInt8]) async -> MediaSortKeys {
+        await sourceFileRecordFields(for: item, at: encURL, keyBytes: keyBytes).sortKeys
+    }
+
+    /// What an item's record takes from its source file, read once.
+    struct SourceFileRecordFields: Sendable {
+        /// The keys `recordSortKeys` describes.
+        let sortKeys: MediaSortKeys
+        /// The file's encrypted metadata, or nil when it has none (a V1 file)
+        /// or it cannot be read under the key.
+        let metadata: EncryptedFileMetadata?
+    }
+
+    /// The item's record sort keys, as `recordSortKeys` gives them, and the
+    /// metadata they were read from.
+    static func sourceFileRecordFields(for item: MigrationItem,
+                                       at encURL: URL,
+                                       keyBytes: [UInt8]) async -> SourceFileRecordFields {
+        let metadata = try? await EncryptedMetadataHandler().readMetadata(from: encURL, keyBytes: keyBytes)
         let request = MediaSortKeyRequest(mediaID: item.mediaID, componentType: item.mediaType, fileURL: encURL)
-        return await MediaSortKeyResolver(sources: [FileMetadataSortKeySource(keyBytes: keyBytes)])
+        let sortKeys = await MediaSortKeyResolver(sources: [ReadFileMetadataSortKeySource(metadata: metadata)])
             .sortKeys(for: request)
             .fillingMissingDates(from: MediaSortKeys(recordCreatedAt: item.createdAt, componentType: item.mediaType))
+        return SourceFileRecordFields(sortKeys: sortKeys, metadata: metadata)
+    }
+
+    /// Answers with keys from metadata already read from the file, as
+    /// `FileMetadataSortKeySource` would from the file, and nil without any.
+    private struct ReadFileMetadataSortKeySource: MediaSortKeySource {
+        let metadata: EncryptedFileMetadata?
+
+        func sortKeys(for request: MediaSortKeyRequest) async -> MediaSortKeys? {
+            metadata.map { MediaSortKeys(metadata: $0, componentType: request.componentType) }
+        }
     }
 
     /// Whether the item's upload re-encrypts it: a legacy (not ENC3) video at or
