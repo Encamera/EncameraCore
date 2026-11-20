@@ -15,6 +15,18 @@ final class CloudKitDateAddedTests: XCTestCase {
 
     private let taken = Date(timeIntervalSince1970: 1_500_000_000)
     private let added = Date(timeIntervalSince1970: 1_700_000_000)
+    private let key = PrivateKey(keyBytes: Array(repeating: 0x42, count: 32), creationDate: Date(timeIntervalSince1970: 0))
+    private var tempDirectory: URL!
+
+    override func setUpWithError() throws {
+        tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("CloudKitDateAddedTests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: tempDirectory)
+    }
 
     private func descriptor(id: String, type: MediaType = .photo, createdAt: Date) -> CloudKitMediaRecordDescriptor {
         CloudKitMediaRecordDescriptor(albumID: "album", mediaID: id, mediaType: type,
@@ -23,6 +35,18 @@ final class CloudKitDateAddedTests: XCTestCase {
 
     private func meta(_ descriptor: CloudKitMediaRecordDescriptor) -> CloudKitMediaMetadata {
         CloudKitMediaMetadata(descriptor: descriptor, creationDeviceID: "device", schemaVersion: 1, recordChangeTag: nil)
+    }
+
+    /// An ENC2 photo whose embedded metadata carries the given dates.
+    private func encryptedPhoto(id: String, captureDate: Date?, encryptionDate: Date?) async throws -> URL {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = captureDate
+        metadata.encryptionDate = encryptionDate
+        let source = CleartextMedia(source: Data((0..<4096).map { UInt8($0 % 251) }), mediaType: .photo, id: id)
+        let url = tempDirectory.appendingPathComponent("\(id).\(MediaType.photo.encryptedFileExtension)")
+        _ = try await SecretFileHandlerV2(keyBytes: key.keyBytes, source: source, targetURL: url)
+            .encryptWithMetadata(metadata)
+        return url
     }
 
     // MARK: - Record -> index
@@ -60,5 +84,52 @@ final class CloudKitDateAddedTests: XCTestCase {
         let merged = video.merged(with: photo)
         XCTAssertTrue(merged.hasPhotoComponent && merged.hasVideoComponent)
         XCTAssertEqual(merged.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
+    }
+
+    // MARK: - Moves
+
+    /// A move to CloudKit dates the record from the file itself, whatever the
+    /// plan recorded: an item move plans with the file's creation date.
+    func testMigratedRecordDateComesFromTheFilesMetadata() async throws {
+        let url = try await encryptedPhoto(id: "a", captureDate: taken, encryptionDate: added)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                 createdAt: Date(timeIntervalSince1970: 0), sizeBytes: 1)
+        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        XCTAssertEqual(createdAt, taken)
+    }
+
+    func testMigratedRecordOfAFileWithNoCaptureDateIsTakenWhenAdded() async throws {
+        let url = try await encryptedPhoto(id: "a", captureDate: nil, encryptionDate: added)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo, createdAt: taken, sizeBytes: 1)
+        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        XCTAssertEqual(createdAt, added)
+    }
+
+    func testMigratedRecordFallsBackToThePlanWhenTheFileHasNoMetadata() async throws {
+        let url = tempDirectory.appendingPathComponent("v1.encimage")
+        try Data(repeating: 7, count: 64).write(to: url)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo, createdAt: taken, sizeBytes: 1)
+        let createdAt = await LocalToCloudKitStep.recordCreatedAt(for: item, at: url, keyBytes: key.keyBytes)
+        XCTAssertEqual(createdAt, taken)
+    }
+
+    /// A move back to the device indexes the landed file as the disk index would.
+    func testFileMovedToLocalIsIndexedFromItsOwnMetadata() async throws {
+        let url = try await encryptedPhoto(id: "a", captureDate: taken, encryptionDate: added)
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo,
+                                 createdAt: Date(timeIntervalSince1970: 0), sizeBytes: 1)
+        let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: url, item: item, key: key)
+        XCTAssertEqual(entry.dateEncrypted, added)
+        XCTAssertEqual(entry.dateTaken, taken)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
+    }
+
+    func testFileMovedToLocalFallsBackToTheItemsDateWhenUnreadable() async {
+        let item = MigrationItem(mediaID: "a", recordName: "a#0", mediaType: .photo, createdAt: taken, sizeBytes: 1)
+        let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: tempDirectory.appendingPathComponent("missing"),
+                                                      item: item, key: key)
+        XCTAssertEqual(entry.dateEncrypted, taken)
+        XCTAssertEqual(entry.dateTaken, taken)
+        XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
     }
 }

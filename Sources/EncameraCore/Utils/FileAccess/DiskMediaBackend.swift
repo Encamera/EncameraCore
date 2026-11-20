@@ -551,7 +551,7 @@ public actor DiskMediaBackend: MediaBackend {
     /// them into one entry per id through the shared `upsert` algebra — a Live
     /// Photo's photo and video components (sharing an id) collapse into a single
     /// entry with both flags set. Insertion order follows first appearance.
-    private static func makeEntries(
+    static func makeEntries(
         fromFileLevelMetadata items: [MediaWithMetadata<EncryptedMedia>]
     ) -> [MediaIndexEntry] {
         var entries: [MediaIndexEntry] = []
@@ -577,6 +577,26 @@ public actor DiskMediaBackend: MediaBackend {
             dateTaken: item.dateTaken,
             subtypeRawValue: item.mediaSubtype.rawValue
         )
+    }
+
+    /// The index entry for a component a move just landed in a local album,
+    /// read from the file's own metadata as the disk index reads any file. The
+    /// item's planned `createdAt` stands in for both dates when the file cannot
+    /// be read.
+    static func indexEntry(forMovedFileAt url: URL?, item: MigrationItem, key: PrivateKey) async -> MediaIndexEntry {
+        if let url {
+            let media = EncryptedMedia(source: .url(url), mediaType: item.mediaType, id: item.mediaID)
+            if let read = await DiskFileAccess(key: key).encryptedMediaWithMetadata(for: [media]).first,
+               read.metadata != nil {
+                return entry(forFileLevelMetadata: read)
+            }
+        }
+        return MediaIndexEntry(id: item.mediaID,
+                               hasPhotoComponent: item.mediaType == .photo,
+                               hasVideoComponent: item.mediaType == .video,
+                               dateEncrypted: item.createdAt,
+                               dateTaken: item.createdAt,
+                               subtypeRawValue: MediaIndexEntry.subtype(forComponent: item.mediaType).rawValue)
     }
 
     // MARK: - Test hooks

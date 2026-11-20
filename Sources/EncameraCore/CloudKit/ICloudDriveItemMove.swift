@@ -186,6 +186,7 @@ public final class ICloudDriveItemMove: DebugPrintable {
         let targetModel = target.storageOption.modelForType.init(album: target)
         try targetModel.initializeDirectories()
         var copied: [MediaType] = []
+        var landed: [EncryptedMedia] = []
         for component in media.underlyingMedia {
             let from = folderModel.driveURLForMedia(withID: component.id, type: component.mediaType)
             let to = targetModel.driveURLForMedia(withID: component.id, type: component.mediaType)
@@ -196,14 +197,21 @@ public final class ICloudDriveItemMove: DebugPrintable {
                 throw ICloudDriveItemMoveError.notMoved
             }
             copied.append(component.mediaType)
+            landed.append(EncryptedMedia(source: .url(to), mediaType: component.mediaType, id: component.id))
         }
-        let entry = MediaIndexEntry(id: media.id,
-                                    hasPhotoComponent: copied.contains(.photo),
-                                    hasVideoComponent: copied.contains(.video),
-                                    dateEncrypted: nil,
-                                    dateTaken: media.timestamp,
-                                    subtypeRawValue: 0)
-        _ = try? await albumManager.mediaIndexStore(for: target).upsert([entry])
+        // Indexed from the copies' own metadata, as the disk index reads any file,
+        // so both dates and the subtype come across.
+        let read = await DiskFileAccess(key: target.key).encryptedMediaWithMetadata(for: landed)
+        var entries = DiskMediaBackend.makeEntries(fromFileLevelMetadata: read)
+        if entries.isEmpty {
+            entries = [MediaIndexEntry(id: media.id,
+                                       hasPhotoComponent: copied.contains(.photo),
+                                       hasVideoComponent: copied.contains(.video),
+                                       dateEncrypted: media.timestamp,
+                                       dateTaken: media.timestamp,
+                                       subtypeRawValue: 0)]
+        }
+        _ = try? await albumManager.mediaIndexStore(for: target).upsert(entries)
     }
 
     /// Takes the item out of the source album: its plan items first, so no pass

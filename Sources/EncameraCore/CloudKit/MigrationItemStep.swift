@@ -260,12 +260,13 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 chunkGeometry = (reencrypted.header.chunkCount, Int64(reencrypted.header.plaintextLength))
             }
 
+            let createdAt = await Self.recordCreatedAt(for: item, at: encURL, keyBytes: proven.key.keyBytes)
             let descriptor = CloudKitMediaRecordDescriptor(
                 albumID: context.cloudKitAlbumID,
                 mediaID: item.mediaID,
                 recordName: item.recordName,
                 mediaType: item.mediaType,
-                createdAt: item.createdAt,
+                createdAt: createdAt,
                 sizeBytes: item.sizeBytes,
                 keyFingerprint: proven.fingerprint,
                 chunkCount: chunkGeometry?.chunkCount ?? 0,
@@ -400,6 +401,15 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
         guard owner != context.cloudKitAlbumID else { return .thisAlbum }
         try await setAsideAsOwnedByAnotherAlbum(at: index, owner: owner, in: &plan, context: context)
         return .anotherAlbum
+    }
+
+    /// The record's `createdAt`, read from the file's own encrypted metadata: the
+    /// capture date, falling back to the encryption date. The plan's date stands
+    /// in when the metadata cannot be read — a V1 file has none — since an item
+    /// move plans with the file's creation date, not the capture date.
+    static func recordCreatedAt(for item: MigrationItem, at encURL: URL, keyBytes: [UInt8]) async -> Date {
+        let metadata = try? await EncryptedMetadataHandler().readMetadata(from: encURL, keyBytes: keyBytes)
+        return metadata?.primaryDate ?? item.createdAt
     }
 
     /// Whether the item's upload re-encrypts it: a legacy (not ENC3) video at or

@@ -1585,17 +1585,10 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         case .toCloudKit:
             await removeFromSourceIndex(item, source: source)
         case .toLocal:
-            let entry = MediaIndexEntry(
-                id: item.mediaID,
-                hasPhotoComponent: item.mediaType == .photo,
-                hasVideoComponent: item.mediaType == .video,
-                dateEncrypted: nil,
-                dateTaken: item.createdAt,
-                subtypeRawValue: 0
-            )
+            let url = destinationModel?.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
+            let entry = await DiskMediaBackend.indexEntry(forMovedFileAt: url, item: item, key: destination.key)
             _ = try? await albumManager.mediaIndexStore(for: destination).upsert([entry])
-            guard let destinationModel else { return }
-            let url = destinationModel.driveURLForMedia(withID: item.mediaID, type: item.mediaType)
+            guard let url else { return }
             FileOperationBus.shared.didCreate(EncryptedMedia(source: .url(url), mediaType: item.mediaType, id: item.mediaID))
         }
     }
