@@ -25,6 +25,12 @@ public actor DiskFileAccess: DebugPrintable {
     /// Limits concurrent preview generation to avoid memory spikes from accumulated decrypted data.
     private static let previewSemaphore = AsyncSemaphore(value: 5)
 
+    /// Whether a preview's source file is an iCloud Drive placeholder. Reads
+    /// resource values only. Tests replace it to stand a local file in for one.
+    @TaskLocal static var previewSourceNeedsDownload: @Sendable (URL) -> Bool = {
+        iCloudFileStatusUtil.needsDownload(url: $0)
+    }
+
     /// In-memory cache for decrypted preview thumbnails. NSCache is thread-safe,
     /// so it can be accessed outside actor isolation. Auto-evicts under memory pressure.
     private static let previewCache: NSCache<NSString, PreviewModelWrapper> = {
@@ -712,8 +718,20 @@ extension DiskFileAccess {
 
     /// `slowMotion` is the ramp of a video being saved; a stored video's own
     /// ramp is read from its metadata. The grid shows the slowed duration.
+    ///
+    /// - Throws: `FileAccessError.iCloudFileNotDownloaded` for an encrypted file
+    ///   whose bytes are not on disk, after asking iCloud Drive for them. A read
+    ///   of such a file waits on the download, which may never finish, and would
+    ///   hold a preview slot every other album's saves need.
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T, slowMotion: SlowMotionRamp? = nil) async throws -> PreviewModel {
         try Task.checkCancellation()
+        if let encrypted = media as? EncryptedMedia,
+           case .url(let sourceURL) = encrypted.source,
+           Self.previewSourceNeedsDownload(sourceURL) {
+            printDebug("createPreview: skipped id=\(media.id) mediaType=\(media.mediaType) reason=needsDownload")
+            try? iCloudFileStatusUtil.startDownload(for: sourceURL)
+            throw FileAccessError.iCloudFileNotDownloaded(status: iCloudFileStatusUtil.getStatus(for: sourceURL))
+        }
         await Self.previewSemaphore.wait()
         defer { Task { await Self.previewSemaphore.signal() } }
         try Task.checkCancellation()
