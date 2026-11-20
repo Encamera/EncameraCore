@@ -588,32 +588,40 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
     /// What one walk does to one album's index, accumulated before anything is
     /// saved.
-    private struct AlbumApply {
+    private struct PendingAlbumIndexChanges {
         let albumID: String
         let indexStore: MediaIndexStore
         /// The album's key, for the metadata sealed on its records. Nil when the
         /// album is locked on this device.
         let keyBytes: [UInt8]?
         /// Whether the album had a readable index before the walk.
-        let hadIndex: Bool
-        var entries: [MediaIndexEntry]
-        /// Entries from changed records, in feed order, to fold onto the live
-        /// index.
-        var upserted: [IncomingEntry] = []
-        var removedRecordNames: [String] = []
-        var pendingCreates: [EncryptedMedia] = []
-        var pendingDeletes: [EncryptedMedia] = []
-        var sizeUpdates: [String: Int64] = [:]
-        var sizeRemovals: Set<String> = []
+        let hadIndexBeforeWalk: Bool
+        /// The album's entries as loaded from disk, with the walk's changes made
+        /// to them. Routing and the reap read this; it is never saved as is.
+        var workingEntries: [MediaIndexEntry]
+        /// Entries from changed records, in feed order, upserted onto the live
+        /// index on save.
+        var upsertedEntries: [IncomingEntry] = []
+        /// Component record names the walk removed, removed from the live index
+        /// on save.
+        var removedComponentRecordNames: [String] = []
+        /// Media to announce on the bus as created once the index is saved.
+        var createdMediaToAnnounce: [EncryptedMedia] = []
+        /// Media to announce on the bus as deleted once the index is saved.
+        var deletedMediaToAnnounce: [EncryptedMedia] = []
+        /// Record sizes to persist, keyed by record name.
+        var recordSizeUpdates: [String: Int64] = [:]
+        /// Record names whose persisted sizes are dropped.
+        var recordSizeRemovals: Set<String> = []
         /// Components the walk returned for this album, for the reap.
-        var seen: Set<MediaComponent> = []
+        var componentsReturnedByWalk: Set<MediaComponent> = []
 
-        func holds(mediaID: String) -> Bool {
-            entries.contains { $0.id == mediaID }
+        func holdsEntry(forMediaID mediaID: String) -> Bool {
+            workingEntries.contains { $0.id == mediaID }
         }
 
-        var isChanged: Bool {
-            !upserted.isEmpty || !removedRecordNames.isEmpty
+        var hasIndexChanges: Bool {
+            !upsertedEntries.isEmpty || !removedComponentRecordNames.isEmpty
         }
     }
 
@@ -642,15 +650,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///
     /// A reaped record is marked without a claim, so it reads as deleted until a
     /// later fetch returns it, and then becomes readable again.
-    private func reap(_ album: inout AlbumApply,
-                      pendingUpload: Set<MediaComponent>,
-                      movedOutOfUploadQueue: Set<MediaComponent>) async {
+    private func reapComponentsMissingFromFullFetch(in pendingChanges: inout PendingAlbumIndexChanges,
+                                                    pendingUpload: Set<MediaComponent>,
+                                                    movedOutOfUploadQueue: Set<MediaComponent>) async {
         var reaped = 0
         var exempt = 0
         var exemptMoved = 0
         var onICloudDrive = 0
 
-        for entry in album.entries {
+        for entry in pendingChanges.workingEntries {
             var components: [MediaComponent] = []
             if entry.hasPhotoComponent {
                 if entry.photoLocation == .cloudKit {
@@ -667,7 +675,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 }
             }
 
-            for component in components where !album.seen.contains(component) {
+            for component in components where !pendingChanges.componentsReturnedByWalk.contains(component) {
                 guard !pendingUpload.contains(component) else {
                     exempt += 1
                     printDebug("reap skip mediaID=\(component.mediaID) mediaType=\(component.mediaType) reason=pendingUpload")
@@ -680,23 +688,23 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 }
                 let recordName = MediaRecordName.componentRecordName(mediaID: component.mediaID,
                                                                      type: component.mediaType)
-                let entryRemoved = album.entries.removeComponent(recordName: recordName)
-                album.removedRecordNames.append(recordName)
+                let entryRemoved = pendingChanges.workingEntries.removeComponent(recordName: recordName)
+                pendingChanges.removedComponentRecordNames.append(recordName)
                 deleteQueue.markDeletedFromFeed(recordName)
                 changeTags[recordName] = nil
-                album.sizeRemovals.insert(recordName)
+                pendingChanges.recordSizeRemovals.insert(recordName)
                 await cache.evict(recordName: recordName)
                 if entryRemoved { removeLocalPreview(mediaID: component.mediaID) }
                 let media = Self.media(forRecordName: component.mediaID,
-                                       albumID: album.albumID,
+                                       albumID: pendingChanges.albumID,
                                        mediaType: component.mediaType)
-                if entryRemoved { album.pendingDeletes.append(media) } else { album.pendingCreates.append(media) }
+                if entryRemoved { pendingChanges.deletedMediaToAnnounce.append(media) } else { pendingChanges.createdMediaToAnnounce.append(media) }
                 reaped += 1
                 printDebug("reap ok recordName=\(recordName) mediaID=\(component.mediaID) mediaType=\(component.mediaType) entryRemoved=\(entryRemoved) — absent from a full fetch")
             }
         }
 
-        printDebug("reap done albumID=\(album.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) exemptMovedOutOfUploadQueue=\(exemptMoved) exemptOnICloudDrive=\(onICloudDrive) seen=\(album.seen.count) entriesRemaining=\(album.entries.count)")
+        printDebug("reap done albumID=\(pendingChanges.albumID) reaped=\(reaped) exemptPendingUpload=\(exempt) exemptMovedOutOfUploadQueue=\(exemptMoved) exemptOnICloudDrive=\(onICloudDrive) seen=\(pendingChanges.componentsReturnedByWalk.count) entriesRemaining=\(pendingChanges.workingEntries.count)")
     }
 
     /// The components waiting in the upload queue, in the form the reap compares.
@@ -744,16 +752,17 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         return albums
     }
 
-    /// Each local CloudKit album's index as it is on disk now, keyed by album id.
-    private func loadAlbumIndexes() async -> [String: AlbumApply] {
-        var albums: [String: AlbumApply] = [:]
+    /// A change set for each local CloudKit album, keyed by album id, starting
+    /// from the album's index as it is on disk now.
+    private func loadPendingIndexChangesForLocalAlbums() async -> [String: PendingAlbumIndexChanges] {
+        var pendingChangesByAlbumID: [String: PendingAlbumIndexChanges] = [:]
         for (albumID, keyBytes) in localAlbumKeys() {
             guard let indexStore = indexStore(forAlbumID: albumID) else { continue }
             let loaded = await indexStore.reloadFromDisk()
-            albums[albumID] = AlbumApply(albumID: albumID, indexStore: indexStore, keyBytes: keyBytes,
-                                         hadIndex: loaded != nil, entries: loaded?.entries ?? [])
+            pendingChangesByAlbumID[albumID] = PendingAlbumIndexChanges(albumID: albumID, indexStore: indexStore, keyBytes: keyBytes,
+                                                                        hadIndexBeforeWalk: loaded != nil, workingEntries: loaded?.entries ?? [])
         }
-        return albums
+        return pendingChangesByAlbumID
     }
 
     /// Walks the zone once and applies it to every album's index.
@@ -772,8 +781,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 token = nil
             } else {
                 let walkRequested = zoneWalkRequests.requested()
-                let withoutIndex = await loadAlbumIndexes().values
-                    .filter { !$0.hadIndex || walkRequested.contains($0.albumID) }
+                let withoutIndex = await loadPendingIndexChangesForLocalAlbums().values
+                    .filter { !$0.hadIndexBeforeWalk || walkRequested.contains($0.albumID) }
                     .map(\.albumID)
                 if !withoutIndex.isEmpty {
                     printDebug("performSync token DISCARDED albumsWithoutIndex=\(withoutIndex.sorted()) — an index is missing/corrupt while the zone cursor exists; walking the whole zone")
@@ -826,11 +835,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
         // Loaded after the album pass, so an album it adopted is routed to and
         // one it deleted is not.
-        var albums = await loadAlbumIndexes()
-        let adoptedMidDelta = startedWithoutToken ? [] : albums.values.filter { !$0.hadIndex }.map(\.albumID)
-        var holders: [String: Set<String>] = [:]
-        for album in albums.values {
-            for entry in album.entries { holders[entry.id, default: []].insert(album.albumID) }
+        var pendingChangesByAlbumID = await loadPendingIndexChangesForLocalAlbums()
+        let adoptedMidDelta = startedWithoutToken ? [] : pendingChangesByAlbumID.values.filter { !$0.hadIndexBeforeWalk }.map(\.albumID)
+        var albumIDsHoldingMedia: [String: Set<String>] = [:]
+        for pendingChanges in pendingChangesByAlbumID.values {
+            for entry in pendingChanges.workingEntries { albumIDsHoldingMedia[entry.id, default: []].insert(pendingChanges.albumID) }
         }
 
         var skippedOtherAlbum = 0
@@ -838,29 +847,29 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             let mediaID = meta.mediaID
             // The record left any other album that holds it: a move. A component
             // that album still holds on iCloud Drive is not this record's copy.
-            for holderID in holders[mediaID] ?? [] where holderID != meta.albumID {
-                guard var source = albums[holderID], source.holds(mediaID: mediaID) else { continue }
-                guard !source.entries.hasICloudDriveComponent(recordName: meta.recordName) else {
+            for holderID in albumIDsHoldingMedia[mediaID] ?? [] where holderID != meta.albumID {
+                guard var sourceAlbumChanges = pendingChangesByAlbumID[holderID], sourceAlbumChanges.holdsEntry(forMediaID: mediaID) else { continue }
+                guard !sourceAlbumChanges.workingEntries.hasICloudDriveComponent(recordName: meta.recordName) else {
                     printDebug("performSync movedAway skip recordName=\(meta.recordName) mediaID=\(mediaID) fromAlbumID=\(holderID) reason=onICloudDrive")
                     continue
                 }
-                let entryRemoved = source.entries.removeComponent(recordName: meta.recordName)
-                source.removedRecordNames.append(meta.recordName)
+                let entryRemoved = sourceAlbumChanges.workingEntries.removeComponent(recordName: meta.recordName)
+                sourceAlbumChanges.removedComponentRecordNames.append(meta.recordName)
                 await cache.evict(recordName: meta.recordName)
                 changeTags[meta.recordName] = nil
                 chunkInfo[meta.recordName] = nil
-                source.sizeRemovals.insert(meta.recordName)
+                sourceAlbumChanges.recordSizeRemovals.insert(meta.recordName)
                 if entryRemoved {
                     removeLocalPreview(mediaID: mediaID)
-                    holders[mediaID]?.remove(holderID)
+                    albumIDsHoldingMedia[mediaID]?.remove(holderID)
                 }
                 let media = Self.media(forRecordName: mediaID, albumID: holderID, mediaType: meta.mediaType)
-                if entryRemoved { source.pendingDeletes.append(media) } else { source.pendingCreates.append(media) }
-                albums[holderID] = source
+                if entryRemoved { sourceAlbumChanges.deletedMediaToAnnounce.append(media) } else { sourceAlbumChanges.createdMediaToAnnounce.append(media) }
+                pendingChangesByAlbumID[holderID] = sourceAlbumChanges
                 printDebug("performSync movedAway recordName=\(meta.recordName) mediaID=\(mediaID) fromAlbumID=\(holderID) toAlbumID=\(meta.albumID) entryRemoved=\(entryRemoved)")
             }
 
-            guard var target = albums[meta.albumID] else {
+            guard var destinationAlbumChanges = pendingChangesByAlbumID[meta.albumID] else {
                 skippedOtherAlbum += 1
                 continue
             }
@@ -871,37 +880,37 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
             if let tag = meta.recordChangeTag { changeTags[meta.recordName] = tag }
             deleteQueue.clearKnownDeletedIfNotQueued(meta.recordName)
-            target.sizeUpdates[meta.recordName] = meta.sizeBytes
-            target.sizeRemovals.remove(meta.recordName)
+            destinationAlbumChanges.recordSizeUpdates[meta.recordName] = meta.sizeBytes
+            destinationAlbumChanges.recordSizeRemovals.remove(meta.recordName)
             chunkInfo[meta.recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount,
                                                          encHeader: meta.encHeader,
                                                          keyFingerprint: meta.keyFingerprint)
             recordsCarryingMetadata[meta.recordName] = meta.encMetadata != nil
-            target.seen.insert(MediaComponent(mediaID: mediaID, mediaType: meta.mediaType))
-            let (incoming, keysSource) = await Self.indexEntryAndSortKeySource(from: meta, keyBytes: target.keyBytes)
+            destinationAlbumChanges.componentsReturnedByWalk.insert(MediaComponent(mediaID: mediaID, mediaType: meta.mediaType))
+            let (incoming, keysSource) = await Self.indexEntryAndSortKeySource(from: meta, keyBytes: destinationAlbumChanges.keyBytes)
             let replacesSortKeys = keysSource == .encryptedMetadata
-            target.upserted.append(IncomingEntry(entry: incoming, replacesSortKeys: replacesSortKeys))
-            let upserted = target.entries.upsert(incoming)
-            let redated = replacesSortKeys && target.entries.replaceSortKeys(with: incoming)
+            destinationAlbumChanges.upsertedEntries.append(IncomingEntry(entry: incoming, replacesSortKeys: replacesSortKeys))
+            let upserted = destinationAlbumChanges.workingEntries.upsert(incoming)
+            let redated = replacesSortKeys && destinationAlbumChanges.workingEntries.replaceSortKeys(with: incoming)
             if upserted || redated {
-                target.pendingCreates.append(Self.media(forRecordName: mediaID, albumID: meta.albumID, mediaType: meta.mediaType))
+                destinationAlbumChanges.createdMediaToAnnounce.append(Self.media(forRecordName: mediaID, albumID: meta.albumID, mediaType: meta.mediaType))
                 printDebug("performSync upsert recordName=\(meta.recordName) mediaID=\(mediaID) albumID=\(meta.albumID) mediaType=\(meta.mediaType) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil") sortKeysReplaced=\(redated)")
             } else {
                 printDebug("performSync upsert skip recordName=\(meta.recordName) — index already current, no gallery refresh emitted")
             }
-            holders[mediaID, default: []].insert(meta.albumID)
-            albums[meta.albumID] = target
+            albumIDsHoldingMedia[mediaID, default: []].insert(meta.albumID)
+            pendingChangesByAlbumID[meta.albumID] = destinationAlbumChanges
         }
 
         for recordName in deleted {
             let mediaID = MediaRecordName.mediaID(from: recordName)
             await cache.evict(recordName: recordName)
 
-            let allHolderIDs = (holders[mediaID] ?? []).filter { albums[$0]?.holds(mediaID: mediaID) == true }
+            let allHolderIDs = (albumIDsHoldingMedia[mediaID] ?? []).filter { pendingChangesByAlbumID[$0]?.holdsEntry(forMediaID: mediaID) == true }
             // A component an album holds on iCloud Drive is owned by the folder
             // scan, not the record the feed deleted.
             let holderIDs = allHolderIDs.filter {
-                albums[$0]?.entries.hasICloudDriveComponent(recordName: recordName) == false
+                pendingChangesByAlbumID[$0]?.workingEntries.hasICloudDriveComponent(recordName: recordName) == false
             }
             guard !holderIDs.isEmpty else {
                 if allHolderIDs.isEmpty {
@@ -916,18 +925,18 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             chunkInfo[recordName] = nil
             let mediaType = MediaRecordName.mediaType(from: recordName)
             for holderID in holderIDs {
-                guard var album = albums[holderID] else { continue }
-                let entryRemoved = album.entries.removeComponent(recordName: recordName)
-                album.removedRecordNames.append(recordName)
-                album.sizeUpdates[recordName] = nil
-                album.sizeRemovals.insert(recordName)
+                guard var pendingChanges = pendingChangesByAlbumID[holderID] else { continue }
+                let entryRemoved = pendingChanges.workingEntries.removeComponent(recordName: recordName)
+                pendingChanges.removedComponentRecordNames.append(recordName)
+                pendingChanges.recordSizeUpdates[recordName] = nil
+                pendingChanges.recordSizeRemovals.insert(recordName)
                 if entryRemoved {
                     removeLocalPreview(mediaID: mediaID)
-                    holders[mediaID]?.remove(holderID)
+                    albumIDsHoldingMedia[mediaID]?.remove(holderID)
                 }
                 let media = Self.media(forRecordName: mediaID, albumID: holderID, mediaType: mediaType)
-                if entryRemoved { album.pendingDeletes.append(media) } else { album.pendingCreates.append(media) }
-                albums[holderID] = album
+                if entryRemoved { pendingChanges.deletedMediaToAnnounce.append(media) } else { pendingChanges.createdMediaToAnnounce.append(media) }
+                pendingChangesByAlbumID[holderID] = pendingChanges
                 printDebug("performSync hardDelete recordName=\(recordName) mediaID=\(mediaID) albumID=\(holderID) mediaType=\(mediaType) entryRemoved=\(entryRemoved)")
             }
         }
@@ -939,10 +948,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         if reaps {
             let pendingUpload = pendingUploadBeforeFetch.union(await pendingUploadComponents())
             let movedOutOfUploadQueue = await capturesMovedOutOfUploadQueue()
-            for albumID in albums.keys.sorted() {
-                guard var album = albums[albumID] else { continue }
-                await reap(&album, pendingUpload: pendingUpload, movedOutOfUploadQueue: movedOutOfUploadQueue)
-                albums[albumID] = album
+            for albumID in pendingChangesByAlbumID.keys.sorted() {
+                guard var pendingChanges = pendingChangesByAlbumID[albumID] else { continue }
+                await reapComponentsMissingFromFullFetch(in: &pendingChanges, pendingUpload: pendingUpload, movedOutOfUploadQueue: movedOutOfUploadQueue)
+                pendingChangesByAlbumID[albumID] = pendingChanges
             }
         } else if startedWithoutToken {
             printDebug("reap skip reason=snapshotNotAcknowledged — the full fetch returned no cursor, so absence cannot be read as deletion")
@@ -951,51 +960,51 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         // Commit each album as a FOLD onto its live index, in ONE write per album,
         // before emitting its events — and every album before the cursor, so a
         // crash or a failed save mid-sequence re-fetches rather than losing data.
-        for albumID in albums.keys.sorted() {
-            guard let album = albums[albumID] else { continue }
-            if album.isChanged {
+        for albumID in pendingChangesByAlbumID.keys.sorted() {
+            guard let pendingChanges = pendingChangesByAlbumID[albumID] else { continue }
+            if pendingChanges.hasIndexChanges {
                 do {
-                    try await album.indexStore.apply { live in
+                    try await pendingChanges.indexStore.apply { liveEntries in
                         var changed = false
-                        for incoming in album.upserted {
-                            if live.upsert(incoming.entry) { changed = true }
-                            if incoming.replacesSortKeys, live.replaceSortKeys(with: incoming.entry) { changed = true }
+                        for incoming in pendingChanges.upsertedEntries {
+                            if liveEntries.upsert(incoming.entry) { changed = true }
+                            if incoming.replacesSortKeys, liveEntries.replaceSortKeys(with: incoming.entry) { changed = true }
                         }
-                        for recordName in album.removedRecordNames
-                        where !live.hasICloudDriveComponent(recordName: recordName) {
-                            if live.removeComponent(recordName: recordName) { changed = true }
+                        for recordName in pendingChanges.removedComponentRecordNames
+                        where !liveEntries.hasICloudDriveComponent(recordName: recordName) {
+                            if liveEntries.removeComponent(recordName: recordName) { changed = true }
                         }
                         return changed
                     }
                 } catch {
-                    printDebug("performSync indexSave FAILED albumID=\(albumID) entries=\(album.entries.count) pendingCreates=\(album.pendingCreates.count) pendingDeletes=\(album.pendingDeletes.count) — zone cursor not committed raw=\(error)")
+                    printDebug("performSync indexSave FAILED albumID=\(albumID) entries=\(pendingChanges.workingEntries.count) pendingCreates=\(pendingChanges.createdMediaToAnnounce.count) pendingDeletes=\(pendingChanges.deletedMediaToAnnounce.count) — zone cursor not committed raw=\(error)")
                     throw error
                 }
-            } else if reaps, await album.indexStore.current() == nil {
+            } else if reaps, await pendingChanges.indexStore.current() == nil {
                 // An album the zone holds nothing for still gets an index, or the
                 // missing-index guard would walk the whole zone on every sync.
                 do {
-                    try await album.indexStore.replace(with: [])
+                    try await pendingChanges.indexStore.replace(with: [])
                 } catch {
                     printDebug("performSync emptyIndex FAILED albumID=\(albumID) — zone cursor not committed raw=\(error)")
                     throw error
                 }
             }
 
-            await persistSizes(albumID: albumID, updates: album.sizeUpdates, removals: album.sizeRemovals)
+            await persistSizes(albumID: albumID, updates: pendingChanges.recordSizeUpdates, removals: pendingChanges.recordSizeRemovals)
 
-            for media in album.pendingCreates { bus.didCreate(media) }
-            if !album.pendingDeletes.isEmpty { bus.didDelete(album.pendingDeletes) }
-            if album.isChanged || !album.pendingCreates.isEmpty || !album.pendingDeletes.isEmpty {
-                printDebug("performSync applied albumID=\(albumID) entries=\(album.entries.count) creates=\(album.pendingCreates.count) deletes=\(album.pendingDeletes.count)")
+            for media in pendingChanges.createdMediaToAnnounce { bus.didCreate(media) }
+            if !pendingChanges.deletedMediaToAnnounce.isEmpty { bus.didDelete(pendingChanges.deletedMediaToAnnounce) }
+            if pendingChanges.hasIndexChanges || !pendingChanges.createdMediaToAnnounce.isEmpty || !pendingChanges.deletedMediaToAnnounce.isEmpty {
+                printDebug("performSync applied albumID=\(albumID) entries=\(pendingChanges.workingEntries.count) creates=\(pendingChanges.createdMediaToAnnounce.count) deletes=\(pendingChanges.deletedMediaToAnnounce.count)")
             }
         }
 
         await store.commitChangeToken(token)
         if startedWithoutToken {
-            zoneWalkRequests.clear(Set(albums.keys))
+            zoneWalkRequests.clear(Set(pendingChangesByAlbumID.keys))
         }
-        printDebug("performSync ok albums=\(albums.count) pages=\(page) changed=\(changed.count) deleted=\(deleted.count)")
+        printDebug("performSync ok albums=\(pendingChangesByAlbumID.count) pages=\(page) changed=\(changed.count) deleted=\(deleted.count)")
         if token == nil {
             printDebug("performSync token WARNING — no token returned by the change feed; next sync will walk the whole zone")
         }
