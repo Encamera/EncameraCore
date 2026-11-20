@@ -70,7 +70,7 @@ final class CloudKitDateAddedTests: XCTestCase {
         XCTAssertEqual(video.subtypeRawValue, MediaFilterOptions.video.rawValue)
         XCTAssertEqual(photo.subtypeRawValue, MediaFilterOptions.stillImage.rawValue)
         let index = MediaIndex(entries: [video, photo])
-        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .video).map(\.id), ["v"],
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateAdded(ascending: true), filterBy: .video).map(\.id), ["v"],
                        "A video filter must not match CloudKit stills")
     }
 
@@ -95,7 +95,7 @@ final class CloudKitDateAddedTests: XCTestCase {
         }
         let index = MediaIndex(entries: entries)
 
-        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .all).map(\.id),
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateAdded(ascending: true), filterBy: .all).map(\.id),
                        ["capture", "import"])
         XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateTaken(ascending: true), filterBy: .all).map(\.id),
                        ["import", "capture"])

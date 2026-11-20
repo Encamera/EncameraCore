@@ -63,7 +63,7 @@ public actor InteractableMediaFileAccess: FileAccess {
     }
 
     public func enumerateMediaWithMetadata(
-        sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
+        sortBy sortOption: MediaSortOption = .dateAdded(ascending: false),
         filterBy filterOptions: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
         await backend?.enumerateMediaWithMetadata(sortBy: sortOption, filterBy: filterOptions) ?? []
@@ -85,7 +85,7 @@ public actor InteractableMediaFileAccess: FileAccess {
 
         // Newest first by encryption date, as the gallery orders it; the
         // permission check below counts back from the newest item.
-        let media = await enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: false)).map(\.media)
+        let media = await enumerateMediaWithMetadata(sortBy: .dateAdded(ascending: false)).map(\.media)
         guard !media.isEmpty else {
             return nil
         }

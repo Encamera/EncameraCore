@@ -342,11 +342,11 @@ public actor DiskFileAccess: DebugPrintable {
     /// Enumerates encrypted media with metadata for sorting and filtering
     /// This is the low-level implementation used by InteractableMediaFileAccess
     /// - Parameters:
-    ///   - sortOption: How to sort results (default: dateEncrypted descending)
+    ///   - sortOption: How to sort results (default: dateAdded descending)
     ///   - filterOptions: Media subtypes to include (default: all)
     /// - Returns: Array of MediaWithMetadata containing media and extracted metadata
     public func enumerateEncryptedMediaWithMetadata(
-        sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
+        sortBy sortOption: MediaSortOption = .dateAdded(ascending: false),
         filterBy filterOptions: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<EncryptedMedia>] {
         let allMedia: [EncryptedMedia] = await enumerateMedia()
@@ -405,7 +405,7 @@ public actor DiskFileAccess: DebugPrintable {
             return buildMediaWithMetadataArray(
                 media: media,
                 metadataMap: [:],
-                sortOption: .dateEncrypted(ascending: false),
+                sortOption: .dateAdded(ascending: false),
                 filterOptions: .all
             )
         }
@@ -431,7 +431,7 @@ public actor DiskFileAccess: DebugPrintable {
         return buildMediaWithMetadataArray(
             media: media,
             metadataMap: metadataMap,
-            sortOption: .dateEncrypted(ascending: false),
+            sortOption: .dateAdded(ascending: false),
             filterOptions: .all
         )
     }

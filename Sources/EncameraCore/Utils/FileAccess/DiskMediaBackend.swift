@@ -70,7 +70,7 @@ public actor DiskMediaBackend: MediaBackend {
     }
 
     public func enumerateMediaWithMetadata(
-        sortBy sortOption: MediaSortOption = .dateEncrypted(ascending: false),
+        sortBy sortOption: MediaSortOption = .dateAdded(ascending: false),
         filterBy filterOptions: MediaFilterOptions = .all
     ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
         let rawMediaWithMetadata = await fileAccess.enumerateEncryptedMediaWithMetadata(

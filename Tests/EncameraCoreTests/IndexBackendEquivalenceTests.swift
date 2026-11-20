@@ -94,7 +94,7 @@ final class IndexBackendEquivalenceTests: XCTestCase {
             metadataMap[url] = component.metadata
         }
         let diskItems = await DiskFileAccess(key: key).buildMediaWithMetadataArray(
-            media: diskMedia, metadataMap: metadataMap, sortOption: .dateEncrypted(ascending: true), filterOptions: .all
+            media: diskMedia, metadataMap: metadataMap, sortOption: .dateAdded(ascending: true), filterOptions: .all
         )
         var diskIndex: [MediaIndexEntry] = []
         for item in diskItems {

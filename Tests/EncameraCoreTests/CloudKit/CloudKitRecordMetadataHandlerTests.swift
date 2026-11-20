@@ -572,9 +572,9 @@ final class CloudKitRecordMetadataHandlerTests: XCTestCase {
         XCTAssertEqual(entry.dateEncrypted, syncedCreatedAt)
         XCTAssertEqual(entry.dateTaken, syncedCreatedAt)
         let index = MediaIndex(entries: Array(entries.values))
-        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: true), filterBy: .all).map(\.id),
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateAdded(ascending: true), filterBy: .all).map(\.id),
                        ["older", "dateless"])
-        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all).map(\.id),
+        XCTAssertEqual(index.sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all).map(\.id),
                        ["dateless", "older"], "an item with dateless metadata must not sort last")
     }
 

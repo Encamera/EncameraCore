@@ -107,7 +107,7 @@ final class MediaIndexPaginationTests: XCTestCase {
                 return (0, .seconds(999))
             }
             let sorted = index.sortedFilteredEntries(
-                sortBy: .dateEncrypted(ascending: false),
+                sortBy: .dateAdded(ascending: false),
                 filterBy: .all
             )
             let page = sorted.prefix(pageSize).compactMap { materialize($0, baseURL: mediaBaseURL) }
@@ -195,7 +195,7 @@ final class MediaIndexPaginationTests: XCTestCase {
 
     func testSortByDateEncryptedDescending() {
         let sorted = MediaIndex(entries: makeEntries(count: 100))
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
         for i in 1..<sorted.count {
             XCTAssertGreaterThanOrEqual(sorted[i - 1].dateEncrypted!, sorted[i].dateEncrypted!)
         }
@@ -218,13 +218,13 @@ final class MediaIndexPaginationTests: XCTestCase {
             at: 10
         )
         let sorted = MediaIndex(entries: entries)
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
         XCTAssertEqual(sorted.last?.id, "v1-legacy")
     }
 
     func testFilterByVideoOnly() {
         let videos = MediaIndex(entries: makeEntries(count: 300))
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .video)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .video)
         XCTAssertFalse(videos.isEmpty)
         for entry in videos {
             XCTAssertEqual(entry.subtypeRawValue, MediaFilterOptions.video.rawValue)
@@ -235,7 +235,7 @@ final class MediaIndexPaginationTests: XCTestCase {
 
     func testPagingCoversAllEntriesWithoutDuplicates() {
         let sorted = MediaIndex(entries: makeEntries(count: 1000))
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
         var collected: [String] = []
         var offset = 0
         while offset < sorted.count {
@@ -270,7 +270,7 @@ final class MediaIndexPaginationTests: XCTestCase {
         let entries = makeEntriesWithIdenticalTimestamps(count: 500)
         let index = MediaIndex(entries: entries)
         let runs = (0..<5).map { _ in
-            index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            index.sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
                 .map(\.id)
         }
         for run in runs.dropFirst() {
@@ -287,10 +287,10 @@ final class MediaIndexPaginationTests: XCTestCase {
     func testEqualTimestampSortIsIndependentOfInsertionOrder() {
         let entries = makeEntriesWithIdenticalTimestamps(count: 400)
         let orderA = MediaIndex(entries: entries.shuffled())
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
             .map(\.id)
         let orderB = MediaIndex(entries: entries.shuffled())
-            .sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            .sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
             .map(\.id)
         XCTAssertEqual(orderA, orderB,
                        "Shuffling the input must not change the sorted output when timestamps "
@@ -306,7 +306,7 @@ final class MediaIndexPaginationTests: XCTestCase {
         var collected: [String] = []
         var offset = 0
         while offset < total {
-            let sorted = index.sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+            let sorted = index.sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
             collected.append(contentsOf: sorted[offset..<min(offset + pageSize, total)].map(\.id))
             offset += pageSize
         }

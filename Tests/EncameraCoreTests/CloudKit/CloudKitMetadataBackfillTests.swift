@@ -702,7 +702,7 @@ final class CloudKitMetadataBackfillTests: XCTestCase {
             [self.olderRecord(album: album, id: laterID, createdAt: laterAdded,
                               keyFingerprint: album.key.keyFingerprint)]
         })
-        let newestFirst = MediaSortOption.dateEncrypted(ascending: false)
+        let newestFirst = MediaSortOption.dateAdded(ascending: false)
         let orderBefore = await device.access.enumerateMediaWithMetadata(sortBy: newestFirst, filterBy: .all).map(\.media.id)
         XCTAssertEqual(try indexEntry(of: device).dateEncrypted, Self.createdAt,
                        "before: the older record is dated by its createdAt")

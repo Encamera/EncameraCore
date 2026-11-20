@@ -98,7 +98,7 @@ public enum MediaSorter {
                 return lhs.id < rhs.id
             }
             return compareDates(lhs.keys.dateTaken, rhs.keys.dateTaken, ascending: ascending)
-        case .dateEncrypted(let ascending):
+        case .dateAdded(let ascending):
             if lhs.keys.dateAdded == rhs.keys.dateAdded {
                 return lhs.id < rhs.id
             }

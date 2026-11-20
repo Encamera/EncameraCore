@@ -76,8 +76,8 @@ final class MediaSortKeysTests: XCTestCase {
             ("old", keys(added: added, taken: taken)),
             ("new", keys(added: laterAdded, taken: added)),
         ]
-        XCTAssertEqual(sortedIDs(items, by: .dateEncrypted(ascending: true)), ["old", "new", "unknown"])
-        XCTAssertEqual(sortedIDs(items, by: .dateEncrypted(ascending: false)), ["new", "old", "unknown"])
+        XCTAssertEqual(sortedIDs(items, by: .dateAdded(ascending: true)), ["old", "new", "unknown"])
+        XCTAssertEqual(sortedIDs(items, by: .dateAdded(ascending: false)), ["new", "old", "unknown"])
         XCTAssertEqual(sortedIDs(items, by: .dateTaken(ascending: true)), ["old", "new", "unknown"])
         XCTAssertEqual(sortedIDs(items, by: .dateTaken(ascending: false)), ["new", "old", "unknown"])
     }
@@ -91,7 +91,7 @@ final class MediaSortKeysTests: XCTestCase {
             ("y", keys(added: nil, taken: nil)),
         ]
         for option: MediaSortOption in [.dateTaken(ascending: true), .dateTaken(ascending: false),
-                                         .dateEncrypted(ascending: true), .dateEncrypted(ascending: false)] {
+                                         .dateAdded(ascending: true), .dateAdded(ascending: false)] {
             XCTAssertEqual(sortedIDs(items, by: option), ["a", "b", "c", "y", "z"], option.rawValue)
             XCTAssertEqual(sortedIDs(items.reversed(), by: option), ["a", "b", "c", "y", "z"], option.rawValue)
         }
@@ -121,8 +121,8 @@ final class MediaSortKeysTests: XCTestCase {
         let options: [(option: MediaSortOption, expected: [String])] = [
             (.dateTaken(ascending: true), ["a", "b", "c"]),
             (.dateTaken(ascending: false), ["a", "b", "c"]),
-            (.dateEncrypted(ascending: true), ["a", "b", "c"]),
-            (.dateEncrypted(ascending: false), ["b", "a", "c"]),
+            (.dateAdded(ascending: true), ["a", "b", "c"]),
+            (.dateAdded(ascending: false), ["b", "a", "c"]),
         ]
         for (option, expected) in options {
             let enumerated = await fileAccess.buildMediaWithMetadataArray(

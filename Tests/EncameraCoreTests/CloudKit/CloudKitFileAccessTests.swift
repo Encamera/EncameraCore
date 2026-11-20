@@ -508,7 +508,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         let access = await makeAccess(album: album, store: store)
 
         _ = await access.reconcile()
-        let result = await access.enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+        let result = await access.enumerateMediaWithMetadata(sortBy: .dateAdded(ascending: false), filterBy: .all)
 
         XCTAssertEqual(Set(result.map { $0.media.id }), ["m1", "m2"])
         XCTAssertEqual(store.fetchBlobCount, 0, "Metadata enumeration must not hit the network")
@@ -808,7 +808,7 @@ final class CloudKitFileAccessTests: XCTestCase {
             CleartextMedia(source: .data(Self.tinyPNG()), mediaType: .photo, id: id)
         ]), metadata: nil, progress: { _ in })
 
-        let page = await access.mediaPage(sortBy: .dateEncrypted(ascending: false), filterBy: .all, offset: 0, pageSize: 10)
+        let page = await access.mediaPage(sortBy: .dateAdded(ascending: false), filterBy: .all, offset: 0, pageSize: 10)
         let source = page.media.first?.underlyingMedia.first?.source
         guard case .url(let url)? = source else { return XCTFail("Expected a url source") }
         XCTAssertEqual(url.lastPathComponent, CloudKitFileAccess.componentRecordName(mediaID: id, type: .photo),
@@ -1248,7 +1248,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         XCTAssertEqual(store.reassignCalls.first?.toAlbumID, albumBHash)
 
         // Verify the target index now contains the entry.
-        let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: true),
+        let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateAdded(ascending: true),
                                                                    filterBy: .all)
         XCTAssertEqual(index.count, 1)
         XCTAssertEqual(index.first?.media.id, id)
@@ -1306,7 +1306,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
 
         // Verify the target index is empty.
-        let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: true),
+        let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateAdded(ascending: true),
                                                                    filterBy: .all)
         XCTAssertEqual(index.count, 0, "Local index must not be touched when the server-side move fails")
     }

@@ -906,7 +906,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(entries.first { $0.id == "z-newest" }?.dateEncrypted, later,
                        "The entry's encrypted date is the record's capture date, not the wall clock")
         XCTAssertEqual(entries.first { $0.id == "a-oldest" }?.dateEncrypted, earlier)
-        let sorted = MediaIndex(entries: entries).sortedFilteredEntries(sortBy: .dateEncrypted(ascending: false), filterBy: .all)
+        let sorted = MediaIndex(entries: entries).sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
         XCTAssertEqual(sorted.map { $0.id }, ["z-newest", "a-oldest"], "Newest capture first")
     }
 

@@ -81,17 +81,20 @@ public enum FileLoadingStatus: Sendable {
 /// Sort options for media enumeration
 public enum MediaSortOption: Sendable {
     case dateTaken(ascending: Bool)
-    case dateEncrypted(ascending: Bool)
+    case dateAdded(ascending: Bool)
 }
 
 /// String-backed serialization so the chosen sort order can be persisted.
+///
+/// `.dateAdded` keeps its `dateEncrypted_` raw values: they are already
+/// saved in users' defaults, and changing them would reset the saved sort.
 extension MediaSortOption: RawRepresentable {
     public init?(rawValue: String) {
         switch rawValue {
         case "dateTaken_ascending": self = .dateTaken(ascending: true)
         case "dateTaken_descending": self = .dateTaken(ascending: false)
-        case "dateEncrypted_ascending": self = .dateEncrypted(ascending: true)
-        case "dateEncrypted_descending": self = .dateEncrypted(ascending: false)
+        case "dateEncrypted_ascending": self = .dateAdded(ascending: true)
+        case "dateEncrypted_descending": self = .dateAdded(ascending: false)
         default: return nil
         }
     }
@@ -100,7 +103,7 @@ extension MediaSortOption: RawRepresentable {
         switch self {
         case .dateTaken(let ascending):
             return ascending ? "dateTaken_ascending" : "dateTaken_descending"
-        case .dateEncrypted(let ascending):
+        case .dateAdded(let ascending):
             return ascending ? "dateEncrypted_ascending" : "dateEncrypted_descending"
         }
     }
