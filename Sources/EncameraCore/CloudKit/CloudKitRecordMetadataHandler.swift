@@ -28,8 +28,16 @@ public enum CloudKitRecordMetadataHandler: DebugPrintable {
     /// Encrypts `metadata` under `keyBytes`, bound to `recordName`.
     public static func encryptMetadata(_ metadata: EncryptedFileMetadata, recordName: String, keyBytes: [UInt8]) throws -> Data {
         let json = try EncryptedMetadataHandler.encodeMetadata(metadata)
+        return try encryptMetadata(bytes: json, recordName: recordName, keyBytes: keyBytes)
+    }
+
+    /// Encrypts metadata JSON `bytes` exactly as given, under `keyBytes`, bound to
+    /// `recordName`. Copying a file's metadata onto its record encrypts the bytes
+    /// the file decrypts to (`EncryptedMetadataHandler.readMetadataBytes`), so
+    /// keys this build does not know are kept.
+    public static func encryptMetadata(bytes: Data, recordName: String, keyBytes: [UInt8]) throws -> Data {
         guard let sealed: Bytes = Sodium().aead.xchacha20poly1305ietf.encrypt(
-            message: [UInt8](json),
+            message: [UInt8](bytes),
             secretKey: keyBytes,
             additionalData: additionalData(recordName: recordName)
         ) else { throw EncryptionError.encryptionFailed }

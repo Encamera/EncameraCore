@@ -2738,6 +2738,9 @@ final class RecordingCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendab
     func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult {
         try await base.attachThumbnail(recordName: recordName, thumbnailURL: thumbnailURL)
     }
+    func attachMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult {
+        try await base.attachMetadata(recordName: recordName, sealed: sealed)
+    }
 
     func delete(recordName: String) async throws { try await base.delete(recordName: recordName) }
     func saveAlbum(_ album: CloudKitAlbumUpload) async throws { try await base.saveAlbum(album) }

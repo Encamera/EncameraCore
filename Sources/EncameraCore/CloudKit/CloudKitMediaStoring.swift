@@ -439,6 +439,12 @@ public protocol CloudKitMediaStoring: Sendable {
     /// record the server no longer has is reported, not thrown.
     func attachThumbnail(recordName: String, thumbnailURL: URL) async throws -> ThumbnailAttachResult
 
+    /// Writes `sealed` into the `encMetadata` field of an existing record,
+    /// leaving every other field untouched. A value already on the record is
+    /// never overwritten, and a record the server no longer has is reported, not
+    /// thrown. `sealed` is stored as given (`CloudKitRecordMetadataHandler.encryptMetadata`).
+    func attachMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult
+
     /// Removes the record and (atomically) both assets.
     func delete(recordName: String) async throws
 
@@ -552,6 +558,33 @@ public enum ThumbnailAttachResult: Sendable, Equatable {
     case alreadyPresent
     /// The server has no such record.
     case recordMissing
+}
+
+/// What `attachMetadata` found and did.
+public enum MetadataAttachResult: Sendable, Equatable {
+    /// The sealed metadata was saved; `changeTag` is the record's new change tag.
+    case attached(changeTag: String?)
+    /// The record already carries `encMetadata`, so nothing was saved.
+    case alreadyPresent
+    /// The server has no such record.
+    case recordMissing
+}
+
+extension CloudKitMediaRecordDescriptor {
+    /// This descriptor with `encMetadata` set to `sealed` and every other field
+    /// unchanged.
+    func replacingEncMetadata(with sealed: Data) -> CloudKitMediaRecordDescriptor {
+        CloudKitMediaRecordDescriptor(albumID: albumID,
+                                      mediaID: mediaID,
+                                      recordName: recordName,
+                                      mediaType: mediaType,
+                                      createdAt: createdAt,
+                                      sizeBytes: sizeBytes,
+                                      keyFingerprint: keyFingerprint,
+                                      chunkCount: chunkCount,
+                                      plaintextLength: plaintextLength,
+                                      encMetadata: sealed)
+    }
 }
 
 // MARK: - Default implementations

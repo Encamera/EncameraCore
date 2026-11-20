@@ -79,6 +79,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         case fetchBlob(recordName: String)
         case fetchThumbnail(recordName: String)
         case attachThumbnail(recordName: String)
+        case attachMetadata(recordName: String)
         case delete(recordName: String)
         case reassignAlbum(recordNames: [String], toAlbumID: String)
         case saveAlbum(albumID: String)
@@ -340,6 +341,81 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
                                           deletedAlbumIDs: changeSet.deletedAlbumIDs,
                                           token: changeSet.token,
                                           moreComing: changeSet.moreComing)
+            return .attached(changeTag: tag)
+        }
+    }
+
+    private var _attachedMetadata: [String: Data] = [:]
+    private var _metadataAttachSaveCount = 0
+    private var _metadataAttachedConcurrentlyOnce: [String: Data] = [:]
+    /// Sealed `encMetadata` this mock saved, keyed by record name, whether through
+    /// `attachMetadata` or the concurrent attach `simulateConcurrentMetadataAttachOnce`
+    /// set up.
+    var attachedMetadata: [String: Data] { locked { _attachedMetadata } }
+    /// How many `attachMetadata` calls saved a value. A concurrent attach another
+    /// device made is not counted.
+    var metadataAttachSaveCount: Int { locked { _metadataAttachSaveCount } }
+    /// When set, every `attachMetadata` is logged and then throws this, saving
+    /// nothing.
+    var attachMetadataError: Error?
+
+    /// Makes the next `attachMetadata` of `recordName` lose a race to another
+    /// device: the store's save meets `serverRecordChanged`, and its one refetch
+    /// finds `theirSealed` on the record. The other device's value is kept and the
+    /// call returns `.alreadyPresent`, as `CloudKitMediaStore.attachMetadata` does.
+    /// Applies once.
+    func simulateConcurrentMetadataAttachOnce(recordName: String, theirSealed: Data) {
+        locked { _metadataAttachedConcurrentlyOnce[recordName] = theirSealed }
+    }
+
+    /// The `encMetadata` the record carries: one attached here, else the value it
+    /// was uploaded or seeded with.
+    private func currentEncMetadata(recordName: String) -> Data? {
+        if let attached = _attachedMetadata[recordName] { return attached }
+        if let live = _liveRecords[recordName]?.descriptor.encMetadata { return live }
+        return (metadataToReturn + _reflected).first { $0.recordName == recordName }?.descriptor.encMetadata
+    }
+
+    /// Writes `sealed` onto the record with a new change tag, in
+    /// `metadataToReturn`, the reflected uploads and the change set alike.
+    private func storeEncMetadata(_ sealed: Data, recordName: String, changeTag: String) {
+        _attachedMetadata[recordName] = sealed
+        func withMetadata(_ old: CloudKitMediaMetadata) -> CloudKitMediaMetadata {
+            guard old.recordName == recordName else { return old }
+            return CloudKitMediaMetadata(descriptor: old.descriptor.replacingEncMetadata(with: sealed),
+                                         creationDeviceID: old.creationDeviceID,
+                                         schemaVersion: old.schemaVersion, recordChangeTag: changeTag,
+                                         encHeader: old.encHeader, recordCreationDate: old.recordCreationDate)
+        }
+        metadataToReturn = metadataToReturn.map(withMetadata)
+        _reflected = _reflected.map(withMetadata)
+        changeSet = CloudKitChangeSet(changed: changeSet.changed.map(withMetadata),
+                                      deleted: changeSet.deleted,
+                                      changedAlbums: changeSet.changedAlbums,
+                                      deletedAlbumIDs: changeSet.deletedAlbumIDs,
+                                      token: changeSet.token,
+                                      moreComing: changeSet.moreComing)
+    }
+
+    /// Same outcomes as `CloudKitMediaStore.attachMetadata`. A record exists when
+    /// it was uploaded here or seeded through `metadataToReturn`, and already has
+    /// `encMetadata` when it was attached here or its descriptor carries one. A
+    /// save bumps the change tag.
+    func attachMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult {
+        log(.attachMetadata(recordName: recordName))
+        if let attachMetadataError { throw attachMetadataError }
+        return locked {
+            let seeded = (metadataToReturn + _reflected).contains { $0.recordName == recordName }
+            guard _liveRecords[recordName] != nil || seeded else { return .recordMissing }
+            if let theirs = _metadataAttachedConcurrentlyOnce.removeValue(forKey: recordName),
+               currentEncMetadata(recordName: recordName) == nil {
+                storeEncMetadata(theirs, recordName: recordName, changeTag: "tag-metadata-other-device")
+                return .alreadyPresent
+            }
+            if currentEncMetadata(recordName: recordName) != nil { return .alreadyPresent }
+            _metadataAttachSaveCount += 1
+            let tag = "tag-metadata-\(_metadataAttachSaveCount)"
+            storeEncMetadata(sealed, recordName: recordName, changeTag: tag)
             return .attached(changeTag: tag)
         }
     }

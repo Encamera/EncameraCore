@@ -269,6 +269,36 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
         return result
     }
 
+    /// Same outcomes as `CloudKitMediaStore.attachMetadata`: saved metadata gives
+    /// the record a new change tag, an existing value is kept, and an unknown
+    /// record is reported rather than thrown.
+    public func attachMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult {
+        let result: MetadataAttachResult = locked {
+            guard var stored = records[recordName] else { return .recordMissing }
+            let old = stored.metadata
+            if old.descriptor.encMetadata != nil { return .alreadyPresent }
+            let tag = "attach-metadata-\(UUID().uuidString)-\(recordName)"
+            stored.metadata = CloudKitMediaMetadata(descriptor: old.descriptor.replacingEncMetadata(with: sealed),
+                                                    creationDeviceID: old.creationDeviceID,
+                                                    schemaVersion: old.schemaVersion,
+                                                    recordChangeTag: tag,
+                                                    encHeader: old.encHeader,
+                                                    recordCreationDate: old.recordCreationDate)
+            records[recordName] = stored
+            return .attached(changeTag: tag)
+        }
+        switch result {
+        case .attached(let tag):
+            persist()
+            printDebug("attachMetadata attached recordName=\(recordName) changeTag=\(tag ?? "nil")")
+        case .alreadyPresent:
+            printDebug("attachMetadata alreadyPresent recordName=\(recordName)")
+        case .recordMissing:
+            printDebug("attachMetadata recordMissing recordName=\(recordName)")
+        }
+        return result
+    }
+
     /// Whether the record carries an `encThumbnail`. Read-only, so a test can
     /// inspect the zone without going through `fetchThumbnail`.
     public func hasThumbnail(recordName: String) -> Bool {

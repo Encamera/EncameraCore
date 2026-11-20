@@ -645,6 +645,60 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
         preconditionFailure("attachThumbnail returns or throws on its last save")
     }
 
+    // MARK: - Metadata backfill
+
+    /// Writes `encMetadata` onto an existing record. As in `attachThumbnail`, the
+    /// record is fetched with only the key being written, so the
+    /// `.ifServerRecordUnchanged` save sends that key alone and every other field
+    /// on the server is left as it is.
+    ///
+    /// A conflict means another device saved the record in the meantime. It is
+    /// fetched once more: metadata that device attached is kept, otherwise the
+    /// save is retried once. Only the record name and the outcome are logged.
+    public func attachMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult {
+        guard await accountAvailable() else { throw CloudKitMediaStoreError.accountUnavailable }
+        return try await withZone("attachMetadata") {
+            try await attachSealedMetadata(recordName: recordName, sealed: sealed)
+        }
+    }
+
+    private func attachSealedMetadata(recordName: String, sealed: Data) async throws -> MetadataAttachResult {
+        let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
+        let maxSaves = 2
+        do {
+            for save in 1...maxSaves {
+                let fetched = try await adapter.fetch(recordIDs: [recordID],
+                                                      desiredKeys: [CloudKitSchema.EncMedia.encMetadata],
+                                                      perRecordProgress: { _, _ in })
+                guard let record = fetched[recordID] else {
+                    printDebug("attachMetadata recordMissing recordName=\(recordName)")
+                    return .recordMissing
+                }
+                if record[CloudKitSchema.EncMedia.encMetadata] as? Data != nil {
+                    printDebug("attachMetadata alreadyPresent recordName=\(recordName) \(Self.describeRecordOrigin(record))")
+                    return .alreadyPresent
+                }
+                record[CloudKitSchema.EncMedia.encMetadata] = sealed as CKRecordValue
+                do {
+                    let saved = try await adapter.save(records: [record],
+                                                       savePolicy: .ifServerRecordUnchanged,
+                                                       perRecordProgress: { _, _ in })
+                    let changeTag = (saved.first ?? record).recordChangeTag
+                    printDebug("attachMetadata attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
+                    return .attached(changeTag: changeTag)
+                } catch {
+                    guard save < maxSaves, case .conflict = mapCKError(error) else { throw error }
+                    printDebug("attachMetadata conflict recordName=\(recordName) — refetching once")
+                }
+            }
+        } catch {
+            let mapped = mapAndRecord(error)
+            printDebug("attachMetadata FAILED recordName=\(recordName) mapped=\(mapped) raw=\(error)")
+            throw mapped
+        }
+        preconditionFailure("attachMetadata returns or throws on its last save")
+    }
+
 
     // MARK: - Delete
 

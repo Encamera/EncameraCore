@@ -79,6 +79,30 @@ public actor EncryptedMetadataHandler: DebugPrintable {
         from url: URL,
         keyBytes: [UInt8]
     ) async throws -> EncryptedFileMetadata? {
+        guard let bytes = try await readMetadataBytes(from: url, keyBytes: keyBytes) else { return nil }
+        do {
+            let metadata = try Self.decodeMetadata(bytes)
+            printDebug("readMetadata: Successfully parsed metadata")
+            return metadata
+        } catch {
+            printDebug("readMetadata: JSON decode error: \(error)")
+            throw error
+        }
+    }
+
+    /// Reads the decrypted metadata JSON of an ENC2 or ENC3 file exactly as the
+    /// file carries it, without decoding it or decrypting any content. A caller
+    /// that copies metadata elsewhere uses these bytes, so keys this build's
+    /// `EncryptedFileMetadata` does not know survive the copy.
+    /// - Parameters:
+    ///   - url: URL to the encrypted file
+    ///   - keyBytes: Encryption key bytes
+    /// - Returns: The decrypted metadata bytes, or nil for a v1 file, an ENC3 file
+    ///   without a metadata section, or a file that still needs an iCloud download
+    public func readMetadataBytes(
+        from url: URL,
+        keyBytes: [UInt8]
+    ) async throws -> Data? {
         printDebug("readMetadata: Starting for file \(url.lastPathComponent)")
         
         if iCloudFileStatusUtil.needsDownload(url: url) {
@@ -111,7 +135,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
                 printDebug("readMetadata: ENC3 file carries no metadata section")
                 return nil
             }
-            return try SeekableEncryptedFormat.decodeMetadata(plain)
+            return plain
         }
 
         guard magicBytes == EncryptedFileFormat.magic else {
@@ -187,15 +211,7 @@ public actor EncryptedMetadataHandler: DebugPrintable {
             throw EncryptedMetadataError.decryptionFailed
         }
         printDebug("readMetadata: Decrypted \(decryptedBytes.count) bytes of metadata")
-        
-        do {
-            let metadata = try Self.decodeMetadata(Data(decryptedBytes))
-            printDebug("readMetadata: Successfully parsed metadata")
-            return metadata
-        } catch {
-            printDebug("readMetadata: JSON decode error: \(error)")
-            throw error
-        }
+        return Data(decryptedBytes)
     }
     
     /// Batch read metadata from multiple files (optimized for performance)
