@@ -11,10 +11,10 @@
 //  sequences and asserts the structural fields match, guarding the drift the old
 //  duplicated logic allowed.
 //
-//  Dates and `subtypeRawValue` are deliberately NOT compared: they are legitimate
-//  source differences (cloud carries no per-item subtype and stamps both dates
-//  from the record's `createdAt`), exactly the fields the plan flags as
-//  backend-specific.
+//  A second case compares whole entries, dates and subtype included, for media
+//  whose taken and added dates match: a record carries one date, `createdAt`,
+//  and stamps both from it. Screenshots are the one subtype a record cannot
+//  carry.
 //
 
 import XCTest
@@ -59,6 +59,26 @@ final class IndexBackendEquivalenceTests: XCTestCase {
             schemaVersion: 1,
             recordChangeTag: nil
         )
+    }
+
+    /// Same media, same full entries: dates, subtype and component flags.
+    func testDiskAndCloudProduceIdenticalEntriesIncludingDatesAndSubtype() {
+        var diskIndex: [MediaIndexEntry] = []
+        for item in [diskItem(id: "live", type: .photo, subtype: .stillImage),
+                     diskItem(id: "live", type: .video, subtype: .stillImage),
+                     diskItem(id: "video", type: .video, subtype: .video),
+                     diskItem(id: "still", type: .photo, subtype: .stillImage)] {
+            diskIndex.upsert(DiskMediaBackend.entry(forFileLevelMetadata: item))
+        }
+        // The Live Photo's video arrives first, which must not make it filter as a video.
+        var cloudIndex: [MediaIndexEntry] = []
+        for meta in [cloudMeta(id: "live", type: .video), cloudMeta(id: "live", type: .photo),
+                     cloudMeta(id: "video", type: .video), cloudMeta(id: "still", type: .photo)] {
+            cloudIndex.upsert(CloudKitSyncCoordinator.indexEntry(from: meta))
+        }
+
+        let byID = { (entries: [MediaIndexEntry]) in Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) }) }
+        XCTAssertEqual(byID(cloudIndex), byID(diskIndex))
     }
 
     /// Feed a Live Photo (photo + video components sharing an id) and a video-only

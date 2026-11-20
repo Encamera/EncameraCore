@@ -433,7 +433,8 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
 
     /// An `.iCloudDrive` entry per new component, dated with the `createdAt` its
     /// record will get: the file's metadata is read as a migration reads it, and a
-    /// Live Photo's halves share the date of the half that sorts first.
+    /// Live Photo's halves share the date of the half that sorts first. The
+    /// subtype comes from the component type, as a record's entry gets it.
     private func indexEntries(for components: [FolderComponent]) async -> [(FolderComponent, MediaIndexEntry)] {
         guard !components.isEmpty else { return [] }
         let media = components.map { EncryptedMedia(source: .url($0.listedURL), mediaType: $0.type, id: $0.mediaID) }
@@ -451,7 +452,7 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
                                                hasVideoComponent: component.type == .video,
                                                dateEncrypted: createdAt,
                                                dateTaken: createdAt,
-                                               subtypeRawValue: 0,
+                                               subtypeRawValue: MediaIndexEntry.subtype(forComponent: component.type).rawValue,
                                                photoLocation: .iCloudDrive,
                                                videoLocation: .iCloudDrive))
         }

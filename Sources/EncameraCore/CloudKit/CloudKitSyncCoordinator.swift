@@ -1681,21 +1681,24 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// on iCloud Drive to CloudKit while the entry keeps its date. `internal` for
     /// the disk/cloud index-equivalence test.
     static func indexEntry(from meta: CloudKitMediaMetadata) -> MediaIndexEntry {
-        MediaIndexEntry(id: meta.mediaID,
-                        hasPhotoComponent: meta.mediaType == .photo,
-                        hasVideoComponent: meta.mediaType == .video,
-                        dateEncrypted: meta.createdAt,
-                        dateTaken: meta.createdAt,
-                        subtypeRawValue: 0)
+        indexEntry(for: meta.descriptor)
     }
 
     private static func indexEntry(fromUpload item: CloudKitMediaUpload) -> MediaIndexEntry {
-        MediaIndexEntry(id: item.mediaID,
-                        hasPhotoComponent: item.mediaType == .photo,
-                        hasVideoComponent: item.mediaType == .video,
-                        dateEncrypted: item.createdAt,
-                        dateTaken: item.createdAt,
-                        subtypeRawValue: 0)
+        indexEntry(for: item.descriptor)
+    }
+
+    /// A record carries one date, `createdAt`: the capture date, or the date
+    /// added when that is unknown. It stamps both "Date Added" and "Date Taken".
+    /// The subtype comes from the component type, as the disk index derives it;
+    /// a Live Photo's components collapse to a still in `MediaIndexEntry.merged`.
+    private static func indexEntry(for descriptor: CloudKitMediaRecordDescriptor) -> MediaIndexEntry {
+        MediaIndexEntry(id: descriptor.mediaID,
+                        hasPhotoComponent: descriptor.mediaType == .photo,
+                        hasVideoComponent: descriptor.mediaType == .video,
+                        dateEncrypted: descriptor.createdAt,
+                        dateTaken: descriptor.createdAt,
+                        subtypeRawValue: MediaIndexEntry.subtype(forComponent: descriptor.mediaType).rawValue)
     }
 
     /// A lightweight `EncryptedMedia` carrying just the id/type so the gallery can

@@ -40,7 +40,8 @@ public struct MediaIndexEntry: Equatable, Sendable {
     public let hasVideoComponent: Bool
     /// When the media was encrypted/imported. `nil` for legacy files without metadata.
     public let dateEncrypted: Date?
-    /// Original capture date from the encrypted metadata. `nil` if unknown.
+    /// Original capture date from the encrypted metadata, or the date added when
+    /// that is unknown. `nil` only when neither is known.
     public let dateTaken: Date?
     /// Cached `MediaFilterOptions` raw value describing this single item
     /// (still image / screenshot / video / live photo).
@@ -79,7 +80,8 @@ public struct MediaIndexEntry: Equatable, Sendable {
 public extension MediaIndexEntry {
     /// Combines this entry with another for the same media id, OR-ing the
     /// photo/video component flags so a Live Photo keeps both components, and
-    /// keeping the first non-nil dates. The receiver's subtype wins. Used when a
+    /// keeping the first non-nil dates. The receiver's subtype wins unless it is
+    /// unknown (0), and a Live Photo never takes the video subtype. Used when a
     /// Live Photo's photo and video components are indexed separately (e.g. the
     /// video arriving after the photo) and must collapse into one entry.
     ///
@@ -88,16 +90,30 @@ public extension MediaIndexEntry {
     /// newer report of where its components live, and it says nothing about a
     /// component it does not carry.
     func merged(with other: MediaIndexEntry) -> MediaIndexEntry {
-        MediaIndexEntry(
+        let hasPhoto = hasPhotoComponent || other.hasPhotoComponent
+        let hasVideo = hasVideoComponent || other.hasVideoComponent
+        // 0 is an entry indexed before its subtype was known. A Live Photo whose
+        // video component arrived first must not filter as a video.
+        var subtype = subtypeRawValue == 0 ? other.subtypeRawValue : subtypeRawValue
+        if hasPhoto, hasVideo, subtype == MediaFilterOptions.video.rawValue {
+            subtype = MediaFilterOptions.stillImage.rawValue
+        }
+        return MediaIndexEntry(
             id: id,
-            hasPhotoComponent: hasPhotoComponent || other.hasPhotoComponent,
-            hasVideoComponent: hasVideoComponent || other.hasVideoComponent,
+            hasPhotoComponent: hasPhoto,
+            hasVideoComponent: hasVideo,
             dateEncrypted: dateEncrypted ?? other.dateEncrypted,
             dateTaken: dateTaken ?? other.dateTaken,
-            subtypeRawValue: subtypeRawValue,
+            subtypeRawValue: subtype,
             photoLocation: other.hasPhotoComponent ? other.photoLocation : photoLocation,
             videoLocation: other.hasVideoComponent ? other.videoLocation : videoLocation
         )
+    }
+
+    /// The filter subtype of a single component when nothing but its type is
+    /// known, as for a CloudKit record: a video, or a still.
+    static func subtype(forComponent mediaType: MediaType) -> MediaFilterOptions {
+        mediaType == .video ? .video : .stillImage
     }
 
     /// A copy with the given fields replaced and every other field kept.

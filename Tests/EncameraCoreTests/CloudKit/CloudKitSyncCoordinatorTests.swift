@@ -2488,7 +2488,9 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
                         hasVideoComponent: video != nil,
                         dateEncrypted: driveDate,
                         dateTaken: driveDate,
-                        subtypeRawValue: 0,
+                        // The folder scanner's subtype, from the component type.
+                        subtypeRawValue: photo == nil ? MediaFilterOptions.video.rawValue
+                                                      : MediaFilterOptions.stillImage.rawValue,
                         photoLocation: photo ?? .cloudKit,
                         videoLocation: video ?? .cloudKit)
     }

@@ -1249,7 +1249,7 @@ final class CloudKitFileAccessTests: XCTestCase {
 
         // Verify the target index now contains the entry.
         let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: true),
-                                                                   filterBy: [])
+                                                                   filterBy: .all)
         XCTAssertEqual(index.count, 1)
         XCTAssertEqual(index.first?.media.id, id)
     }
@@ -1307,7 +1307,7 @@ final class CloudKitFileAccessTests: XCTestCase {
 
         // Verify the target index is empty.
         let index = await targetAccess.enumerateMediaWithMetadata(sortBy: .dateEncrypted(ascending: true),
-                                                                   filterBy: [])
+                                                                   filterBy: .all)
         XCTAssertEqual(index.count, 0, "Local index must not be touched when the server-side move fails")
     }
 
