@@ -59,13 +59,18 @@ public struct ImportResultSummary: Sendable {
     public let stoppedForSpace: Bool
     /// Items never tried because the run stopped for space.
     public let notAttemptedCount: Int
+    /// The id of the batch's record in the album's import history, or nil when
+    /// the run never reached the point of recording one.
+    public var batchId: String?
 
-    public init(success: Int, failure: Int, failedItems: [ImportItemFailure] = [], stoppedForSpace: Bool = false, notAttemptedCount: Int = 0) {
+    public init(success: Int, failure: Int, failedItems: [ImportItemFailure] = [], stoppedForSpace: Bool = false,
+                notAttemptedCount: Int = 0, batchId: String? = nil) {
         self.success = success
         self.failure = failure
         self.failedItems = failedItems
         self.stoppedForSpace = stoppedForSpace
         self.notAttemptedCount = notAttemptedCount
+        self.batchId = batchId
     }
 }
 
@@ -365,7 +370,8 @@ public class MediaImportHandler: DebugPrintable, MediaImporting {
             throw error
         }
 
-        let summary = outcome.summary
+        var summary = outcome.summary
+        summary.batchId = task.userBatchId ?? task.id
         let successCount = summary.success
         let failureCount = summary.failure
         let assetIdentifiers = outcome.assetIdentifiers

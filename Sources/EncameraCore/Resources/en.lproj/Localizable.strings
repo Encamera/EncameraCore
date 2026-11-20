@@ -721,6 +721,7 @@
 "EncameraDrawerFactory.FirstCaptureExplainerDrawer.GotIt" = "Got It";
 "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Photo" = "photo";
 "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Video" = "video";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "Delete from Camera Roll";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Title" = "Have you saved your recovery key?";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Body" = "Make sure you save a copy somewhere safe. You can always find your key in Settings.";
 "EncameraDrawerFactory.RecoveryKeySavedDrawer.Confirm" = "I've Saved My Recovery Key";

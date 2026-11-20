@@ -44,6 +44,9 @@ public enum UserDefaultKey {
     /// Where the user is with the "Only in Encamera" drawer that follows the
     /// first-ever capture. See `FirstCaptureExplainerUtil`.
     case firstCaptureExplainerState
+    /// The first-ever import while its drawer is waiting to be shown. See
+    /// `FirstCaptureExplainerUtil`.
+    case firstImportExplainerItem
     case promotionalBannerInteractions
     case dismissedBanners
     case selectedPhotoResolution
@@ -150,6 +153,7 @@ public enum UserDefaultKey {
              .recoveryKeyPromptState,
              .recoveryKeyPromptVisitCount,
              .firstCaptureExplainerState,
+             .firstImportExplainerItem,
              .promotionalBannerInteractions,
              .dismissedBanners,
              .selectedPhotoResolution,

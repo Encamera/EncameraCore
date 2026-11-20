@@ -1159,6 +1159,22 @@ public enum L10n {
       /// video
       public static let video = L10n.tr("Localizable", "EncameraDrawerFactory.FirstCaptureExplainerDrawer.Video", fallback: "video")
     }
+    public enum FirstImportExplainerDrawer {
+      /// Delete from Camera Roll
+      public static let deleteFromCameraRoll = L10n.tr("Localizable", "EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll", fallback: "Delete from Camera Roll")
+      /// Plural format key: "%#@item_count@"
+      public static func filesBody(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody", p1, fallback: "Plural format key: \"%#@item_count@\"")
+      }
+      /// Plural format key: "%#@item_count@"
+      public static func photosBody(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody", p1, fallback: "Plural format key: \"%#@item_count@\"")
+      }
+      /// Plural format key: "%#@item_count@"
+      public static func title(_ p1: Int) -> String {
+        return L10n.tr("Localizable", "EncameraDrawerFactory.FirstImportExplainerDrawer.Title", p1, fallback: "Plural format key: \"%#@item_count@\"")
+      }
+    }
     public enum KeyBackupDrawer {
       /// Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall Encamera.
       public static let explanation = L10n.tr("Localizable", "EncameraDrawerFactory.KeyBackupDrawer.Explanation", fallback: "Your media is protected with a unique encryption key. This key is the only way to decrypt it if you switch devices or reinstall Encamera.")
