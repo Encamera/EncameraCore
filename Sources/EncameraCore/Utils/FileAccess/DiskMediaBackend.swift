@@ -573,10 +573,19 @@ public actor DiskMediaBackend: MediaBackend {
             id: item.media.id,
             hasPhotoComponent: item.media.mediaType == .photo,
             hasVideoComponent: item.media.mediaType == .video,
-            dateEncrypted: item.dateEncrypted,
-            dateTaken: item.dateTaken,
-            subtypeRawValue: item.mediaSubtype.rawValue
+            keys: sortKeys(forFileLevelMetadata: item)
         )
+    }
+
+    /// The sort keys a file-level read produced: from the file's encrypted
+    /// metadata when it had some, otherwise from its file attributes.
+    private static func sortKeys(
+        forFileLevelMetadata item: MediaWithMetadata<EncryptedMedia>
+    ) -> MediaSortKeys {
+        MediaSortKeys(dateAdded: item.dateEncrypted,
+                      dateTaken: item.dateTaken,
+                      subtype: item.mediaSubtype,
+                      source: item.metadata == nil ? .fileAttributes : .encryptedMetadata)
     }
 
     /// The index entry for a component a move just landed in a local album,

@@ -318,59 +318,24 @@ public actor DiskFileAccess: DebugPrintable {
     
     // MARK: - Metadata Extraction Helpers
     
-    /// Extracts metadata info for a single media item
-    /// For V2 files, reads embedded metadata. For V1 files, uses file system dates and extension-based type detection.
+    /// The sort keys for a single media item: read from its encrypted
+    /// metadata when it has some, and from the file's creation date and its
+    /// component type when it does not.
     /// - Parameters:
     ///   - media: The encrypted media to extract metadata for
     ///   - v2Metadata: Pre-loaded V2 metadata (nil for V1 files)
-    /// - Returns: Tuple containing extracted dates and media subtype
     private func extractMetadataInfo(
         for media: EncryptedMedia,
         v2Metadata: EncryptedFileMetadata?
-    ) -> (dateTaken: Date?, dateEncrypted: Date?, subtype: MediaFilterOptions) {
-        
+    ) -> MediaSortKeys {
         if let metadata = v2Metadata {
-            // "Date Taken" falls back to the date added when the capture date is unknown.
-            let dateTaken = metadata.captureDate ?? metadata.encryptionDate
-            let dateEncrypted = metadata.encryptionDate
-            
-            let subtype: MediaFilterOptions
-            if metadata.contentAnalysis?.isLivePhoto == true || metadata.originalMediaType == "livePhoto" {
-                subtype = .stillImage
-            } else if metadata.originalMediaType == "video" {
-                subtype = .video
-            } else if metadata.contentAnalysis?.isScreenshot == true {
-                subtype = .screenshot
-            } else {
-                subtype = .stillImage
-            }
-            
-            return (dateTaken, dateEncrypted, subtype)
-        } else {
-            var dateTaken: Date?
-            var dateEncrypted: Date?
-            
-            if case .url(let url) = media.source {
-                let resourceKeys: Set<URLResourceKey> = [.creationDateKey]
-                if let values = try? url.resourceValues(forKeys: resourceKeys) {
-                    let creationDate = values.creationDate
-                    dateTaken = creationDate
-                    dateEncrypted = creationDate
-                }
-            }
-            
-            let subtype: MediaFilterOptions
-            switch media.mediaType {
-            case .video:
-                subtype = .video
-            case .photo:
-                subtype = .stillImage
-            default:
-                subtype = .stillImage
-            }
-            
-            return (dateTaken, dateEncrypted, subtype)
+            return MediaSortKeys(metadata: metadata, componentType: media.mediaType)
         }
+        var creationDate: Date?
+        if case .url(let url) = media.source {
+            creationDate = try? url.resourceValues(forKeys: [.creationDateKey]).creationDate
+        }
+        return MediaSortKeys(fileCreationDate: creationDate, componentType: media.mediaType)
     }
     
     // MARK: - Enumeration with Metadata
@@ -472,8 +437,9 @@ public actor DiskFileAccess: DebugPrintable {
         )
     }
 
-    /// Builds the MediaWithMetadata array with filtering and sorting applied
-    private func buildMediaWithMetadataArray(
+    /// Builds the MediaWithMetadata array with filtering and sorting applied.
+    /// `internal` for the test that compares its order with index paging.
+    func buildMediaWithMetadataArray(
         media: [EncryptedMedia],
         metadataMap: [URL: EncryptedFileMetadata],
         sortOption: MediaSortOption,
@@ -491,7 +457,7 @@ public actor DiskFileAccess: DebugPrintable {
             }
         }
 
-        var results: [MediaWithMetadata<EncryptedMedia>] = []
+        var results: [(item: MediaWithMetadata<EncryptedMedia>, keys: MediaSortKeys)] = []
 
         for mediaItem in media {
             var v2Metadata: EncryptedFileMetadata?
@@ -499,52 +465,31 @@ public actor DiskFileAccess: DebugPrintable {
                 v2Metadata = metadataMap[url]
             }
 
-            var (dateTaken, dateEncrypted, subtype) = extractMetadataInfo(
-                for: mediaItem,
-                v2Metadata: v2Metadata
-            )
+            var keys = extractMetadataInfo(for: mediaItem, v2Metadata: v2Metadata)
 
-            if subtype == .video && livePhotoIDs.contains(mediaItem.id) {
-                subtype = .stillImage
+            if keys.subtype == .video && livePhotoIDs.contains(mediaItem.id) {
+                keys.subtype = .stillImage
             }
 
-            if !filterOptions.contains(subtype) {
+            if !filterOptions.contains(keys.subtype) {
                 continue
             }
 
             let wrapper = MediaWithMetadata(
                 media: mediaItem,
                 metadata: v2Metadata,
-                dateTaken: dateTaken,
-                dateEncrypted: dateEncrypted,
-                mediaSubtype: subtype
+                dateTaken: keys.dateTaken,
+                dateEncrypted: keys.dateAdded,
+                mediaSubtype: keys.subtype
             )
-            results.append(wrapper)
+            results.append((wrapper, keys))
         }
-        
-        results.sort { item1, item2 in
-            switch sortOption {
-            case .dateTaken(let ascending):
-                guard let date1 = item1.dateTaken, let date2 = item2.dateTaken else {
-                    if item1.dateTaken == nil && item2.dateTaken == nil {
-                        return false
-                    }
-                    return item1.dateTaken != nil
-                }
-                return ascending ? date1 < date2 : date1 > date2
-                
-            case .dateEncrypted(let ascending):
-                guard let date1 = item1.dateEncrypted, let date2 = item2.dateEncrypted else {
-                    if item1.dateEncrypted == nil && item2.dateEncrypted == nil {
-                        return false
-                    }
-                    return item1.dateEncrypted != nil
-                }
-                return ascending ? date1 < date2 : date1 > date2
-            }
+
+        results.sort {
+            MediaSorter.isOrderedBefore(($0.item.media.id, $0.keys), ($1.item.media.id, $1.keys), by: sortOption)
         }
-        
-        return results
+
+        return results.map(\.item)
     }
 
 }

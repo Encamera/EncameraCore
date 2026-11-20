@@ -75,6 +75,36 @@ public struct MediaIndexEntry: Equatable, Sendable {
         self.photoLocation = hasPhotoComponent ? photoLocation : .cloudKit
         self.videoLocation = hasVideoComponent ? videoLocation : .cloudKit
     }
+
+    /// An entry whose dates and subtype come from `keys`: `dateAdded` becomes
+    /// `dateEncrypted`, and the subtype is stored as its raw value.
+    public init(
+        id: String,
+        hasPhotoComponent: Bool,
+        hasVideoComponent: Bool,
+        keys: MediaSortKeys,
+        photoLocation: MediaComponentLocation = .cloudKit,
+        videoLocation: MediaComponentLocation = .cloudKit
+    ) {
+        self.init(id: id,
+                  hasPhotoComponent: hasPhotoComponent,
+                  hasVideoComponent: hasVideoComponent,
+                  dateEncrypted: keys.dateAdded,
+                  dateTaken: keys.dateTaken,
+                  subtypeRawValue: keys.subtype.rawValue,
+                  photoLocation: photoLocation,
+                  videoLocation: videoLocation)
+    }
+
+    /// The entry's dates and subtype as sort keys. The index stores the values
+    /// and not where they were read from, so `source` is `.recordFields`, the
+    /// index entry itself being the record; `MediaSorter` reads only the dates.
+    var sortKeys: MediaSortKeys {
+        MediaSortKeys(dateAdded: dateEncrypted,
+                      dateTaken: dateTaken,
+                      subtype: MediaFilterOptions(rawValue: subtypeRawValue),
+                      source: .recordFields)
+    }
 }
 
 public extension MediaIndexEntry {

@@ -40,37 +40,8 @@ extension MediaIndex {
                 filterOptions.contains(MediaFilterOptions(rawValue: $0.subtypeRawValue))
             }
         }
-        return filtered.sorted { Self.isOrderedBefore($0, $1, sortOption: sortOption) }
-    }
-
-    /// Mirrors the ordering in `DiskFileAccess.buildMediaWithMetadataArray`:
-    /// by the chosen date, with unknown-date items pushed to the end.
-    /// Ties on the date key are broken by `id` to guarantee a stable total
-    /// order, which offset-based pagination requires.
-    private static func isOrderedBefore(
-        _ lhs: MediaIndexEntry,
-        _ rhs: MediaIndexEntry,
-        sortOption: MediaSortOption
-    ) -> Bool {
-        switch sortOption {
-        case .dateTaken(let ascending):
-            if lhs.dateTaken == rhs.dateTaken {
-                return lhs.id < rhs.id
-            }
-            return compareDates(lhs.dateTaken, rhs.dateTaken, ascending: ascending)
-        case .dateEncrypted(let ascending):
-            if lhs.dateEncrypted == rhs.dateEncrypted {
-                return lhs.id < rhs.id
-            }
-            return compareDates(lhs.dateEncrypted, rhs.dateEncrypted, ascending: ascending)
+        return filtered.sorted {
+            MediaSorter.isOrderedBefore(($0.id, $0.sortKeys), ($1.id, $1.sortKeys), by: sortOption)
         }
-    }
-
-    private static func compareDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool {
-        guard let lhs, let rhs else {
-            if lhs == nil && rhs == nil { return false }
-            return lhs != nil
-        }
-        return ascending ? lhs < rhs : lhs > rhs
     }
 }
