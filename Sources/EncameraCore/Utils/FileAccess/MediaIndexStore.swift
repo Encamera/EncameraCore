@@ -182,6 +182,20 @@ public actor MediaIndexStore {
         }
     }
 
+    /// Replaces the sort keys of existing entries with those of `entries`
+    /// (`replaceSortKeys(with:)`), adding none. Returns whether the index
+    /// actually changed.
+    @discardableResult
+    public func replaceSortKeys(of entries: [MediaIndexEntry]) throws -> Bool {
+        try apply { current in
+            var changed = false
+            for entry in entries {
+                if current.replaceSortKeys(with: entry) { changed = true }
+            }
+            return changed
+        }
+    }
+
     /// Drops whole entries by id (the disk delete/move fast path). Returns whether
     /// the index actually changed.
     @discardableResult

@@ -219,12 +219,14 @@ public final class InMemoryCloudKitMediaStore: CloudKitMediaStoring, DebugPrinta
         locked { records[recordName]?.metadata }
     }
 
+    @discardableResult
     public func fetchBlob(recordName: String,
                           to destination: URL,
-                          progress: @escaping @Sendable (Double) -> Void) async throws {
+                          progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitBlobFetchResult {
         guard let stored = locked({ records[recordName] }) else { throw CloudKitMediaStoreError.notFound }
         try stored.blob.write(to: destination)
         progress(1.0)
+        return CloudKitBlobFetchResult(carriesMetadata: stored.metadata.encMetadata != nil)
     }
 
     /// Throws `.notFound` for a record saved without a thumbnail, as

@@ -1606,9 +1606,25 @@ final class CloudKitFileAccessTests: XCTestCase {
         }
     }
 
+    /// The record of a photo under `key`, as the server holds it, carrying
+    /// `encMetadata` when `withMetadata`, as every record this build saves does.
+    private func photoRecord(album: Album, id: String, key: PrivateKey,
+                             withMetadata: Bool) throws -> CloudKitMediaMetadata {
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
+        let sealed = withMetadata
+            ? try CloudKitRecordMetadataHandler.encryptMetadata(EncryptedFileMetadata(), recordName: recordName, keyBytes: key.keyBytes)
+            : nil
+        return CloudKitMediaMetadata(recordName: recordName, albumID: album.albumID!, mediaID: id,
+                                     mediaType: .photo, createdAt: Date(), sizeBytes: 100,
+                                     creationDeviceID: "d", schemaVersion: 1,
+                                     keyFingerprint: key.keyFingerprint, recordChangeTag: "t1",
+                                     encMetadata: sealed)
+    }
+
     /// The fast path: an item under the album's own key opens with the one blob
     /// fetch it always cost, no metadata round trip for a hint, and no read of the
-    /// key library.
+    /// key library. The blob fetch reports the record's `encMetadata`, so the
+    /// open's background work adds nothing either.
     func testAlbumKeyPhotoOpensWithoutExtraFetchesOrAKeyLibraryRead() async throws {
         let album = makeAlbum()
         let store = MockCloudKitMediaStore()
@@ -1617,12 +1633,72 @@ final class CloudKitFileAccessTests: XCTestCase {
         let id = UUID().uuidString
         let cleartext = Data("own key".utf8)
         store.blobContents = try await makeENC2(key: album.key, id: id, data: cleartext)
+        store.metadataToReturn = [try photoRecord(album: album, id: id, key: album.key, withMetadata: true)]
         let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
 
         let decrypted = try await access.loadMedia(media: try photoMedia(album: album, id: id), progress: { _ in })
+        await access.awaitMetadataBackfills()
 
         XCTAssertEqual(decrypted.underlyingMedia.first?.data, cleartext)
         XCTAssertEqual(store.callOrder, [.fetchBlob(recordName: recordName)])
+        XCTAssertEqual(keyManager.storedKeysReads, 0)
+    }
+
+    /// A record an older build saved, with no `encMetadata`, says so in its blob
+    /// fetch: the open backfills it with one attach, asks nothing first, and picks
+    /// the album key without reading the key library. With the album on the
+    /// device, a saved attach is followed by the re-date's read of the record.
+    func testOpeningARecordWithoutMetadataAttachesItWithoutAProbeOrAKeyLibraryRead() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let keyManager = CountingKeyManager()
+        keyManager.currentKey = album.key
+        keyManager.storedKeysValue = [album.key, Self.foreignKey]
+        let albumManager = MockAlbumManager(keyManager: keyManager)
+        albumManager.albumsOnDisk = [album]
+        let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: store)
+        let id = UUID().uuidString
+        let cleartext = Data("older build".utf8)
+        store.blobContents = try await makeENC2(key: album.key, id: id, data: cleartext)
+        store.metadataToReturn = [try photoRecord(album: album, id: id, key: album.key, withMetadata: false)]
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
+
+        let decrypted = try await access.loadMedia(media: try photoMedia(album: album, id: id), progress: { _ in })
+        await access.awaitMetadataBackfills()
+
+        XCTAssertEqual(decrypted.underlyingMedia.first?.data, cleartext)
+        XCTAssertEqual(store.callOrder, [.fetchBlob(recordName: recordName),
+                                         .attachMetadata(recordName: recordName),
+                                         .fetchRecordMetadata(recordName: recordName)])
+        XCTAssertEqual(store.metadataAttachSaveCount, 1)
+        XCTAssertEqual(keyManager.storedKeysReads, 0)
+    }
+
+    /// A copy already on the device opens without asking the server anything,
+    /// even when this session has not learned whether its record carries
+    /// `encMetadata`: a resident read never probes for it.
+    func testResidentCopyOfARecordOfUnknownMetadataStateOpensWithoutAStoreCall() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let id = UUID().uuidString
+        let cleartext = Data("already here".utf8)
+        store.blobContents = try await makeENC2(key: album.key, id: id, data: cleartext)
+        store.metadataToReturn = [try photoRecord(album: album, id: id, key: album.key, withMetadata: false)]
+        let recordName = MediaRecordName.componentRecordName(mediaID: id, type: .photo)
+        let cache = CloudKitBlobCache()
+        let blob = FileManager.default.temporaryDirectory.appendingPathComponent("\(id)-resident.enc")
+        try store.blobContents.write(to: blob)
+        defer { try? FileManager.default.removeItem(at: blob) }
+        try await cache.store(recordName: recordName, changeTag: nil, albumID: album.albumID!, from: blob)
+        addTeardownBlock { await cache.evict(recordName: recordName) }
+        let (access, keyManager) = await makeAccess(album: album, store: store, heldKeys: [album.key])
+
+        let decrypted = try await access.loadMedia(media: try photoMedia(album: album, id: id), progress: { _ in })
+        await access.awaitMetadataBackfills()
+
+        XCTAssertEqual(decrypted.underlyingMedia.first?.data, cleartext)
+        XCTAssertEqual(store.callOrder, [], "a resident copy neither fetches nor probes for encMetadata")
+        XCTAssertEqual(store.metadataAttachSaveCount, 0)
         XCTAssertEqual(keyManager.storedKeysReads, 0)
     }
 
@@ -2723,11 +2799,12 @@ final class RecordingCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendab
         try await base.fetchRecordMetadata(recordName: recordName)
     }
 
+    @discardableResult
     func fetchBlob(recordName: String,
                    to destination: URL,
-                   progress: @escaping @Sendable (Double) -> Void) async throws {
+                   progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitBlobFetchResult {
         locked { _fetchBlobCount += 1 }
-        try await base.fetchBlob(recordName: recordName, to: destination, progress: progress)
+        return try await base.fetchBlob(recordName: recordName, to: destination, progress: progress)
     }
 
     func fetchThumbnail(recordName: String, to destination: URL) async throws {

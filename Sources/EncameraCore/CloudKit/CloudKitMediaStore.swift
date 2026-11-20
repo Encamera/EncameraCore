@@ -523,29 +523,35 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
 
     // MARK: - Lazy asset fetches
 
+    /// `encMetadata` rides along in the blob's request so the result can say
+    /// whether the record carries it.
+    @discardableResult
     public func fetchBlob(recordName: String,
                           to destination: URL,
-                          progress: @escaping @Sendable (Double) -> Void) async throws {
-        try await fetchAsset(recordName: recordName,
-                             assetKey: CloudKitSchema.EncMedia.encBlob,
-                             to: destination,
-                             progress: progress)
+                          progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitBlobFetchResult {
+        let record = try await fetchAsset(recordName: recordName,
+                                          assetKey: CloudKitSchema.EncMedia.encBlob,
+                                          extraKeys: [CloudKitSchema.EncMedia.encMetadata],
+                                          to: destination,
+                                          progress: progress)
+        return CloudKitBlobFetchResult(carriesMetadata: record[CloudKitSchema.EncMedia.encMetadata] as? Data != nil)
     }
 
     public func fetchThumbnail(recordName: String, to destination: URL) async throws {
-        try await fetchAsset(recordName: recordName,
+        _ = try await fetchAsset(recordName: recordName,
                              assetKey: CloudKitSchema.EncMedia.encThumbnail,
                              extraKeys: [CloudKitSchema.EncMedia.creationDevice],
                              to: destination,
                              progress: { _ in })
     }
 
-    /// `extraKeys` are fetched alongside the asset only to be logged.
+    /// `extraKeys` are fetched alongside the asset in the same request. Returns
+    /// the fetched record, carrying only those keys and the asset.
     private func fetchAsset(recordName: String,
                             assetKey: CKRecord.FieldKey,
                             extraKeys: [CKRecord.FieldKey] = [],
                             to destination: URL,
-                            progress: @escaping @Sendable (Double) -> Void) async throws {
+                            progress: @escaping @Sendable (Double) -> Void) async throws -> CKRecord {
         let recordID = CKRecord.ID(recordName: recordName, zoneID: zoneID)
         do {
             let records = try await adapter.fetch(recordIDs: [recordID],
@@ -567,6 +573,7 @@ public final class CloudKitMediaStore: CloudKitMediaStoring, DebugPrintable {
             if assetKey == CloudKitSchema.EncMedia.encThumbnail {
                 printDebug("fetchThumbnail ok recordName=\(recordName) \(Self.describeRecordOrigin(record)) thumb=[\(FileFingerprint.describe(destination))]")
             }
+            return record
         } catch let error as CloudKitMediaStoreError {
             throw error
         } catch {

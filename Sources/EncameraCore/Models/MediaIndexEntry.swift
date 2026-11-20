@@ -140,6 +140,31 @@ public extension MediaIndexEntry {
         )
     }
 
+    /// Combines this entry with a newer reading of the same media's sort keys:
+    /// components and their locations combine as in `merged(with:)`, but the
+    /// dates come from `other` wherever it has them, and so does the subtype
+    /// unless `other`'s is unknown (0). A Live Photo never takes the video
+    /// subtype. For keys learned after the entry was indexed, such as metadata
+    /// a record gained later, which `merged(with:)` would not apply because it
+    /// keeps the first non-nil dates.
+    func replacingSortKeys(with other: MediaIndexEntry) -> MediaIndexEntry {
+        let combined = merged(with: other)
+        var subtype = other.subtypeRawValue == 0 ? combined.subtypeRawValue : other.subtypeRawValue
+        if combined.hasPhotoComponent, combined.hasVideoComponent, subtype == MediaFilterOptions.video.rawValue {
+            subtype = MediaFilterOptions.stillImage.rawValue
+        }
+        return MediaIndexEntry(
+            id: id,
+            hasPhotoComponent: combined.hasPhotoComponent,
+            hasVideoComponent: combined.hasVideoComponent,
+            dateEncrypted: other.dateEncrypted ?? dateEncrypted,
+            dateTaken: other.dateTaken ?? dateTaken,
+            subtypeRawValue: subtype,
+            photoLocation: combined.photoLocation,
+            videoLocation: combined.videoLocation
+        )
+    }
+
     /// The filter subtype of a single component when nothing but its type is
     /// known, as for a CloudKit record: a video, or a still.
     static func subtype(forComponent mediaType: MediaType) -> MediaFilterOptions {
@@ -231,6 +256,19 @@ public extension Array where Element == MediaIndexEntry {
             return true
         }
         append(entry)
+        return true
+    }
+
+    /// Replaces the sort keys of the entry that shares `entry`'s id with
+    /// `entry`'s (`MediaIndexEntry.replacingSortKeys(with:)`). An id with no
+    /// entry changes nothing: replacing never adds media. Returns whether the
+    /// array changed.
+    @discardableResult
+    mutating func replaceSortKeys(with entry: MediaIndexEntry) -> Bool {
+        guard let index = firstIndex(where: { $0.id == entry.id }) else { return false }
+        let replaced = self[index].replacingSortKeys(with: entry)
+        guard replaced != self[index] else { return false }
+        self[index] = replaced
         return true
     }
 

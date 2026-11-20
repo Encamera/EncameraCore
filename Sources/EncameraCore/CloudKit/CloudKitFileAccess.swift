@@ -614,6 +614,12 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// The folder is the one the album's local marker links to, once the folder's
     /// own marker names this album. An album with no link never looks on iCloud
     /// Drive, and a read served by step 1 never looks for the link.
+    ///
+    /// A read served by the record's own bytes (step 1 or 3) starts a
+    /// background `backfillMetadataIfMissing` for the record when this session
+    /// knows the record has no `encMetadata`. Step 3's blob fetch says so in
+    /// the same request; step 1 relies on what sync or an earlier fetch learned
+    /// and never asks.
     func resolveComponent(id: String,
                           type: MediaType,
                           progress: @escaping @Sendable (FileLoadingStatus) -> Void) async throws -> CloudKitResolvedComponent {
@@ -621,6 +627,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         progress(.downloading(progress: 0))
         if let resident = await coordinator.residentBlobURL(recordName: recordName) {
             progress(.downloading(progress: 1))
+            startMetadataBackfillIfRecordLacksMetadata(recordName: recordName, fileURL: resident)
             return served(recordName: recordName, url: resident, source: .blobCache)
         }
 
@@ -642,6 +649,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 let url = try await coordinator.ensureBlobLocal(recordName: recordName, albumID: albumID) { fraction in
                     progress(.downloading(progress: fraction))
                 }
+                startMetadataBackfillIfRecordLacksMetadata(recordName: recordName, fileURL: url)
                 return served(recordName: recordName, url: url, source: .cloudKit)
             } catch {
                 guard driveFileExists, !(error is CancellationError) else {
@@ -939,6 +947,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         }
     }
 
+    /// Waits for the background metadata backfills that reads start, including
+    /// any started while waiting. For tests and for callers that must observe a
+    /// backfill landing; a read never waits on one.
+    public func awaitMetadataBackfills() async {
+        while let backfill = metadataBackfills.values.first {
+            await backfill.value
+        }
+    }
+
     // MARK: - Thumbnail repair on open
     //
     // A record can be saved without `encThumbnail` (see `saveSingle`), and other
@@ -1075,6 +1092,111 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
             } catch {
                 printDebug("thumbnailRepair attach FAILED recordName=\(recordName) raw=\(error)")
             }
+        }
+    }
+
+    // MARK: - Metadata backfill when a blob lands
+    //
+    // A record saved by an older build has no `encMetadata`, so it sorts by its
+    // `createdAt`. The metadata is in its blob's header, and a read that made the
+    // blob local can copy it onto the record without decrypting the content.
+    // Like the thumbnail repair, this only fills a missing field and never
+    // overwrites one.
+
+    /// Records this session has seen carry `encMetadata`. Never persisted: the
+    /// record is the truth.
+    private var recordsKnownToHaveMetadata: Set<String> = []
+    /// Records a backfill is working on, so overlapping reads check each once.
+    private var recordsBeingBackfilled: Set<String> = []
+    private var metadataBackfills: [UUID: Task<Void, Never>] = [:]
+
+    /// Runs `backfillMetadataIfMissing` in the background when the coordinator
+    /// knows the record has no `encMetadata`, tracked so
+    /// `awaitMetadataBackfills()` can wait for it. A record that carries the
+    /// field, or one nothing has looked at yet, costs no store call. The read
+    /// does not wait.
+    private func startMetadataBackfillIfRecordLacksMetadata(recordName: String, fileURL: URL) {
+        let id = UUID()
+        metadataBackfills[id] = Task(priority: .utility) {
+            if await self.coordinator.isRecordKnownToLackMetadata(recordName: recordName) {
+                await self.backfillMetadataIfMissing(recordName: recordName, fileURL: fileURL)
+            }
+            self.metadataBackfills[id] = nil
+        }
+    }
+
+    /// Copies the metadata in `fileURL`, the record's ciphertext on this device,
+    /// onto the record when it has no `encMetadata`, then re-dates the record's
+    /// index entry from it.
+    ///
+    /// Skips a record known to carry the field already, one another backfill is
+    /// on, one still queued for upload (its upload carries its own metadata),
+    /// one no held key opens, and a file with no metadata (V1, or ENC3 without
+    /// a metadata section). The decrypted metadata bytes are sealed exactly as
+    /// read, never decoded and re-encoded, so keys this build does not know
+    /// survive. They are sealed under the key that opens the file, which is the
+    /// record's own key (`keyFingerprint`), not necessarily the album's. The
+    /// store keeps a value another device saved first. Logs name the record and
+    /// the outcome only. Every failure is logged and dropped: the read has
+    /// already succeeded, and the next read tries again.
+    func backfillMetadataIfMissing(recordName: String, fileURL: URL) async {
+        guard !recordsKnownToHaveMetadata.contains(recordName),
+              !recordsBeingBackfilled.contains(recordName) else { return }
+        recordsBeingBackfilled.insert(recordName)
+        defer { recordsBeingBackfilled.remove(recordName) }
+
+        if await coordinator.isRecordKnownToCarryMetadata(recordName: recordName) {
+            recordsKnownToHaveMetadata.insert(recordName)
+            return
+        }
+        if await uploadQueue.pendingFileURL(recordName: recordName) != nil {
+            printDebug("metadataBackfill skip recordName=\(recordName) reason=queuedForUpload")
+            return
+        }
+        let (id, componentType) = MediaRecordName.parse(recordName)
+        guard let componentType else {
+            printDebug("metadataBackfill skip recordName=\(recordName) reason=noComponentType")
+            return
+        }
+
+        let recordKey: PrivateKey
+        do {
+            recordKey = try await key(forCiphertextAt: fileURL, id: id, type: componentType)
+        } catch {
+            printDebug("metadataBackfill skip recordName=\(recordName) reason=noKeyOpensFile")
+            return
+        }
+        let sealed: Data
+        do {
+            guard let bytes = try await EncryptedMetadataHandler().readMetadataBytes(from: fileURL,
+                                                                                      keyBytes: recordKey.keyBytes) else {
+                printDebug("metadataBackfill skip recordName=\(recordName) reason=fileHasNoMetadata")
+                return
+            }
+            sealed = try CloudKitRecordMetadataHandler.encryptMetadata(bytes: bytes, recordName: recordName, keyBytes: recordKey.keyBytes)
+        } catch {
+            printDebug("metadataBackfill read FAILED recordName=\(recordName) raw=\(error)")
+            return
+        }
+
+        do {
+            switch try await store.attachMetadata(recordName: recordName, sealed: sealed) {
+            case .attached(let changeTag):
+                recordsKnownToHaveMetadata.insert(recordName)
+                printDebug("metadataBackfill attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
+                await coordinator.applyBackfilledMetadata(recordName: recordName,
+                                                          albumID: albumID,
+                                                          changeTag: changeTag,
+                                                          keyBytes: recordKey.keyBytes)
+            case .alreadyPresent:
+                recordsKnownToHaveMetadata.insert(recordName)
+                await coordinator.noteRecordCarriesMetadata(recordName: recordName)
+                printDebug("metadataBackfill skip recordName=\(recordName) reason=alreadyPresent")
+            case .recordMissing:
+                printDebug("metadataBackfill skip recordName=\(recordName) reason=recordMissing")
+            }
+        } catch {
+            printDebug("metadataBackfill attach FAILED recordName=\(recordName) raw=\(error)")
         }
     }
 

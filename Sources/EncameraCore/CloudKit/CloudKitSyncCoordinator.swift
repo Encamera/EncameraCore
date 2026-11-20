@@ -213,6 +213,11 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// and only that falls back to a fetch-by-id. In-memory only, so every entry
     /// dies with the process.
     private var chunkInfo: [String: ChunkedBlobInfo] = [:]
+    /// Whether each record carries `encMetadata`, learned from delta sync, from
+    /// uploads this session, from fetch-by-id, from a read's blob fetch and from
+    /// a metadata backfill. No
+    /// entry means nothing has looked yet. In-memory only.
+    private var recordsCarryingMetadata: [String: Bool] = [:]
 
     /// In-flight blob fetches keyed by record name, so concurrent callers for the
     /// same record share one `fetchBlob` instead of issuing duplicates — while
@@ -339,9 +344,84 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// not change, so the cached copy is re-keyed to the new tag rather than left
     /// to look stale and be downloaded again.
     public func adoptThumbnailChangeTag(recordName: String, changeTag: String) async {
+        await adoptFieldOnlyChangeTag(recordName: recordName, changeTag: changeTag)
+    }
+
+    /// Re-keys the cached blob to the change tag a save that left the blob alone
+    /// gave the record, so the copy is not taken for stale and downloaded again.
+    private func adoptFieldOnlyChangeTag(recordName: String, changeTag: String) async {
         let previousTag = changeTags[recordName]
         changeTags[recordName] = changeTag
         await cache.retag(recordName: recordName, from: previousTag, to: changeTag)
+    }
+
+    /// Whether this session has learned that the record carries `encMetadata`.
+    /// False both when it is known not to and when nothing has looked yet.
+    /// Never fetches.
+    public func isRecordKnownToCarryMetadata(recordName: String) -> Bool {
+        recordsCarryingMetadata[recordName] == true
+    }
+
+    /// Whether this session has learned that the record has no `encMetadata`,
+    /// from sync, a fetch by id or the blob fetch of a read. False when nothing
+    /// has looked yet. Never fetches.
+    public func isRecordKnownToLackMetadata(recordName: String) -> Bool {
+        recordsCarryingMetadata[recordName] == false
+    }
+
+    /// Notes that the record carries `encMetadata`, as an attach that found a
+    /// value already there reports.
+    public func noteRecordCarriesMetadata(recordName: String) {
+        recordsCarryingMetadata[recordName] = true
+    }
+
+    /// Takes in a metadata backfill this device saved onto the record: adopts
+    /// the save's change tag, since the blob did not change, then re-dates the
+    /// record's index entry from the record through the standard resolver, with
+    /// `keyBytes`, the key the metadata is sealed under. The entry's dates and
+    /// subtype are replaced, not merged, since a merge keeps the dates the
+    /// entry was first indexed with (the record's `createdAt`). An index with
+    /// no entry for the media is left alone. Failures are logged by record name
+    /// and dropped: the record is already filled, and a later index rebuild
+    /// reads it.
+    public func applyBackfilledMetadata(recordName: String,
+                                        albumID: String,
+                                        changeTag: String?,
+                                        keyBytes: [UInt8]) async {
+        recordsCarryingMetadata[recordName] = true
+        if let changeTag {
+            await adoptFieldOnlyChangeTag(recordName: recordName, changeTag: changeTag)
+        }
+        guard let indexStore = indexStore(forAlbumID: albumID) else {
+            printDebug("metadataBackfill reindex skip recordName=\(recordName) reason=noAlbumOnDevice")
+            return
+        }
+        let meta: CloudKitMediaMetadata
+        do {
+            guard let fetched = try await store.fetchRecordMetadata(recordName: recordName) else {
+                printDebug("metadataBackfill reindex skip recordName=\(recordName) reason=recordMissing")
+                return
+            }
+            meta = fetched
+        } catch {
+            printDebug("metadataBackfill reindex FAILED recordName=\(recordName) raw=\(error)")
+            return
+        }
+        guard meta.albumID == albumID else {
+            printDebug("metadataBackfill reindex skip recordName=\(recordName) reason=recordInAnotherAlbum")
+            return
+        }
+        let entry = await Self.indexEntry(from: meta, keyBytes: keyBytes)
+        do {
+            if try await indexStore.replaceSortKeys(of: [entry]) {
+                bus.didCreate(Self.media(forRecordName: meta.mediaID, albumID: albumID, mediaType: meta.mediaType))
+                printDebug("metadataBackfill reindex ok recordName=\(recordName)")
+            } else {
+                printDebug("metadataBackfill reindex skip recordName=\(recordName) reason=entryUnchangedOrAbsent")
+            }
+        } catch {
+            printDebug("metadataBackfill reindex FAILED recordName=\(recordName) raw=\(error)")
+        }
     }
 
     /// The record's `keyFingerprint`, as far as this session has already learned it
@@ -385,6 +465,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         if let tag = meta.recordChangeTag { changeTags[recordName] = tag }
         chunkInfo[recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount, encHeader: meta.encHeader,
                                                 keyFingerprint: meta.keyFingerprint)
+        recordsCarryingMetadata[recordName] = meta.encMetadata != nil
         await persistSizes(albumID: meta.albumID, updates: [recordName: meta.sizeBytes], removals: [])
         return meta
     }
@@ -496,6 +577,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         let mediaType: MediaType
     }
 
+    /// One changed record's entry, and whether its dates and subtype replace
+    /// the existing entry's rather than merge with them. They do when they come
+    /// from the record's `encMetadata`: those are the media's own dates, and a
+    /// merge would keep the dates the entry was first indexed with.
+    private struct IncomingEntry {
+        let entry: MediaIndexEntry
+        let replacesSortKeys: Bool
+    }
+
     /// What one walk does to one album's index, accumulated before anything is
     /// saved.
     private struct AlbumApply {
@@ -507,7 +597,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         /// Whether the album had a readable index before the walk.
         let hadIndex: Bool
         var entries: [MediaIndexEntry]
-        var upserted: [MediaIndexEntry] = []
+        /// Entries from changed records, in feed order, to fold onto the live
+        /// index.
+        var upserted: [IncomingEntry] = []
         var removedRecordNames: [String] = []
         var pendingCreates: [EncryptedMedia] = []
         var pendingDeletes: [EncryptedMedia] = []
@@ -784,12 +876,16 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             chunkInfo[meta.recordName] = ChunkedBlobInfo(chunkCount: meta.chunkCount,
                                                          encHeader: meta.encHeader,
                                                          keyFingerprint: meta.keyFingerprint)
+            recordsCarryingMetadata[meta.recordName] = meta.encMetadata != nil
             target.seen.insert(MediaComponent(mediaID: mediaID, mediaType: meta.mediaType))
-            let incoming = await Self.indexEntry(from: meta, keyBytes: target.keyBytes)
-            target.upserted.append(incoming)
-            if target.entries.upsert(incoming) {
+            let (incoming, keysSource) = await Self.indexEntryAndSortKeySource(from: meta, keyBytes: target.keyBytes)
+            let replacesSortKeys = keysSource == .encryptedMetadata
+            target.upserted.append(IncomingEntry(entry: incoming, replacesSortKeys: replacesSortKeys))
+            let upserted = target.entries.upsert(incoming)
+            let redated = replacesSortKeys && target.entries.replaceSortKeys(with: incoming)
+            if upserted || redated {
                 target.pendingCreates.append(Self.media(forRecordName: mediaID, albumID: meta.albumID, mediaType: meta.mediaType))
-                printDebug("performSync upsert recordName=\(meta.recordName) mediaID=\(mediaID) albumID=\(meta.albumID) mediaType=\(meta.mediaType) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil")")
+                printDebug("performSync upsert recordName=\(meta.recordName) mediaID=\(mediaID) albumID=\(meta.albumID) mediaType=\(meta.mediaType) sizeBytes=\(meta.sizeBytes) changeTag=\(meta.recordChangeTag ?? "nil") sortKeysReplaced=\(redated)")
             } else {
                 printDebug("performSync upsert skip recordName=\(meta.recordName) — index already current, no gallery refresh emitted")
             }
@@ -861,7 +957,10 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
                 do {
                     try await album.indexStore.apply { live in
                         var changed = false
-                        for entry in album.upserted where live.upsert(entry) { changed = true }
+                        for incoming in album.upserted {
+                            if live.upsert(incoming.entry) { changed = true }
+                            if incoming.replacesSortKeys, live.replaceSortKeys(with: incoming.entry) { changed = true }
+                        }
                         for recordName in album.removedRecordNames
                         where !live.hasICloudDriveComponent(recordName: recordName) {
                             if live.removeComponent(recordName: recordName) { changed = true }
@@ -1127,7 +1226,9 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// The chunked branch is tried when the record is KNOWN chunked (delta sync
     /// populated `chunkInfo`), and again when the blob fetch reports the asset
     /// missing — the record may be chunked and simply carry no `encBlob`. That
-    /// keeps the common monolithic path at zero extra round trips.
+    /// keeps the common monolithic path at zero extra round trips. The blob
+    /// fetch also says whether the record carries `encMetadata`, which is kept
+    /// for the read's metadata backfill.
     private func downloadCiphertext(recordName: String,
                                     to destination: URL,
                                     progress: @escaping @Sendable (Double) -> Void) async throws {
@@ -1136,7 +1237,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
             return
         }
         do {
-            try await store.fetchBlob(recordName: recordName, to: destination, progress: progress)
+            let fetched = try await store.fetchBlob(recordName: recordName, to: destination, progress: progress)
+            recordsCarryingMetadata[recordName] = fetched.carriesMetadata
         } catch CloudKitMediaStoreError.notFound {
             guard let info = try await chunkedBlobInfo(recordName: recordName) else {
                 throw CloudKitMediaStoreError.notFound
@@ -1428,6 +1530,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         chunkInfo[ref.recordName] = ChunkedBlobInfo(chunkCount: item.chunkCount,
                                                     encHeader: headerBytes,
                                                     keyFingerprint: item.keyFingerprint)
+        recordsCarryingMetadata[ref.recordName] = item.encMetadata != nil
         do {
             try await cache.store(recordName: ref.recordName,
                                   changeTag: ref.recordChangeTag,
@@ -1716,6 +1819,12 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         await indexEntry(for: meta.descriptor, keyBytes: keyBytes)
     }
 
+    /// `indexEntry(from:keyBytes:)`, and where the resolver read its keys from.
+    private static func indexEntryAndSortKeySource(from meta: CloudKitMediaMetadata,
+                                                   keyBytes: [UInt8]?) async -> (MediaIndexEntry, MediaSortKeys.Source) {
+        await indexEntryAndSortKeySource(for: meta.descriptor, keyBytes: keyBytes)
+    }
+
     private static func indexEntry(fromUpload item: CloudKitMediaUpload, keyBytes: [UInt8]?) async -> MediaIndexEntry {
         await indexEntry(for: item.descriptor, keyBytes: keyBytes)
     }
@@ -1729,13 +1838,20 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     /// collapse to a still in `MediaIndexEntry.merged`.
     private static func indexEntry(for descriptor: CloudKitMediaRecordDescriptor,
                                    keyBytes: [UInt8]?) async -> MediaIndexEntry {
+        await indexEntryAndSortKeySource(for: descriptor, keyBytes: keyBytes).0
+    }
+
+    private static func indexEntryAndSortKeySource(for descriptor: CloudKitMediaRecordDescriptor,
+                                                   keyBytes: [UInt8]?) async -> (MediaIndexEntry, MediaSortKeys.Source) {
         let request = MediaSortKeyRequest(mediaID: descriptor.mediaID,
                                           componentType: descriptor.mediaType,
                                           record: descriptor)
-        return MediaIndexEntry(id: descriptor.mediaID,
-                               hasPhotoComponent: descriptor.mediaType == .photo,
-                               hasVideoComponent: descriptor.mediaType == .video,
-                               keys: await MediaSortKeyResolver.standard(keyBytes: keyBytes).sortKeys(for: request))
+        let keys = await MediaSortKeyResolver.standard(keyBytes: keyBytes).sortKeys(for: request)
+        let entry = MediaIndexEntry(id: descriptor.mediaID,
+                                    hasPhotoComponent: descriptor.mediaType == .photo,
+                                    hasVideoComponent: descriptor.mediaType == .video,
+                                    keys: keys)
+        return (entry, keys.source)
     }
 
     /// A lightweight `EncryptedMedia` carrying just the id/type so the gallery can

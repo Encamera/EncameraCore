@@ -425,10 +425,13 @@ public protocol CloudKitMediaStoring: Sendable {
     /// migration uses before deleting a local original.
     func fetchRecordMetadata(recordName: String) async throws -> CloudKitMediaMetadata?
 
-    /// Lazy full fetch: download the `encBlob` asset for one record, copied to `destination`.
+    /// Lazy full fetch: download the `encBlob` asset for one record, copied to
+    /// `destination`. The same request reads whether the record carries
+    /// `encMetadata`, so a read learns that at no extra round trip.
+    @discardableResult
     func fetchBlob(recordName: String,
                    to destination: URL,
-                   progress: @escaping @Sendable (Double) -> Void) async throws
+                   progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitBlobFetchResult
 
     /// Lazy eager-thumb fetch: download the `encThumbnail` asset, copied to `destination`.
     func fetchThumbnail(recordName: String, to destination: URL) async throws
@@ -558,6 +561,16 @@ public enum ThumbnailAttachResult: Sendable, Equatable {
     case alreadyPresent
     /// The server has no such record.
     case recordMissing
+}
+
+/// What a `fetchBlob` learned about the record besides its bytes.
+public struct CloudKitBlobFetchResult: Sendable, Equatable {
+    /// Whether the record carries `encMetadata`.
+    public let carriesMetadata: Bool
+
+    public init(carriesMetadata: Bool) {
+        self.carriesMetadata = carriesMetadata
+    }
 }
 
 /// What `attachMetadata` found and did.

@@ -251,9 +251,12 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     /// How many fetches were stopped by task cancellation rather than finishing.
     var fetchBlobCancelledCount: Int { locked { _fetchBlobCancelledCount } }
 
+    /// Reports `encMetadata` as the record carries it (see `currentEncMetadata`).
+    /// A blob served for a record never uploaded or seeded here carries none.
+    @discardableResult
     func fetchBlob(recordName: String,
                    to destination: URL,
-                   progress: @escaping @Sendable (Double) -> Void) async throws {
+                   progress: @escaping @Sendable (Double) -> Void) async throws -> CloudKitBlobFetchResult {
         log(.fetchBlob(recordName: recordName))
         locked { _fetchBlobCount += 1 }
         do {
@@ -271,6 +274,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         let stored = locked { _uploadedBlobBytes[recordName] }
         try (stored ?? blobContents).write(to: destination)
         progress(1.0)
+        return CloudKitBlobFetchResult(carriesMetadata: locked { currentEncMetadata(recordName: recordName) != nil })
     }
 
     private(set) var fetchThumbnailCount = 0

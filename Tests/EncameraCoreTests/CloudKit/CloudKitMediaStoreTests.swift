@@ -703,7 +703,33 @@ final class CloudKitMediaStoreTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: dest.path))
         XCTAssertEqual(try Data(contentsOf: dest), payload)
 
-        XCTAssertEqual(mock.lastFetchDesiredKeys, [CloudKitSchema.EncMedia.encBlob])
+        XCTAssertEqual(mock.lastFetchDesiredKeys, [CloudKitSchema.EncMedia.encBlob, CloudKitSchema.EncMedia.encMetadata])
+    }
+
+    /// Whether the record carries `encMetadata` comes back in the blob's own
+    /// request: one fetch either way.
+    func testFetchBlobReportsTheRecordsMetadataFromTheSameFetch() async throws {
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("ck-temp-\(UUID()).bin")
+        try Data("ciphertext".utf8).write(to: temp)
+        defer { try? FileManager.default.removeItem(at: temp) }
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent("ck-dest-\(UUID()).bin")
+        defer { try? FileManager.default.removeItem(at: dest) }
+
+        for carriesMetadata in [true, false] {
+            let record = CloudKitTestFactory.encMediaRecord(recordName: "m1", albumID: "a1")
+            record[CloudKitSchema.EncMedia.encBlob] = CKAsset(fileURL: temp)
+            if carriesMetadata {
+                record[CloudKitSchema.EncMedia.encMetadata] = Data("sealed".utf8) as CKRecordValue
+            }
+            let mock = MockCloudKitDatabase()
+            mock.stubbedFetchRecords = [CloudKitTestFactory.recordID("m1"): record]
+            let store = makeStore(adapter: mock, defaults: freshDefaults())
+
+            let fetched = try await store.fetchBlob(recordName: "m1", to: dest, progress: { _ in })
+
+            XCTAssertEqual(fetched, CloudKitBlobFetchResult(carriesMetadata: carriesMetadata))
+            XCTAssertEqual(mock.fetchCount, 1, "no second request for encMetadata")
+        }
     }
 
     /// Asset transfers run in the top QoS band — CloudKit moves them markedly
