@@ -41,12 +41,15 @@ public enum UserDefaultKey {
     case recoveryKeyPromptState
     /// Album visits since the first item was added. See `KeyBackupUIUtil`.
     case recoveryKeyPromptVisitCount
-    /// Where the user is with the "Only in Encamera" drawer that follows the
-    /// first-ever capture. See `FirstCaptureExplainerUtil`.
-    case firstCaptureExplainerState
-    /// The first-ever import while its drawer is waiting to be shown. See
-    /// `FirstCaptureExplainerUtil`.
-    case firstImportExplainerItem
+    /// The user onboarded as new, so each way of adding media explains itself
+    /// once. See `CaptureOrImportExplainerUtil`.
+    case captureOrImportExplainersEligible
+    /// The ways of adding media the user has used, as `CaptureOrImportMethod` raw
+    /// values. See `CaptureOrImportExplainerUtil`.
+    case captureOrImportExplainerPerformed
+    /// The ways of adding media whose explainer has been shown, as
+    /// `CaptureOrImportMethod` raw values. See `CaptureOrImportExplainerUtil`.
+    case captureOrImportExplainersShown
     case promotionalBannerInteractions
     case dismissedBanners
     case selectedPhotoResolution
@@ -152,8 +155,9 @@ public enum UserDefaultKey {
              .keyBackupPromptLastShown,
              .recoveryKeyPromptState,
              .recoveryKeyPromptVisitCount,
-             .firstCaptureExplainerState,
-             .firstImportExplainerItem,
+             .captureOrImportExplainersEligible,
+             .captureOrImportExplainerPerformed,
+             .captureOrImportExplainersShown,
              .promotionalBannerInteractions,
              .dismissedBanners,
              .selectedPhotoResolution,
