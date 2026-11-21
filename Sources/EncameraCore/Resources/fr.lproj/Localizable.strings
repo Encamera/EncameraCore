@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "Certains de ces éléments se trouvent encore dans iCloud Drive, qui n’est pas disponible pour le moment. Vérifiez que vous êtes connecté à iCloud et qu’iCloud Drive est activé.";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "Cet album est toujours en cours de déplacement. Terminez ou annulez le déplacement, puis supprimez-le.";
 "AlbumErrorDrawer.ChangeName" = "Modifier le nom";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "Supprimer de la pellicule";

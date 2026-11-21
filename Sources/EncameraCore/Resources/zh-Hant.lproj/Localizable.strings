@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "其中部分項目仍在 iCloud 雲碟中，但 iCloud 雲碟目前無法使用。請確認你已登入 iCloud 並已開啟 iCloud 雲碟。";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "此相簿仍在搬移中。請完成或取消搬移，然後再刪除。";
 "AlbumErrorDrawer.ChangeName" = "更改名稱";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "從相機膠卷中刪除";

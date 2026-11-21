@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "これらの項目の一部はまだiCloud Driveにありますが、現在iCloud Driveを利用できません。iCloudにサインインしていて、iCloud Driveがオンになっていることを確認してください。";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "このアルバムはまだ移動中です。移動を完了するかキャンセルしてから削除してください。";
 "AlbumErrorDrawer.ChangeName" = "名前を変更";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "カメラロールから削除";

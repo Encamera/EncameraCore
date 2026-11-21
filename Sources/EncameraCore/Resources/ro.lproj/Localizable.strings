@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "Unele dintre aceste articole sunt încă în iCloud Drive, care nu este disponibil momentan. Verificați dacă sunteți autentificat în iCloud și dacă iCloud Drive este activat.";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "Acest album este încă în curs de mutare. Finalizați sau anulați mutarea, apoi ștergeți-l.";
 "AlbumErrorDrawer.ChangeName" = "Schimbă numele";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "Șterge din Rola foto";

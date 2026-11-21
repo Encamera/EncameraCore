@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "Osa näistä kohteista on yhä iCloud Drivessa, joka ei ole juuri nyt käytettävissä. Tarkista, että olet kirjautunut iCloudiin ja iCloud Drive on laitettu päälle.";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "Tätä albumia siirretään yhä. Viimeistele tai peru siirto ja poista albumi sitten.";
 "AlbumErrorDrawer.ChangeName" = "Vaihda nimi";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "Poista kamerarullasta";

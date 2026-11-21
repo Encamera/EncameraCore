@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteMediaICloudDriveUnavailable" = "Nogle af disse emner er stadig på iCloud Drive, som ikke er tilgængelig lige nu. Kontrollér, at du er logget ind på iCloud, og at iCloud Drive er slået til.";
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "Dette album er stadig ved at blive flyttet. Afslut eller annuller flytningen, og slet det derefter.";
 "AlbumErrorDrawer.ChangeName" = "Skift navn";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "Slet fra kamerarulle";
