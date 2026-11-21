@@ -133,5 +133,47 @@
 			<string>%d 個項目</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>這些項目現已加密</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>你可以安心從相機膠卷中刪除原始檔案。</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>你可以安心從「檔案」中刪除原始檔案。</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

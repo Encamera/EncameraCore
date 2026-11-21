@@ -971,3 +971,4 @@
 "AlbumErrorDrawer.DeleteAlbumMoveInProgressMessage" = "此相簿仍在移动中。请完成或取消移动，然后再删除。";
 "EraseProgress.CompleteMessage" = "所有内容均已删除并验证。轻点“完成”以重新启动 Encamera。";
 "AlbumErrorDrawer.ChangeName" = "更改名称";
+"EncameraDrawerFactory.FirstImportExplainerDrawer.DeleteFromCameraRoll" = "从相机胶卷中删除";

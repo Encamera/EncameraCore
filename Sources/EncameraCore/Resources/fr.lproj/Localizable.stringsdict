@@ -169,5 +169,59 @@
 			<string>%d éléments</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Cet élément est maintenant chiffré</string>
+			<key>many</key>
+			<string>Ces éléments sont maintenant chiffrés</string>
+			<key>other</key>
+			<string>Ces éléments sont maintenant chiffrés</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Vous pouvez supprimer l'original de votre Pellicule en toute sécurité.</string>
+			<key>many</key>
+			<string>Vous pouvez supprimer les originaux de votre Pellicule en toute sécurité.</string>
+			<key>other</key>
+			<string>Vous pouvez supprimer les originaux de votre Pellicule en toute sécurité.</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Vous pouvez supprimer l'original de Fichiers en toute sécurité.</string>
+			<key>many</key>
+			<string>Vous pouvez supprimer les originaux de Fichiers en toute sécurité.</string>
+			<key>other</key>
+			<string>Vous pouvez supprimer les originaux de Fichiers en toute sécurité.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

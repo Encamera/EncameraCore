@@ -169,5 +169,59 @@
 			<string>%d elementi</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Questo elemento è ora crittografato</string>
+			<key>many</key>
+			<string>Questi elementi sono ora crittografati</string>
+			<key>other</key>
+			<string>Questi elementi sono ora crittografati</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Puoi eliminare in sicurezza l'originale dal Rullino foto.</string>
+			<key>many</key>
+			<string>Puoi eliminare in sicurezza gli originali dal Rullino foto.</string>
+			<key>other</key>
+			<string>Puoi eliminare in sicurezza gli originali dal Rullino foto.</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Puoi eliminare in sicurezza l'originale dall'app File.</string>
+			<key>many</key>
+			<string>Puoi eliminare in sicurezza gli originali dall'app File.</string>
+			<key>other</key>
+			<string>Puoi eliminare in sicurezza gli originali dall'app File.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

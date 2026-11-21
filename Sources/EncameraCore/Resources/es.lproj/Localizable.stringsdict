@@ -169,5 +169,59 @@
 			<string>%d elementos</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Este elemento ahora está cifrado</string>
+			<key>many</key>
+			<string>Estos elementos ahora están cifrados</string>
+			<key>other</key>
+			<string>Estos elementos ahora están cifrados</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Puedes eliminar de forma segura el original de tu Carrete.</string>
+			<key>many</key>
+			<string>Puedes eliminar de forma segura los originales de tu Carrete.</string>
+			<key>other</key>
+			<string>Puedes eliminar de forma segura los originales de tu Carrete.</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Puedes eliminar de forma segura el original de Archivos.</string>
+			<key>many</key>
+			<string>Puedes eliminar de forma segura los originales de Archivos.</string>
+			<key>other</key>
+			<string>Puedes eliminar de forma segura los originales de Archivos.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

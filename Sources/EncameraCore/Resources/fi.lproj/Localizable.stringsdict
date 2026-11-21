@@ -151,5 +151,53 @@
 			<string>%d kohdetta</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Tämä kohde on nyt salattu</string>
+			<key>other</key>
+			<string>Nämä kohteet on nyt salattu</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Voit turvallisesti poistaa alkuperäisen kameran rullasta.</string>
+			<key>other</key>
+			<string>Voit turvallisesti poistaa alkuperäiset kameran rullasta.</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Voit turvallisesti poistaa alkuperäisen Tiedostot-sovelluksesta.</string>
+			<key>other</key>
+			<string>Voit turvallisesti poistaa alkuperäiset Tiedostot-sovelluksesta.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>

@@ -169,5 +169,59 @@
 			<string>%d de elemente</string>
 		</dict>
 	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.Title</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Acest element este acum criptat</string>
+			<key>few</key>
+			<string>Aceste elemente sunt acum criptate</string>
+			<key>other</key>
+			<string>Aceste elemente sunt acum criptate</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.PhotosBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Poți șterge în siguranță originalul din Camera Roll.</string>
+			<key>few</key>
+			<string>Poți șterge în siguranță originalele din Camera Roll.</string>
+			<key>other</key>
+			<string>Poți șterge în siguranță originalele din Camera Roll.</string>
+		</dict>
+	</dict>
+	<key>EncameraDrawerFactory.FirstImportExplainerDrawer.FilesBody</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@item_count@</string>
+		<key>item_count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Poți șterge în siguranță originalul din Fișiere.</string>
+			<key>few</key>
+			<string>Poți șterge în siguranță originalele din Fișiere.</string>
+			<key>other</key>
+			<string>Poți șterge în siguranță originalele din Fișiere.</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
