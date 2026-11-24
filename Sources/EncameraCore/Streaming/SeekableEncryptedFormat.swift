@@ -414,7 +414,7 @@ public struct FileChunkProvider: SeekableChunkProviding {
         defer { try? handle.close() }
         try handle.seek(toOffset: UInt64(geometry.ciphertextOffset(ofChunk: index)))
         let want = geometry.ciphertextSize(ofChunk: index)
-        let data = try handle.read(upToCount: want) ?? Data()
+        let data = try autoreleasepool { try handle.read(upToCount: want) ?? Data() }
         guard data.count == want else {
             throw SeekableFormatError.chunkSizeMismatch(index: index, expected: want, got: data.count)
         }

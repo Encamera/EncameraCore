@@ -148,7 +148,7 @@ enum ReencryptVerifier {
             } catch {
                 throw ReencryptVerificationError.chunkUnreadable(index: index, reason: "\(error)")
             }
-            let expected = try source.read(upToCount: geometry.plaintextSize(ofChunk: index)) ?? Data()
+            let expected = try autoreleasepool { try source.read(upToCount: geometry.plaintextSize(ofChunk: index)) ?? Data() }
             guard decrypted == expected else { throw ReencryptVerificationError.chunkMismatch(index: index) }
         }
     }
