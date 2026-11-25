@@ -414,7 +414,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         let entry = await Self.indexEntry(from: meta, keyBytes: keyBytes)
         do {
             if try await indexStore.replaceSortKeys(of: [entry]) {
-                bus.didCreate(Self.media(forRecordName: meta.mediaID, albumID: albumID, mediaType: meta.mediaType))
+                bus.didCreate([Self.media(forRecordName: meta.mediaID, albumID: albumID, mediaType: meta.mediaType)], albumID: albumID)
                 printDebug("metadataBackfill reindex ok recordName=\(recordName)")
             } else {
                 printDebug("metadataBackfill reindex skip recordName=\(recordName) reason=entryUnchangedOrAbsent")
@@ -993,7 +993,7 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
 
             await persistSizes(albumID: albumID, updates: pendingChanges.recordSizeUpdates, removals: pendingChanges.recordSizeRemovals)
 
-            for media in pendingChanges.createdMediaToAnnounce { bus.didCreate(media) }
+            bus.didCreate(pendingChanges.createdMediaToAnnounce, albumID: albumID)
             if !pendingChanges.deletedMediaToAnnounce.isEmpty { bus.didDelete(pendingChanges.deletedMediaToAnnounce) }
             if pendingChanges.hasIndexChanges || !pendingChanges.createdMediaToAnnounce.isEmpty || !pendingChanges.deletedMediaToAnnounce.isEmpty {
                 printDebug("performSync applied albumID=\(albumID) entries=\(pendingChanges.workingEntries.count) creates=\(pendingChanges.createdMediaToAnnounce.count) deletes=\(pendingChanges.deletedMediaToAnnounce.count)")

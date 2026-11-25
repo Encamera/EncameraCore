@@ -758,14 +758,18 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(result, ["m1"])
     }
 
+    /// A sync pass posts what it created in an album as one batch, not one
+    /// create per record, so every grid cell and gallery refreshes once.
     func testEmitsFileOperationBusEvents() async throws {
         let store = MockCloudKitMediaStore()
         let bus = FileOperationBus()
-        let created = CapturedIDs()
+        let singleCreates = CapturedIDs()
+        let batches = CapturedBatches()
         let deleted = CapturedIDs()
         let cancellable = bus.operations.sink { operation in
             switch operation {
-            case .create(let media): created.append(media.id)
+            case .create(let media): singleCreates.append(media.id)
+            case .createBatch(let media, let albumID): batches.append(albumID: albumID, ids: media.map(\.id))
             case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
             case .move, .albumCoverChanged: break
             }
@@ -782,8 +786,53 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         store.changeSet = CloudKitChangeSet(changed: [], deleted: ["m2"], token: nil, moreComing: false)
         try await coord.sync()
 
-        XCTAssertEqual(created.values, ["m1", "m2"])
+        XCTAssertEqual(batches.values.map(\.albumID), ["a1"])
+        XCTAssertEqual(batches.values.first?.ids.sorted(), ["m1", "m2"])
+        XCTAssertEqual(singleCreates.values, [], "A sync never posts one create per record")
         XCTAssertEqual(deleted.values, ["m2"])
+    }
+
+    func testSyncOf300RecordsEmitsOneEventPerAlbum() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let batches = CapturedBatches()
+        let singleCreates = CapturedIDs()
+        let cancellable = bus.operations.sink { operation in
+            switch operation {
+            case .create(let media): singleCreates.append(media.id)
+            case .createBatch(let media, let albumID): batches.append(albumID: albumID, ids: media.map(\.id))
+            case .delete, .move, .albumCoverChanged: break
+            }
+        }
+        defer { cancellable.cancel() }
+
+        let (coord, _) = CloudKitSyncCoordinator.forTesting(albums: [("a1", makeIndexStore(), nil), ("a2", makeIndexStore(), nil)],
+                                                            store: store, cache: makeCache(), bus: bus,
+                                                            deleteQueue: makeDeleteQueue())
+        let records = (0..<300).map { offset in
+            CloudKitMediaMetadata(recordName: "r\(offset)",
+                                  albumID: offset.isMultiple(of: 2) ? "a1" : "a2",
+                                  mediaID: "r\(offset)",
+                                  mediaType: .photo,
+                                  createdAt: Date(timeIntervalSince1970: 100 + Double(offset)),
+                                  sizeBytes: 10,
+                                  creationDeviceID: "device",
+                                  schemaVersion: 1,
+                                  recordChangeTag: "tag-\(offset)")
+        }
+        store.changeSet = CloudKitChangeSet(changed: records, deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+
+        XCTAssertEqual(batches.values.map(\.albumID).sorted(), ["a1", "a2"], "One event per album")
+        XCTAssertEqual(batches.values.map(\.ids.count), [150, 150])
+        XCTAssertEqual(singleCreates.values, [])
+    }
+
+    private final class CapturedBatches: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage: [(albumID: String, ids: [String])] = []
+        var values: [(albumID: String, ids: [String])] { lock.lock(); defer { lock.unlock() }; return storage }
+        func append(albumID: String, ids: [String]) { lock.lock(); storage.append((albumID, ids)); lock.unlock() }
     }
 
     // MARK: - Bugbot regressions
@@ -917,7 +966,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let bus = FileOperationBus()
         let created = CapturedIDs()
         let cancellable = bus.operations.sink { operation in
-            if case .create(let media) = operation { created.append(media.id) }
+            created.append(contentsOf: operation.createdMediaIDs)
         }
         defer { cancellable.cancel() }
 
@@ -1356,7 +1405,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let bus = FileOperationBus()
         let created = CapturedIDs()
         let cancellable = bus.operations.sink { operation in
-            if case .create(let media) = operation { created.append(media.id) }
+            created.append(contentsOf: operation.createdMediaIDs)
         }
         defer { cancellable.cancel() }
 
@@ -2173,6 +2222,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let cancellable = bus.operations.sink { operation in
             switch operation {
             case .create(let media): created.append(media.id)
+            case .createBatch(let media, _): created.append(contentsOf: media.map(\.id))
             case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
             case .move, .albumCoverChanged: break
             }
@@ -2225,6 +2275,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         let cancellable = bus.operations.sink { operation in
             switch operation {
             case .create(let media): created.append(media.id)
+            case .createBatch(let media, _): created.append(contentsOf: media.map(\.id))
             case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
             case .move, .albumCoverChanged: break
             }
@@ -2551,6 +2602,7 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
             cancellable = bus.operations.sink { operation in
                 switch operation {
                 case .create(let media): created.append(media.id)
+                case .createBatch(let media, _): created.append(contentsOf: media.map(\.id))
                 case .delete(let medias): deleted.append(contentsOf: medias.map { $0.id })
                 case .move, .albumCoverChanged: break
                 }

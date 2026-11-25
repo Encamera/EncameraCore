@@ -10,10 +10,21 @@ import Combine
 
 
 public enum FileOperation {
+    /// One item created by a user action: a capture, an import or an edit.
     case create(EncryptedMedia)
+    /// Every item one pass created or changed in one album: a CloudKit sync or
+    /// an iCloud Drive folder scan. `albumID` is the CloudKit album's id.
+    case createBatch([EncryptedMedia], albumID: String)
     case delete([EncryptedMedia])
     case move(from: [EncryptedMedia], to: Album)
     case albumCoverChanged
+
+    /// True for a batch in an album other than the one with `albumID`, which a
+    /// view showing that album can ignore. Every other operation may concern it.
+    public func isBatchForAnotherAlbum(than albumID: String?) -> Bool {
+        guard case .createBatch(_, let batchAlbumID) = self else { return false }
+        return batchAlbumID != albumID
+    }
 }
 
 /// Reference-typed backing for `FileOperationBus.isSuppressed` so the flag is
@@ -47,6 +58,13 @@ public struct FileOperationBus {
     public func didCreate(_ media: EncryptedMedia) {
         guard !suppressionBox.isSuppressed else { return }
         operationSubject.send(.create(media))
+    }
+
+    /// Posts what one pass created or changed in one album as a single event,
+    /// so subscribers refresh once per album rather than once per item.
+    public func didCreate(_ media: [EncryptedMedia], albumID: String) {
+        guard !suppressionBox.isSuppressed, !media.isEmpty else { return }
+        operationSubject.send(.createBatch(media, albumID: albumID))
     }
 
     public func didDelete(_ media: [EncryptedMedia]) {

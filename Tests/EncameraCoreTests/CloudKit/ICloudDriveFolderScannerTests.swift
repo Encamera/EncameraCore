@@ -365,8 +365,25 @@ final class ICloudDriveFolderScannerTests: XCTestCase {
 
         let deleted = events.compactMap { if case .delete(let media) = $0 { return media.map(\.id) } else { return nil } }
         XCTAssertEqual(deleted, [[gone]], "the removed item is posted so the grid drops it")
-        let created = events.compactMap { if case .create(let media) = $0 { return media.id } else { return nil } }
+        let created = events.flatMap(\.createdMediaIDs)
         XCTAssertEqual(created, [livePhoto], "the Live Photo that lost a half is posted for a refresh")
+    }
+
+    func testScanThatAdds50ComponentsEmitsOneBatch() async throws {
+        let f = try makeFixture()
+        let ids = (0..<50).map { _ in UUID().uuidString }
+        for id in ids { try f.addVideoFile(id: id) }
+
+        var events: [FileOperation] = []
+        f.bus.operations.sink { events.append($0) }.store(in: &cancellables)
+        await f.scanner().scan()
+
+        XCTAssertEqual(events.count, 1, "One scan posts one event for the album, not one per file")
+        guard case .createBatch(let media, let albumID) = events.first else {
+            return XCTFail("expected one batch, got \(events)")
+        }
+        XCTAssertEqual(albumID, f.albumID)
+        XCTAssertEqual(Set(media.map(\.id)), Set(ids))
     }
 
     // MARK: - Watch
@@ -381,7 +398,7 @@ final class ICloudDriveFolderScannerTests: XCTestCase {
         let id = UUID().uuidString
         let posted = expectation(description: "the new file is posted on the bus")
         f.bus.operations.sink { operation in
-            if case .create(let media) = operation, media.id == id { posted.fulfill() }
+            if operation.createdMediaIDs.contains(id) { posted.fulfill() }
         }.store(in: &cancellables)
 
         try Data("ciphertext from an older build".utf8).write(to: f.photoURL(id))

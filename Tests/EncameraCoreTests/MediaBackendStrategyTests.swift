@@ -23,9 +23,25 @@ actor MediaBackendMock: MediaBackend {
     private var reconcileEntries: [MediaIndexEntry] = []
     private(set) var reconcileWroteIndex = false
 
+    /// Cover resolution: the index served without a store, the media served by
+    /// `enumerateMediaWithMetadata`, and what the facade asked for.
+    private var presetIndex: MediaIndex?
+    private var enumeratedMedia: [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] = []
+    private(set) var enumerateMediaWithMetadataCalls = 0
+    private(set) var previewLoadIDs: [String] = []
+    private(set) var coverImageIDsRequested: [String?] = []
+
     func setReconcile(store: MediaIndexStore, entries: [MediaIndexEntry]) {
         reconcileIndexStore = store
         reconcileEntries = entries
+    }
+
+    func setIndex(_ index: MediaIndex?) {
+        presetIndex = index
+    }
+
+    func setEnumeratedMedia(_ media: [MediaWithMetadata<InteractableMedia<EncryptedMedia>>]) {
+        enumeratedMedia = media
     }
 
     // FileEnumerator
@@ -34,11 +50,15 @@ actor MediaBackendMock: MediaBackend {
     func enumerateMediaWithMetadata(
         sortBy: MediaSortOption,
         filterBy: MediaFilterOptions
-    ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] { [] }
+    ) async -> [MediaWithMetadata<InteractableMedia<EncryptedMedia>>] {
+        enumerateMediaWithMetadataCalls += 1
+        return enumeratedMedia
+    }
     func totalStoredMediaCount() async -> Int { 0 }
 
     // FileReader
     func loadMediaPreview<T>(for media: InteractableMedia<T>) async throws -> PreviewModel where T: MediaDescribing {
+        previewLoadIDs.append(media.id)
         throw FileAccessError.couldNotLoadMedia
     }
     func loadMedia<T>(media: InteractableMedia<T>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> InteractableMedia<CleartextMedia> where T: MediaDescribing {
@@ -47,7 +67,10 @@ actor MediaBackendMock: MediaBackend {
     func loadMediaToURLs(media: InteractableMedia<EncryptedMedia>, progress: @escaping (FileLoadingStatus) -> Void) async throws -> [URL] {
         []
     }
-    func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? { nil }
+    func loadLeadingThumbnail(coverImageId: String?) async throws -> PlatformImage? {
+        coverImageIDsRequested.append(coverImageId)
+        return nil
+    }
 
     // FileWriter
     func save(media: InteractableMedia<CleartextMedia>, metadata: EncryptedFileMetadata?, progress: @escaping (Double) -> Void) async throws -> InteractableMedia<EncryptedMedia>? { nil }
@@ -72,7 +95,8 @@ actor MediaBackendMock: MediaBackend {
         URL(fileURLWithPath: "/mock/\(id).\(type.rawValue)")
     }
     func mediaIndex() async -> MediaIndex? {
-        await reconcileIndexStore?.load()
+        if let presetIndex { return presetIndex }
+        return await reconcileIndexStore?.load()
     }
     func storageDetails(for media: InteractableMedia<EncryptedMedia>) async -> MediaStorageDetails? { nil }
     func evictLocalCopy(for media: InteractableMedia<EncryptedMedia>) async throws {}
@@ -375,6 +399,130 @@ final class MediaBackendStrategyTests: XCTestCase {
                        "With no chosen cover, the album tries its newest item first, as the gallery orders it")
     }
 
+    // MARK: - Cover from the index
+
+    /// `count` entries, one day apart; the last is the newest. Ids carry a fresh
+    /// prefix so no two tests share a record name.
+    private func datedEntries(count: Int) -> [MediaIndexEntry] {
+        let prefix = UUID().uuidString.prefix(8)
+        let base = Date(timeIntervalSinceReferenceDate: 700_000_000)
+        return (0..<count).map { offset in
+            MediaIndexEntry(id: "\(prefix)-\(offset)",
+                            hasPhotoComponent: true,
+                            hasVideoComponent: false,
+                            dateEncrypted: base.addingTimeInterval(Double(offset) * 86_400),
+                            dateTaken: base.addingTimeInterval(Double(offset) * 86_400),
+                            subtypeRawValue: MediaFilterOptions.stillImage.rawValue)
+        }
+    }
+
+    private func makeFacade(over backend: any MediaBackend, album: Album, manager: MockAlbumManager) async -> InteractableMediaFileAccess {
+        let access = InteractableMediaFileAccess()
+        await access._testSetBackend(backend, album: album)
+        await access.configure(for: album, albumManager: manager)
+        return access
+    }
+
+    func testLeadingThumbnailReadsOnlyTheFirstIndexPage() async throws {
+        let album = makeAlbum(storage: .local)
+        let entries = datedEntries(count: 300)
+        let mock = MediaBackendMock()
+        await mock.setIndex(MediaIndex(entries: entries))
+        let access = await makeFacade(over: mock, album: album, manager: makeManager(for: album))
+
+        let cover = try await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        XCTAssertNil(cover)
+        let enumerations = await mock.enumerateMediaWithMetadataCalls
+        XCTAssertEqual(enumerations, 0, "With an index, the cover is picked without enumerating the album")
+        let tried = await mock.previewLoadIDs
+        XCTAssertEqual(tried, entries.suffix(3).reversed().map(\.id),
+                       "Only the three newest items are tried, newest first")
+    }
+
+    func testLeadingThumbnailStopsAfterThreeMissingCovers() async throws {
+        let album = makeAlbum(storage: .cloudKit)
+        let manager = makeManager(for: album)
+        let store = MockCloudKitMediaStore()
+        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+        let cloud = await CloudKitFileAccess(album: album, albumManager: manager, store: store)
+        try await manager.mediaIndexStore(for: album).replace(with: datedEntries(count: 300))
+        let access = await makeFacade(over: cloud, album: album, manager: manager)
+
+        let cover = try? await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        XCTAssertNil(cover ?? nil)
+        XCTAssertEqual(store.fetchThumbnailCount, 3, "A cover whose records are gone tries three items, not the whole album")
+    }
+
+    func testLeadingThumbnailWithoutAnIndexTriesAtMostThreeItems() async throws {
+        let album = makeAlbum(storage: .local)
+        let mock = MediaBackendMock()
+        let media = try (0..<10).map { offset -> MediaWithMetadata<InteractableMedia<EncryptedMedia>> in
+            let id = "unindexed-\(offset)"
+            let item = try InteractableMedia(underlyingMedia: [
+                EncryptedMedia(source: .url(URL(fileURLWithPath: "/mock/\(id).photo")), mediaType: .photo, id: id)
+            ])
+            return MediaWithMetadata(media: item, metadata: nil, dateTaken: nil, dateEncrypted: nil, mediaSubtype: .stillImage)
+        }
+        await mock.setEnumeratedMedia(media)
+        let access = await makeFacade(over: mock, album: album, manager: makeManager(for: album))
+
+        _ = try await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        let enumerations = await mock.enumerateMediaWithMetadataCalls
+        XCTAssertEqual(enumerations, 1, "An album without an index still enumerates to pick its cover")
+        let tried = await mock.previewLoadIDs
+        XCTAssertEqual(tried, ["unindexed-0", "unindexed-1", "unindexed-2"])
+    }
+
+    func testLeadingThumbnailStartsAtTheNewestItemThePlanAllows() async throws {
+        let album = makeAlbum(storage: .local)
+        let entries = datedEntries(count: 300)
+        let mock = MediaBackendMock()
+        await mock.setIndex(MediaIndex(entries: entries))
+        let access = await makeFacade(over: mock, album: album, manager: makeManager(for: album))
+
+        _ = try await access.loadLeadingThumbnail(purchasedPermissions: AllowUpToPhotos(limit: 5))
+
+        let tried = await mock.previewLoadIDs
+        XCTAssertEqual(tried, entries.prefix(5).reversed().prefix(3).map(\.id),
+                       "The access count counts back from the newest, so a limit of 5 starts at the fifth-oldest item")
+    }
+
+    func testStoredCoverIsHonoured() async throws {
+        let album = makeAlbum(storage: .local)
+        let manager = makeManager(for: album)
+        manager.coverImageIDs[album.id] = "chosen-cover"
+        let mock = MediaBackendMock()
+        await mock.setIndex(MediaIndex(entries: datedEntries(count: 10)))
+        let access = await makeFacade(over: mock, album: album, manager: manager)
+
+        _ = try await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        let requested = await mock.coverImageIDsRequested
+        XCTAssertEqual(requested, ["chosen-cover"])
+        let tried = await mock.previewLoadIDs
+        XCTAssertEqual(tried, [], "A stored cover is loaded directly, without trying the newest items")
+    }
+
+    func testCoverNoneDisablesTheCover() async throws {
+        let album = makeAlbum(storage: .local)
+        let manager = makeManager(for: album)
+        manager.coverImageIDs[album.id] = "none"
+        let mock = MediaBackendMock()
+        await mock.setIndex(MediaIndex(entries: datedEntries(count: 10)))
+        let access = await makeFacade(over: mock, album: album, manager: manager)
+
+        let cover = try await access.loadLeadingThumbnail(purchasedPermissions: AllowAllPermissions())
+
+        XCTAssertNil(cover)
+        let requested = await mock.coverImageIDsRequested
+        let tried = await mock.previewLoadIDs
+        XCTAssertEqual(requested, [])
+        XCTAssertEqual(tried, [])
+    }
+
     // MARK: - Conformance
 
     func testMediaBackendConformance() async {
@@ -392,4 +540,15 @@ private struct AllowAllPermissions: PurchasedPermissionManaging {
     func isAllowedAccess(feature: AppFeature) -> Bool { true }
     var hasEntitlement: Bool { true }
     func hasLifetimeUnlimitedSubscription() async -> Bool { true }
+}
+
+/// Allows access while the album holds at most `limit` photos.
+private struct AllowUpToPhotos: PurchasedPermissionManaging {
+    let limit: Double
+    func isAllowedAccess(feature: AppFeature) -> Bool {
+        if case .accessPhoto(let count) = feature { return count <= limit }
+        return true
+    }
+    var hasEntitlement: Bool { false }
+    func hasLifetimeUnlimitedSubscription() async -> Bool { false }
 }

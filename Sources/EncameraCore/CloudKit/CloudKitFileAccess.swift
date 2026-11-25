@@ -774,6 +774,11 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                 printDebug("loadMediaPreview thumbnail ok recordName=\(recordName) preview=[\(FileFingerprint.describe(previewURL))]")
             } catch {
                 printDebug("loadMediaPreview thumbnail FAILED recordName=\(recordName) raw=\(error)")
+                // With neither the fetched thumbnail nor a cached blob to rebuild
+                // it from, there is no preview to read.
+                let fileManager = FileManager.default
+                let blobIsCached = source.url.map { fileManager.fileExists(atPath: $0.path) } ?? false
+                guard blobIsCached || fileManager.fileExists(atPath: previewURL.path) else { throw error }
             }
         }
         var preview = try await previewAccess.loadMediaPreview(for: source)
@@ -783,19 +788,23 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
 
     /// Downloads into a temporary file and moves it into place, so a concurrent
     /// reader never sees a partial file and a failed fetch leaves nothing behind.
-    /// When another caller got there first, its thumbnail is kept.
+    /// Concurrent callers for one record, in any album access, share one fetch
+    /// (`CloudKitThumbnailFetches`). When the file is already in place, it is kept.
     private func fetchThumbnail(recordName: String, to previewURL: URL) async throws {
-        let fileManager = FileManager.default
-        let tempURL = fileManager.temporaryDirectory
-            .appendingPathComponent("thumb-\(UUID().uuidString)")
-            .appendingPathExtension(previewURL.pathExtension)
-        defer { try? fileManager.removeItem(at: tempURL) }
-        try await store.fetchThumbnail(recordName: recordName, to: tempURL)
-        try fileManager.createDirectory(at: previewURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        do {
-            try fileManager.moveItem(at: tempURL, to: previewURL)
-        } catch where fileManager.fileExists(atPath: previewURL.path) {
-            printDebug("fetchThumbnail kept existing recordName=\(recordName) — another load wrote it first")
+        let store = store
+        try await CloudKitThumbnailFetches.shared.fetchThumbnail(recordName: recordName) {
+            let fileManager = FileManager.default
+            let tempURL = fileManager.temporaryDirectory
+                .appendingPathComponent("thumb-\(UUID().uuidString)")
+                .appendingPathExtension(previewURL.pathExtension)
+            defer { try? fileManager.removeItem(at: tempURL) }
+            try await store.fetchThumbnail(recordName: recordName, to: tempURL)
+            try fileManager.createDirectory(at: previewURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            do {
+                try fileManager.moveItem(at: tempURL, to: previewURL)
+            } catch where fileManager.fileExists(atPath: previewURL.path) {
+                CloudKitFileAccess.printDebug("fetchThumbnail kept existing recordName=\(recordName) — another load wrote it first")
+            }
         }
     }
 
@@ -1082,6 +1091,7 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
                         await coordinator.adoptThumbnailChangeTag(recordName: recordName, changeTag: changeTag)
                     }
                     recordsKnownToHaveThumbnail.insert(recordName)
+                    await CloudKitThumbnailFetches.shared.forgetMissingThumbnail(recordName: recordName)
                     printDebug("thumbnailRepair attached recordName=\(recordName) changeTag=\(changeTag ?? "nil")")
                 case .alreadyPresent:
                     recordsKnownToHaveThumbnail.insert(recordName)

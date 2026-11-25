@@ -14,6 +14,11 @@ import AVFoundation
 
 final class CloudKitFileAccessTests: XCTestCase {
 
+    override func tearDown() async throws {
+        await CloudKitThumbnailFetches.shared.removeAll()
+        try await super.tearDown()
+    }
+
     private final class StatusBox: @unchecked Sendable {
         private let lock = NSLock()
         private var storage: [FileLoadingStatus] = []
@@ -866,7 +871,7 @@ final class CloudKitFileAccessTests: XCTestCase {
         try? FileManager.default.removeItem(at: previewURL)
 
         store.fetchThumbnailWritesFile = true
-        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+        store.fetchThumbnailError = CloudKitMediaStoreError.retry(after: 1)
 
         let media = try InteractableMedia(underlyingMedia: [
             EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
@@ -875,9 +880,80 @@ final class CloudKitFileAccessTests: XCTestCase {
             _ = try? await access.loadMediaPreview(for: media)
         }
 
-        XCTAssertEqual(store.fetchThumbnailCount, 2, "A failed thumbnail fetch must be retried on the next load")
+        XCTAssertEqual(store.fetchThumbnailCount, 2, "A thumbnail fetch that failed in transit must be retried on the next load")
         XCTAssertFalse(FileManager.default.fileExists(atPath: previewURL.path),
                        "A failed fetch must not leave a partial file that later loads would treat as the thumbnail")
+    }
+
+    func testConcurrentPreviewLoadsShareOneFetch() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        store.fetchThumbnailDelayNanos = 200_000_000
+        let first = await makeAccess(album: album, store: store)
+        let second = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        let previewURL = thumbnailURL(forMediaID: id)
+        try? FileManager.default.removeItem(at: previewURL)
+        defer { try? FileManager.default.removeItem(at: previewURL) }
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
+        ])
+
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0..<20 {
+                let access = index.isMultiple(of: 2) ? first : second
+                group.addTask { _ = try? await access.loadMediaPreview(for: media) }
+            }
+        }
+
+        XCTAssertEqual(store.fetchThumbnailCount, 1, "Concurrent loads of one missing preview share one fetch")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path))
+    }
+
+    func testNotFoundThumbnailIsNotRefetched() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        store.fetchThumbnailWritesFile = false
+        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+        let access = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
+        ])
+
+        do {
+            _ = try await access.loadMediaPreview(for: media)
+            XCTFail("A thumbnail the record lacks must fail the load")
+        } catch {}
+        do {
+            _ = try await access.loadMediaPreview(for: media)
+            XCTFail("A thumbnail known to be missing must still fail the load")
+        } catch {}
+
+        XCTAssertEqual(store.fetchThumbnailCount, 1, "A record known to lack its thumbnail is not asked again")
+    }
+
+    func testFailedFetchDoesNotTryTheLocalPreviewPath() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        store.fetchThumbnailWritesFile = false
+        store.fetchThumbnailError = CloudKitMediaStoreError.notFound
+        let access = await makeAccess(album: album, store: store)
+        let id = UUID().uuidString
+        try? FileManager.default.removeItem(at: thumbnailURL(forMediaID: id))
+        let media = try InteractableMedia(underlyingMedia: [
+            EncryptedMedia(source: .url(encURL(for: album, id: id)), mediaType: .photo, id: id)
+        ])
+
+        do {
+            _ = try await access.loadMediaPreview(for: media)
+            XCTFail("expected the load to fail")
+        } catch {
+            guard case .notFound = error as? CloudKitMediaStoreError else {
+                return XCTFail("The fetch's own error is thrown, not the local preview path's for a file that cannot exist; got \(error)")
+            }
+        }
     }
 
     private func thumbnailURL(forMediaID id: String) -> URL {

@@ -238,11 +238,17 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
         }
     }
 
-    /// Posts the changes to the bus: an added component, or a removed one whose
-    /// entry survives, is a create; a removed entry is a delete.
+    /// Posts the changes to the bus: the added components, and the removed ones
+    /// whose entries survive, as one batch for the album; removed entries as a
+    /// delete.
     private func post(_ changes: IndexChanges) {
-        for component in changes.added { bus.didCreate(component.media) }
-        for (component, entryRemoved) in changes.removed where !entryRemoved { bus.didCreate(component.media) }
+        let created = changes.added.map(\.media)
+            + changes.removed.filter { !$0.entryRemoved }.map(\.component.media)
+        if let albumID = album.albumID {
+            bus.didCreate(created, albumID: albumID)
+        } else {
+            created.forEach(bus.didCreate)
+        }
         let deleted = changes.removed.filter(\.entryRemoved).map(\.component.media)
         if !deleted.isEmpty { bus.didDelete(deleted) }
     }

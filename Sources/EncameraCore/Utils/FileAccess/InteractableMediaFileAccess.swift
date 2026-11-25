@@ -83,34 +83,63 @@ public actor InteractableMediaFileAccess: FileAccess {
             return try await requireBackend().loadLeadingThumbnail(coverImageId: coverImageId)
         }
 
-        // Newest first by encryption date, as the gallery orders it; the
-        // permission check below counts back from the newest item.
-        let media = await enumerateMediaWithMetadata(sortBy: .dateAdded(ascending: false)).map(\.media)
-        guard !media.isEmpty else {
-            return nil
+        // Newest first by encryption date, as the gallery orders it. The
+        // permission check counts back from the newest item, so the first item
+        // the plan allows is found from the count alone.
+        let order = MediaSortOption.dateAdded(ascending: false)
+        let candidates: [InteractableMedia<EncryptedMedia>]
+        let totalCount: Int
+        let firstAllowed: Int
+        if await backend?.mediaIndex() != nil {
+            totalCount = await mediaPage(sortBy: order, filterBy: .all, offset: 0, pageSize: 0).totalCount
+            guard let first = Self.firstAllowedCoverOffset(totalCount: totalCount, purchasedPermissions: purchasedPermissions) else {
+                return nil
+            }
+            firstAllowed = first
+            candidates = await mediaPage(sortBy: order, filterBy: .all, offset: first,
+                                         pageSize: Self.maxCoverCandidates).media
+        } else {
+            let media = await enumerateMediaWithMetadata(sortBy: order).map(\.media)
+            totalCount = media.count
+            guard let first = Self.firstAllowedCoverOffset(totalCount: totalCount, purchasedPermissions: purchasedPermissions) else {
+                return nil
+            }
+            firstAllowed = first
+            candidates = Array(media[first...].prefix(Self.maxCoverCandidates))
         }
 
-        let totalCount = media.count
-        for index in 0..<totalCount {
+        for (position, targetMedia) in candidates.enumerated() {
             try Task.checkCancellation()
-            let accessCount = Double(totalCount - index)
-            if purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) {
-                let targetMedia = media[index]
-                do {
-                    let cleartextPreview = try await loadMediaPreview(for: targetMedia)
-                    guard let previewData = cleartextPreview.thumbnailMedia.data,
-                          let thumbnail = PlatformImage(data: previewData) else {
-                        continue
-                    }
-                    return thumbnail
-                } catch {
-                    if error is CancellationError { throw error }
+            let accessCount = Double(totalCount - (firstAllowed + position))
+            guard purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: accessCount)) else { continue }
+            do {
+                let cleartextPreview = try await loadMediaPreview(for: targetMedia)
+                guard let previewData = cleartextPreview.thumbnailMedia.data,
+                      let thumbnail = PlatformImage(data: previewData) else {
                     continue
                 }
+                return thumbnail
+            } catch {
+                if error is CancellationError { throw error }
+                continue
             }
         }
 
         return nil
+    }
+
+    /// How many of an album's newest items are tried as its default cover before
+    /// it shows none, so an album whose newest records are gone never walks itself.
+    static let maxCoverCandidates = 3
+
+    /// The offset, newest first, of the first item the plan allows: the item at
+    /// `offset` is allowed when an album of `totalCount - offset` photos is.
+    /// Nil when the album is empty or no item is allowed.
+    static func firstAllowedCoverOffset(totalCount: Int,
+                                        purchasedPermissions: any PurchasedPermissionManaging) -> Int? {
+        (0..<totalCount).first { offset in
+            purchasedPermissions.isAllowedAccess(feature: .accessPhoto(count: Double(totalCount - offset)))
+        }
     }
 
     /// Backend-level cover resolution (also part of `FileReader`). Delegates

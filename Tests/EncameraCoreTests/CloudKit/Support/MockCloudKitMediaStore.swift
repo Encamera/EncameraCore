@@ -284,6 +284,8 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
         didSet { fetchThumbnailConfiguredExplicitly = true }
     }
     var fetchThumbnailError: Error?
+    /// Holds each thumbnail fetch open this long, so concurrent loads overlap.
+    var fetchThumbnailDelayNanos: UInt64 = 0
     private var fetchThumbnailConfiguredExplicitly = false
     /// A record this mock saw uploaded without a thumbnail answers `.notFound` and
     /// writes nothing, as `CloudKitMediaStore.fetchAsset` does when `encThumbnail`
@@ -294,6 +296,7 @@ final class MockCloudKitMediaStore: CloudKitMediaStoring, @unchecked Sendable {
     func fetchThumbnail(recordName: String, to destination: URL) async throws {
         log(.fetchThumbnail(recordName: recordName))
         locked { fetchThumbnailCount += 1 }
+        if fetchThumbnailDelayNanos > 0 { try await Task.sleep(nanoseconds: fetchThumbnailDelayNanos) }
         if fetchThumbnailError == nil, let attached = locked({ _attachedThumbnails[recordName] }) {
             try attached.write(to: destination)
             return
