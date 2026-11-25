@@ -128,6 +128,16 @@ public actor DiskFileAccess: DebugPrintable {
         self.key = key
     }
 
+    /// An instance that makes previews into `directoryModel`'s preview location
+    /// for files `key` encrypted, with no album to configure. `keyManager`
+    /// resolves a file's key as an open does; `key` is the fallback and the key
+    /// a preview of cleartext is saved under.
+    init(key: PrivateKey, keyManager: KeyManager, directoryModel: DataStorageModel) {
+        self.key = key
+        self.keyManager = keyManager
+        self.directoryModel = directoryModel
+    }
+
     public func configure(for album: Album, albumManager: AlbumManaging) async {
         self.key = album.key
         self.album = album

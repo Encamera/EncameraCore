@@ -223,7 +223,14 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
             try await context.savePlan(plan)
 
             defer { proven.cleanUp() }
+            if let previewURL {
+                await Self.createPreviewIfMissing(at: previewURL, for: item, in: plan,
+                                                  uploadURL: proven.uploadURL, key: proven.key, context: context)
+            }
             let thumbURL = previewURL.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+            if thumbURL == nil {
+                printDebug("item thumbnail WARNING recordName=\(item.recordName) — no preview on disk; saving the record without a thumbnail")
+            }
 
             // Chunked branch. An ENC3 source (a large capture/import made after
             // chunked storage shipped) slices and uploads the EXISTING ciphertext
@@ -325,6 +332,69 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 plan.items[index].verifiedModificationDate = Self.modificationDate(of: encURL)
             }
             try await context.savePlan(plan)
+        }
+    }
+
+    /// Makes the item's preview when there is none on disk, so its record is saved
+    /// with a thumbnail. Previews are made only where an album's grid shows an
+    /// item, so an iCloud Drive album usually has none for media from other
+    /// devices or not yet scrolled to. Best effort: a failure is logged and the
+    /// record is saved without a thumbnail, as before.
+    ///
+    /// A Live Photo's preview is its photo's, as the grid makes it, so its video
+    /// component uses the photo's source file when that is on disk and not yet
+    /// uploaded (a verified file is never touched again). Otherwise the
+    /// preview is made from `uploadURL`, the bytes this item uploads, which carry
+    /// `key`'s stamp, so making it writes nothing to the source. A video is
+    /// decrypted to a file for its frame, so none is made while the run must not
+    /// write plaintext (`shouldStopReencryption`, set while the device is locked).
+    static func createPreviewIfMissing(at previewURL: URL,
+                                       for item: MigrationItem,
+                                       in plan: MigrationPlan,
+                                       uploadURL: URL,
+                                       key: PrivateKey,
+                                       context: MigrationRunContext) async {
+        guard !FileManager.default.fileExists(atPath: previewURL.path),
+              let sourceModel = context.sourceModel else { return }
+
+        var sourceURL = uploadURL
+        var sourceType = item.mediaType
+        if item.mediaType == .video,
+           plan.items.contains(where: {
+               $0.mediaID == item.mediaID && $0.mediaType == .photo && [.pending, .failed, .uploading].contains($0.state)
+           }) {
+            let photoURL = sourceModel.driveURLForMedia(withID: item.mediaID, type: .photo)
+            let photoIsPresent = plan.source.storage == .icloud
+                ? ICloudPlaceholderName.isMaterialized(photoURL)
+                : FileManager.default.fileExists(atPath: photoURL.path)
+            if photoIsPresent {
+                sourceURL = photoURL
+                sourceType = .photo
+            }
+        }
+        if sourceType == .video, context.shouldStopReencryption() {
+            printDebug("item preview SKIPPED recordName=\(item.recordName) — a video preview writes plaintext, which this run may not")
+            return
+        }
+
+        let media = EncryptedMedia(source: .url(sourceURL), mediaType: sourceType, id: item.mediaID)
+        let decryptedVideoURL = URL.tempMediaDirectory
+            .appendingPathComponent(item.mediaID)
+            .appendingPathExtension(sourceType.decryptedFileExtension)
+        let decryptedVideoExisted = FileManager.default.fileExists(atPath: decryptedVideoURL.path)
+        defer {
+            if sourceType == .video, !decryptedVideoExisted {
+                try? FileManager.default.removeItem(at: decryptedVideoURL)
+            }
+        }
+        let previewAccess = DiskFileAccess(key: key, keyManager: context.keyManager, directoryModel: sourceModel)
+        do {
+            _ = try await previewAccess.createPreview(for: media)
+            NotificationCenter.default.post(name: .mediaPreviewDidChange, object: nil,
+                                            userInfo: [Notification.previewMediaIDKey: item.mediaID])
+            printDebug("item preview created recordName=\(item.recordName) from=\(sourceType) preview=[\(FileFingerprint.describe(previewURL))]")
+        } catch {
+            printDebug("item preview FAILED recordName=\(item.recordName) from=\(sourceType) raw=\(error)")
         }
     }
 

@@ -348,6 +348,35 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         }
     }
 
+    func testMigrationCreatesMissingPreviewAndUploadsItAsTheThumbnail() async throws {
+        let album = makeAlbum()
+        let (manager, albumManager, store) = makeExecutableManager(for: album)
+        store.reflectUploadsInMetadata = true
+        defer { cleanup(album) }
+
+        let ids = try await seedLocalAlbum(count: 2, albumManager: albumManager, album: album)
+        let model = album.storageOption.modelForType.init(album: album)
+        for id in ids {
+            try FileManager.default.removeItem(at: model.previewURLForMedia(withID: id))
+            DiskFileAccess.removeCachedPreview(forMediaID: id)
+        }
+
+        await manager.start(album: album)
+
+        XCTAssertEqual(manager.state, .completed)
+        for id in ids {
+            let previewURL = model.previewURLForMedia(withID: id)
+            defer { try? FileManager.default.removeItem(at: previewURL) }
+            XCTAssertEqual(store.uploadCarriedThumbnail[MediaRecordName.componentRecordName(mediaID: id, type: .photo)], true,
+                           "an item with no preview on disk is uploaded with one made from its file")
+            XCTAssertTrue(FileManager.default.fileExists(atPath: previewURL.path))
+            let decrypted = try await SecretFileHandler(keyBytes: album.key.keyBytes,
+                                                        source: EncryptedMedia(source: .url(previewURL), mediaType: .preview, id: id))
+                .decryptInMemory()
+            XCTAssertNoThrow(try PreviewModel(source: decrypted), "the preview opens under the item's key")
+        }
+    }
+
     func testReRunAfterCompletionDoesNotReUpload() async throws {
         let album = makeAlbum()
         let (manager, albumManager, store) = makeExecutableManager(for: album)
