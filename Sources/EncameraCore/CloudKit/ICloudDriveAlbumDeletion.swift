@@ -253,12 +253,18 @@ public final class ICloudDriveAlbumDeletion: @unchecked Sendable, DebugPrintable
     /// Whether `folder`'s marker names an album deleted on this device, so the
     /// folder is not an album of its own. Decrypts nothing.
     public func isDeletedAlbumFolder(_ folder: URL, deletedAlbumIDs: Set<String>) -> Bool {
-        guard !deletedAlbumIDs.isEmpty,
-              case .present(let marker) = ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder,
-                                                                         conflictVersions: markerConflictVersions) else {
-            return false
-        }
-        return deletedAlbumIDs.contains(marker.albumID)
+        guard !deletedAlbumIDs.isEmpty else { return false }
+        return Self.isDeletedAlbumMarker(ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder,
+                                                                         conflictVersions: markerConflictVersions),
+                                         deletedAlbumIDs: deletedAlbumIDs)
+    }
+
+    /// Whether a folder whose marker reads `marker` belongs to an album deleted on
+    /// this device.
+    static func isDeletedAlbumMarker(_ marker: ICloudDriveAlbumMarkerFile.ReadResult,
+                                     deletedAlbumIDs: Set<String>) -> Bool {
+        guard case .present(let present) = marker else { return false }
+        return deletedAlbumIDs.contains(present.albumID)
     }
 
     @discardableResult

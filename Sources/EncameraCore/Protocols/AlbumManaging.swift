@@ -28,6 +28,12 @@ public protocol AlbumManaging {
     func getAlbumCoverImageId(album: Album) -> String?
     func isAlbumCoverImageDisabled(album: Album) -> Bool
     func fetchAlbumsFromSources(includingHidden: Bool) -> [Album]
+    /// The album list for showing to the user. Unlike `fetchAlbumsFromSources`,
+    /// which is exact, it never waits on iCloud Drive: an iCloud Drive folder whose
+    /// marker has not been read yet is left out until a background read finishes,
+    /// and `albumOperationPublisher` then announces the new list. Never use it to
+    /// decide that an album is gone.
+    func fetchAlbumsForDisplay(includingHidden: Bool) -> [Album]
     func restoreCurrentAlbumFromUserDefaults()
     @discardableResult func create(name: String, storageOption: StorageType) throws -> Album
     func storageModel(for album: Album) -> DataStorageModel?
@@ -160,6 +166,15 @@ public extension AlbumManaging {
     }
     func fetchAlbumsFromSources() -> [Album] {
         fetchAlbumsFromSources(includingHidden: false)
+    }
+
+    /// Default: the exact listing, for conformers with no iCloud Drive folders to read.
+    func fetchAlbumsForDisplay(includingHidden: Bool) -> [Album] {
+        fetchAlbumsFromSources(includingHidden: includingHidden)
+    }
+
+    func fetchAlbumsForDisplay() -> [Album] {
+        fetchAlbumsForDisplay(includingHidden: false)
     }
 
     /// Another album on this device already called `name`, in any storage and hidden

@@ -2335,31 +2335,57 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             logicalSizes = await materializer.logicalSizes(inAlbumDirectory: baseURL)
         }
 
-        var items: [MigrationItem] = []
-        for entry in mediaWithMetadata {
+        let components = mediaWithMetadata.flatMap { entry in
             let createdAt = MigrationItem.createdAt(dateTaken: entry.dateTaken,
                                                     dateEncrypted: entry.dateEncrypted,
                                                     albumCreationDate: album.creationDate)
-            for component in entry.media.underlyingMedia {
-                let url = directoryModel?.driveURLForMedia(withID: component.id, type: component.mediaType)
-                let size: Int64
-                if let url, album.storageOption == .icloud {
-                    size = ICloudPlaceholderName.isMaterialized(url)
-                        ? (Self.fileSize(at: url) ?? logicalSizes[url.lastPathComponent] ?? 0)
-                        : (logicalSizes[url.lastPathComponent] ?? Self.fileSize(at: url) ?? 0)
-                } else {
-                    size = url.flatMap(Self.fileSize(at:)) ?? 0
-                }
-                items.append(MigrationItem(
-                    mediaID: component.id,
-                    recordName: CloudKitFileAccess.componentRecordName(mediaID: component.id, type: component.mediaType),
-                    mediaType: component.mediaType,
-                    createdAt: createdAt,
-                    sizeBytes: size
-                ))
+            return entry.media.underlyingMedia.map { component in
+                EnumeratedComponent(mediaID: component.id,
+                                    mediaType: component.mediaType,
+                                    createdAt: createdAt,
+                                    url: directoryModel?.driveURLForMedia(withID: component.id, type: component.mediaType))
             }
         }
-        return items
+        return await sizedItems(for: components,
+                                isICloudDrive: album.storageOption == .icloud,
+                                logicalSizes: logicalSizes)
+    }
+
+    /// One component of an album's media, before its size is read.
+    struct EnumeratedComponent: Sendable {
+        let mediaID: String
+        let mediaType: MediaType
+        let createdAt: Date
+        let url: URL?
+    }
+
+    /// Sizes each component into a `pending` work item, off the main actor: an
+    /// iCloud Drive file's download state and on-disk size are file system calls
+    /// that can block behind a slow File Provider. An evicted iCloud Drive file is
+    /// sized from `logicalSizes`, a downloaded one from disk.
+    ///
+    /// - Parameter isMaterialized: whether an iCloud Drive file's bytes are on disk.
+    nonisolated static func sizedItems(for components: [EnumeratedComponent],
+                                       isICloudDrive: Bool,
+                                       logicalSizes: [String: Int64],
+                                       isMaterialized: @Sendable (URL) -> Bool = { ICloudPlaceholderName.isMaterialized($0) }) async -> [MigrationItem] {
+        components.map { component in
+            let size: Int64
+            if let url = component.url, isICloudDrive {
+                size = isMaterialized(url)
+                    ? (url.fileSizeBytes() ?? logicalSizes[url.lastPathComponent] ?? 0)
+                    : (logicalSizes[url.lastPathComponent] ?? url.fileSizeBytes() ?? 0)
+            } else {
+                size = component.url?.fileSizeBytes() ?? 0
+            }
+            return MigrationItem(
+                mediaID: component.mediaID,
+                recordName: CloudKitFileAccess.componentRecordName(mediaID: component.mediaID, type: component.mediaType),
+                mediaType: component.mediaType,
+                createdAt: component.createdAt,
+                sizeBytes: size
+            )
+        }
     }
 
     /// Reads every record of a CloudKit album from its synced index into a fresh
@@ -2422,10 +2448,6 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
     }
 
     // MARK: - Helpers
-
-    private static func fileSize(at url: URL) -> Int64? {
-        url.fileSizeBytes()
-    }
 
     /// One-line count of the plan's items by state, for the run log.
     static func stateSummary(_ plan: MigrationPlan) -> String {

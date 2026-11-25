@@ -131,6 +131,15 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     /// Removes a deleted CloudKit album's iCloud Drive folder, plan, pass and watch.
     var iCloudDriveAlbumDeletion: ICloudDriveAlbumDeletion = .shared
 
+    /// Each iCloud Drive album folder's marker, read off the main thread. See
+    /// `isListedICloudDriveFolder`.
+    var iCloudDriveFolderMarkers = ICloudDriveFolderMarkerCache()
+
+    /// The iCloud Drive album folders a listing considers. Replaced in tests, which
+    /// have no ubiquity container.
+    var listICloudDriveAlbumFolders: () -> [URL] = { ICloudDriveAlbumFolderWalk.albumFolders() }
+
+
     /// Albums found on disk whose key is not on this device, as of the last scan.
     /// A directory album whose media a held key opens is listed instead, even when
     /// its name cannot be read (see `albumFromReadableContents`).
@@ -202,6 +211,24 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     public func fetchAlbumsFromSources(includingHidden: Bool) -> [Album] {
+        listAlbums(includingHidden: includingHidden, uncheckedFolders: .readNow)
+    }
+
+    public func fetchAlbumsForDisplay(includingHidden: Bool) -> [Album] {
+        listAlbums(includingHidden: includingHidden, uncheckedFolders: .leaveOutUntilRead)
+    }
+
+    /// What a listing does with an iCloud Drive folder whose marker has no current
+    /// reading in `iCloudDriveFolderMarkers`.
+    enum UncheckedICloudDriveFolders {
+        /// Reads the marker on the calling thread, so the list is exact.
+        case readNow
+        /// Leaves the folder out, reads its marker in the background and
+        /// announces a new list when the reading arrives.
+        case leaveOutUntilRead
+    }
+
+    private func listAlbums(includingHidden: Bool, uncheckedFolders: UncheckedICloudDriveFolders) -> [Album] {
         let fileManager = FileManager.default
         let storedKeys = (try? keyManager.storedKeys()) ?? []
         var lockedPlaceholders: [LockedAlbumPlaceholder] = []
@@ -267,10 +294,14 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
         // that album, not an album of its own.
         let deletion = iCloudDriveAlbumDeletion
         let deletedAlbumIDs = deletion.deletedAlbums.all()
-        let iCloudAlbums = ICloudDriveAlbumFolderWalk.albumFolders()
-            .filter { !Self.isICloudDriveHalf(folder: $0, ofListedCloudKitAlbumIDs: listedCloudKitAlbumIDs,
-                                              linkedFolderAlbumIDs: linkedFolderAlbumIDs) }
-            .filter { !deletion.isDeletedAlbumFolder($0, deletedAlbumIDs: deletedAlbumIDs) }
+        let iCloudAlbums = listICloudDriveAlbumFolders()
+            .filter { folder in
+                isListedICloudDriveFolder(folder,
+                                          listedCloudKitAlbumIDs: listedCloudKitAlbumIDs,
+                                          linkedFolderAlbumIDs: linkedFolderAlbumIDs,
+                                          deletedAlbumIDs: deletedAlbumIDs,
+                                          uncheckedFolders: uncheckedFolders)
+            }
             .compactMap { url -> Album? in
                 return mapToAlbum(url, .icloud)
             }
@@ -287,6 +318,64 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                 return !isAlbumHidden(album)
             }
             .sorted(by: { $0.creationDate < $1.creationDate })
+    }
+
+    /// Whether an iCloud Drive album folder is listed as an album of its own: it is
+    /// not the iCloud Drive half of a listed CloudKit album (`isICloudDriveHalf`)
+    /// and its marker does not name an album deleted here, which would make it
+    /// what is left of that album.
+    ///
+    /// The marker is read only when one of those can apply, and then from
+    /// `iCloudDriveFolderMarkers`. A folder whose reading is out of date, because
+    /// the folder changed since, is a half when a listed album links it, so an
+    /// album adopted a moment ago never shows twice. Otherwise
+    /// `uncheckedFolders` decides between reading it now and leaving it out until
+    /// a background read finishes.
+    func isListedICloudDriveFolder(_ folder: URL,
+                                   listedCloudKitAlbumIDs: Set<String>,
+                                   linkedFolderAlbumIDs: [String: String],
+                                   deletedAlbumIDs: Set<String>,
+                                   uncheckedFolders: UncheckedICloudDriveFolders) -> Bool {
+        guard !listedCloudKitAlbumIDs.isEmpty || !deletedAlbumIDs.isEmpty else { return true }
+        let reading: ICloudDriveFolderMarkerCache.Reading
+        if let lookup = iCloudDriveFolderMarkers.lookup(folder), lookup.isCurrent {
+            if lookup.isDueForRefresh { readFolderMarkerInBackground(folder) }
+            reading = lookup.reading
+        } else {
+            switch uncheckedFolders {
+            case .readNow:
+                reading = iCloudDriveFolderMarkers.readNow(folder)
+            case .leaveOutUntilRead:
+                let staleReading = iCloudDriveFolderMarkers.lookup(folder)?.reading
+                readFolderMarkerInBackground(folder)
+                guard let staleReading,
+                      staleReading.folderPath.flatMap({ linkedFolderAlbumIDs[$0] }) == nil else {
+                    return false
+                }
+                reading = staleReading
+            }
+        }
+        return !Self.isICloudDriveHalf(reading,
+                                       ofListedCloudKitAlbumIDs: listedCloudKitAlbumIDs,
+                                       linkedFolderAlbumIDs: linkedFolderAlbumIDs)
+            && !ICloudDriveAlbumDeletion.isDeletedAlbumMarker(reading.marker, deletedAlbumIDs: deletedAlbumIDs)
+    }
+
+    /// Reads `folder`'s marker in the background. When a reading changes what was
+    /// cached, a new album list is announced once the last read in flight has
+    /// finished, so a listing that starts reads for many folders announces once.
+    private func readFolderMarkerInBackground(_ folder: URL) {
+        iCloudDriveFolderMarkers.readInBackground(folder) { [weak self] batchChangedReadings in
+            guard batchChangedReadings else { return }
+            DispatchQueue.main.async {
+                self?.broadcastAlbumsUpdated()
+            }
+        }
+    }
+
+    /// Waits for the marker reads the last listing started. For tests.
+    func waitForICloudDriveFolderMarkerReads() async {
+        await iCloudDriveFolderMarkers.waitForReads()
     }
 
     /// Whether the iCloud Drive album folder `folder` is the iCloud Drive half of
@@ -306,11 +395,21 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
                                   ofListedCloudKitAlbumIDs listedIDs: Set<String>,
                                   linkedFolderAlbumIDs: [String: String] = [:]) -> Bool {
         guard !listedIDs.isEmpty else { return false }
-        let marker = ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder)
+        return isICloudDriveHalf(ICloudDriveFolderMarkerCache.readMarkerFromDisk(of: folder),
+                                 ofListedCloudKitAlbumIDs: listedIDs,
+                                 linkedFolderAlbumIDs: linkedFolderAlbumIDs)
+    }
+
+    /// `isICloudDriveHalf(folder:…)` decided from a reading of the folder's marker.
+    static func isICloudDriveHalf(_ reading: ICloudDriveFolderMarkerCache.Reading,
+                                  ofListedCloudKitAlbumIDs listedIDs: Set<String>,
+                                  linkedFolderAlbumIDs: [String: String] = [:]) -> Bool {
+        guard !listedIDs.isEmpty else { return false }
+        let marker = reading.marker
         let adoptionState = ICloudDriveAlbumAdoptionState.classify(marker: marker,
                                                                     isAdopted: { listedIDs.contains($0) })
         guard adoptionState.listsFolderAsPlainAlbum else { return true }
-        guard let path = CloudKitAlbumMarker.iCloudDriveFolderPath(for: folder),
+        guard let path = reading.folderPath,
               let linkingAlbumID = linkedFolderAlbumIDs[path] else { return false }
         switch marker {
         case .evicted:
@@ -364,7 +463,7 @@ public class AlbumManager: AlbumManaging, ObservableObject, DebugPrintable {
     }
 
     private func broadcastAlbumsUpdated() {
-        albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsFromSources()))
+        albumOperationSubject.send(.albumsUpdated(albums: fetchAlbumsForDisplay()))
     }
 
     public func notifyAlbumsChanged() {
