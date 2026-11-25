@@ -1435,7 +1435,8 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
     ///   cache's eviction order.
     /// - Parameter metadataKeyBytes: the key the item's `encMetadata` is sealed
     ///   under, when the caller holds it, as the migration does while the phone
-    ///   is locked. Nil reads no keychain, so the uploader can drain while the
+    ///   is locked. With it, the dates and subtype sealed in the record replace
+    ///   the index entry's. Nil reads no keychain, so the uploader can drain while the
     ///   phone is locked: the entry is built from the record's plaintext
     ///   fields, and the dates `registerLocally` indexed at capture stay,
     ///   because the index merge keeps an existing entry's dates.
@@ -1551,8 +1552,15 @@ public actor CloudKitSyncCoordinator: DebugPrintable {
         }
 
         if let indexStore = indexStore(forAlbumID: item.albumID) {
+            // The same fold a delta pass applies, so that pass finds the entry
+            // already current when the record comes back through the change feed.
+            let (entry, keysSource) = await Self.indexEntryAndSortKeySource(for: item.descriptor, keyBytes: metadataKeyBytes)
             do {
-                try await indexStore.upsert([Self.indexEntry(fromUpload: item, keyBytes: metadataKeyBytes)])
+                try await indexStore.apply { entries in
+                    var changed = entries.upsert(entry)
+                    if keysSource == .encryptedMetadata, entries.replaceSortKeys(with: entry) { changed = true }
+                    return changed
+                }
             } catch {
                 printDebug("upload indexUpsert FAILED recordName=\(ref.recordName) mediaID=\(item.mediaID) — record is in CloudKit but not in the local index raw=\(error)")
                 throw error

@@ -2803,5 +2803,110 @@ final class CloudKitSyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(rebuilt.first?.hasVideoComponent, false, "the iCloud Drive half is left for the folder scan")
         XCTAssertEqual(rebuilt.first?.photoLocation, .cloudKit)
     }
-}
 
+    // MARK: - Upload sort keys
+
+    private struct SealedUpload {
+        let upload: CloudKitMediaUpload
+        let taken: Date
+        let encrypted: Date
+    }
+
+    /// A migrated photo upload whose `encMetadata` is sealed under the album key.
+    private func makeSealedUpload(mediaID: String) throws -> SealedUpload {
+        let taken = Date(timeIntervalSince1970: 1_400_000_000)
+        let encrypted = Date(timeIntervalSince1970: 1_750_000_000)
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = taken
+        metadata.encryptionDate = encrypted
+        metadata.originalMediaType = "photo"
+        let recordName = MediaRecordName.componentRecordName(mediaID: mediaID, type: .photo)
+        let sealed = try CloudKitRecordMetadataHandler.encryptMetadata(metadata, recordName: recordName,
+                                                                       keyBytes: MockAlbumManager.testAlbumKey.keyBytes)
+        let upload = CloudKitMediaUpload(albumID: "a1", mediaID: mediaID, mediaType: .photo,
+                                         createdAt: Date(timeIntervalSince1970: 100), sizeBytes: 10,
+                                         encryptedFileURL: tempRoot.appendingPathComponent("\(mediaID).blob"),
+                                         encryptedThumbURL: nil,
+                                         recordName: recordName,
+                                         keyFingerprint: MockAlbumManager.testAlbumKey.keyFingerprint,
+                                         encMetadata: sealed)
+        return SealedUpload(upload: upload, taken: taken, encrypted: encrypted)
+    }
+
+    /// The entry the iCloud Drive folder scanner indexed before the migration
+    /// uploaded the item, dated from the file rather than its sealed metadata.
+    private func seedFolderScannerEntry(mediaID: String, in index: MediaIndexStore) async throws -> Date {
+        let scannedDate = Date(timeIntervalSince1970: 1_600_000_000)
+        try await index.upsert([MediaIndexEntry(id: mediaID,
+                                                hasPhotoComponent: true,
+                                                hasVideoComponent: false,
+                                                dateEncrypted: scannedDate,
+                                                dateTaken: scannedDate,
+                                                subtypeRawValue: MediaFilterOptions.stillImage.rawValue)])
+        return scannedDate
+    }
+
+    func testUploadWithMetadataKeyReplacesFolderScannerDates() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, index, _) = makeCoordinator(store: store)
+        _ = try await seedFolderScannerEntry(mediaID: "u1", in: index)
+        let sealed = try makeSealedUpload(mediaID: "u1")
+
+        _ = try await coord.upload(sealed.upload, progress: { _ in },
+                                   metadataKeyBytes: MockAlbumManager.testAlbumKey.keyBytes)
+
+        let entry = await index.current()?.entries.first { $0.id == "u1" }
+        XCTAssertEqual(entry?.dateTaken, sealed.taken, "the record's sealed capture date replaces the scanned one")
+        XCTAssertEqual(entry?.dateEncrypted, sealed.encrypted, "the record's sealed encryption date replaces the scanned one")
+    }
+
+    func testUploadWithoutMetadataKeyKeepsExistingDates() async throws {
+        let store = MockCloudKitMediaStore()
+        let (coord, index, _) = makeCoordinator(store: store)
+        let scannedDate = try await seedFolderScannerEntry(mediaID: "u1", in: index)
+        let sealed = try makeSealedUpload(mediaID: "u1")
+
+        _ = try await coord.upload(sealed.upload, progress: { _ in }, metadataKeyBytes: nil)
+
+        let entry = await index.current()?.entries.first { $0.id == "u1" }
+        XCTAssertEqual(entry?.dateTaken, scannedDate, "without the key the existing dates stay")
+        XCTAssertEqual(entry?.dateEncrypted, scannedDate)
+    }
+
+    /// The record this device just uploaded comes back through the change feed
+    /// on the next sync. That pass finds the index already current, so it saves
+    /// nothing and announces nothing.
+    func testDeltaSyncOfJustUploadedRecordIsANoOp() async throws {
+        let store = MockCloudKitMediaStore()
+        let bus = FileOperationBus()
+        let (coord, index, _) = makeCoordinator(store: store, bus: bus)
+        _ = try await seedFolderScannerEntry(mediaID: "u1", in: index)
+        let sealed = try makeSealedUpload(mediaID: "u1")
+        _ = try await coord.upload(sealed.upload, progress: { _ in },
+                                   metadataKeyBytes: MockAlbumManager.testAlbumKey.keyBytes)
+        let generationAfterUpload = await index.currentGeneration()
+
+        let singleCreates = CapturedIDs()
+        let batches = CapturedBatches()
+        let cancellable = bus.operations.sink { operation in
+            switch operation {
+            case .create(let media): singleCreates.append(media.id)
+            case .createBatch(let media, let albumID): batches.append(albumID: albumID, ids: media.map(\.id))
+            case .delete, .move, .albumCoverChanged: break
+            }
+        }
+        defer { cancellable.cancel() }
+
+        let landed = CloudKitMediaMetadata(descriptor: sealed.upload.descriptor,
+                                           creationDeviceID: "device",
+                                           schemaVersion: sealed.upload.schemaVersion,
+                                           recordChangeTag: "tag-upload")
+        store.changeSet = CloudKitChangeSet(changed: [landed], deleted: [], token: nil, moreComing: false)
+        try await coord.sync()
+
+        let generationAfterSync = await index.currentGeneration()
+        XCTAssertEqual(generationAfterSync, generationAfterUpload, "the delta pass saves no index")
+        XCTAssertEqual(singleCreates.values, [], "the delta pass posts no create")
+        XCTAssertEqual(batches.values.flatMap(\.ids), [], "the delta pass announces nothing")
+    }
+}
