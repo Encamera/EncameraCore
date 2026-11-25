@@ -679,6 +679,23 @@ extension DiskFileAccess {
     ///   of such a file waits on the download, which may never finish, and would
     ///   hold a preview slot every other album's saves need.
     @discardableResult public func createPreview<T: MediaDescribing>(for media: T, slowMotion: SlowMotionRamp? = nil) async throws -> PreviewModel {
+        // Without `unlessFileExistsAt` a preview is always made.
+        try await makePreview(for: media, slowMotion: slowMotion, unlessFileExistsAt: nil)!
+    }
+
+    /// `createPreview`, unless a file is at `previewURL` once a preview slot is
+    /// free, so a preview another load made while this one waited is kept and the
+    /// source is not decrypted again.
+    ///
+    /// - Returns: whether a preview was made.
+    func createPreviewIfMissing(for media: EncryptedMedia, at previewURL: URL) async throws -> Bool {
+        try await makePreview(for: media, slowMotion: nil, unlessFileExistsAt: previewURL) != nil
+    }
+
+    /// - Returns: nil when a file is at `existingPreviewURL` and nothing was made.
+    private func makePreview<T: MediaDescribing>(for media: T,
+                                                 slowMotion: SlowMotionRamp?,
+                                                 unlessFileExistsAt existingPreviewURL: URL?) async throws -> PreviewModel? {
         try Task.checkCancellation()
         if let encrypted = media as? EncryptedMedia,
            case .url(let sourceURL) = encrypted.source,
@@ -690,6 +707,9 @@ extension DiskFileAccess {
         await Self.previewSemaphore.wait()
         defer { Task { await Self.previewSemaphore.signal() } }
         try Task.checkCancellation()
+        if let existingPreviewURL, FileManager.default.fileExists(atPath: existingPreviewURL.path) {
+            return nil
+        }
 
         do {
             var preview: PreviewModel

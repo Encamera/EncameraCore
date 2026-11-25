@@ -341,13 +341,16 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
     /// devices or not yet scrolled to. Best effort: a failure is logged and the
     /// record is saved without a thumbnail, as before.
     ///
+    /// Only a photo is decrypted for a preview, and only when the preview file is
+    /// missing, both now and once a preview slot is free. A video's frame needs
+    /// the whole file decrypted to disk, so a video is uploaded without a
+    /// thumbnail and gets one when it is first opened (thumbnail repair).
+    ///
     /// A Live Photo's preview is its photo's, as the grid makes it, so its video
     /// component uses the photo's source file when that is on disk and not yet
-    /// uploaded (a verified file is never touched again). Otherwise the
-    /// preview is made from `uploadURL`, the bytes this item uploads, which carry
-    /// `key`'s stamp, so making it writes nothing to the source. A video is
-    /// decrypted to a file for its frame, so none is made while the run must not
-    /// write plaintext (`shouldStopReencryption`, set while the device is locked).
+    /// uploaded (a verified file is never touched again), and makes none
+    /// otherwise. A photo's preview is made from `uploadURL`, the bytes this item
+    /// uploads, which carry `key`'s stamp, so making it writes nothing to the source.
     static func createPreviewIfMissing(at previewURL: URL,
                                        for item: MigrationItem,
                                        in plan: MigrationPlan,
@@ -372,24 +375,18 @@ struct LocalToCloudKitStep: MigrationItemStep, DebugPrintable {
                 sourceType = .photo
             }
         }
-        if sourceType == .video, context.shouldStopReencryption() {
-            printDebug("item preview SKIPPED recordName=\(item.recordName) — a video preview writes plaintext, which this run may not")
+        guard sourceType == .photo else {
+            printDebug("item preview SKIPPED recordName=\(item.recordName) type=\(sourceType) — only a photo is decrypted for a preview")
             return
         }
 
         let media = EncryptedMedia(source: .url(sourceURL), mediaType: sourceType, id: item.mediaID)
-        let decryptedVideoURL = URL.tempMediaDirectory
-            .appendingPathComponent(item.mediaID)
-            .appendingPathExtension(sourceType.decryptedFileExtension)
-        let decryptedVideoExisted = FileManager.default.fileExists(atPath: decryptedVideoURL.path)
-        defer {
-            if sourceType == .video, !decryptedVideoExisted {
-                try? FileManager.default.removeItem(at: decryptedVideoURL)
-            }
-        }
         let previewAccess = DiskFileAccess(key: key, keyManager: context.keyManager, directoryModel: sourceModel)
         do {
-            _ = try await previewAccess.createPreview(for: media)
+            guard try await previewAccess.createPreviewIfMissing(for: media, at: previewURL) else {
+                printDebug("item preview kept recordName=\(item.recordName) — another load made it first")
+                return
+            }
             NotificationCenter.default.post(name: .mediaPreviewDidChange, object: nil,
                                             userInfo: [Notification.previewMediaIDKey: item.mediaID])
             printDebug("item preview created recordName=\(item.recordName) from=\(sourceType) preview=[\(FileFingerprint.describe(previewURL))]")
