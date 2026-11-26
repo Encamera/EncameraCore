@@ -14,9 +14,11 @@
 //  (`ICloudDriveAlbumMarkerMonitor`).
 //
 //  After the walk, the iCloud Drive album migration
-//  (`ICloudDriveAlbumMigration.runEveryFolder()`) runs for every album folder:
-//  after each pass until one run gets past its conditions (unlocked, foreground,
-//  network, account, iCloud Drive) in this process, and after every walk the
+//  (`ICloudDriveAlbumMigration.runEveryFolder()`) runs for every album folder
+//  whose marker file names an album; a folder without one waits for the user's
+//  start. It runs after each pass until one run gets past its conditions
+//  (unlocked, foreground, network, account, iCloud Drive) in this process with a
+//  folder that was not only waiting for the user's start, and after every walk the
 //  marker monitor starts. Once any album step has skipped for want of a network
 //  (`ICloudDriveAlbumMigration.didWaitForNetwork`), whether this actor's run or a
 //  user's move, the migration runs again at the next
@@ -68,8 +70,12 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     private var folderWalkRequested = false
     private var activeAlbumMigration: Task<Bool, Never>?
     private var albumMigrationRequested = false
-    /// Whether a migration pass got past its conditions in this process.
+    /// Whether a migration pass got past its conditions in this process with a
+    /// folder that was not only waiting for the user's start
+    /// (`AlbumMigrationPassResult.ranBeyondAwaitingUserStart`).
     private(set) var albumMigrationRanThisLaunch = false
+    /// Whether the next migration run starts folders without a marker file.
+    private var unmarkedFolderStartRequested = false
     /// Set from the observer of `ICloudDriveAlbumMigration.didWaitForNetwork`,
     /// which is posted on the main actor during a run, so it is set before the run
     /// returns.
@@ -216,14 +222,18 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// Runs the iCloud Drive album migration for every album folder once
     /// (`ICloudDriveAlbumMigration.runEveryFolder()`). A call during a run joins it
     /// and has it run again when it finishes. Returns whether a run got past its
-    /// conditions.
+    /// conditions with a folder that was not only waiting for the user's start.
+    ///
+    /// - Parameter startingUnmarkedFolders: also start folders without a marker
+    ///   file. Only the `-RunICloudDriveAlbumStep` UI-test hook passes it.
     @discardableResult
-    public func migrateICloudDriveAlbums() async -> Bool {
+    public func migrateICloudDriveAlbums(startingUnmarkedFolders: Bool = false) async -> Bool {
         guard let makeICloudDriveAlbumMigration else { return false }
         guard isReadyToSync() else {
             printDebug("migrateICloudDriveAlbums skip reason=awaitingCredentialRestore")
             return false
         }
+        if startingUnmarkedFolders { unmarkedFolderStartRequested = true }
         if let active = activeAlbumMigration {
             albumMigrationRequested = true
             return await active.value
@@ -235,8 +245,11 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             repeat {
                 albumMigrationRequested = false
                 albumStepWaitedForNetwork.withLock { $0 = false }
-                let result = await makeICloudDriveAlbumMigration(albumManager).runEveryFolder()
-                if case .ran = result { ran = true }
+                let startsUnmarked = unmarkedFolderStartRequested
+                unmarkedFolderStartRequested = false
+                let result = await makeICloudDriveAlbumMigration(albumManager)
+                    .runEveryFolder(startingUnmarkedFolders: startsUnmarked)
+                if result.ranBeyondAwaitingUserStart { ran = true }
             } while albumMigrationRequested
             if ran { albumMigrationRanThisLaunch = true }
             return ran

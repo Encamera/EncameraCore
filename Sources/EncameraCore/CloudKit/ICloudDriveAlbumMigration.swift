@@ -52,9 +52,14 @@
 //  does nothing at all and never reads the iCloud Drive container: such a device
 //  sees only the album's CloudKit components.
 //
-//  `runEveryFolder()` runs it for every iCloud Drive album folder on this device,
-//  which the app does at launch and whenever an album folder's marker file
-//  changes (`CloudKitAlbumsSync`). A prepared album's folder is watched
+//  Only a user's start (`run(album:)`, from `CloudKitMigrationManager`) runs it
+//  for a folder without a marker file, so only a user's start writes a marker on
+//  this device. `runEveryFolder()` runs it for every iCloud Drive album folder on
+//  this device whose marker names an album, resuming an album whose run died
+//  after the marker write and adopting one another device started, which the app
+//  does at launch and whenever an album folder's marker file changes
+//  (`CloudKitAlbumsSync`). A folder without a marker is skipped
+//  (`MigrationSkipReason.awaitingUserStart`). A prepared album's folder is watched
 //  (`ICloudDriveFolderWatches`) and the album is handed to `startBlobMigration`,
 //  which moves its media; once it is done, `ICloudDriveAlbumFinish` removes the
 //  folder and stops the watch. `runEveryFolder()` also finishes every album whose
@@ -91,6 +96,9 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     }
 
     public enum MigrationSkipReason: Equatable, Sendable {
+        /// The folder has no marker file, so no user started its upgrade;
+        /// `runEveryFolder()` leaves it for the user's start.
+        case awaitingUserStart
         case locked
         /// No network. `CloudKitAlbumsSync` runs the step again when the network
         /// changes.
@@ -202,6 +210,13 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         case skipped(MigrationSkipReason)
         /// Each folder's run, keyed by folder.
         case ran([URL: AlbumMigrationRunOutcome])
+
+        /// Whether the pass got past its conditions and listed a folder that was
+        /// not only waiting for a user's start, or listed no folder at all.
+        public var ranBeyondAwaitingUserStart: Bool {
+            guard case .ran(let outcomes) = self else { return false }
+            return outcomes.isEmpty || outcomes.values.contains { $0 != .skipped(.awaitingUserStart) }
+        }
     }
 
     private let albumManager: AlbumManaging
@@ -284,11 +299,14 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
 
     // MARK: - Entry points
 
-    /// Runs for every iCloud Drive album folder on this device, folders whose
-    /// marker already names an album included, one after another. Lists no folder
+    /// Runs for every iCloud Drive album folder on this device whose marker file
+    /// is there, one after another. A folder without a marker is skipped
+    /// (`.awaitingUserStart`) before its `FolderGate` is taken, unless
+    /// `startingUnmarkedFolders`, which only the `-RunICloudDriveAlbumStep` UI-test
+    /// hook passes, standing in for a user's start of every album. Lists no folder
     /// unless a run may do anything now. First removes every folder whose marker
     /// names an album deleted on this device.
-    public func runEveryFolder() async -> AlbumMigrationPassResult {
+    public func runEveryFolder(startingUnmarkedFolders: Bool = false) async -> AlbumMigrationPassResult {
         if let reason = await unmetCondition() {
             _ = skip(reason)
             return .skipped(reason)
@@ -297,6 +315,10 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         var outcomes: [URL: AlbumMigrationRunOutcome] = [:]
         let folders = albumFolders()
         for folder in folders {
+            if !startingUnmarkedFolders, case .absent = readMarker(in: folder) {
+                outcomes[folder] = skip(.awaitingUserStart)
+                continue
+            }
             outcomes[folder] = await run(folder: folder)
         }
         await completeRemovedFolders(listed: folders)
