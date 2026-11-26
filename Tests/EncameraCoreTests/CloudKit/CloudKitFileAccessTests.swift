@@ -3529,4 +3529,65 @@ extension CloudKitFileAccessTests {
 
         XCTAssertEqual(viewed.calls, [], "an item already in CloudKit is never prioritized")
     }
+
+    // MARK: - Enumeration order
+
+    private func capture(_ id: String, at date: Date, into access: CloudKitFileAccess) async throws {
+        var metadata = EncryptedFileMetadata()
+        metadata.captureDate = date
+        _ = try await access.save(media: photo(id: id, data: Self.tinyPNG()), metadata: metadata, progress: { _ in })
+    }
+
+    /// The camera shows `enumerateMedia().first` as its thumbnail. A capture that
+    /// has not uploaded yet has no blob in the cache, and is still the newest item.
+    func testEnumerateMediaListsACaptureStillWaitingToUploadFirst() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        store.uploadFailures[MediaRecordName.componentRecordName(mediaID: "waiting", type: .photo)] = URLError(.notConnectedToInternet)
+        let access = await makeAccess(album: album, store: store)
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try await capture("uploaded", at: start, into: access)
+        await access.drainUploads()
+        try await capture("waiting", at: start.addingTimeInterval(10), into: access)
+        await access.drainUploads()
+
+        let listed: [InteractableMedia<EncryptedMedia>] = await access.enumerateMedia()
+        XCTAssertEqual(listed.map(\.id), ["waiting", "uploaded"])
+    }
+
+    /// Nothing has uploaded: no item has a cached blob to date it by.
+    func testEnumerateMediaOrdersCapturesNewestFirstBeforeAnyUpload() async throws {
+        let album = makeAlbum()
+        let store = MockCloudKitMediaStore()
+        let ids = ["first", "second", "third"]
+        for id in ids {
+            store.uploadFailures[MediaRecordName.componentRecordName(mediaID: id, type: .photo)] = URLError(.notConnectedToInternet)
+        }
+        let access = await makeAccess(album: album, store: store)
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+        for (offset, id) in ids.enumerated() {
+            try await capture(id, at: start.addingTimeInterval(Double(offset) * 10), into: access)
+        }
+        await access.drainUploads()
+
+        let listed: [InteractableMedia<EncryptedMedia>] = await access.enumerateMedia()
+        XCTAssertEqual(listed.map(\.id), ["third", "second", "first"])
+    }
+
+    /// An evicted blob leaves the item's place in the order unchanged.
+    func testEnumerateMediaKeepsTheNewestItemFirstAfterItsBlobIsEvicted() async throws {
+        let album = makeAlbum()
+        let access = await makeAccess(album: album, store: MockCloudKitMediaStore())
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try await capture("older", at: start, into: access)
+        try await capture("newer", at: start.addingTimeInterval(10), into: access)
+        await access.drainUploads()
+        try await access.evictCachedBlob(for: "newer", type: .photo)
+
+        let listed: [InteractableMedia<EncryptedMedia>] = await access.enumerateMedia()
+        XCTAssertEqual(listed.map(\.id), ["newer", "older"])
+    }
 }

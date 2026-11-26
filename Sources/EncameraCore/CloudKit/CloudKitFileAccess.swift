@@ -1322,12 +1322,13 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
         printDebug("discardAllMediaForErase ok albumID=\(albumID) items=\(count)")
     }
 
+    /// Every item in the album, newest first by the index's date added, as
+    /// the gallery orders it. The order never depends on which blobs this device
+    /// holds: a capture still waiting to upload has none in the cache.
     public func enumerate() async -> [InteractableMedia<EncryptedMedia>] {
-        let entries = (await indexStore.current())?.entries ?? []
-        return entries.compactMap { materialize($0) }.sorted {
-            guard let a = $0.timestamp, let b = $1.timestamp else { return false }
-            return a > b
-        }
+        let index = await indexStore.current() ?? MediaIndex(entries: [])
+        return index.sortedFilteredEntries(sortBy: .dateAdded(ascending: false), filterBy: .all)
+            .compactMap { materialize($0) }
     }
 
     /// `FileEnumerator` conformance. CloudKit only ever produces
