@@ -301,12 +301,10 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
 
     /// Runs for every iCloud Drive album folder on this device whose marker file
     /// is there, one after another. A folder without a marker is skipped
-    /// (`.awaitingUserStart`) before its `FolderGate` is taken, unless
-    /// `startingUnmarkedFolders`, which only the `-RunICloudDriveAlbumStep` UI-test
-    /// hook passes, standing in for a user's start of every album. Lists no folder
+    /// (`.awaitingUserStart`) before its `FolderGate` is taken. Lists no folder
     /// unless a run may do anything now. First removes every folder whose marker
     /// names an album deleted on this device.
-    public func runEveryFolder(startingUnmarkedFolders: Bool = false) async -> AlbumMigrationPassResult {
+    public func runEveryFolder() async -> AlbumMigrationPassResult {
         if let reason = await unmetCondition() {
             _ = skip(reason)
             return .skipped(reason)
@@ -315,7 +313,7 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         var outcomes: [URL: AlbumMigrationRunOutcome] = [:]
         let folders = albumFolders()
         for folder in folders {
-            if !startingUnmarkedFolders, case .absent = readMarker(in: folder) {
+            if case .absent = readMarker(in: folder) {
                 outcomes[folder] = skip(.awaitingUserStart)
                 continue
             }

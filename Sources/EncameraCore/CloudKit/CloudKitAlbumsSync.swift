@@ -74,8 +74,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// folder that was not only waiting for the user's start
     /// (`AlbumMigrationPassResult.ranBeyondAwaitingUserStart`).
     private(set) var albumMigrationRanThisLaunch = false
-    /// Whether the next migration run starts folders without a marker file.
-    private var unmarkedFolderStartRequested = false
     /// Set from the observer of `ICloudDriveAlbumMigration.didWaitForNetwork`,
     /// which is posted on the main actor during a run, so it is set before the run
     /// returns.
@@ -223,17 +221,13 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     /// (`ICloudDriveAlbumMigration.runEveryFolder()`). A call during a run joins it
     /// and has it run again when it finishes. Returns whether a run got past its
     /// conditions with a folder that was not only waiting for the user's start.
-    ///
-    /// - Parameter startingUnmarkedFolders: also start folders without a marker
-    ///   file. Only the `-RunICloudDriveAlbumStep` UI-test hook passes it.
     @discardableResult
-    public func migrateICloudDriveAlbums(startingUnmarkedFolders: Bool = false) async -> Bool {
+    public func migrateICloudDriveAlbums() async -> Bool {
         guard let makeICloudDriveAlbumMigration else { return false }
         guard isReadyToSync() else {
             printDebug("migrateICloudDriveAlbums skip reason=awaitingCredentialRestore")
             return false
         }
-        if startingUnmarkedFolders { unmarkedFolderStartRequested = true }
         if let active = activeAlbumMigration {
             albumMigrationRequested = true
             return await active.value
@@ -245,10 +239,7 @@ public actor CloudKitAlbumsSync: DebugPrintable {
             repeat {
                 albumMigrationRequested = false
                 albumStepWaitedForNetwork.withLock { $0 = false }
-                let startsUnmarked = unmarkedFolderStartRequested
-                unmarkedFolderStartRequested = false
-                let result = await makeICloudDriveAlbumMigration(albumManager)
-                    .runEveryFolder(startingUnmarkedFolders: startsUnmarked)
+                let result = await makeICloudDriveAlbumMigration(albumManager).runEveryFolder()
                 if result.ranBeyondAwaitingUserStart { ran = true }
             } while albumMigrationRequested
             if ran { albumMigrationRanThisLaunch = true }

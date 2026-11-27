@@ -45,7 +45,7 @@ public final class NetworkMonitor {
                                           isOnCellular: false, isOnUnmeteredNetwork: false)
     }
 
-    /// A network path a test or UI test forces in place of the real one.
+    /// A network path a test forces in place of the real one.
     public enum ForcedPath: String, Sendable {
         case wifi
         case cellular

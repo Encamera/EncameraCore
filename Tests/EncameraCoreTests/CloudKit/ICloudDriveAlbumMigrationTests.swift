@@ -884,30 +884,26 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         await albumManager.mediaIndexStore(forAlbumID: albumID)?.reloadFromDisk()?.entries
     }
 
-    /// A pass that starts unmarked folders, as the UI-test hook's does, runs for
-    /// every album folder, one whose marker already names an album included,
-    /// hands each prepared album to the blob migration, and asks for a whole-zone
-    /// walk for each index it creates. A second pass over albums and folders in
-    /// parity saves nothing, deletes nothing and changes no index.
-    func testRunsForEveryFolderIncludingAlreadyMarked() async throws {
+    /// A pass runs for every album folder whose marker names an album, hands
+    /// each prepared album to the blob migration, and every index a run created
+    /// has its whole-zone walk asked for. A second pass over albums and folders
+    /// in parity saves nothing, deletes nothing and changes no index.
+    func testRunsForEveryMarkedFolder() async throws {
         let marked = try await makeDriveAlbum(count: 1)
         let fresh = try await makeDriveAlbum(count: 2)
         let earlier = await run(marked)
         guard case .prepared(let markedID) = earlier else { return XCTFail("expected prepared, got \(earlier)") }
+        let started = await run(fresh)
+        guard case .prepared(let freshID) = started else { return XCTFail("expected prepared, got \(started)") }
         blobMigrationStarts = []
         let spy = DeleteSpy()
         let migration = makeMigration(makeVerifiedDelete: { _ in spy })
 
-        let first = await migration.runEveryFolder(startingUnmarkedFolders: true)
+        let first = await migration.runEveryFolder()
 
         guard case .ran(let ran) = first else { return XCTFail("expected a pass, got \(first)") }
-        let outcomes = byFolderName(ran)
-        XCTAssertEqual(outcomes.count, 2, "both folders, the one already marked included")
-        XCTAssertEqual(outcomes[marked.folder.lastPathComponent], .prepared(albumID: markedID))
-        guard case .prepared(let freshID) = outcomes[fresh.folder.lastPathComponent] else {
-            return XCTFail("expected the unmarked folder prepared, got \(outcomes)")
-        }
-        touchedAlbumIDs.insert(freshID)
+        XCTAssertEqual(byFolderName(ran), [marked.folder.lastPathComponent: .prepared(albumID: markedID),
+                                           fresh.folder.lastPathComponent: .prepared(albumID: freshID)])
         XCTAssertEqual(markerFile(in: fresh), .present(ICloudDriveAlbumMarkerFile(albumID: freshID)))
         XCTAssertEqual(Set(blobMigrationStarts.map { "\($0.albumID)/\($0.folder.lastPathComponent)" }),
                        ["\(markedID)/\(marked.folder.lastPathComponent)", "\(freshID)/\(fresh.folder.lastPathComponent)"])
@@ -922,7 +918,7 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         let markedPlanBefore = await plan(marked, albumID: markedID)?.items
         let freshPlanBefore = await plan(fresh, albumID: freshID)?.items
 
-        let second = await migration.runEveryFolder(startingUnmarkedFolders: true)
+        let second = await migration.runEveryFolder()
 
         guard case .ran(let ranAgain) = second else { return XCTFail("expected a pass, got \(second)") }
         XCTAssertEqual(byFolderName(ranAgain), [marked.folder.lastPathComponent: .prepared(albumID: markedID),
@@ -1001,25 +997,9 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         XCTAssertEqual(blobMigrationStarts, [BlobMigrationStart(albumID: albumID, folder: drive.folder)])
     }
 
-    /// The UI-test hook's pass starts a folder without a marker, as a user's start does.
-    func testRunEveryFolderStartingUnmarkedFoldersMintsAndMarks() async throws {
-        let drive = try await makeDriveAlbum()
-        let migration = makeMigration(albumFolders: { [drive.folder] })
-
-        let pass = await migration.runEveryFolder(startingUnmarkedFolders: true)
-
-        guard case .ran(let ran) = pass, case .prepared(let albumID)? = ran[drive.folder] else {
-            return XCTFail("expected the folder prepared, got \(pass)")
-        }
-        touchedAlbumIDs.insert(albumID)
-        XCTAssertEqual(store.savedAlbumCalls.map(\.albumID), [albumID])
-        XCTAssertEqual(markerFile(in: drive), .present(.init(albumID: albumID)))
-        XCTAssertEqual(listed(drive, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.cloudKit])
-    }
-
     /// A sync whose pass only found folders waiting for the user's start has not
-    /// run the migration this launch, so its later passes keep running it; the
-    /// hook's pass, which starts them, has.
+    /// run the migration this launch, so its later passes keep running it; a pass
+    /// after the user's start, which resumes the folder, has.
     func testSyncPassThatOnlyAwaitedUserStartDoesNotCountAsRan() async throws {
         let drive = try await makeDriveAlbum()
         let migration = makeMigration(albumFolders: { [drive.folder] })
@@ -1035,13 +1015,15 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         XCTAssertEqual(markerFile(in: drive), .absent)
         XCTAssertTrue(store.savedAlbumCalls.isEmpty)
 
-        let hookRan = await sync.migrateICloudDriveAlbums(startingUnmarkedFolders: true)
+        let started = await migration.run(album: drive.album)
+        guard case .prepared(let albumID) = started else { return XCTFail("expected prepared, got \(started)") }
+        touchedAlbumIDs.insert(albumID)
 
-        XCTAssertTrue(hookRan)
-        let ranAfterHook = await sync.albumMigrationRanThisLaunch
-        XCTAssertTrue(ranAfterHook)
-        guard case .present(let marker) = markerFile(in: drive) else { return XCTFail("expected a marker file") }
-        touchedAlbumIDs.insert(marker.albumID)
+        let ranAfterStart = await sync.migrateICloudDriveAlbums()
+
+        XCTAssertTrue(ranAfterStart)
+        let ranThisLaunchAfterStart = await sync.albumMigrationRanThisLaunch
+        XCTAssertTrue(ranThisLaunchAfterStart)
     }
 
     /// While the phone is locked (protected data unavailable) or the app runs in
