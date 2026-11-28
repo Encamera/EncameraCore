@@ -4,11 +4,11 @@
 //
 //  Asks iCloud Drive to download the files the blob migration will move next,
 //  before the app goes to the background. A download needs no key and the
-//  system carries it on while the app is suspended, so a later background task run
+//  system carries it on while the app is suspended, so the next pass
 //  finds the bytes on disk and spends its time uploading.
 //
 //  The batch is the next items `BlobMigrationOrder.next` returns for a locked
-//  phone (the work a background task run can do), skipping items whose bytes are
+//  phone, skipping items whose bytes are
 //  already here. It holds at most `ICloudDriveMigrationBatchSize.current` files,
 //  and their sizes together must fit in the free disk space less
 //  `reservedBytes`; the batch stops at the first file that does not fit. With

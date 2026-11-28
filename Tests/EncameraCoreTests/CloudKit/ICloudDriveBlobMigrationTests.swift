@@ -1086,7 +1086,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
 
         // Work remains, but not bytes still to move.
         XCTAssertTrue(plan.hasRemainingWork)
-        XCTAssertTrue(ICloudDriveBlobMigration.hasPendingPlans(), "passes keep being scheduled for it")
         let bytes = await albumManager.mediaBytes(for: prepared.cloudKitAlbum)
         XCTAssertEqual(bytes.remainingOnICloudDrive, 0)
         XCTAssertEqual(bytes.deferredOnICloudDrive, Int64(garbage.count))
@@ -1216,20 +1215,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         let after = try await plan(prepared)
         XCTAssertEqual(after.items, before.items, "no item changes state")
         XCTAssertFalse(ICloudPlaceholderName.isMaterialized(url))
-    }
-
-    func testBackgroundTaskRunOffWiFiTouchesNoItem() async throws {
-        let prepared = try await prepareAlbum(count: 2)
-        let before = try await plan(prepared)
-        let callsBefore = store.callOrder.count
-
-        let report = await makeLoop(isOnUnmeteredNetwork: { false }).runBackgroundTaskPasses()
-
-        XCTAssertEqual(report.outcomes[prepared.albumID], .stopped(.paused(.waitingForWiFi), .init()))
-        XCTAssertEqual(store.uploadCalls, [])
-        XCTAssertEqual(store.callOrder.count, callsBefore, "no CloudKit request off Wi-Fi")
-        let after = try await plan(prepared)
-        XCTAssertEqual(after.items, before.items, "no item changes state")
     }
 
     func testPassOffWiFiPausesAlbumUntilWiFiReturns() async throws {
@@ -1452,7 +1437,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertTrue(ICloudPlaceholderName.existsInAnyForm(url), "its iCloud Drive file is kept")
         let entry = await indexEntries(prepared).first
         XCTAssertEqual(entry?.photoLocation, .iCloudDrive)
-        XCTAssertTrue(ICloudDriveBlobMigration.hasPendingPlans())
 
         // A retry whose download fails again keeps it deferred.
         guard case .finished(let retry) = await pass() else { return XCTFail("expected finished") }
@@ -1515,7 +1499,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: foreignURL), foreignBytes, "its file is kept")
         let foreignEntry = await indexEntries(prepared).first { $0.id == foreignID }
         XCTAssertEqual(foreignEntry?.photoLocation, .iCloudDrive)
-        XCTAssertTrue(ICloudDriveBlobMigration.hasPendingPlans())
     }
 
     func testMissingKeyItemMovesOnceTheKeyArrives() async throws {
@@ -2088,7 +2071,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         folderContents.metadata = []
         var partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)
         XCTAssertTrue(partly, "precondition: an album mid-move is partly on iCloud Drive")
-        XCTAssertTrue(ICloudDriveBlobMigration.hasPendingPlans())
         XCTAssertTrue(CloudKitMigrationManager.isMoveFromLinkedICloudDriveFolder(source: nil, destinationCloudKitAlbumID: prepared.albumID))
 
         let finish = await passAndFinish(prepared)
@@ -2103,7 +2085,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertTrue(entries.allSatisfy { $0.photoLocation == .cloudKit }, "every component is in CloudKit")
         XCTAssertFalse(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID))
         XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
-        XCTAssertFalse(ICloudDriveBlobMigration.hasPendingPlans())
         let deferred = await ICloudDriveBlobMigration.deferredCount(for: prepared.cloudKitAlbum)
         XCTAssertEqual(deferred, 0)
         XCTAssertFalse(CloudKitMigrationManager.isMoveFromLinkedICloudDriveFolder(source: nil, destinationCloudKitAlbumID: prepared.albumID),
@@ -2187,7 +2168,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
 
     // MARK: - Scratch
 
-    /// A background task run killed mid-video leaves its scratch directory, with plaintext,
+    /// A process killed mid-video leaves its scratch directory, with plaintext,
     /// for no process to release. The launch cleanup removes it and keeps a
     /// directory a re-encryption in this process is using.
     func testScratchSweptAtLaunch() throws {

@@ -111,16 +111,14 @@ final class EraserUtilsTests: XCTestCase {
                            cloud: CloudDataErasing,
                            local: LocalDataErasing,
                            verifier: LocalDataVerifying = ScriptedVerifier(),
-                           appLayerSteps: [ErasureStep] = [],
-                           cancelPendingBackgroundSlices: @escaping @Sendable () -> Void = {}) -> EraserUtils {
+                           appLayerSteps: [ErasureStep] = []) -> EraserUtils {
         EraserUtils(keyManager: DemoKeyManager(),
                     fileAccess: InteractableMediaFileAccess(),
                     erasureScope: scope,
                     cloudKitEraser: cloud,
                     localEraser: local,
                     localVerifier: verifier,
-                    appLayerSteps: appLayerSteps,
-                    cancelPendingBackgroundSlices: cancelPendingBackgroundSlices)
+                    appLayerSteps: appLayerSteps)
     }
 
     /// Collects progress reports on the calling task, in order.
@@ -567,7 +565,7 @@ final class EraserUtilsTests: XCTestCase {
     }
 
     @MainActor
-    func testEraseRemovesMigrationPlansAndCancelsSlices() async throws {
+    func testEraseRemovesMigrationPlansAndHaltsBlobMigration() async throws {
         let key = PrivateKey(keyBytes: (0..<32).map { _ in UInt8.random(in: 0...255) }, creationDate: Date())
         let albumManager = AlbumManager(keyManager: DemoKeyManager(keys: [key]), syncedDataStore: nil)
         for scope in [ErasureScope.allData, .reset] {
@@ -582,25 +580,18 @@ final class EraserUtilsTests: XCTestCase {
 
             let local = PartlyRealLocalEraser()
             let report = await makeUtils(scope: scope, cloud: MockCloudDataEraser(), local: local,
-                                         verifier: PartlyRealVerifier(),
-                                         cancelPendingBackgroundSlices: { [local] in local.steps.append("cancelSlices") })
+                                         verifier: PartlyRealVerifier())
                 .erase(progress: { _ in })
 
-            XCTAssertEqual(local.steps.first, "cancelSlices", "\(scope): pending slices are cancelled before anything is erased")
-            XCTAssertEqual(local.steps.filter { $0 == "cancelSlices" }.count, 1)
             XCTAssertFalse(FileManager.default.fileExists(atPath: localPlan.path), "\(scope): the local move's plan goes")
             XCTAssertFalse(FileManager.default.fileExists(atPath: iCloudDrivePlan.path), "\(scope): the iCloud Drive album's plan goes")
             XCTAssertEqual(report.report(for: "migration.state")?.outcome, .pass)
-            XCTAssertTrue(BlobMigrationKeyCache.shared.storedKeys.isEmpty, "\(scope): the keys held for locked slices are cleared")
+            XCTAssertTrue(BlobMigrationKeyCache.shared.storedKeys.isEmpty, "\(scope): the keys held in memory are cleared")
             XCTAssertTrue(ICloudDriveBlobMigration.isHaltedForErase)
 
             let loop = ICloudDriveBlobMigration(albumManager: albumManager,
                                                 conditions: .init(isUnlocked: { true }, hasNetwork: { true }, isOnUnmeteredNetwork: { true },
                                                                   hasICloudDrive: { true }))
-            let slice = await loop.runBackgroundTaskPasses()
-            XCTAssertTrue(slice.outcomes.isEmpty)
-            XCTAssertTrue(BlobMigrationKeyCache.shared.storedKeys.isEmpty,
-                          "\(scope): a slice handler run after the erase reads no keys")
             let pass = await loop.runMigrationPass(albumID: UUID().uuidString, folder: FileManager.default.temporaryDirectory)
             XCTAssertEqual(pass, .stopped(.erased, .init()), "\(scope): no pass starts after the erase")
             XCTAssertFalse(loop.startMigrationPass(albumID: UUID().uuidString, folder: FileManager.default.temporaryDirectory),

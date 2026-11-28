@@ -67,7 +67,7 @@ public protocol LocalDataErasing {
     func shutdownCloudKitSync() async
     /// Halts in-flight CloudKit migrations (no further checkpoints or CloudKit
     /// ops) and cancels the iCloud Drive blob migration without waiting for the
-    /// transfer under way; no pass or slice restarts in the process. Clears the
+    /// transfer under way; no pass restarts in the process. Clears the
     /// keys it holds in memory, and removes every on-disk migration plan: local
     /// moves and iCloud Drive albums alike.
     func eraseMigrationState() async
@@ -365,9 +365,6 @@ public struct EraserUtils {
     /// Steps owned by the app target, run after the media sweep and before the
     /// residual sweep, keychain and defaults wipes so nothing they write survives.
     private let appLayerSteps: [ErasureStep]
-    /// Cancels the background processing requests the app scheduled, so no
-    /// slice wakes a migration after the wipe. Runs first, before any step erases.
-    private let cancelPendingBackgroundSlices: @Sendable () -> Void
 
     public init(keyManager: KeyManager,
                 fileAccess: FileAccess,
@@ -375,8 +372,7 @@ public struct EraserUtils {
                 cloudKitEraser: CloudDataErasing = CloudKitContainer.shared,
                 localEraser: LocalDataErasing? = nil,
                 localVerifier: LocalDataVerifying? = nil,
-                appLayerSteps: [ErasureStep] = [],
-                cancelPendingBackgroundSlices: @escaping @Sendable () -> Void = {}) {
+                appLayerSteps: [ErasureStep] = []) {
         self.keyManager = keyManager
         self.fileAccess = fileAccess
         self.erasureScope = erasureScope
@@ -384,7 +380,6 @@ public struct EraserUtils {
         self.localEraser = localEraser ?? DefaultLocalDataEraser(keyManager: keyManager, fileAccess: fileAccess)
         self.localVerifier = localVerifier ?? DefaultLocalDataVerifier(keyManager: keyManager, fileAccess: fileAccess)
         self.appLayerSteps = appLayerSteps
-        self.cancelPendingBackgroundSlices = cancelPendingBackgroundSlices
     }
 
     /// Every step this scope reports, in run order: the scope's catalog with the
@@ -414,7 +409,7 @@ public struct EraserUtils {
     /// encrypted media, its indexes, the blob cache, the upload queue and the
     /// CloudKit zone. `.allData` adds all of those.
     ///
-    /// Pending background slices are cancelled and in-flight migrations, the
+    /// In-flight migrations, the
     /// iCloud Drive blob migration included, are halted FIRST so nothing keeps
     /// writing checkpoints or issuing CloudKit operations; a transfer under way
     /// is cancelled, not waited for. Everything on the device then goes before
@@ -456,10 +451,7 @@ public struct EraserUtils {
         }
 
         await perform("migration.state",
-                      erase: {
-                          cancelPendingBackgroundSlices()
-                          await localEraser.eraseMigrationState()
-                      },
+                      erase: { await localEraser.eraseMigrationState() },
                       verify: { await localVerifier.verifyMigrationState() })
         await perform("sync.shutdown",
                       erase: { await localEraser.shutdownCloudKitSync() },

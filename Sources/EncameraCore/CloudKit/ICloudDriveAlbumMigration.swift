@@ -46,7 +46,7 @@
 //  The run needs the album key (name matching, the record's key fingerprint, the
 //  plan's encryption), a network and an available account, so it does nothing
 //  while the phone is locked, offline or signed out, or while the app is in the
-//  background (a background task run included). It runs on cellular: it moves
+//  background. It runs on cellular: it moves
 //  no media, so only the blob migration it starts waits for Wi-Fi. Until it has
 //  run, the album stays a plain iCloud Drive album. On a device without iCloud Drive it
 //  does nothing at all and never reads the iCloud Drive container: such a device

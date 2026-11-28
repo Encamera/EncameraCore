@@ -523,7 +523,7 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     /// Albums with a migration run in flight in THIS process. A second `start` for an
     /// album already running is a no-op, so a launch-time auto-resume racing a
-    /// foreground resume, a BGTask firing during a live run, or a duplicate manager
+    /// foreground resume, or a duplicate manager
     /// instance can never drive the same plan and the same files concurrently (which
     /// would clobber the checkpoint and double-upload / double-delete). Keyed by
     /// `album.id` so it spans separate manager instances; in-memory so a crash never

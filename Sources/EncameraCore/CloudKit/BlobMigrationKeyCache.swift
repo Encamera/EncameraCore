@@ -6,13 +6,12 @@
 //  life of the process: each album's key, which opens its migration plan, and
 //  the key library, which proves the key whose fingerprint an upload is stamped
 //  with. They are read from the keychain only while the phone is unlocked, when a
-//  pass or background task run starts, and kept across a lock, so a background task run that
-//  resumes a suspended process can still move ciphertext-only items while the
-//  phone is locked. Locking the app (`AuthManager.deauthorize()`) does not clear
-//  them; an erase does (`clear()`).
+//  pass starts, and kept across a lock, so a pass never reads the keychain while
+//  the phone is locked. Locking the app (`AuthManager.deauthorize()`) does not
+//  clear them; an erase does (`clear()`).
 //
 //  The keychain items stay `kSecAttrAccessibleWhenUnlocked`. Relaxing them to
-//  `AfterFirstUnlock` would let a cold-launched locked background task run read the keys, but
+//  `AfterFirstUnlock` would let a pass read the keys while the phone is locked, but
 //  it would also hand the keys to a forensic extraction of any locked phone
 //  unlocked since boot. The media files' default protection class already
 //  leaves the ciphertext exposed to such an extraction, so the keychain setting
@@ -24,7 +23,7 @@ import Foundation
 @MainActor
 public final class BlobMigrationKeyCache: DebugPrintable {
 
-    /// The cache every production pass and background task run uses.
+    /// The cache every production pass uses.
     public static let shared = BlobMigrationKeyCache()
 
     /// The CloudKit albums with an iCloud Drive migration plan, by `albumID`,

@@ -37,8 +37,8 @@ public enum ProtectedDataAvailability {
     }
 }
 
-/// Whether the app is running in the background, as it is in a background
-/// background task run or after a background launch. On iOS this is
+/// Whether the app is running in the background, as it is after a background
+/// launch. On iOS this is
 /// `UIApplication.applicationState == .background`; macOS has no such state, so
 /// there it is always false.
 @MainActor

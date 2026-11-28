@@ -785,7 +785,6 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
         MigrationPlanFileUtil.excludeFromBackup(url)
         if let plan = plan as? MigrationPlan {
             MigrationPlanStore.recordDestination(of: plan, planURL: url)
-            MigrationPlanStore.recordRemainingWork(of: plan, planURL: url)
         }
         return encrypted.count
     }
@@ -804,7 +803,6 @@ public actor EncryptedPlanStore<Plan: Codable & Sendable>: DebugPrintable {
             try MigrationPlanFileUtil.remove(planURL)
             if Plan.self == MigrationPlan.self {
                 MigrationPlanStore.removeDestinationMarker(besidePlanAt: planURL)
-                try? FileManager.default.removeItem(at: MigrationPlanStore.noRemainingWorkMarkerURL(besidePlanAt: planURL))
             }
             printDebug("delete ok file=\(planURL.lastPathComponent)")
         } catch {
@@ -952,33 +950,6 @@ extension EncryptedPlanStore where Plan == MigrationPlan {
     /// `CloudKitMigration/ICloudDriveAlbums/<sha256("<albumID>_cloudKit")>/album.encplan`.
     static func iCloudDriveMigrationPlanURL(cloudKitAlbumID: String) -> URL {
         MigrationPlanFileUtil.albumPlanURL(in: MigrationPlanFileUtil.iCloudDriveAlbumDirectory(cloudKitAlbumID: cloudKitAlbumID))
-    }
-
-    /// The empty file beside an iCloud Drive album migration plan that has no item
-    /// left to work on (`hasRemainingWork` false), so whether the plan still has
-    /// work is known without its key. Written and removed with every save.
-    static func noRemainingWorkMarkerURL(besidePlanAt planURL: URL) -> URL {
-        planURL.deletingLastPathComponent().appendingPathComponent("no-remaining-work")
-    }
-
-    /// Writes or removes the no-remaining-work marker beside `plan` saved at
-    /// `planURL`, for an iCloud Drive album migration plan only.
-    static func recordRemainingWork(of plan: MigrationPlan, planURL: URL) {
-        let albumsDirectory = planURL.deletingLastPathComponent().deletingLastPathComponent()
-        guard albumsDirectory.standardizedFileURL.path == iCloudDriveMigrationDirectoryURL().standardizedFileURL.path else { return }
-        let marker = noRemainingWorkMarkerURL(besidePlanAt: planURL)
-        if plan.hasRemainingWork {
-            try? FileManager.default.removeItem(at: marker)
-        } else if !FileManager.default.fileExists(atPath: marker.path) {
-            FileManager.default.createFile(atPath: marker.path, contents: Data())
-        }
-    }
-
-    /// Whether the iCloud Drive album migration plan at `planURL` has an item left
-    /// to work on. Decrypts nothing.
-    static func iCloudDriveMigrationPlanHasRemainingWork(at planURL: URL) -> Bool {
-        FileManager.default.fileExists(atPath: planURL.path)
-            && !FileManager.default.fileExists(atPath: noRemainingWorkMarkerURL(besidePlanAt: planURL).path)
     }
 
     /// Whether an iCloud Drive album migration plan names the CloudKit album

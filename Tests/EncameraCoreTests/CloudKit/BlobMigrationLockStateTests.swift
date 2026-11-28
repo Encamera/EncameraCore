@@ -3,7 +3,7 @@
 //  EncameraCoreTests
 //
 //  The blob migration while the phone is locked: keys come from the in-memory
-//  cache and never from the keychain, a background task run with nothing held ends at once,
+//  cache and never from the keychain, a pass with nothing held ends at once,
 //  only ciphertext-only items move, and no re-encryption plaintext is written
 //  without protected data.
 //
@@ -235,8 +235,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let store = self.store!
         let delete = ICloudDriveVerifiedDelete(store: store,
                                                markerConflictVersions: { _ in [] })
-        let albumID = prepared.albumID
-        let folder = prepared.folder
         return ICloudDriveBlobMigration(albumManager: albumManager,
                                         makeStore: { store },
                                         materializer: materializer,
@@ -247,16 +245,14 @@ final class BlobMigrationLockStateTests: XCTestCase {
                                         deviceState: deviceState,
                                         markerConflictVersions: { _ in [] },
                                         keyCache: keyCache,
-                                        notificationCenter: notifications,
-                                        linkedFolder: { $0 == albumID ? folder : nil })
+                                        notificationCenter: notifications)
     }
 
-    /// Locks the phone as a background task run that resumed a suspended process
-    /// finds it: the keys read while unlocked are held, the keychain is locked.
+    /// Locks the phone with the keys read while unlocked still held: the
+    /// keychain is locked.
     private func lockWithKeysHeld(_ phone: Phone) {
         keyCache.refreshKeysFromKeychain(using: albumManager)
         phone.isUnlocked = false
-        phone.isInBackground = true
         keyManager.armed = true
     }
 
@@ -297,7 +293,7 @@ final class BlobMigrationLockStateTests: XCTestCase {
 
     // MARK: - Tests
 
-    func testLockedBackgroundTaskRunWithKeysProcessesOnlyCiphertextOnlyItems() async throws {
+    func testLockedPassWithKeysProcessesOnlyCiphertextOnlyItems() async throws {
         let prepared = try await prepareAlbum(photos: 2, video: true)
         let videoID = try XCTUnwrap(prepared.videoID)
         let phone = Phone()
@@ -305,13 +301,11 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let watcher = ScratchWatcher()
         watcher.start()
 
-        let report = await makeLoop(phone, prepared).runBackgroundTaskPasses()
+        let outcome = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
         watcher.stop()
-        XCTAssertTrue(report.keysInMemory)
-        XCTAssertFalse(report.isUnlocked)
-        guard case .finished(let pass)? = report.outcomes[prepared.albumID] else {
-            return XCTFail("expected a finished pass, got \(String(describing: report.outcomes[prepared.albumID]))")
+        guard case .finished(let pass) = outcome else {
+            return XCTFail("expected a finished pass, got \(outcome)")
         }
         XCTAssertEqual(Set(pass.deleted), Set(prepared.photoIDs.map(photoRecordName)),
                        "every ciphertext-only item moved while locked")
@@ -320,11 +314,11 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let plan = try await plan(prepared)
         XCTAssertEqual(state(of: videoRecordName(videoID), in: plan), .pending, "it stays queued")
         XCTAssertTrue(ICloudPlaceholderName.existsInAnyForm(fileURL(prepared, videoID, .video)))
-        XCTAssertEqual(keyManager.reads, [], "no keychain read in the locked background task run")
+        XCTAssertEqual(keyManager.reads, [], "no keychain read in the locked pass")
         XCTAssertEqual(watcher.seen, [], "no re-encryption scratch while locked")
     }
 
-    func testColdBackgroundTaskRunWithNoKeysExitsWithoutTouchingQueueOrKeychain() async throws {
+    func testLockedPassWithNoKeysExitsWithoutTouchingQueueOrKeychain() async throws {
         let prepared = try await prepareAlbum(photos: 2, video: false)
         let planBytes = try Data(contentsOf: planURL(prepared))
         let planDate = try FileManager.default.attributesOfItem(atPath: planURL(prepared).path)[.modificationDate] as? Date
@@ -332,13 +326,11 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let materializeCallsBefore = materializer.requestedBatches.count
         let phone = Phone()
         phone.isUnlocked = false
-        phone.isInBackground = true
         keyManager.armed = true
 
-        let report = await makeLoop(phone, prepared).runBackgroundTaskPasses()
+        let outcome = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
-        XCTAssertFalse(report.keysInMemory)
-        XCTAssertEqual(report.outcomes, [:], "no pass ran")
+        XCTAssertEqual(outcome, .stopped(.locked, .init()))
         XCTAssertEqual(keyManager.reads, [], "the keychain was never read")
         XCTAssertEqual(try Data(contentsOf: planURL(prepared)), planBytes, "the plan file is unchanged")
         XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: planURL(prepared).path)[.modificationDate] as? Date,
@@ -348,12 +340,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
         for mediaID in prepared.photoIDs {
             XCTAssertTrue(ICloudPlaceholderName.isMaterialized(fileURL(prepared, mediaID, .photo)))
         }
-
-        // A pass started directly behaves the same.
-        let outcome = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
-        XCTAssertEqual(outcome, .stopped(.locked, .init()))
-        XCTAssertEqual(keyManager.reads, [])
-        XCTAssertEqual(try Data(contentsOf: planURL(prepared)), planBytes)
     }
 
     func testEncryptingItemNeverStartsWithoutProtectedData() async throws {
@@ -366,11 +352,12 @@ final class BlobMigrationLockStateTests: XCTestCase {
 
         // The ordering is told the phone is unlocked, so it offers the encrypting
         // item: only the loop's own protected-data check stands in the way.
-        let report = await makeLoop(phone, prepared, deviceState: { .unlocked }).runBackgroundTaskPasses()
+        let outcome = await makeLoop(phone, prepared, deviceState: { .unlocked })
+            .runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
         watcher.stop()
-        guard case .finished(let pass)? = report.outcomes[prepared.albumID] else {
-            return XCTFail("expected a finished pass, got \(String(describing: report.outcomes[prepared.albumID]))")
+        guard case .finished(let pass) = outcome else {
+            return XCTFail("expected a finished pass, got \(outcome)")
         }
         XCTAssertEqual(pass.waitingForUnlock, [videoRecordName(videoID)], "the encrypting item waited for unlock")
         XCTAssertEqual(pass.deleted, [photoRecordName(prepared.photoIDs[0])], "the other item still moved")
@@ -432,10 +419,10 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let phone = Phone()
         lockWithKeysHeld(phone)
 
-        let locked = await makeLoop(phone, prepared).runBackgroundTaskPasses()
+        let locked = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
-        guard case .finished(let lockedPass)? = locked.outcomes[prepared.albumID] else {
-            return XCTFail("expected a finished pass, got \(String(describing: locked.outcomes[prepared.albumID]))")
+        guard case .finished(let lockedPass) = locked else {
+            return XCTFail("expected a finished pass, got \(locked)")
         }
         XCTAssertEqual(lockedPass.failed, [photoRecordName(failing)], "precondition: a ciphertext-only item is left")
         XCTAssertFalse(store.uploadCalls.contains(videoID), "precondition: the encrypting item waited")
@@ -444,7 +431,6 @@ final class BlobMigrationLockStateTests: XCTestCase {
 
         keyManager.armed = false
         phone.isUnlocked = true
-        phone.isInBackground = false
         let unlocked = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
         guard case .finished(let pass) = unlocked else { return XCTFail("expected finished, got \(unlocked)") }
@@ -471,40 +457,15 @@ final class BlobMigrationLockStateTests: XCTestCase {
         let phone = Phone()
         lockWithKeysHeld(phone)
 
-        let report = await makeLoop(phone, prepared).runBackgroundTaskPasses()
+        let outcome = await makeLoop(phone, prepared).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
 
-        guard case .finished? = report.outcomes[prepared.albumID] else {
-            return XCTFail("expected a finished pass, got \(String(describing: report.outcomes[prepared.albumID]))")
+        guard case .finished = outcome else {
+            return XCTFail("expected a finished pass, got \(outcome)")
         }
         XCTAssertEqual(store.uploadCalls, [acted, viewed, unrequested],
                        "the user action first, then the viewed item, then the rest")
         XCTAssertFalse(store.uploadCalls.contains(videoID), "a viewed encrypting item still waits for unlock")
-        XCTAssertEqual(keyManager.reads, [], "no keychain read in the locked slice")
-    }
-
-    func testBackgroundTaskRunLogRecordsKeysInMemory() async throws {
-        let prepared = try await prepareAlbum(photos: 1, video: false)
-        DebugLogBuffer.shared.setCapturing(true)
-        DebugLogBuffer.shared.clear()
-        let phone = Phone()
-        phone.isUnlocked = false
-        phone.isInBackground = true
-
-        let cold = await makeLoop(phone, prepared).runBackgroundTaskPasses()
-
-        XCTAssertFalse(cold.keysInMemory)
-        let coldLines = DebugLogBuffer.shared.snapshot(newestFirst: false).map(\.message)
-        XCTAssertTrue(coldLines.contains { $0.hasPrefix("background task run start keysInMemory=false") },
-                      "the debug log records a background task run with no keys: \(coldLines)")
-
-        DebugLogBuffer.shared.clear()
-        lockWithKeysHeld(phone)
-        let resumed = await makeLoop(phone, prepared).runBackgroundTaskPasses()
-
-        XCTAssertTrue(resumed.keysInMemory)
-        let resumedLines = DebugLogBuffer.shared.snapshot(newestFirst: false).map(\.message)
-        XCTAssertTrue(resumedLines.contains { $0.hasPrefix("background task run start keysInMemory=true") },
-                      "the debug log records a background task run with keys: \(resumedLines)")
+        XCTAssertEqual(keyManager.reads, [], "no keychain read in the locked pass")
     }
 
     func testDownloadAheadRespectsFreeSpaceCap() async throws {

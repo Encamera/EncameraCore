@@ -71,21 +71,19 @@
 //  item deferred, and a failed download keeps the reason it had; any other
 //  failure fails the item as usual and clears the reason. One whose file is gone
 //  by then, because another device moved it, ends done. A deferred item is
-//  remaining work, so passes keep being scheduled, but not bytes still to move.
+//  remaining work, so a pass still takes it up, but not bytes still to move.
 //  Network, quota and account errors never defer an item.
 //
 //  There is no cancel. Once the album has flipped there is nothing to roll back
 //  to, since iCloud Drive is no longer a destination, so the only way the loop
 //  stops is a pause. It runs with iCloud Drive, Wi-Fi and an iCloud account, in
-//  the foreground or in a background task run (`runBackgroundTaskPasses()`); a
-//  condition that fails stops the pass at the next item, and a foreground pass
-//  stops once the app is in the background unless a background task run takes it
-//  over. It stops for an album whose `album.json` is gone and for a folder whose
+//  the foreground only; a condition that fails stops the pass at the next item,
+//  and a pass stops once the app is in the background. It stops for an album
+//  whose `album.json` is gone and for a folder whose
 //  marker no longer names the album. No `CKOperation` outlives the call that made
 //  it. An erase halts it for the rest of the process (`haltForErase()`): the
 //  passes in flight are cancelled, the item under way is abandoned where it is
-//  without another checkpoint, index write or delete, and no pass or background
-//  task run starts again.
+//  without another checkpoint, index write or delete, and no pass starts again.
 //
 //  A full iCloud, no iCloud account or an undeployed Production schema halts the
 //  run: the pass stops with `.paused` and the album waits with that reason
@@ -127,7 +125,7 @@
 //  item migrated because it was viewed, which goes in warm.
 //
 //  Keys come from `BlobMigrationKeyCache`, never from the keychain while the
-//  phone is locked. A pass or background task run that starts unlocked reads them into the
+//  phone is locked. A pass that starts unlocked reads them into the
 //  cache; one that starts locked uses what the cache holds, and with nothing held
 //  ends at once without reading the plan or the keychain. While locked, the
 //  ordering function offers no encrypting item, so only ciphertext-only items
@@ -366,18 +364,11 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         holds[albumID] = count > 1 ? count - 1 : nil
     }
 
-    /// Asks every pass and background task run in progress in this process to stop before its next
-    /// item.
-    public static func requestStopAll() {
-        for pass in running.values { pass.requestStop() }
-        activeBackgroundTaskRun?.requestStop()
-    }
-
     nonisolated private static let eraseHaltLock = NSLock()
     nonisolated(unsafe) private static var haltedForErase = false
 
     /// Whether an erase halted the blob migration in this process. Once set, no
-    /// pass or slice starts again in the process; an erase ends the process.
+    /// pass starts again in the process; an erase ends the process.
     nonisolated public static var isHaltedForErase: Bool {
         eraseHaltLock.withLock { haltedForErase }
     }
@@ -386,14 +377,13 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// erase goes on without them.
     static var eraseHaltGracePeriod: Duration = .seconds(5)
 
-    /// Halts the blob migration for an erase: every pass and the slice in flight
-    /// are cancelled, so a download or upload under way is abandoned and its item
-    /// writes nothing more, no pass or slice starts again in the process and the
+    /// Halts the blob migration for an erase: every pass in flight
+    /// is cancelled, so a download or upload under way is abandoned and its item
+    /// writes nothing more, no pass starts again in the process and the
     /// keys held in memory are cleared. Waits for the cancelled passes to end,
     /// but no longer than `eraseHaltGracePeriod`.
     public static func haltForErase() async {
         eraseHaltLock.withLock { haltedForErase = true }
-        activeBackgroundTaskRun?.requestStop()
         let passes = Array(running.values)
         for pass in passes { pass.abandonPasses() }
         let deadline = ContinuousClock.now + eraseHaltGracePeriod
@@ -410,14 +400,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         eraseHaltLock.withLock { haltedForErase = false }
     }
 
-    /// Whether any iCloud Drive album migration plan on this device has an item
-    /// left to work on, deferred items included. Decrypts nothing.
-    public static func hasPendingPlans() -> Bool {
-        MigrationPlanFileUtil.contents(of: MigrationPlanFileUtil.iCloudDriveAlbumsDirectory).contains {
-            MigrationPlanStore.iCloudDriveMigrationPlanHasRemainingWork(at: MigrationPlanFileUtil.albumPlanURL(in: $0))
-        }
-    }
-
     /// How many items of the CloudKit album `cloudKitAlbum` are deferred and stay
     /// on iCloud Drive for now: "N items can't be moved right now". Zero without
     /// a plan.
@@ -427,9 +409,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         let plan = await MigrationPlanStore(iCloudDriveMigrationFrom: cloudKitAlbum, cloudKitAlbumID: albumID).load()
         return plan?.deferredCount ?? 0
     }
-
-    /// The background task run in progress in this process, if any.
-    private static var activeBackgroundTaskRun: ICloudDriveBlobMigration?
 
     /// Albums whose pass paused, with the loop that starts it again.
     private static var pausedAlbums: [String: PausedAlbum] = [:]
@@ -524,7 +503,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     private let markerConflictVersions: @Sendable (URL) -> [URL]
     private let keyCache: BlobMigrationKeyCache
     private let notificationCenter: NotificationCenter
-    private let linkedFolder: (String) -> URL?
     /// Observes the power and thermal state while this loop has a paused album.
     private let deviceResourceStateObserver: DeviceResourceStateObserver
     private let blobCache: CloudKitBlobCache
@@ -534,8 +512,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     private var stopRequested = false
     /// The task of each pass this loop is running, by album id.
     private var passTasks: [String: Task<MigrationRunOutcome, Never>] = [:]
-    /// Whether the pass goes on in the background: set for a background task run's passes.
-    private var allowsBackground = false
     /// Resumed when the pass in flight ends.
     private var passEndWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -551,7 +527,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     ///   - markerConflictVersions: the unresolved conflict versions of a marker file.
     ///   - keyCache: the keys held in memory for locked work; nil for the shared cache.
     ///   - notificationCenter: where `protectedDataWillBecomeUnavailable` is posted.
-    ///   - linkedFolder: the iCloud Drive folder an album id is linked to, for a background task run.
     ///   - deviceResourceStateObserver: the power and thermal state that pause the loop.
     ///   - blobCache: the cache uploads are stored in; nil for the shared cache.
     ///   - fileVersions: the conflict versions of the folder's media files.
@@ -569,7 +544,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
                 markerConflictVersions: @escaping @Sendable (URL) -> [URL] = ICloudDriveAlbumMarkerFile.unresolvedConflictVersionURLs(of:),
                 keyCache: BlobMigrationKeyCache? = nil,
                 notificationCenter: NotificationCenter = .default,
-                linkedFolder: @escaping (String) -> URL? = CloudKitAlbumMarker.linkedICloudDriveFolderURL(albumID:),
                 deviceResourceStateObserver: DeviceResourceStateObserver? = nil,
                 blobCache: CloudKitBlobCache? = nil,
                 fileVersions: ICloudDriveFileVersioning? = nil,
@@ -587,7 +561,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         self.markerConflictVersions = markerConflictVersions
         self.keyCache = keyCache ?? .shared
         self.notificationCenter = notificationCenter
-        self.linkedFolder = linkedFolder
         self.deviceResourceStateObserver = deviceResourceStateObserver ?? .current
         self.blobCache = blobCache ?? .shared
         self.fileVersions = fileVersions ?? ICloudDriveFileVersions()
@@ -653,58 +626,6 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         guard beginMigrationPass(albumID) else { return .alreadyRunning }
         let task = launchClaimedPass(albumID: albumID, folder: folder)
         return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
-    }
-
-    /// What one background task run did.
-    public struct BackgroundTaskMigrationReport: Equatable, Sendable {
-        /// Whether keys were held in memory when the background task run started.
-        public var keysInMemory: Bool
-        /// Whether protected data was available when the background task run started.
-        public var isUnlocked: Bool
-        /// Each album's pass, by album id. A pass already running when the background task run
-        /// started, which the background task run let go on in the background, is `.alreadyRunning`.
-        public var outcomes: [String: MigrationRunOutcome] = [:]
-    }
-
-    /// Runs this loop's share of a background task run: a pass, allowed to go on in the
-    /// background, for every album whose keys are held, one at a time. Unlocked,
-    /// it first reads the keys of every album with a plan into the cache. Locked
-    /// with no keys held, it returns at once without reading a plan or the
-    /// keychain. A pass already running for an album (a suspended foreground pass
-    /// the background task run resumed) goes on in the background, and the background task run waits for it.
-    public func runBackgroundTaskPasses() async -> BackgroundTaskMigrationReport {
-        let isUnlocked = conditions.isUnlocked()
-        var report = BackgroundTaskMigrationReport(keysInMemory: keyCache.hasKeys, isUnlocked: isUnlocked)
-        printDebug("background task run start keysInMemory=\(report.keysInMemory) unlocked=\(isUnlocked)")
-        guard !Self.isHaltedForErase else {
-            printDebug("background task run exit — halted for erase")
-            return report
-        }
-        guard isUnlocked || report.keysInMemory else {
-            printDebug("background task run exit — locked with no keys in memory")
-            return report
-        }
-        if isUnlocked { keyCache.refreshKeysFromKeychain(using: albumManager) }
-
-        Self.activeBackgroundTaskRun = self
-        defer { if Self.activeBackgroundTaskRun === self { Self.activeBackgroundTaskRun = nil } }
-        stopRequested = false
-        for albumID in keyCache.albumIDs {
-            guard !stopRequested else { break }
-            if let pass = Self.running[albumID] {
-                pass.allowsBackground = true
-                await pass.waitForPassEnd()
-                report.outcomes[albumID] = .alreadyRunning
-                continue
-            }
-            guard let folder = linkedFolder(albumID) else { continue }
-            allowsBackground = true
-            let outcome = await runMigrationPass(albumID: albumID, folder: folder)
-            allowsBackground = false
-            report.outcomes[albumID] = outcome
-        }
-        printDebug("background task run finished keysInMemory=\(report.keysInMemory) unlocked=\(isUnlocked) albums=\(report.outcomes.count)")
-        return report
     }
 
     /// Stops this loop's pass before its next item.
@@ -1342,7 +1263,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// Being locked is not one: it limits which items run, and the keys are held.
     private func unmetCondition() -> StopReason? {
         guard conditions.hasICloudDrive() else { return .iCloudDriveUnavailable }
-        guard allowsBackground || !conditions.isInBackground() else { return .inBackground }
+        guard !conditions.isInBackground() else { return .inBackground }
         guard conditions.hasNetwork() else { return .offline }
         guard conditions.isOnUnmeteredNetwork() else { return .paused(.waitingForWiFi) }
         if let reason = deviceResourceStateObserver.pauseReason { return .paused(reason) }

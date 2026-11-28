@@ -830,6 +830,7 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
     }
 
     /// While the phone is locked (protected data unavailable) or the app runs in
+    /// the background, a run reaches nothing. The
     /// device conditions read the phone's own protected-data and run state.
     func testSkipsWhenLockedOrProtectedDataUnavailable() async throws {
         let drive = try await makeDriveAlbum()
