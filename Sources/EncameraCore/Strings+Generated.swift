@@ -981,6 +981,8 @@ public enum L10n {
     public static let partialMoveToLocalTitle = L10n.tr("Localizable", "CloudKitMigration.PartialMoveToLocalTitle", fallback: "Move to this device not finished")
     /// Move to iCloud not finished
     public static let partialTitle = L10n.tr("Localizable", "CloudKitMigration.PartialTitle", fallback: "Move to iCloud not finished")
+    /// Pause upgrade
+    public static let pauseUpgrade = L10n.tr("Localizable", "CloudKitMigration.PauseUpgrade", fallback: "Pause upgrade")
     /// Free up space in iCloud, then resume the move.
     public static let quotaMessage = L10n.tr("Localizable", "CloudKitMigration.QuotaMessage", fallback: "Free up space in iCloud, then resume the move.")
     /// iCloud storage is full

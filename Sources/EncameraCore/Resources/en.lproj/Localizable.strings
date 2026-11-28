@@ -633,6 +633,7 @@
 "CloudKitMigration.TaskRowPausedLowPowerModeTitle" = "Paused in Low Power Mode";
 "CloudKitMigration.TaskRowPausedThermalTitle" = "Upgrade paused: device must cool";
 "CloudKitMigration.TaskRowAwaitingResumeTitle" = "Upgrade paused: tap to resume";
+"CloudKitMigration.PauseUpgrade" = "Pause upgrade";
 "CloudKitMigration.TaskRowWaitingForOtherAlbumsTitle" = "Upgrade waiting for another album";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
