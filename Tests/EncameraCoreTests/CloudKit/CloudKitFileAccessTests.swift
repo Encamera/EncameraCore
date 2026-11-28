@@ -2997,7 +2997,8 @@ extension CloudKitFileAccessTests {
                                   albumName: String? = nil,
                                   folderMarkerAlbumID: String? = nil,
                                   linkedFolder: (@Sendable (String) -> URL?)? = nil,
-                                  viewed: ViewedSpy? = nil) async throws -> DriveFixture {
+                                  viewed: ViewedSpy? = nil,
+                                  startedPasses: ViewedSpy? = nil) async throws -> DriveFixture {
         let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("ck-read-drive-\(UUID().uuidString)", isDirectory: true)
         iCloudStorageModel.testContainerRootOverride = root
@@ -3029,7 +3030,7 @@ extension CloudKitFileAccessTests {
         var iCloudDrive = CloudKitICloudDriveFolderAccess(makeMaterializer: { materializer })
         if let linkedFolder { iCloudDrive.linkedFolder = linkedFolder }
         if let viewed { iCloudDrive.prioritizeViewed = { album, mediaID in viewed.record(album.albumID, mediaID) } }
-        iCloudDrive.startMigrationPass = { _, _ in }
+        iCloudDrive.startMigrationPass = { _, albumID in startedPasses?.record(albumID, "pass") }
         let access = await CloudKitFileAccess(album: album, albumManager: albumManager, store: store,
                                               iCloudDrive: iCloudDrive)
         return DriveFixture(album: album, folder: folder, store: store, albumManager: albumManager,
@@ -3449,7 +3450,8 @@ extension CloudKitFileAccessTests {
 
     func testOpeningICloudDriveItemInViewerPrioritizesAsViewed() async throws {
         let viewed = ViewedSpy()
-        let f = try await makeDriveFixture(viewed: viewed)
+        let startedPasses = ViewedSpy()
+        let f = try await makeDriveFixture(viewed: viewed, startedPasses: startedPasses)
         let albumID = try XCTUnwrap(f.album.albumID)
         let downloaded = UUID().uuidString
         try await f.index(downloaded, at: .iCloudDrive)
@@ -3467,6 +3469,7 @@ extension CloudKitFileAccessTests {
         _ = try await f.access.loadMediaToURLsForViewer(media: playerMedia, progress: { _ in })
         XCTAssertEqual(viewed.calls, ["\(albumID)/\(downloaded)", "\(albumID)/\(evicted)"],
                        "the player's open of a file it downloads prioritizes it too")
+        XCTAssertEqual(startedPasses.calls, [], "an open starts no blob migration pass")
     }
 
     func testViewerOpenThatDoesNotDecryptDoesNotPrioritize() async throws {

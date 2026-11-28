@@ -1220,11 +1220,13 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
     func testPassOffWiFiPausesAlbumUntilWiFiReturns() async throws {
         let prepared = try await prepareAlbum(count: 2)
         let onWiFi = LockedBox(false)
-        let pauseChanges = LockedBox(0)
-        let observer = deviceResourceState.center.addObserver(forName: ICloudDriveBlobMigration.pauseStateDidChange,
+        let postedPauseReasons = LockedBox<[ICloudDriveBlobMigration.PauseReason?]>([])
+        let observer = deviceResourceState.center.addObserver(forName: ICloudDriveUpgradeScheduler.stateDidChange,
                                                               object: nil, queue: nil) { note in
-            guard note.userInfo?["albumID"] as? String == prepared.albumID else { return }
-            pauseChanges.mutate { $0 += 1 }
+            let albumIDs = note.userInfo?[ICloudDriveUpgradeScheduler.changedAlbumIDsKey] as? [String] ?? []
+            guard albumIDs.contains(prepared.albumID) else { return }
+            let reason = MainActor.assumeIsolated { ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID) }
+            postedPauseReasons.mutate { $0.append(reason) }
         }
         defer { deviceResourceState.center.removeObserver(observer) }
 
@@ -1235,7 +1237,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
             return XCTFail("expected a stop waiting for Wi-Fi, got \(outcome)")
         }
         XCTAssertEqual(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID), .waitingForWiFi)
-        XCTAssertEqual(pauseChanges.value, 1, "the pause is posted")
+        XCTAssertEqual(postedPauseReasons.value.last, .waitingForWiFi, "the pause is posted")
 
         deviceResourceState.postNetworkChange()
         deviceResourceState.postPowerChange()
@@ -1249,7 +1251,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
             self.mediaFiles(in: prepared.folder).isEmpty && !ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID)
         }
         XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
-        XCTAssertGreaterThanOrEqual(pauseChanges.value, 2, "the resume is posted")
+        XCTAssertEqual(postedPauseReasons.value.last, .some(nil), "the end of the pause is posted")
     }
 
     func testAllowingCellularResumesAlbumWaitingForWiFi() async throws {
@@ -2064,6 +2066,8 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         finish = await passAndFinish(prepared)
         XCTAssertEqual(finish, .kept(.deferredItems(1)), "on every later pass too")
         assertFolderKept(prepared)
+        XCTAssertFalse(ICloudDriveBlobMigration.isRequested(albumID: prepared.albumID),
+                       "an album whose pass left only deferred items is no longer continued by itself")
     }
 
     func testDoneAlbumHasNoPlanAndNoFolderLink() async throws {
@@ -2087,6 +2091,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
         let deferred = await ICloudDriveBlobMigration.deferredCount(for: prepared.cloudKitAlbum)
         XCTAssertEqual(deferred, 0)
+        XCTAssertFalse(ICloudDriveBlobMigration.isRequested(albumID: prepared.albumID), "a done album is no longer requested")
         XCTAssertFalse(CloudKitMigrationManager.isMoveFromLinkedICloudDriveFolder(source: nil, destinationCloudKitAlbumID: prepared.albumID),
                        "the album's moves are no longer moves into a linked album")
         partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)

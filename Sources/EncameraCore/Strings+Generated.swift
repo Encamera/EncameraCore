@@ -889,6 +889,10 @@ public enum L10n {
     public static let migrationBannerQuotaSpaceUnknown = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaSpaceUnknown", fallback: "Free up iCloud storage to finish upgrading this album.")
     /// iCloud storage full, paused
     public static let migrationBannerQuotaTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerQuotaTitle", fallback: "iCloud storage full, paused")
+    /// Albums upgrade one at a time. This album starts when the albums ahead of it are done.
+    public static let migrationBannerWaitingForOtherAlbums = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerWaitingForOtherAlbums", fallback: "Albums upgrade one at a time. This album starts when the albums ahead of it are done.")
+    /// iCloud Storage upgrade waiting
+    public static let migrationBannerWaitingTitle = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerWaitingTitle", fallback: "iCloud Storage upgrade waiting")
     /// Your device stays awake while this screen is open and the upgrade is running.
     public static let migrationScreenKeepsAwake = L10n.tr("Localizable", "CloudKitMigration.MigrationScreenKeepsAwake", fallback: "Your device stays awake while this screen is open and the upgrade is running.")
     /// Use Cellular Data
@@ -997,6 +1001,8 @@ public enum L10n {
     public static let taskRowPausedThermalTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedThermalTitle", fallback: "Upgrade paused: device must cool")
     /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumDetailTaskProgressContent.swift
     public static let taskRowPausedWiFiTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedWiFiTitle", fallback: "Upgrade paused: need Wi-Fi")
+    /// Upgrade waiting for another album
+    public static let taskRowWaitingForOtherAlbumsTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowWaitingForOtherAlbumsTitle", fallback: "Upgrade waiting for another album")
   }
   public enum CloudKitUpgrade {
     /// Upgrade it now for faster, more reliable syncing

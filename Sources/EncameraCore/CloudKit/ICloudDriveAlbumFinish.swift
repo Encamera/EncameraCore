@@ -340,6 +340,34 @@ public final class ICloudDriveAlbumFinish: DebugPrintable {
         printDebug("complete albumID=\(albumID)")
     }
 
+    /// Completes the album `albumID` (`completeRemovedFolder`) if the folder it
+    /// links is gone because the device that finished the album removed it,
+    /// here or on another device, and the plan or the link outlived it. Returns
+    /// whether it did. It does not when a pass is running for the album, when
+    /// the linked path is still there, or when any folder in `albumFolders`
+    /// has a marker that names the album or that cannot be read: such a folder
+    /// may be the linked one under a name an older build gave it, so the album
+    /// may not be done.
+    func completeAlbumWhoseLinkedFolderIsGone(
+        albumID: String,
+        albumFolders: [URL],
+        conflictVersions: (URL) -> [URL] = { ICloudDriveAlbumMarkerFile.unresolvedConflictVersionURLs(of: $0) }
+    ) async -> Bool {
+        guard let linked = CloudKitAlbumMarker.read(albumID: albumID)?.linkedICloudDriveFolderURL(),
+              !FileManager.default.fileExists(atPath: linked.path),
+              !ICloudDriveBlobMigration.isRunning(albumID: albumID) else { return false }
+        for folder in albumFolders {
+            switch ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder, conflictVersions: conflictVersions) {
+            case .absent: continue
+            case .present(let marker): if marker.albumID == albumID { return false }
+            case .evicted, .conflicted, .unreadable: return false
+            }
+        }
+        printDebug("linked folder gone albumID=\(albumID)")
+        await completeRemovedFolder(albumID: albumID)
+        return true
+    }
+
     private func removeFolderIfDone(albumID: String, folder: URL, plan: MigrationPlan,
                                     cloudKitAlbum: Album) async -> Outcome {
         guard !plan.hasRemainingWork else {

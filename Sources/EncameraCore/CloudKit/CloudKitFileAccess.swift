@@ -680,16 +680,15 @@ public actor CloudKitFileAccess: MediaBackend, DebugPrintable {
     /// A viewer or player open just decrypted a component with no record yet,
     /// read from the album's iCloud Drive folder, so its bytes are on this device:
     /// the media moves ahead of the album's other items still to migrate
-    /// (`ViewerLoad`), the decrypt disproves a deferral of its move that a held
-    /// key or readable bytes would have prevented (`MigrationPlanStore.prioritizeViewed`),
-    /// and a pass starts unless one is running, so the item reaches CloudKit now.
-    /// An open that does not decrypt, and every other read, a grid thumbnail's
-    /// included, leave the order alone. The open does not wait for the move.
+    /// (`ViewerLoad`), and the decrypt disproves a deferral of its move that a
+    /// held key or readable bytes would have prevented
+    /// (`MigrationPlanStore.prioritizeViewed`). No pass starts: the item moves
+    /// first when the album's pass next runs. An open that does not decrypt,
+    /// and every other read, a grid thumbnail's included, leave the order alone.
     private func noteViewedOnICloudDrive(mediaID: String) async {
         guard ViewerLoad.isActive else { return }
         printDebug("viewer open decrypted mediaID=\(mediaID) — still on iCloud Drive, prioritized")
         await iCloudDrive.prioritizeViewed(album, mediaID)
-        await startMigrationPass()
     }
 
     private func served(recordName: String, url: URL, source: CloudKitComponentReadSource,

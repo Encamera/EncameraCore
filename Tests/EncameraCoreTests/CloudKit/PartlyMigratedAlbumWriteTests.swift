@@ -762,6 +762,43 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
         XCTAssertEqual(store.deleteCalls, [], "the zone delete already took the records; none is deleted per item")
     }
 
+    func testAlbumWhoseLinkedFolderIsGoneIsCompletedOnlyWhenNoListedFolderCouldBeIt() async throws {
+        let prepared = try await prepareAlbum(count: 1)
+        let other = try await prepareAlbum(count: 1)
+        let albumFinish = try XCTUnwrap(self.albumFinish)
+        func completeIfGone(listing folders: [URL]) async -> Bool {
+            await albumFinish.completeAlbumWhoseLinkedFolderIsGone(albumID: prepared.albumID, albumFolders: folders,
+                                                                   conflictVersions: { _ in [] })
+        }
+
+        let withFolderThere = await completeIfGone(listing: [prepared.folder, other.folder])
+        XCTAssertFalse(withFolderThere, "the linked folder is still there")
+
+        let renamed = prepared.folder.deletingLastPathComponent().appendingPathComponent("renamed-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.moveItem(at: prepared.folder, to: renamed)
+        let withRenamedFolder = await completeIfGone(listing: [renamed, other.folder])
+        XCTAssertFalse(withRenamedFolder, "a listed folder's marker names the album: it may be the linked folder renamed")
+
+        let otherMarker = ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: other.folder)
+        let otherMarkerBytes = try Data(contentsOf: otherMarker)
+        try Data("not a marker".utf8).write(to: otherMarker)
+        try FileManager.default.removeItem(at: renamed)
+        let withUnreadableMarker = await completeIfGone(listing: [other.folder])
+        XCTAssertFalse(withUnreadableMarker, "a marker that cannot be read may name the album")
+        XCTAssertNotNil(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath, "nothing was completed so far")
+        XCTAssertTrue(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID))
+
+        try otherMarkerBytes.write(to: otherMarker)
+        let completed = await completeIfGone(listing: [other.folder])
+
+        XCTAssertTrue(completed, "the folder is gone and no listed folder could be it")
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath, "the link is dropped")
+        XCTAssertFalse(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID), "the plan is removed")
+        XCTAssertFalse(ICloudDriveBlobMigration.isRequested(albumID: prepared.albumID), "the album is no longer requested")
+        XCTAssertNotNil(CloudKitAlbumMarker.read(albumID: other.albumID)?.iCloudDriveFolderPath, "the other album keeps its link")
+        XCTAssertTrue(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: other.albumID))
+    }
+
     func testDeletedPartlyMigratedAlbumDoesNotReturnOnRelaunch() async throws {
         let prepared = try await prepareAlbum(count: 2)
         let markerFile = try Data(contentsOf: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: prepared.folder))
