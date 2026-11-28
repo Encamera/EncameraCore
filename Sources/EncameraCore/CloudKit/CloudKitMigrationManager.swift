@@ -428,7 +428,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         let enumerateStart = Date()
         let enumerated = await enumerateItems(album: album)
         printDebug("plan enumerated items=\(enumerated.count) in \(Int(Date().timeIntervalSince(enumerateStart) * 1000))ms")
-        let merged = Self.merge(existing: existing?.items ?? [], enumerated: enumerated)
+        let merged = Self.merge(existing: existing?.items ?? [], enumerated: enumerated,
+                                reopensReturnedSources: true)
 
         var plan = try MigrationPlan.album(album, items: merged, createdAt: existing?.createdAt ?? Date(),
                                            cloudKitAlbumID: cloudKitAlbumID,
@@ -1013,7 +1014,8 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
         do {
             plan = try MigrationPlan.album(source,
                                            items: Self.merge(existing: existing?.items ?? plan.items,
-                                                             enumerated: enumerated),
+                                                             enumerated: enumerated,
+                                                             reopensReturnedSources: false),
                                            createdAt: existing?.createdAt ?? plan.createdAt)
             try await planStore.save(plan)
         } catch {
@@ -2416,21 +2418,31 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
 
     // MARK: - Merge
 
-    /// Folds a freshly-enumerated item list into any existing plan: items that
-    /// already made progress (uploading/uploaded/verified) keep their state and
+    /// Folds a freshly-enumerated item list into any existing plan: items in
+    /// flight (uploading/uploaded/verified/removalPending) keep their state and
     /// operation id; `pending`/`failed` items are refreshed to a clean `pending`
     /// with the current size so they retry, keeping any priority request and
-    /// deferral reason; terminal
-    /// `sourceDeleted` items whose source file is already gone are preserved even
-    /// though enumeration can't see them. Order follows enumeration, with preserved-but-absent items appended.
-    static func merge(existing: [MigrationItem], enumerated: [MigrationItem]) -> [MigrationItem] {
+    /// deferral reason. A done item (`sourceDeleted` or `skipped`) whose source is
+    /// enumerated again is refreshed the same way when `reopensReturnedSources` is
+    /// set, and otherwise keeps its state: its file came back (restored into an
+    /// iCloud Drive folder, or put back in a local album), so it is moved and
+    /// verified again before any delete. Done and in-flight items that enumeration
+    /// can't see are preserved; absent `pending`/`failed` items are dropped. Order
+    /// follows enumeration, with preserved-but-absent items appended.
+    ///
+    /// A move to CloudKit passes `reopensReturnedSources: true`. A move back to this
+    /// device passes false: its enumeration is the synced index, which can still
+    /// list a record the move already deleted.
+    static func merge(existing: [MigrationItem], enumerated: [MigrationItem],
+                      reopensReturnedSources: Bool) -> [MigrationItem] {
         let priorByRecord = Dictionary(existing.map { ($0.recordName, $0) }, uniquingKeysWith: { first, _ in first })
         var result: [MigrationItem] = []
         var seen = Set<String>()
 
         for fresh in enumerated {
             seen.insert(fresh.recordName)
-            if let prior = priorByRecord[fresh.recordName], prior.state != .pending, prior.state != .failed {
+            if let prior = priorByRecord[fresh.recordName], !Self.isRefreshedOnReplan(prior.state,
+                                                                                   reopensReturnedSources: reopensReturnedSources) {
                 result.append(prior)
             } else {
                 var fresh = fresh
@@ -2445,6 +2457,16 @@ public final class CloudKitMigrationManager: ObservableObject, DebugPrintable {
             result.append(item)
         }
         return result
+    }
+
+    /// Whether a prior item whose source is enumerated again is replaced by the
+    /// fresh `pending` item.
+    private static func isRefreshedOnReplan(_ state: MigrationItemState, reopensReturnedSources: Bool) -> Bool {
+        switch state {
+        case .pending, .failed: return true
+        case .sourceDeleted, .skipped: return reopensReturnedSources
+        case .uploading, .uploaded, .verified, .removalPending: return false
+        }
     }
 
     // MARK: - Helpers

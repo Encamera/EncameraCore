@@ -8,7 +8,8 @@
 //  holds nothing but the marker file. The folder is then removed with its marker,
 //  the plan deleted, the local marker's folder link dropped and the folder's watch
 //  stopped. What is left is a plain CloudKit album: no plan, no link, no
-//  `.iCloudDrive` component, no pass, no pause (`isPartlyOnICloudDrive`).
+//  `.iCloudDrive` component, no pass, no pause and no iCloud Drive folder
+//  holding its media (`isPartlyOnICloudDrive`).
 //
 //  A deferred item keeps its file in the folder, where it is still read from
 //  until a later pass moves it, so the folder stays.
@@ -31,11 +32,16 @@
 //  either way, so no crash point shows two albums or none.
 //
 //  Nothing watches the folder once it is removed, and nothing watches for it to
-//  come back. An older build that writes into the album afterwards recreates the
-//  folder without a marker, so the walk reads it as a plain iCloud Drive album and
-//  the album step migrates it like any other folder, which can make it a second
-//  album. That duplicate is accepted rather than keeping a watch on every finished
-//  album forever.
+//  come back. A folder that comes back holding the album's media, restored from
+//  a backup or recreated without a marker by an older build that writes into the
+//  album, is looked for when the album is opened: `isPartlyOnICloudDrive` then
+//  asks `ICloudDriveRestoredFolderLookup`, which starts, links and writes
+//  nothing, and the album's banner waits for a tap that runs the album step for
+//  that folder. Until then the album list shows a folder without a marker as an
+//  iCloud Drive album of its own. Such a folder joins this album only while its name
+//  decrypts under the album's key to the album's name; after a rename its
+//  migration makes a second album. That duplicate is accepted rather than
+//  keeping a watch on every finished album forever.
 //
 
 import Foundation
@@ -293,9 +299,16 @@ public final class ICloudDriveAlbumFinish: DebugPrintable {
 
     /// Whether the CloudKit album `cloudKitAlbum` still has anything on iCloud
     /// Drive: a migration plan, a link to an iCloud Drive folder, an index
-    /// component at `.iCloudDrive`, a pass running or a pause held. False for an
-    /// album that is done and for one that was always a CloudKit album, which are
-    /// then the same; false for an album of any other storage.
+    /// component at `.iCloudDrive`, a pass running or a pause held, or else an
+    /// iCloud Drive folder holding media that a migration would move into the
+    /// album (`ICloudDriveRestoredFolderLookup`), as a finished album has once
+    /// its files are put back into iCloud Drive. False for an album that is done
+    /// and for one that was always a CloudKit album, which are then the same;
+    /// false for an album of any other storage.
+    ///
+    /// The folder lookup comes last, so an album the plan, link, pass, pause or
+    /// index already places on iCloud Drive lists no folder. The lookup runs off
+    /// the main actor and writes nothing, so asking starts no migration.
     public static func isPartlyOnICloudDrive(_ cloudKitAlbum: Album, albumManager: AlbumManaging) async -> Bool {
         guard cloudKitAlbum.storageOption == .cloudKit, let albumID = cloudKitAlbum.albumID else { return false }
         if MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: albumID) { return true }
@@ -303,7 +316,9 @@ public final class ICloudDriveAlbumFinish: DebugPrintable {
         if ICloudDriveBlobMigration.isRunning(albumID: albumID) { return true }
         if ICloudDriveBlobMigration.pauseReason(albumID: albumID) != nil { return true }
         let entries = await albumManager.mediaIndexStore(for: cloudKitAlbum).current()?.entries ?? []
-        return Self.iCloudDriveComponentCount(entries) > 0
+        if Self.iCloudDriveComponentCount(entries) > 0 { return true }
+        return await ICloudDriveRestoredFolderLookup.folderHoldingMedia(for: cloudKitAlbum,
+                                                                        albumManager: albumManager) != nil
     }
 
     /// Removes `folder`, the iCloud Drive folder of the CloudKit album `albumID`,

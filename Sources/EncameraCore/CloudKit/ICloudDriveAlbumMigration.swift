@@ -549,7 +549,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         do {
             let plan = try MigrationPlan.album(album,
                                                items: CloudKitMigrationManager.merge(existing: existing?.items ?? [],
-                                                                                     enumerated: enumerated),
+                                                                                     enumerated: enumerated,
+                                                                                     reopensReturnedSources: true),
                                                createdAt: existing?.createdAt ?? Date(),
                                                cloudKitAlbumID: albumID,
                                                cloudKitAlbumCreatedByMove: existing?.destination.createdByMove ?? createdByMove)

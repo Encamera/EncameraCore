@@ -91,7 +91,8 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let freshB = MigrationItem(mediaID: "b", recordName: "b#0", mediaType: .photo, createdAt: Date(), sizeBytes: 99)
         let freshE = MigrationItem(mediaID: "e", recordName: "e#0", mediaType: .photo, createdAt: Date(), sizeBytes: 99)
 
-        let merged = CloudKitMigrationManager.merge(existing: [a, b, c, d], enumerated: [freshA, freshB, freshE])
+        let merged = CloudKitMigrationManager.merge(existing: [a, b, c, d], enumerated: [freshA, freshB, freshE],
+                                                    reopensReturnedSources: true)
         let byRecord = Dictionary(uniqueKeysWithValues: merged.map { ($0.recordName, $0) })
 
         XCTAssertEqual(byRecord["a#0"]?.state, .verified, "in-progress/verified items keep their state")
@@ -103,6 +104,71 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         XCTAssertEqual(byRecord["d#0"]?.state, .uploading,
                        "an in-progress item absent from disk is preserved, not dropped, so its CloudKit progress isn't lost")
         XCTAssertEqual(merged.count, 5)
+    }
+
+    private func mergeItem(_ id: String, size: Int64 = 10, state: MigrationItemState = .pending) -> MigrationItem {
+        MigrationItem(mediaID: id, recordName: "\(id)#0", mediaType: .photo, createdAt: Date(), sizeBytes: size, state: state)
+    }
+
+    func testMergeReopensSourceDeletedItemWhoseFileIsEnumeratedAgain() {
+        var prior = mergeItem("a", state: .sourceDeleted)
+        let request = MigrationPriorityRequest(reason: .viewed, requestedAt: Date(timeIntervalSince1970: 100))
+        prior.priorityRequest = request
+        prior.deferralReason = .missingKey
+
+        let merged = CloudKitMigrationManager.merge(existing: [prior], enumerated: [mergeItem("a", size: 99)],
+                                                    reopensReturnedSources: true)
+
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged.first?.state, .pending, "a file that came back is moved and verified again")
+        XCTAssertEqual(merged.first?.sizeBytes, 99, "with the size of the file now in the folder")
+        XCTAssertEqual(merged.first?.priorityRequest, request)
+        XCTAssertEqual(merged.first?.deferralReason, .missingKey)
+    }
+
+    func testMergeReopensSkippedItemWhoseFileIsEnumeratedAgain() {
+        var prior = mergeItem("a", state: .skipped)
+        prior.lastError = "source ciphertext missing"
+
+        let merged = CloudKitMigrationManager.merge(existing: [prior], enumerated: [mergeItem("a", size: 99)],
+                                                    reopensReturnedSources: true)
+
+        XCTAssertEqual(merged.first?.state, .pending)
+        XCTAssertNil(merged.first?.lastError, "the reopened item starts clean")
+    }
+
+    func testMergeKeepsSourceDeletedItemEnumerationCannotSee() {
+        let merged = CloudKitMigrationManager.merge(existing: [mergeItem("a", state: .sourceDeleted),
+                                                               mergeItem("b", state: .skipped)],
+                                                    enumerated: [mergeItem("c")],
+                                                    reopensReturnedSources: true)
+        let byRecord = Dictionary(uniqueKeysWithValues: merged.map { ($0.recordName, $0) })
+
+        XCTAssertEqual(byRecord["a#0"]?.state, .sourceDeleted)
+        XCTAssertEqual(byRecord["b#0"]?.state, .skipped)
+        XCTAssertEqual(byRecord["c#0"]?.state, .pending)
+    }
+
+    func testMergeKeepsInFlightItemsWhoseFileIsEnumeratedAgain() {
+        let states: [MigrationItemState] = [.uploading, .uploaded, .verified, .removalPending]
+        let existing = states.map { mergeItem($0.rawValue, state: $0) }
+
+        let merged = CloudKitMigrationManager.merge(existing: existing,
+                                                    enumerated: states.map { mergeItem($0.rawValue, size: 99) },
+                                                    reopensReturnedSources: true)
+
+        XCTAssertEqual(merged.map(\.state), states)
+        XCTAssertTrue(merged.allSatisfy { $0.sizeBytes == 10 }, "in-flight items keep their prior fields")
+    }
+
+    func testMergeForMoveBackKeepsDoneItemsTheIndexStillLists() {
+        let merged = CloudKitMigrationManager.merge(existing: [mergeItem("a", state: .sourceDeleted),
+                                                               mergeItem("b", state: .skipped)],
+                                                    enumerated: [mergeItem("a"), mergeItem("b")],
+                                                    reopensReturnedSources: false)
+
+        XCTAssertEqual(merged.map(\.state), [.sourceDeleted, .skipped],
+                       "a move back's index can still list a record the move deleted")
     }
 
     // MARK: - Local-only safety
@@ -930,7 +996,7 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         let (manager, albumManager, _) = makeExecutableManager(for: album)
         defer { cleanup(album) }
 
-        _ = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
+        let ids = try await seedLocalAlbum(count: 1, albumManager: albumManager, album: album)
         _ = try await manager.plan(album: album)
 
         let planStore = MigrationPlanStore(album: album)
@@ -938,6 +1004,8 @@ final class CloudKitMigrationManagerTests: XCTestCase {
         var persisted = try XCTUnwrap(loaded)
         for index in persisted.items.indices { persisted.items[index].state = .sourceDeleted }
         try await planStore.save(persisted)
+        // A sourceDeleted item's source file is gone; one still on disk would be reopened.
+        for id in ids { try FileManager.default.removeItem(at: sourceEncURL(album: album, id: id)) }
 
         _ = try await manager.plan(album: album)
         XCTAssertEqual(manager.progress.verifiedCount, 1,

@@ -722,7 +722,8 @@ final class CloudKitMigrationPlanTests: XCTestCase {
         requested.recordPriorityRequest(.viewed, at: Date())
 
         let merged = CloudKitMigrationManager.merge(existing: [deferred, requested, item("plain")],
-                                                    enumerated: [item("deferred", size: 20), item("requested"), item("plain")])
+                                                    enumerated: [item("deferred", size: 20), item("requested"), item("plain")],
+                                                    reopensReturnedSources: true)
 
         XCTAssertEqual(merged.map(\.deferralReason), [.neverDownloads, .unreadable, nil],
                        "a re-plan does not push a deferred item back to the front")

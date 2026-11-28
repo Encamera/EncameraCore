@@ -409,7 +409,8 @@ final class BlobMigrationQueueOrderingTests: XCTestCase {
         let requested = item("a", state: .failed, request: .userAction, requestedAt: 10)
         let fresh = item("a")
 
-        let merged = CloudKitMigrationManager.merge(existing: [requested], enumerated: [fresh])
+        let merged = CloudKitMigrationManager.merge(existing: [requested], enumerated: [fresh],
+                                                    reopensReturnedSources: true)
 
         XCTAssertEqual(merged.first?.state, .pending)
         XCTAssertEqual(merged.first?.priorityRequest, requested.priorityRequest)

@@ -2171,6 +2171,473 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID))
     }
 
+    // MARK: - A finished album whose folder is restored
+
+    /// A finished album, its folder removed by the finish, then made again
+    /// holding every media file the album had, with the marker naming the album
+    /// when `withMarker`. No walk or album step runs for it.
+    private func finishedAlbumWithRestoredFolder(withMarker: Bool) async throws -> Prepared {
+        let prepared = try await prepareAlbum(count: 2)
+        folderContents.metadata = []
+        let copies = try copyMediaFiles(prepared)
+        XCTAssertEqual(copies.count, 2, "precondition: one file per photo")
+        let finish = await passAndFinish(prepared)
+        XCTAssertEqual(finish, .removed, "precondition: the album finished")
+        assertFinished(prepared)
+
+        try FileManager.default.createDirectory(at: prepared.folder, withIntermediateDirectories: true)
+        if withMarker {
+            try ICloudDriveAlbumMarkerFile(albumID: prepared.albumID).write(toAlbumDirectory: prepared.folder)
+        }
+        try restoreFiles(copies, into: prepared.folder)
+        XCTAssertEqual(mediaFiles(in: prepared.folder), copies.keys.sorted(), "precondition: every file is back")
+        return prepared
+    }
+
+    /// Asserts the album is finished as far as everything but its folder says:
+    /// no plan, no link in `album.json`, every component in CloudKit, no pass.
+    private func assertNothingButTheFolderPlacesAlbumOnICloudDrive(_ prepared: Prepared,
+                                                                   file: StaticString = #filePath,
+                                                                   line: UInt = #line) async {
+        XCTAssertFalse(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID),
+                       "no plan", file: file, line: line)
+        XCTAssertNil(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath,
+                     "no link in album.json", file: file, line: line)
+        let entries = await indexEntries(prepared)
+        XCTAssertTrue(entries.allSatisfy { $0.photoLocation == .cloudKit }, "every component is in CloudKit",
+                      file: file, line: line)
+        XCTAssertFalse(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID), file: file, line: line)
+        XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID), file: file, line: line)
+    }
+
+    func testFinishedAlbumIsPartlyOnICloudDriveOnceItsFolderIsRestoredWithMarker() async throws {
+        let prepared = try await finishedAlbumWithRestoredFolder(withMarker: true)
+        await assertNothingButTheFolderPlacesAlbumOnICloudDrive(prepared)
+
+        let partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)
+
+        XCTAssertTrue(partly, "the restored media waits in the folder whose marker names the album")
+    }
+
+    func testFinishedAlbumIsPartlyOnICloudDriveOnceItsFolderIsRestoredWithoutMarker() async throws {
+        let prepared = try await finishedAlbumWithRestoredFolder(withMarker: false)
+        XCTAssertEqual(ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: prepared.folder, conflictVersions: { _ in [] }),
+                       .absent, "precondition: the folder has no marker")
+        await assertNothingButTheFolderPlacesAlbumOnICloudDrive(prepared)
+
+        let partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)
+
+        XCTAssertTrue(partly, "the restored media waits in the folder whose name is the album's")
+    }
+
+    func testFinishedAlbumWithRecreatedEmptyFolderIsNotPartlyOnICloudDrive() async throws {
+        let prepared = try await prepareAlbum(count: 1)
+        folderContents.metadata = []
+        let finish = await passAndFinish(prepared)
+        XCTAssertEqual(finish, .removed, "precondition: the album finished")
+
+        let gone = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)
+        XCTAssertFalse(gone, "with no folder the album is fully in CloudKit")
+
+        try FileManager.default.createDirectory(at: prepared.folder, withIntermediateDirectories: true)
+        let emptyWithoutMarker = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum,
+                                                                                      albumManager: albumManager)
+        XCTAssertFalse(emptyWithoutMarker, "an empty folder with no marker holds nothing to move")
+
+        try ICloudDriveAlbumMarkerFile(albumID: prepared.albumID).write(toAlbumDirectory: prepared.folder)
+        let emptyWithMarker = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum,
+                                                                                   albumManager: albumManager)
+        XCTAssertFalse(emptyWithMarker, "an empty folder whose marker names the album holds nothing to move")
+    }
+
+    func testOpeningCheckWritesNoPlanLinkOrIndexEntry() async throws {
+        for withMarker in [false, true] {
+            let prepared = try await finishedAlbumWithRestoredFolder(withMarker: withMarker)
+            let entriesBefore = await indexEntries(prepared)
+            let folderBefore = try FileManager.default.contentsOfDirectory(atPath: prepared.folder.path).sorted()
+            let albumJSONBefore = CloudKitAlbumMarker.read(albumID: prepared.albumID)
+            let uploadsBefore = store.uploadCalls
+            let storeCallsBefore = store.callOrder.count
+
+            let partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum,
+                                                                            albumManager: albumManager)
+            XCTAssertTrue(partly, "precondition: the restored media is found, marker=\(withMarker)")
+
+            XCTAssertFalse(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID),
+                           "no plan is written, marker=\(withMarker)")
+            XCTAssertEqual(CloudKitAlbumMarker.read(albumID: prepared.albumID), albumJSONBefore,
+                           "album.json is unchanged, marker=\(withMarker)")
+            XCTAssertNil(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath,
+                         "no folder is linked, marker=\(withMarker)")
+            let entriesAfter = await indexEntries(prepared)
+            XCTAssertEqual(entriesAfter, entriesBefore, "the index is unchanged, marker=\(withMarker)")
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: prepared.folder.path).sorted(),
+                           folderBefore, "the folder is unchanged, no marker written or file deleted, marker=\(withMarker)")
+            XCTAssertEqual(store.uploadCalls, uploadsBefore, "nothing is uploaded, marker=\(withMarker)")
+            XCTAssertEqual(store.callOrder.count, storeCallsBefore, "nothing reaches CloudKit, marker=\(withMarker)")
+            XCTAssertFalse(ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID), "no pass starts, marker=\(withMarker)")
+            XCTAssertFalse(ICloudDriveBlobMigration.isRequested(albumID: prepared.albumID),
+                           "the album is not requested, marker=\(withMarker)")
+            XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID), "no watch starts, marker=\(withMarker)")
+        }
+    }
+
+    func testMoveBackIsRefusedWhileRestoredMediaWaits() async throws {
+        let prepared = try await finishedAlbumWithRestoredFolder(withMarker: false)
+        let migration = CloudKitMigrationManager(albumManager: albumManager, storeFactory: { [store] _ in store! })
+        let storeCallsBefore = store.callOrder.count
+        let folderBefore = mediaFiles(in: prepared.folder)
+
+        let started = await migration.start(plan: try MigrationPlan.album(prepared.cloudKitAlbum, items: []))
+
+        XCTAssertFalse(started, "the move back is refused while restored media waits in the folder")
+        XCTAssertEqual(migration.state, .idle, "the refusal makes no state transition")
+        XCTAssertEqual(store.callOrder.count, storeCallsBefore, "nothing reaches CloudKit")
+        let checkpoint = await MigrationPlanStore(album: prepared.cloudKitAlbum).load()
+        XCTAssertNil(checkpoint, "no plan is written")
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: LocalStorageModel(album: Album.localTwin(of: prepared.cloudKitAlbum)).baseURL.path),
+                       "no local twin is created")
+        XCTAssertEqual(mediaFiles(in: prepared.folder), folderBefore, "the restored files are left where they are")
+    }
+
+    // MARK: - Files restored after a record was lost
+
+    /// An album part-way through its upgrade whose server lost one migrated
+    /// item's record, with every file of the album copied back into its folder.
+    private struct RestoredAlbum {
+        let prepared: Prepared
+        /// Moved, then its record went from the server.
+        let lostID: String
+        /// Moved, and its record is still on the server.
+        let survivingID: String
+        /// Never moved: its item failed.
+        let notMovedID: String
+        /// The server as it is now, without the lost record.
+        let server: MockCloudKitMediaStore
+    }
+
+    /// Every media file in the album's folder, by name.
+    private func copyMediaFiles(_ prepared: Prepared) throws -> [String: Data] {
+        var copies: [String: Data] = [:]
+        for name in mediaFiles(in: prepared.folder) {
+            copies[name] = try Data(contentsOf: prepared.folder.appendingPathComponent(name))
+        }
+        return copies
+    }
+
+    /// Writes back every copied file the folder no longer holds, as a user
+    /// restoring the album from a backup does.
+    private func restoreFiles(_ copies: [String: Data], into folder: URL) throws {
+        for (name, data) in copies {
+            let url = folder.appendingPathComponent(name)
+            guard !FileManager.default.fileExists(atPath: url.path) else { continue }
+            try data.write(to: url)
+        }
+    }
+
+    /// The album's server after it lost every record but `survivingIDs`' photos:
+    /// it holds the album and those records, and a create of one of them
+    /// conflicts, as the real store's does.
+    private func makeServerKeepingOnly(_ survivingIDs: [String], of prepared: Prepared) async throws -> MockCloudKitMediaStore {
+        let server = MockCloudKitMediaStore()
+        server.reflectUploadsInMetadata = true
+        let album = try await store.fetchAlbum(albumID: prepared.albumID)
+        server.seedAlbum(try XCTUnwrap(album, "precondition: the album's record was saved"))
+        for id in survivingIDs {
+            let name = photoRecordName(id)
+            let record = try await store.fetchRecordMetadata(recordName: name)
+            server.metadataToReturn.append(try XCTUnwrap(record, "precondition: \(id) was uploaded"))
+            server.uploadFailures[name] = CloudKitMediaStoreError.partial(
+                failed: [name: CKErrorFactory.error(.serverRecordChanged)])
+        }
+        return server
+    }
+
+    /// Forgets the album in the shared scheduler when the test ends, so a
+    /// request it left does not carry over to the next test.
+    private func forgetInSchedulerAtTearDown(_ albumID: String) {
+        addTeardownBlock { @MainActor in ICloudDriveUpgradeScheduler.shared.forgetAlbum(albumID: albumID) }
+    }
+
+    /// Three photos, two of them moved and one whose item failed, then the
+    /// first one's record lost from the server and every file copied back.
+    private func halfMigratedAlbumWithRestoredFiles(droppingLostItemFromIndex: Bool) async throws -> RestoredAlbum {
+        let prepared = try await prepareAlbum(count: 3)
+        forgetInSchedulerAtTearDown(prepared.albumID)
+        folderContents.metadata = []
+        let lostID = prepared.mediaIDs[0]
+        let survivingID = prepared.mediaIDs[1]
+        let notMovedID = prepared.mediaIDs[2]
+        let copies = try copyMediaFiles(prepared)
+        XCTAssertEqual(copies.count, 3, "precondition: one file per photo")
+
+        // The server reports the third photo's record with a size that is not its
+        // file's, so its item fails and its file stays.
+        let notMovedSize = try fileSize(photoURL(prepared, notMovedID))
+        store.metadataToReturn = [otherDeviceRecord(prepared, mediaID: notMovedID, sizeBytes: notMovedSize + 1)]
+        let outcome = await makeLoop().runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
+        guard case .finished = outcome else {
+            XCTFail("precondition: the first pass finished, got \(outcome)")
+            throw NotPrepared()
+        }
+        let halfPlan = try await plan(prepared)
+        XCTAssertEqual(state(of: photoRecordName(lostID), in: halfPlan), .sourceDeleted)
+        XCTAssertEqual(state(of: photoRecordName(survivingID), in: halfPlan), .sourceDeleted)
+        XCTAssertEqual(state(of: photoRecordName(notMovedID), in: halfPlan), .failed)
+        XCTAssertEqual(mediaFiles(in: prepared.folder), [photoURL(prepared, notMovedID).lastPathComponent],
+                       "precondition: the moved photos' files are gone")
+        assertFolderKept(prepared)
+
+        let server = try await makeServerKeepingOnly([survivingID], of: prepared)
+        if droppingLostItemFromIndex {
+            try await albumManager.mediaIndexStore(for: prepared.cloudKitAlbum).apply { entries in
+                entries.removeAll { $0.id == lostID }
+            }
+        }
+        try restoreFiles(copies, into: prepared.folder)
+        XCTAssertEqual(mediaFiles(in: prepared.folder), copies.keys.sorted(), "precondition: every file is back")
+        return RestoredAlbum(prepared: prepared, lostID: lostID, survivingID: survivingID, notMovedID: notMovedID,
+                             server: server)
+    }
+
+    /// Runs the album step and then a pass against the album's current server,
+    /// and returns what the finish at the pass's end did.
+    private func runAlbumStepAndPass(_ restored: RestoredAlbum,
+                                     file: StaticString = #filePath,
+                                     line: UInt = #line) async -> ICloudDriveAlbumFinish.Outcome? {
+        let prepared = restored.prepared
+        let step = await makeAlbumStep(store: restored.server).run(folder: prepared.folder)
+        XCTAssertEqual(step, .prepared(albumID: prepared.albumID), file: file, line: line)
+        let outcome = await makeLoop(store: restored.server).runMigrationPass(albumID: prepared.albumID,
+                                                                             folder: prepared.folder)
+        guard case .finished = outcome else {
+            XCTFail("expected finished, got \(outcome)", file: file, line: line)
+            return nil
+        }
+        return albumFinish.outcomes[prepared.albumID]
+    }
+
+    private func assertLostRecordMigratedAgain(_ restored: RestoredAlbum, finish: ICloudDriveAlbumFinish.Outcome?,
+                                               file: StaticString = #filePath, line: UInt = #line) async {
+        let prepared = restored.prepared
+        let lostName = photoRecordName(restored.lostID)
+        XCTAssertTrue(restored.server.uploadCalls.contains(restored.lostID), "the restored file was uploaded",
+                      file: file, line: line)
+        XCTAssertTrue(restored.server.liveRecordNames.contains(lostName), "the lost record is on the server again",
+                      file: file, line: line)
+        let record = try? await restored.server.fetchRecordMetadata(recordName: lostName)
+        XCTAssertEqual(record?.albumID, prepared.albumID, "in the album", file: file, line: line)
+        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(photoURL(prepared, restored.lostID)),
+                       "the restored file is gone from the folder", file: file, line: line)
+        let entry = await indexEntries(prepared).first { $0.id == restored.lostID }
+        XCTAssertEqual(entry?.photoLocation, .cloudKit, "the index places it in CloudKit", file: file, line: line)
+        XCTAssertEqual(finish, .removed, file: file, line: line)
+        assertFinished(prepared, file: file, line: line)
+    }
+
+    func testRestoredFileOfLostRecordIsMigratedAgainInHalfMigratedAlbum() async throws {
+        let restored = try await halfMigratedAlbumWithRestoredFiles(droppingLostItemFromIndex: false)
+        let before = await indexEntries(restored.prepared).first { $0.id == restored.lostID }
+        XCTAssertEqual(before?.photoLocation, .cloudKit, "precondition: the index still places the lost item in CloudKit")
+
+        let finish = await runAlbumStepAndPass(restored)
+
+        await assertLostRecordMigratedAgain(restored, finish: finish)
+        XCTAssertTrue(restored.server.uploadCalls.contains(restored.notMovedID), "the item never moved moves too")
+    }
+
+    func testRestoredFileOfLostRecordIsMigratedAgainWhenIndexDroppedIt() async throws {
+        let restored = try await halfMigratedAlbumWithRestoredFiles(droppingLostItemFromIndex: true)
+        let before = await indexEntries(restored.prepared)
+        XCTAssertFalse(before.contains { $0.id == restored.lostID }, "precondition: the index no longer lists the lost item")
+
+        let finish = await runAlbumStepAndPass(restored)
+
+        await assertLostRecordMigratedAgain(restored, finish: finish)
+    }
+
+    func testRestoredFileOfSurvivingRecordIsDeletedWithoutUpload() async throws {
+        let restored = try await halfMigratedAlbumWithRestoredFiles(droppingLostItemFromIndex: false)
+        let prepared = restored.prepared
+
+        let step = await makeAlbumStep(store: restored.server).run(folder: prepared.folder)
+
+        XCTAssertEqual(step, .prepared(albumID: prepared.albumID))
+        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(photoURL(prepared, restored.survivingID)),
+                       "the album step deletes the file of a record still in the album")
+        let finish = await runAlbumStepAndPass(restored)
+        XCTAssertFalse(restored.server.uploadCalls.contains(restored.survivingID),
+                       "a record still on the server is never uploaded again")
+        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(photoURL(prepared, restored.survivingID)))
+        XCTAssertEqual(finish, .removed)
+        assertFinished(prepared)
+    }
+
+    func testRequestedAlbumWithRestoredFileRecoversOnNextRoundAlbumStep() async throws {
+        let scheduler = ICloudDriveUpgradeScheduler.shared
+        let previousAlbumStep = scheduler.runAlbumStepForRequestedAlbum
+        addTeardownBlock { @MainActor in scheduler.runAlbumStepForRequestedAlbum = previousAlbumStep }
+        // Albums earlier tests left in the shared scheduler would take the turn first.
+        for albumID in Set(scheduler.state.order).union(scheduler.state.albums.keys) {
+            scheduler.forgetAlbum(albumID: albumID)
+        }
+
+        // Every item moves; the folder stays because its contents cannot be confirmed.
+        let prepared = try await prepareAlbum(count: 2)
+        forgetInSchedulerAtTearDown(prepared.albumID)
+        let lostID = prepared.mediaIDs[0]
+        let copies = try copyMediaFiles(prepared)
+        folderContents.metadata = nil
+        let first = await passAndFinish(prepared)
+        XCTAssertEqual(first, .kept(.contentsUnknown))
+        let donePlan = try await plan(prepared)
+        XCTAssertTrue(donePlan.items.allSatisfy { $0.state == .sourceDeleted }, "precondition: every item is done")
+        XCTAssertTrue(scheduler.state.order.contains(prepared.albumID), "precondition: the album is requested")
+
+        // The server loses the first record, and its file is restored.
+        let server = try await makeServerKeepingOnly([prepared.mediaIDs[1]], of: prepared)
+        let lostFile = photoURL(prepared, lostID).lastPathComponent
+        try restoreFiles(copies.filter { $0.key == lostFile }, into: prepared.folder)
+        folderContents.metadata = []
+
+        let loop = makeLoop(store: server)
+        var albumStepRuns: [String] = []
+        scheduler.runAlbumStepForRequestedAlbum = { [unowned self] albumID in
+            albumStepRuns.append(albumID)
+            guard let folder = CloudKitAlbumMarker.linkedICloudDriveFolderURL(albumID: albumID) else {
+                return .nothingToContinue
+            }
+            let step = self.makeAlbumStep(store: server) { albumID, folder in
+                loop.startMigrationPass(albumID: albumID, folder: folder)
+            }
+            switch await step.run(folder: folder) {
+            case .prepared: return .startedPass
+            case .skipped(let reason): return ICloudDriveUpgradeScheduler.AlbumStepResult(skipReason: reason)
+            }
+        }
+
+        // A pass over the done plan moves nothing and keeps the folder.
+        let kept = await makeLoop(store: server).runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
+        guard case .finished(let keptReport) = kept else { return XCTFail("expected finished, got \(kept)") }
+        XCTAssertEqual(keptReport.deleted, [])
+        XCTAssertEqual(albumFinish.outcomes[prepared.albumID], .kept(.notEmpty(entries: 1)), "the restored file keeps the folder")
+        XCTAssertTrue(scheduler.state.order.contains(prepared.albumID), "the album is still requested")
+        XCTAssertTrue(scheduler.state.albumIDsTriedThisRound.contains(prepared.albumID), "and was tried this round")
+        XCTAssertEqual(albumStepRuns, [], "so its pass end runs no album step for it")
+        XCTAssertEqual(server.uploadCalls, [])
+
+        // The next round, as at launch.
+        scheduler.continueRequestedUpgrades()
+
+        try await waitUntil("the album finishes") {
+            !self.folderExists(prepared.folder) && !scheduler.hasRunningPass && scheduler.state.continuingAlbumID == nil
+        }
+        XCTAssertEqual(albumStepRuns, [prepared.albumID], "the new round runs the album step for it")
+        XCTAssertTrue(server.uploadCalls.contains(lostID), "the restored file was uploaded")
+        XCTAssertFalse(server.uploadCalls.contains(prepared.mediaIDs[1]))
+        XCTAssertTrue(server.liveRecordNames.contains(photoRecordName(lostID)))
+        XCTAssertEqual(albumFinish.outcomes[prepared.albumID], .removed)
+        assertFinished(prepared)
+        XCTAssertFalse(scheduler.state.order.contains(prepared.albumID), "the album leaves the order")
+    }
+
+    /// A finished album whose folder was restored, with its marker when
+    /// `withMarker`, after the server lost the first photo's record and kept
+    /// the second's.
+    private func finishedAlbumWithRestoredFolderAndLostRecord(withMarker: Bool) async throws
+        -> (prepared: Prepared, lostID: String, survivingID: String, server: MockCloudKitMediaStore) {
+        let prepared = try await finishedAlbumWithRestoredFolder(withMarker: withMarker)
+        forgetInSchedulerAtTearDown(prepared.albumID)
+        let server = try await makeServerKeepingOnly([prepared.mediaIDs[1]], of: prepared)
+        return (prepared, prepared.mediaIDs[0], prepared.mediaIDs[1], server)
+    }
+
+    /// The folder the restored-folder lookup finds for the album, as a tap on
+    /// its banner takes it, checked to be the album's restored folder.
+    private func lookedUpFolder(_ prepared: Prepared,
+                                file: StaticString = #filePath, line: UInt = #line) async throws -> URL {
+        let found = await ICloudDriveRestoredFolderLookup.folderHoldingMedia(for: prepared.cloudKitAlbum,
+                                                                             albumManager: albumManager)
+        let folder = try XCTUnwrap(found, "the lookup finds the restored folder", file: file, line: line)
+        XCTAssertEqual(folder.standardizedFileURL.path, prepared.folder.standardizedFileURL.path, file: file, line: line)
+        return folder
+    }
+
+    /// Whether the album list shows an iCloud Drive album whose folder is `folder`.
+    private func listsICloudDriveAlbum(at folder: URL) async -> Bool {
+        _ = albumManager.fetchAlbumsFromSources(includingHidden: true)
+        await albumManager.waitForICloudDriveFolderMarkerReads()
+        let path = CloudKitAlbumMarker.iCloudDriveFolderPath(for: folder)
+        return albumManager.fetchAlbumsFromSources(includingHidden: true).contains { album in
+            album.storageOption == .icloud
+                && albumManager.storageModel(for: album).flatMap { CloudKitAlbumMarker.iCloudDriveFolderPath(for: $0.baseURL) } == path
+        }
+    }
+
+    func testRestoredFolderWithMarkerIsMigratedFromTheLookedUpFolder() async throws {
+        let restored = try await finishedAlbumWithRestoredFolderAndLostRecord(withMarker: true)
+        let prepared = restored.prepared
+        let folder = try await lookedUpFolder(prepared)
+
+        let step = await makeAlbumStep(store: restored.server).run(folder: folder)
+
+        XCTAssertEqual(step, .prepared(albumID: prepared.albumID), "the marker joins the folder to its album")
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath,
+                       CloudKitAlbumMarker.iCloudDriveFolderPath(for: prepared.folder), "album.json links the folder")
+        XCTAssertFalse(ICloudPlaceholderName.existsInAnyForm(photoURL(prepared, restored.survivingID)),
+                       "the file of a record still in the album is deleted by the album step")
+        let outcome = await makeLoop(store: restored.server).runMigrationPass(albumID: prepared.albumID, folder: folder)
+        guard case .finished = outcome else { return XCTFail("expected finished, got \(outcome)") }
+        XCTAssertTrue(restored.server.uploadCalls.contains(restored.lostID), "the lost record's file is uploaded")
+        XCTAssertTrue(restored.server.liveRecordNames.contains(photoRecordName(restored.lostID)))
+        XCTAssertFalse(restored.server.uploadCalls.contains(restored.survivingID),
+                       "a record still on the server is never uploaded again")
+        XCTAssertEqual(restored.server.savedAlbumCalls.count, 0, "no album record is saved")
+        XCTAssertEqual(albumFinish.outcomes[prepared.albumID], .removed)
+        assertFinished(prepared)
+    }
+
+    func testRestoredFolderWithoutMarkerJoinsTheSameAlbum() async throws {
+        let restored = try await finishedAlbumWithRestoredFolderAndLostRecord(withMarker: false)
+        let prepared = restored.prepared
+        let folder = try await lookedUpFolder(prepared)
+        let listedBefore = await listsICloudDriveAlbum(at: folder)
+        XCTAssertTrue(listedBefore, "precondition: the marker-less folder is listed as an iCloud Drive album")
+        let cloudKitAlbumsBefore = albumManager.fetchAlbumsFromSources(includingHidden: true)
+            .filter { $0.storageOption == .cloudKit }.map(\.id)
+
+        let step = await makeAlbumStep(store: restored.server).run(folder: folder)
+
+        XCTAssertEqual(step, .prepared(albumID: prepared.albumID), "the folder joins the album of its name and key")
+        XCTAssertEqual(restored.server.savedAlbumCalls.count, 0, "no second EncAlbum is saved")
+        guard case .present(let marker) = ICloudDriveAlbumMarkerFile.read(fromAlbumDirectory: folder,
+                                                                          conflictVersions: { _ in [] }) else {
+            return XCTFail("the album step writes the folder's marker")
+        }
+        XCTAssertEqual(marker.albumID, prepared.albumID, "the marker names the album")
+        XCTAssertEqual(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath,
+                       CloudKitAlbumMarker.iCloudDriveFolderPath(for: prepared.folder), "album.json links the folder")
+        let listedAfterStep = await listsICloudDriveAlbum(at: folder)
+        XCTAssertFalse(listedAfterStep, "the linked folder is no longer listed as an album of its own")
+        XCTAssertEqual(albumManager.fetchAlbumsFromSources(includingHidden: true)
+                        .filter { $0.storageOption == .cloudKit }.map(\.id), cloudKitAlbumsBefore,
+                       "the CloudKit albums are the same ones")
+
+        let outcome = await makeLoop(store: restored.server).runMigrationPass(albumID: prepared.albumID, folder: folder)
+        guard case .finished = outcome else { return XCTFail("expected finished, got \(outcome)") }
+        XCTAssertTrue(restored.server.uploadCalls.contains(restored.lostID), "the lost record's file is uploaded")
+        XCTAssertFalse(restored.server.uploadCalls.contains(restored.survivingID),
+                       "a record still on the server is never uploaded again")
+        XCTAssertEqual(albumFinish.outcomes[prepared.albumID], .removed)
+        assertFinished(prepared)
+        let albums = albumManager.fetchAlbumsFromSources(includingHidden: true)
+        XCTAssertFalse(albums.contains { $0.storageOption == .icloud && $0.name == prepared.album.name },
+                       "no iCloud Drive album of the album's name is listed")
+        XCTAssertEqual(albums.filter { $0.name == prepared.album.name }.map(\.id), [prepared.cloudKitAlbum.id],
+                       "the album list shows one album of that name")
+    }
+
     // MARK: - Scratch
 
     /// A process killed mid-video leaves its scratch directory, with plaintext,

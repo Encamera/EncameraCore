@@ -384,7 +384,7 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
     }
 
     /// One media file in the folder, named by its materialized form.
-    private struct FolderComponent: Hashable {
+    struct FolderComponent: Hashable {
         let mediaID: String
         let type: MediaType
         /// The URL as listed: the file, or its placeholder while it is evicted.
@@ -404,7 +404,7 @@ public actor ICloudDriveFolderScanner: DebugPrintable {
 
     /// Every `<mediaID>.<ext>` file in `folder`, in either form. The marker and
     /// anything else are skipped. Throws when the folder can't be listed.
-    private static func listComponents(in folder: URL) throws -> [FolderComponent] {
+    static func listComponents(in folder: URL) throws -> [FolderComponent] {
         let urls = try iCloudStorageModel.listStorageDirectory(at: folder,
                                                                fileExtensionFilter: Array(mediaTypesByExtension.keys))
         var seen = Set<String>()
