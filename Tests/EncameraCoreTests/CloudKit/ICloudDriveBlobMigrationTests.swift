@@ -183,6 +183,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
                           isUnlocked: @escaping @MainActor () -> Bool = { true },
                           hasNetwork: @escaping () -> Bool = { true },
                           isOnUnmeteredNetwork: @escaping () -> Bool = { true },
+                          waitForKnownNetworkPath: @escaping () async -> Void = {},
                           keyCache: BlobMigrationKeyCache? = nil,
                           fileVersions: ICloudDriveFileVersioning? = nil,
                           maxFailedDownloads: Int = ICloudDriveBlobMigration.defaultMaxFailedDownloads) -> ICloudDriveBlobMigration {
@@ -197,7 +198,8 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
                                         makeVerifiedDelete: { _ in spy },
                                         conditions: .init(isUnlocked: isUnlocked, hasNetwork: hasNetwork,
                                                           isOnUnmeteredNetwork: isOnUnmeteredNetwork,
-                                                          hasICloudDrive: { true }),
+                                                          hasICloudDrive: { true },
+                                                          waitForKnownNetworkPath: waitForKnownNetworkPath),
                                         deviceState: { BlobMigrationDeviceState(isUnlocked: isUnlocked()) },
                                         markerConflictVersions: { _ in [] },
                                         keyCache: keyCache,
@@ -1319,6 +1321,21 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         try await waitUntil("Wi-Fi after an offline stop resumes the album") {
             self.mediaFiles(in: prepared.folder).isEmpty && !ICloudDriveBlobMigration.isRunning(albumID: prepared.albumID)
         }
+        XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
+    }
+
+    /// A pass that starts before the first network path is known waits for it,
+    /// and runs on the Wi-Fi it reports rather than stopping as offline.
+    func testPassStartedBeforeTheFirstPathRunsOnThePathItWaitedFor() async throws {
+        let prepared = try await prepareAlbum(count: 1)
+        let network = LockedBox(false)
+
+        let outcome = await makeLoop(hasNetwork: { network.value }, isOnUnmeteredNetwork: { network.value },
+                                     waitForKnownNetworkPath: { network.mutate { $0 = true } })
+            .runMigrationPass(albumID: prepared.albumID, folder: prepared.folder)
+
+        guard case .finished = outcome else { return XCTFail("expected the pass to run, got \(outcome)") }
+        XCTAssertTrue(mediaFiles(in: prepared.folder).isEmpty)
         XCTAssertNil(ICloudDriveBlobMigration.pauseReason(albumID: prepared.albumID))
     }
 

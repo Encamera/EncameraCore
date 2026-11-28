@@ -141,17 +141,23 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         public var isOnUnmeteredNetwork: () -> Bool
         public var hasICloudDrive: () -> Bool
         public var isInBackground: @MainActor () -> Bool
+        /// Returns once `hasNetwork` and `isOnUnmeteredNetwork` read a real
+        /// network path rather than the one seeded before the first path
+        /// update, or once a bounded wait for it ends.
+        public var waitForKnownNetworkPath: () async -> Void
 
         public init(isUnlocked: @escaping @MainActor () -> Bool,
                     hasNetwork: @escaping () -> Bool,
                     isOnUnmeteredNetwork: @escaping () -> Bool,
                     hasICloudDrive: @escaping () -> Bool = MigrationDeviceConditions.deviceHasICloudDrive,
-                    isInBackground: @escaping @MainActor () -> Bool = { false }) {
+                    isInBackground: @escaping @MainActor () -> Bool = { false },
+                    waitForKnownNetworkPath: @escaping () async -> Void = {}) {
             self.isUnlocked = isUnlocked
             self.hasNetwork = hasNetwork
             self.isOnUnmeteredNetwork = isOnUnmeteredNetwork
             self.hasICloudDrive = hasICloudDrive
             self.isInBackground = isInBackground
+            self.waitForKnownNetworkPath = waitForKnownNetworkPath
         }
 
         /// This device: iCloud Drive on for the app, the app in the foreground,
@@ -161,7 +167,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
                        hasNetwork: { NetworkMonitor.shared.isConnected },
                        isOnUnmeteredNetwork: { ICloudDriveBlobMigrationCellularPreference.permitsTransferNow },
                        hasICloudDrive: deviceHasICloudDrive,
-                       isInBackground: { AppRunState.isInBackground })
+                       isInBackground: { AppRunState.isInBackground },
+                       waitForKnownNetworkPath: { _ = await NetworkMonitor.shared.knownState() })
         }
 
         /// Whether this device's iCloud Drive container is reachable for the app.
@@ -186,6 +193,17 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
             guard isUnlocked() else { return .locked }
             guard hasNetwork() else { return .offline }
             return nil
+        }
+
+        /// `unmet()`, except that a device that reads as offline is read again
+        /// once `waitForKnownNetworkPath` returns, so a network path not yet
+        /// delivered after launch does not count as offline.
+        @MainActor
+        public func unmetOnceNetworkPathIsKnown() async -> Unmet? {
+            let unmetNow = unmet()
+            guard unmetNow == .offline else { return unmetNow }
+            await waitForKnownNetworkPath()
+            return unmet()
         }
     }
 
@@ -327,7 +345,7 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     /// before anything reads the iCloud Drive container or reaches the server
     /// beyond the account check.
     private func unmetCondition() async -> MigrationSkipReason? {
-        if let unmet = conditions.unmet() { return MigrationSkipReason(unmet) }
+        if let unmet = await conditions.unmetOnceNetworkPathIsKnown() { return MigrationSkipReason(unmet) }
         guard await currentStore().accountAvailable() else { return .accountUnavailable }
         return nil
     }

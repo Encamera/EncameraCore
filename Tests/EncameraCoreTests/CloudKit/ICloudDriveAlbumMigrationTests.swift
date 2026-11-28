@@ -458,6 +458,60 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         assertListedAsICloudDriveOnly(drive)
     }
 
+    /// The conditions a device reports through `monitor`, waiting up to
+    /// `timeout` seconds for its first path as `.device` does.
+    private func conditions(readingNetworkFrom monitor: NetworkMonitor,
+                            timeout: TimeInterval) -> ICloudDriveAlbumMigration.MigrationDeviceConditions {
+        .init(isUnlocked: { true },
+              hasNetwork: { monitor.isConnected },
+              isOnUnmeteredNetwork: { monitor.isOnUnmeteredNetwork },
+              waitForKnownNetworkPath: { _ = await monitor.knownState(timeout: timeout) })
+    }
+
+    /// A monitor still on the offline state seeded at start, whose first path
+    /// update reports Wi-Fi shortly after the run checks its conditions: the
+    /// run waits for that path and goes on, rather than skipping as offline.
+    func testFirstPathArrivingAfterTheCheckStartsDoesNotSkipAsOffline() async throws {
+        let drive = try await makeDriveAlbum()
+        let albumID = UUID().uuidString
+        try ICloudDriveAlbumMarkerFile(albumID: albumID).write(toAlbumDirectory: drive.folder)
+        store.seedAlbum(record(albumID: albumID, for: drive.album))
+        let monitor = NetworkMonitor(testingWith: NotificationCenter(), initialState: .offline, isPathKnown: false)
+        let migration = makeMigration(conditions: conditions(readingNetworkFrom: monitor, timeout: 10))
+
+        let firstPath = Task.detached {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            monitor.update(to: NetworkMonitor.ForcedPath.wifi.state)
+        }
+        let outcome = await run(drive, migration)
+        try await firstPath.value
+
+        XCTAssertEqual(outcome, .prepared(albumID: albumID))
+    }
+
+    /// A device whose path stays unknown skips as offline once the wait
+    /// times out, and one whose first path reports no network skips at once.
+    func testDeviceThatStaysOfflineStillSkipsAsOffline() async throws {
+        let drive = try await makeDriveAlbum()
+        let before = try mediaSnapshot(drive)
+
+        let neverDelivered = NetworkMonitor(testingWith: NotificationCenter(), initialState: .offline, isPathKnown: false)
+        let started = Date()
+        let timedOut = await run(drive, makeMigration(conditions: conditions(readingNetworkFrom: neverDelivered, timeout: 0.2)))
+        XCTAssertEqual(timedOut, .skipped(.offline))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5, "the wait is bounded by its timeout")
+
+        let deliveredOffline = NetworkMonitor(testingWith: NotificationCenter(), initialState: .offline, isPathKnown: false)
+        deliveredOffline.update(to: .offline)
+        let offline = await run(drive, makeMigration(conditions: conditions(readingNetworkFrom: deliveredOffline, timeout: 10)))
+        XCTAssertEqual(offline, .skipped(.offline))
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5, "a delivered offline path is not waited on")
+
+        XCTAssertEqual(storesMade, 0, "nothing reaches the server")
+        XCTAssertEqual(markerFile(in: drive), .absent)
+        XCTAssertEqual(try mediaSnapshot(drive), before)
+    }
+
     // MARK: - Network
 
     func testAlbumStepRunsOffWiFiAndStartsTheBlobMigration() async throws {

@@ -2,8 +2,9 @@
 //  NetworkMonitorTests.swift
 //  EncameraCoreTests
 //
-//  Which paths count as unmetered, and when `pathDidChange` is posted. Every
-//  state is fed in; nothing reads the host Mac's network.
+//  Which paths count as unmetered, when `pathDidChange` is posted, and when
+//  `knownState(timeout:)` returns. Every state is fed in; nothing reads the
+//  host Mac's network.
 //
 
 import XCTest
@@ -113,6 +114,65 @@ final class NetworkMonitorTests: XCTestCase {
                 _ = monitor.isConnected
             }
         }
+    }
+
+    func testKnownStateWaitsForTheFirstPathUpdate() async throws {
+        let monitor = NetworkMonitor(testingWith: NotificationCenter(), initialState: .offline, isPathKnown: false)
+        let wifi = NetworkMonitor.ForcedPath.wifi.state
+
+        let firstPath = Task.detached {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            monitor.update(to: wifi)
+        }
+        let started = Date()
+        let state = await monitor.knownState(timeout: 10)
+        try await firstPath.value
+
+        XCTAssertEqual(state, wifi, "the state of the first path update, not the seeded one")
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5, "returns when the path arrives, not at the timeout")
+    }
+
+    func testKnownStateReturnsTheCurrentStateAfterTheTimeout() async {
+        let monitor = NetworkMonitor(testingWith: NotificationCenter(), initialState: .offline, isPathKnown: false)
+
+        let started = Date()
+        let state = await monitor.knownState(timeout: 0.2)
+
+        XCTAssertEqual(state, .offline)
+        let elapsed = Date().timeIntervalSince(started)
+        XCTAssertGreaterThanOrEqual(elapsed, 0.15, "waited for the path")
+        XCTAssertLessThan(elapsed, 5)
+    }
+
+    func testKnownStateReturnsAtOnceOnceThePathIsKnownOrForced() async {
+        let known = NetworkMonitor(testingWith: NotificationCenter(), initialState: NetworkMonitor.ForcedPath.cellular.state)
+        let knownState = await known.knownState(timeout: 10)
+        XCTAssertEqual(knownState, NetworkMonitor.ForcedPath.cellular.state)
+
+        let deliveredOffline = NetworkMonitor(testingWith: NotificationCenter(), isPathKnown: false)
+        deliveredOffline.update(to: .offline)
+        let started = Date()
+        let offlineState = await deliveredOffline.knownState(timeout: 10)
+        XCTAssertEqual(offlineState, .offline)
+
+        let forced = NetworkMonitor(testingWith: NotificationCenter(), isPathKnown: false)
+        forced.force(.wifi)
+        let forcedState = await forced.knownState(timeout: 10)
+        XCTAssertEqual(forcedState, NetworkMonitor.ForcedPath.wifi.state)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5, "neither waits for the timeout")
+    }
+
+    func testForcingAPathResumesAKnownStateWaiter() async throws {
+        let monitor = NetworkMonitor(testingWith: NotificationCenter(), isPathKnown: false)
+
+        let forcing = Task.detached {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            monitor.force(.cellular)
+        }
+        let state = await monitor.knownState(timeout: 10)
+        try await forcing.value
+
+        XCTAssertEqual(state, NetworkMonitor.ForcedPath.cellular.state)
     }
 
     private func drainMainQueue() {

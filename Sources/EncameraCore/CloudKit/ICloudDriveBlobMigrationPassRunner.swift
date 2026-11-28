@@ -308,7 +308,7 @@ final class ICloudDriveBlobMigrationPassRunner: DebugPrintable {
                                       deviceLocked: DeviceLockedFlag,
                                       control: PassControl) async -> MigrationPassPreparation {
         if !startedUnlocked, keyCache.album(forAlbumID: albumID) == nil { return .stopped(.locked) }
-        if let unmet = unmetCondition() { return .stopped(unmet) }
+        if let unmet = await unmetConditionOnceNetworkPathIsKnown() { return .stopped(unmet) }
         if startedUnlocked { keyCache.refreshKeysFromKeychain(using: albumManager) }
         guard CloudKitAlbumMarker.exists(albumID: albumID) else { return .stopped(.albumNotOnDevice) }
         guard let cloudKitAlbum = keyCache.album(forAlbumID: albumID) else {
@@ -700,6 +700,16 @@ final class ICloudDriveBlobMigrationPassRunner: DebugPrintable {
         guard conditions.isOnUnmeteredNetwork() else { return .paused(.waitingForWiFi) }
         if let reason = deviceResourceStateObserver.pauseReason { return .paused(reason) }
         return nil
+    }
+
+    /// `unmetCondition()`, except that a network that reads as offline or
+    /// metered is read again once `waitForKnownNetworkPath` returns, so a path
+    /// not yet delivered after launch neither stops nor pauses the pass.
+    private func unmetConditionOnceNetworkPathIsKnown() async -> StopReason? {
+        let unmetNow = unmetCondition()
+        guard unmetNow == .offline || unmetNow == .paused(.waitingForWiFi) else { return unmetNow }
+        await conditions.waitForKnownNetworkPath()
+        return unmetCondition()
     }
 
     private func folderProblem(albumID: String, folder: URL) -> StopReason? {

@@ -13,7 +13,13 @@ import Network
 ///
 /// The path handler writes on the monitor's own queue and readers sit on any
 /// thread, so every flag is read and written under `lock`.
-public final class NetworkMonitor {
+///
+/// Right after the monitor starts, `NWPathMonitor.currentPath` is often still
+/// unsatisfied on a connected device, and the first real path arrives through
+/// the update handler some milliseconds later. The synchronous accessors read
+/// whatever is recorded now; a reader that must not mistake that start-up
+/// value for being offline awaits `knownState(timeout:)` instead.
+public final class NetworkMonitor: @unchecked Sendable {
 
     public static let shared = NetworkMonitor()
 
@@ -71,6 +77,14 @@ public final class NetworkMonitor {
     private let lock = NSLock()
     private var pathState: State = .offline
     private var forcedPath: ForcedPath?
+    /// Whether `pathState` reflects a real path: one the update handler
+    /// delivered, or a satisfied path read at start.
+    private var isPathKnown: Bool
+    /// The `knownState(timeout:)` callers waiting for the path to be known.
+    private var knownStateWaiters: [UUID: CheckedContinuation<State, Never>] = [:]
+
+    /// How long `knownState(timeout:)` waits by default for the first path.
+    public static let defaultKnownStateTimeout: TimeInterval = 1.5
 
     /// Whether the device currently has a usable network connection.
     public var isConnected: Bool { currentState.isConnected }
@@ -90,6 +104,7 @@ public final class NetworkMonitor {
 
     private init() {
         notificationCenter = .default
+        isPathKnown = false
         let monitor = NWPathMonitor()
         self.monitor = monitor
         monitor.pathUpdateHandler = { [weak self] path in
@@ -98,15 +113,18 @@ public final class NetworkMonitor {
         }
         monitor.start(queue: queue)
 
-        updateState(from: monitor.currentPath)
+        let startPath = monitor.currentPath
+        recordStartPathState(Self.state(from: startPath), isKnown: startPath.status == .satisfied)
     }
 
     /// A monitor that watches no real path, for tests that feed it states
-    /// through `update(to:)`.
-    init(testingWith notificationCenter: NotificationCenter, initialState: State = .offline) {
+    /// through `update(to:)`. With `isPathKnown` false, `knownState(timeout:)`
+    /// waits for the first `update(to:)` as it waits for the first real path.
+    init(testingWith notificationCenter: NotificationCenter, initialState: State = .offline, isPathKnown: Bool = true) {
         self.monitor = nil
         self.notificationCenter = notificationCenter
         self.pathState = initialState
+        self.isPathKnown = isPathKnown
     }
 
     /// The flags for a path with these properties.
@@ -128,27 +146,83 @@ public final class NetworkMonitor {
         swapState { forcedPath = path }
     }
 
+    /// The state readers see once the path is known: at once when a path
+    /// update has arrived, a satisfied path was read at start, or a path is
+    /// forced; otherwise after the first path update, or after `timeout`
+    /// seconds with whatever is recorded then. Does not block the caller's
+    /// thread while it waits.
+    public func knownState(timeout: TimeInterval = NetworkMonitor.defaultKnownStateTimeout) async -> State {
+        let waiterID = UUID()
+        return await withCheckedContinuation { continuation in
+            let stateNow: State? = lock.withLock {
+                if isPathKnown || forcedPath != nil { return forcedPath?.state ?? pathState }
+                knownStateWaiters[waiterID] = continuation
+                return nil
+            }
+            if let stateNow {
+                continuation.resume(returning: stateNow)
+                return
+            }
+            queue.asyncAfter(deadline: .now() + timeout) { [self] in
+                resumeKnownStateWaiterAfterTimeout(waiterID)
+            }
+        }
+    }
+
+    private func resumeKnownStateWaiterAfterTimeout(_ waiterID: UUID) {
+        let (waiter, state) = lock.withLock {
+            (knownStateWaiters.removeValue(forKey: waiterID), forcedPath?.state ?? pathState)
+        }
+        waiter?.resume(returning: state)
+    }
+
+    private static func state(from path: NWPath) -> State {
+        state(status: path.status,
+              isExpensive: path.isExpensive,
+              isConstrained: path.isConstrained,
+              usesWiFi: path.usesInterfaceType(.wifi),
+              usesCellular: path.usesInterfaceType(.cellular))
+    }
+
     /// Updates the network state properties from the given path.
     private func updateState(from path: NWPath) {
-        update(to: Self.state(status: path.status,
-                              isExpensive: path.isExpensive,
-                              isConstrained: path.isConstrained,
-                              usesWiFi: path.usesInterfaceType(.wifi),
-                              usesCellular: path.usesInterfaceType(.cellular)))
+        update(to: Self.state(from: path))
+    }
+
+    /// Records the path read right after the monitor starts, unless the
+    /// update handler already delivered one.
+    private func recordStartPathState(_ state: State, isKnown: Bool) {
+        swapState {
+            guard !isPathKnown else { return }
+            pathState = state
+            isPathKnown = isKnown
+        }
     }
 
     /// Records the real path's state. Posts `pathDidChange` when the visible
     /// state changes.
     func update(to state: State) {
-        swapState { pathState = state }
+        swapState {
+            pathState = state
+            isPathKnown = true
+        }
     }
 
+    /// Applies `change` under the lock, resumes the `knownState(timeout:)`
+    /// waiters once the path is known, and posts `pathDidChange` when the
+    /// visible state changed.
     private func swapState(_ change: () -> Void) {
-        let (old, new) = lock.withLock { () -> (State, State) in
+        let (old, new, waiters) = lock.withLock { () -> (State, State, [CheckedContinuation<State, Never>]) in
             let old = forcedPath?.state ?? pathState
             change()
-            return (old, forcedPath?.state ?? pathState)
+            var waiters: [CheckedContinuation<State, Never>] = []
+            if isPathKnown || forcedPath != nil {
+                waiters = Array(knownStateWaiters.values)
+                knownStateWaiters.removeAll()
+            }
+            return (old, forcedPath?.state ?? pathState, waiters)
         }
+        for waiter in waiters { waiter.resume(returning: new) }
         guard old.isConnected != new.isConnected
                 || old.isOnUnmeteredNetwork != new.isOnUnmeteredNetwork else { return }
         let center = notificationCenter
