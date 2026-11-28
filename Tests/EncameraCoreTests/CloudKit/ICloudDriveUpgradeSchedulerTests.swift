@@ -1259,6 +1259,47 @@ final class ICloudDriveUpgradeSchedulerTests: XCTestCase {
         XCTAssertFalse(emptied.effects.contains(.removeStoredRequestedAlbumIDs))
     }
 
+    // MARK: - Albums requested without a start
+
+    func testAlbumsRequestedAppendsMissingIDsInOrder() {
+        let before = SchedulerState(order: ["a"])
+
+        let result = transition(.albumsRequested(albumIDs: ["c", "b", "d"]), in: before)
+
+        XCTAssertEqual(result.state.order, ["a", "c", "b", "d"])
+    }
+
+    func testAlbumsRequestedSkipsAlbumsAlreadyRequested() {
+        let before = SchedulerState(order: ["a", "b"])
+
+        let result = transition(.albumsRequested(albumIDs: ["b", "c", "a", "c"]), in: before)
+
+        XCTAssertEqual(result.state.order, ["a", "b", "c"])
+        let unchanged = transition(.albumsRequested(albumIDs: ["a", "b"]), in: before)
+        XCTAssertEqual(unchanged.state, before)
+        XCTAssertEqual(unchanged.effects, [], "nothing to save or post")
+    }
+
+    func testAlbumsRequestedSavesTheOrder() {
+        let result = transition(.albumsRequested(albumIDs: ["a", "b"]), in: SchedulerState())
+
+        XCTAssertEqual(savedAlbumIDs(result.effects), [["a", "b"]])
+        XCTAssertFalse(result.effects.contains(.removeStoredRequestedAlbumIDs))
+    }
+
+    func testAlbumsRequestedStartsNothingByItself() {
+        let result = transition(.albumsRequested(albumIDs: ["a", "b"]), in: SchedulerState())
+
+        XCTAssertEqual(startedAlbumIDs(result.effects), [])
+        XCTAssertEqual(albumStepsRun(result.effects), [])
+        XCTAssertNil(result.state.continuingAlbumID)
+        XCTAssertEqual(result.state.albums, [:])
+        XCTAssertEqual(result.state.albumIDsTriedThisRound, [])
+
+        let continued = transition(.continueRequested, in: result.state)
+        XCTAssertEqual(albumStepsRun(continued.effects), ["a"], "continuing gives the first one its album step")
+    }
+
     func testEraseRemovesTheStoredList() {
         let before = state(after: [requested("a"), requested("b")])
 

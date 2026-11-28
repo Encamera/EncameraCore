@@ -21,6 +21,9 @@
 //  across launches and continue by themselves, one at a time
 //  (`continueRequestedUpgrades(albumManager:)` at launch, and the scheduler on
 //  every return to the foreground); `pauseUpgrade(albumID:)` ends a request.
+//  On a device that has never stored the requested albums, the launch first
+//  requests every album with a migration plan on this device: the albums an
+//  older build was upgrading.
 //  Nothing starts a pass in the background.
 //
 //  At most one album's pass runs in the process. A request for another album
@@ -545,7 +548,74 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
         scheduler.runAlbumStepForRequestedAlbum = { albumID in
             await runAlbumStep(forRequestedAlbumID: albumID, albumManager: albumManager)
         }
+        requestAlbumsWithPlansIfNoListIsStored(
+            scheduler: scheduler,
+            albums: { cloudKitAlbumsOnDevice(keyManager: albumManager.keyManager) },
+            hasPlan: { MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: $0) })
         scheduler.continueRequestedUpgrades()
+    }
+
+    /// Requests every album in `albums` that `hasPlan`, sorted by name, when
+    /// `scheduler` has never stored its requested albums.
+    ///
+    /// A plan means the upgrade started on this device and has not finished:
+    /// the album finish deletes it. Builds before the stored list kept no
+    /// record of the albums being upgraded, and never write the file; every
+    /// build since writes it whenever the order changes, an emptied order
+    /// included, and only an erase removes it, together with every plan. So a
+    /// missing file with plans on disk means albums an older build was
+    /// upgrading, and once the file exists this never adds an album again: one
+    /// the user paused or the scheduler dropped stays out. An album another
+    /// device started links a folder here but has no plan, and is not added.
+    ///
+    /// Reads only local files: no iCloud Drive folder or marker. Does nothing
+    /// while the phone is locked, since the names would not decrypt and the
+    /// order could not be sorted, or after an erase.
+    static func requestAlbumsWithPlansIfNoListIsStored(
+        scheduler: ICloudDriveUpgradeScheduler,
+        albums: () -> [(albumID: String, displayName: String?)],
+        hasPlan: (String) -> Bool
+    ) {
+        guard !isHaltedForErase, scheduler.isUnlocked(), scheduler.hasNoStoredRequestedList else { return }
+        let albumIDs = albumIDsToRequestForExistingPlans(albums: albums(), hasPlan: hasPlan)
+        guard !albumIDs.isEmpty else { return }
+        printDebug("requesting \(albumIDs.count) albums whose upgrade started before the requested list existed")
+        scheduler.requestAlbums(albumIDs)
+    }
+
+    /// The ids in `albums` that `hasPlan`, sorted by display name as the
+    /// Finder sorts ("a 2" before "a 10", case and diacritics ignored), the
+    /// albums whose name cannot be read last, by id.
+    nonisolated static func albumIDsToRequestForExistingPlans(
+        albums: [(albumID: String, displayName: String?)],
+        hasPlan: (String) -> Bool
+    ) -> [String] {
+        albums
+            .filter { hasPlan($0.albumID) }
+            .sorted { lhs, rhs in
+                switch (lhs.displayName, rhs.displayName) {
+                case let (left?, right?):
+                    let order = left.localizedStandardCompare(right)
+                    return order == .orderedSame ? lhs.albumID < rhs.albumID : order == .orderedAscending
+                case (.some, nil): return true
+                case (nil, .some): return false
+                case (nil, nil): return lhs.albumID < rhs.albumID
+                }
+            }
+            .map(\.albumID)
+    }
+
+    /// Every CloudKit album marker on this device with its name, decrypted
+    /// under the stored key that opens it, or nil when none does. Reads the
+    /// markers in Application Support and the keychain only.
+    private static func cloudKitAlbumsOnDevice(keyManager: KeyManager) -> [(albumID: String, displayName: String?)] {
+        let storedKeys = (try? keyManager.storedKeys()) ?? []
+        return CloudKitAlbumMarker.all().map { entry in
+            let hinted = storedKeys.filter { $0.keyFingerprint == entry.marker.keyFingerprint }
+            let candidates = hinted + storedKeys.filter { $0.keyFingerprint != entry.marker.keyFingerprint }
+            let name = candidates.lazy.compactMap { Album.decryptedAlbumName(entry.marker.encName, key: $0) }.first
+            return (entry.albumID, name)
+        }
     }
 
     /// Runs the album step for the requested album `albumID` and says what it

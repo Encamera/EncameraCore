@@ -13,7 +13,10 @@
 //  so it reads without a key and while the phone is locked.
 //
 //  A missing file, one that does not decode and one of another version all read
-//  as an empty list. A save replaces the file atomically.
+//  as an empty list. A save replaces the file atomically. Whether the file
+//  exists at all (`fileExists`) is what tells a device that ran an older build
+//  from one that saved a list, empty or not: see
+//  `ICloudDriveBlobMigration.continueRequestedUpgrades(albumManager:)`.
 //
 
 import Foundation
@@ -37,6 +40,11 @@ struct RequestedUpgradesStore {
 
     var fileURL: URL {
         directory.appendingPathComponent(Self.fileName)
+    }
+
+    /// Whether the file is on disk, readable or not. A saved empty list is.
+    var fileExists: Bool {
+        FileManager.default.fileExists(atPath: fileURL.path)
     }
 
     /// The stored album ids in order, or none when there is no readable version

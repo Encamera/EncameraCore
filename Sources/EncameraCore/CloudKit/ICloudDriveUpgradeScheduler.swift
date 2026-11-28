@@ -23,6 +23,10 @@
 //    only deferred items, its album step finds nothing to continue, or an
 //    erase. A one-off (the end of an item edit or move) never
 //    joins the order.
+//  - Albums can also join the order without a start (`albumsRequested`),
+//    after the albums already in it: the albums a launch finds mid-upgrade on
+//    a device that never stored the order. Nothing starts until the requested
+//    albums are next continued.
 //  - Requested albums continue by themselves, one at a time, at launch
 //    (`continueRequested`), on every return to the foreground and whenever a
 //    pass ends: the first in the order that waits starts its pass, and one
@@ -329,6 +333,20 @@ public final class ICloudDriveUpgradeScheduler: DebugPrintable {
         } onCancel: {
             Task { @MainActor in self.cancelRunningPass(startedByCall: call) }
         }
+    }
+
+    /// Whether the scheduler keeps its order on disk and no list was ever saved
+    /// there: the device ran no build that writes the list, or an erase removed
+    /// it. False for a scheduler that keeps its order in memory only.
+    var hasNoStoredRequestedList: Bool {
+        requestedUpgradesStore.map { !$0.fileExists } ?? false
+    }
+
+    /// Adds `albumIDs` to the requested albums, after the ones already there and
+    /// in the given order, skipping any already requested. Starts nothing:
+    /// `continueRequestedUpgrades()` carries them on.
+    func requestAlbums(_ albumIDs: [String]) {
+        applyEvent(.albumsRequested(albumIDs: albumIDs))
     }
 
     /// Carries on with the albums the user asked to upgrade, one at a time: the
@@ -758,6 +776,8 @@ public final class ICloudDriveUpgradeScheduler: DebugPrintable {
         case continueRequested
         /// The album step run for a requested album returned.
         case albumStepEnded(albumID: String, result: AlbumStepResult)
+        /// These albums join the order, in this order, without starting.
+        case albumsRequested(albumIDs: [String])
     }
 
     enum Effect: Equatable, Sendable {
@@ -933,6 +953,11 @@ public final class ICloudDriveUpgradeScheduler: DebugPrintable {
                 next.albumIDsTriedThisRound.remove(albumID)
             }
             startNextAlbum(in: &next, effects: &effects)
+
+        case .albumsRequested(let albumIDs):
+            for albumID in albumIDs where !next.order.contains(albumID) {
+                next.order.append(albumID)
+            }
         }
 
         if event == .erased {
