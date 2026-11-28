@@ -76,9 +76,9 @@ public enum UserDefaultKey {
     /// it; the app retries the cloud wipe on launch until it succeeds.
     case pendingCloudDataWipe
     case pendingDefaultsWipe
-    /// When the user last chose "Maybe later" on the CloudKit upgrade intro. Only
-    /// the deferral is stored; whether an upgrade is needed is derived from
-    /// whether any `.icloud` album still exists.
+    /// When the user chose "Maybe later" on the launch-time CloudKit upgrade
+    /// offer of an earlier version. Nothing writes it; the visitor profile
+    /// reports whether it is set.
     case cloudKitUpgradeDeferredAt
     /// Fingerprints (`PrivateKey.keyFingerprint`) of the keys generated on this
     /// device, so `MultiDeviceStateRecorder` can publish where each was minted

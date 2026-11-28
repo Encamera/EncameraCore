@@ -51,12 +51,6 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// for the key to arrive via iCloud Keychain, with a mandatory timeout,
     /// fingerprint verification on arrival, and a manual-entry fallback.
     case returningUserGuidedSync
-    /// One-time upgrade of every remaining iCloud Drive album to CloudKit,
-    /// presented outside the onboarding navigation stack. The raw values are the
-    /// `onboardingScreen` marker text; the screens are hosted by their own flow,
-    /// not `handleNavigationFor`.
-    case cloudKitUpgradeIntro
-    case cloudKitUpgradeInitiated
     /// Save-recovery-key flow offered after the first item lands in a new
     /// album. Hosted by `RecoveryKeyFlowHostingView`, not the onboarding navigation stack.
     case recoveryKeyIntro

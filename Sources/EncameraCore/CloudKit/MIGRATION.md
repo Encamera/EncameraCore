@@ -61,7 +61,7 @@ Supporting pieces used by the move but owned elsewhere: `AlbumManager.finalizeMi
 5. If the user leaves the screen, the move keeps running and the floating progress pill takes over. Coming back to the album screen re-attaches the overlay to the same run.
 6. When it finishes, the album flips to CloudKit and the screen adopts the new album.
 
-`.local` albums are offered this directly. iCloud Drive albums go through the upgrade flow, and the engine downloads each batch of evicted files before uploading it — see [iCloud Drive sources are materialized first](#icloud-drive-sources-are-materialized-first).
+`.local` albums are offered this directly. An iCloud Drive album is not: the card at the top of its screen starts that one album's upgrade with no alert and no overlay (`AlbumStorageMoveController.startICloudDriveAlbumUpgrade`), and choosing iCloud in its storage picker does the same — see [iCloud Drive albums move in the background](#icloud-drive-albums-move-in-the-background). A whole-album move from an iCloud Drive source downloads each batch of evicted files before uploading it — see [iCloud Drive sources are materialized first](#icloud-drive-sources-are-materialized-first).
 
 ## The checkpoint file
 
@@ -161,7 +161,7 @@ A cancel is ignored once a whole album's second pass has started, since stopping
 
 **Moving an album the other way** while its whole-album move is unfinished (paused, failed, or waiting on queued deletes) rolls that move back too: the album banner offers **Cancel Move** beside **Resume**. A move back to this device whose record deletes already went through is rolled back by withdrawing the deletes still queued (through the delete queue's guarded withdrawal, which waits out a delete in flight), uploading again every item whose record is gone from its local copy, and then removing the twin; a full fetch rebuilds the CloudKit album's index.
 
-**Pause** is the upgrade session stopping its current album (`CloudKitUpgradeSession.pause()`). The engine checkpoints at the next item boundary and stops. Nothing is stamped, so the plan stays freely resumable.
+**Pause** is `CloudKitMigrationManager.pause()`. The engine checkpoints at the next item boundary and stops. Nothing is stamped, so the plan stays freely resumable. Nothing in the app calls it.
 
 **Failure** comes in two flavours. Run-halting failures — iCloud storage full, no iCloud account, the CloudKit production schema never deployed — stop the whole run and surface a blocking alert with a **Resume** affordance; the user fixes the cause and resumes. Everything else fails just that item, records the error on it, and lets the run continue; at the end the run reports "N item(s) failed" including the first item's actual error.
 
@@ -221,7 +221,7 @@ The launcher registers a `MigrationTask` with `direction: .toLocal`, so the pill
 
 # iCloud Drive albums move in the background
 
-An iCloud Drive album does not move through a whole-album plan. `ICloudDriveAlbumMigration` gives it a CloudKit album in seconds, writing no media record, and from then on it is one CloudKit album whose items are in one of two places: in CloudKit, or still in the album's iCloud Drive folder. `ICloudDriveBlobMigration` then moves the items one at a time, for days if it has to, while the album stays fully usable. `CloudKit/AGENTS.md` has the operating rules for each piece; this section keeps the rules that differ from the moves above, so nobody brings the old ones back.
+An iCloud Drive album does not move through a whole-album plan. `ICloudDriveAlbumMigration` gives it a CloudKit album in seconds, writing no media record, and from then on it is one CloudKit album whose items are in one of two places: in CloudKit, or still in the album's iCloud Drive folder. `ICloudDriveBlobMigration` then moves the items one at a time, for days if it has to, while the album stays fully usable. The user upgrades album by album: the only start is the card at the top of an iCloud Drive album's screen (or the iCloud choice in that album's storage picker), which runs the album step for that album through `CloudKitMigrationLauncher.startMoveToCloudKit(album:)`; the screen then follows the album to its CloudKit album and shows the migration banner. An album whose upgrade was started and that has nothing moving it shows that banner waiting for a tap, which runs the album step again for its folder. `CloudKit/AGENTS.md` has the operating rules for each piece; this section keeps the rules that differ from the moves above, so nobody brings the old ones back.
 
 ## The marker file links the folder to its album
 

@@ -345,9 +345,8 @@ public enum MigrationDirection: Sendable, Hashable {
     case toLocal
 }
 
-/// How the last run of a plan ended in failure, persisted so launch-time resume and
-/// the upgrade offer can tell an automatic retry of a failed plan from a run the
-/// user started. Written when a run ends `.failed`; cleared when the user starts one.
+/// How the last run of a plan ended in failure, persisted so launch-time resume
+/// can tell an automatic retry of a failed plan from a run the user started. Written when a run ends `.failed`; cleared when the user starts one.
 public struct MigrationLastFailure: Codable, Sendable, Equatable {
     public enum Category: String, Codable, Sendable {
         /// iCloud is full.

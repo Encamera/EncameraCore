@@ -384,7 +384,6 @@
 "Settings.BackupKeyPhrase" = "Back Up Recovery Key";
 "Settings.DefaultStorageOption" = "Default Storage";
 "Settings.ICloudBackupAndSync" = "iCloud Backup & Sync";
-"Settings.CloudKitUpgradeRow" = "Upgrade iCloud albums";
 "Settings.ICloudBackupAndSync.ConfirmationTitle" = "Back up and sync your key and passcode with iCloud";
 "Settings.ICloudBackupAndSync.ConfirmationRow1" = "Enjoy Encamera seamlessly across all your devices using this iCloud account";
 "Settings.ICloudBackupAndSync.ConfirmationRow2" = "Use the same unlock method on all your devices";
@@ -740,7 +739,6 @@
 "EncameraDrawerFactory.PasscodeSetDrawer.Title" = "You're all set";
 "EncameraDrawerFactory.PasscodeSetDrawer.PinBody" = "You've set your PIN successfully. Remember it, you'll need it to unlock Encamera.";
 "EncameraDrawerFactory.PasscodeSetDrawer.PasswordBody" = "You've set your password successfully. Remember it, you'll need it to unlock Encamera.";
-"EncameraDrawerFactory.CloudKitUpgradeFailedDrawer.NotNow" = "Not Now";
 "EncameraDrawerFactory.PartialMigrationDrawer.ToCloudKitBody" = "Resume to move the rest of the album to iCloud. Cancel the move to bring back what has already moved, and the album stays on this device.";
 "EncameraDrawerFactory.PartialMediaMoveDrawer.Body" = "Resume to move the rest of the items to “%@”. Cancel Move stops the move: items already moved stay in “%@”, and the rest stay in this album.";
 "EncameraDrawerFactory.CloudKitMoveCompleteDrawer.UpgradedTitle" = "This album now uses the new iCloud storage";
@@ -1059,19 +1057,7 @@
 "StorageInsights.FreeUpSpaceFailedTitle" = "Couldn't free up space";
 "StorageInsights.FreeUpSpaceFailedMessage" = "Some downloaded copies couldn't be removed. Nothing was deleted from your photos or videos.";
 
-/* ./Encamera/Onboarding/CloudKitUpgrade - One-time upgrade of all iCloud Drive albums to CloudKit */
-"CloudKitUpgrade.IntroTitle" = "Faster, more reliable iCloud sync";
-"CloudKitUpgrade.IntroBody" = "To start using the new syncing experience, your iCloud albums need a one-time upgrade.";
-"CloudKitUpgrade.IntroSecurity" = "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
-"CloudKitUpgrade.StartUpgrade" = "Start Upgrade";
-"CloudKitUpgrade.WhyUpgrade" = "Why Upgrade?";
-"CloudKitUpgrade.AlbumsIncludedTitle" = "Albums included";
-"CloudKitUpgrade.LaterTitle" = "Upgrade later?";
-"CloudKitUpgrade.LaterMessage" = "You'll still be able to use Encamera, but your existing albums won't get the improved sync until you complete the upgrade.";
-"CloudKitUpgrade.LaterMaybeLater" = "Maybe Later";
-"CloudKitUpgrade.LaterUpdateNow" = "Upgrade Now";
-"CloudKitUpgrade.InitiatedTitle" = "Upgrade started";
-"CloudKitUpgrade.InitiatedBody" = "Your photos and videos will upload to iCloud whenever your device is on Wi-Fi. For the best results, keep Encamera open and your device unlocked. Each album shows its progress in a banner at the top.";
+/* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumInfoBanner.swift - The card on an iCloud Drive album that starts its upgrade to CloudKit */
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";
 "CloudKitUpgrade.AlbumCardBody" = "Upgrade it now for faster, more reliable syncing";
 
