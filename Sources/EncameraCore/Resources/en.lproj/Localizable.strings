@@ -1062,6 +1062,11 @@
 "StorageInsights.FreeUpSpaceFailedMessage" = "Some downloaded copies couldn't be removed. Nothing was deleted from your photos or videos.";
 
 /* ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumInfoBanner.swift - The card on an iCloud Drive album that starts its upgrade to CloudKit */
+"CloudKitUpgrade.IntroTitle" = "Faster, more reliable iCloud sync";
+"CloudKitUpgrade.IntroBody" = "To start using the new syncing experience, your iCloud albums need a one-time upgrade.";
+"CloudKitUpgrade.IntroSecurity" = "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.";
+"CloudKitUpgrade.StartUpgrade" = "Start Upgrade";
+"CloudKitUpgrade.WhyUpgrade" = "Why Upgrade?";
 "CloudKitUpgrade.AlbumCardTitle" = "Get better syncing for this album";
 "CloudKitUpgrade.AlbumCardBody" = "Upgrade it now for faster, more reliable syncing";
 

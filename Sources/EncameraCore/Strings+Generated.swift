@@ -1009,8 +1009,18 @@ public enum L10n {
   public enum CloudKitUpgrade {
     /// Upgrade it now for faster, more reliable syncing
     public static let albumCardBody = L10n.tr("Localizable", "CloudKitUpgrade.AlbumCardBody", fallback: "Upgrade it now for faster, more reliable syncing")
-    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumInfoBanner.swift - The card on an iCloud Drive album that starts its upgrade to CloudKit
+    /// Get better syncing for this album
     public static let albumCardTitle = L10n.tr("Localizable", "CloudKitUpgrade.AlbumCardTitle", fallback: "Get better syncing for this album")
+    /// To start using the new syncing experience, your iCloud albums need a one-time upgrade.
+    public static let introBody = L10n.tr("Localizable", "CloudKitUpgrade.IntroBody", fallback: "To start using the new syncing experience, your iCloud albums need a one-time upgrade.")
+    /// Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.
+    public static let introSecurity = L10n.tr("Localizable", "CloudKitUpgrade.IntroSecurity", fallback: "Your photos stay in your iCloud account and remain end-to-end encrypted throughout the process.")
+    /// ./Encamera/AlbumManagement/AlbumDetailView/Banners/AlbumInfoBanner.swift - The card on an iCloud Drive album that starts its upgrade to CloudKit
+    public static let introTitle = L10n.tr("Localizable", "CloudKitUpgrade.IntroTitle", fallback: "Faster, more reliable iCloud sync")
+    /// Start Upgrade
+    public static let startUpgrade = L10n.tr("Localizable", "CloudKitUpgrade.StartUpgrade", fallback: "Start Upgrade")
+    /// Why Upgrade?
+    public static let whyUpgrade = L10n.tr("Localizable", "CloudKitUpgrade.WhyUpgrade", fallback: "Why Upgrade?")
   }
   public enum Common {
     /// Cancel

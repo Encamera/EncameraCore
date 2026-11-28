@@ -55,6 +55,10 @@ public enum OnboardingFlowScreen: String, Identifiable {
     /// album. Hosted by `RecoveryKeyFlowHostingView`, not the onboarding navigation stack.
     case recoveryKeyIntro
     case recoveryKeyPhrase
+    /// The screen that offers one iCloud Drive album's upgrade to CloudKit,
+    /// hosted by `CloudKitUpgradeHostingView`, not the onboarding navigation
+    /// stack. Its raw value is the `onboardingScreen` marker text.
+    case cloudKitUpgradeIntro
     // MARK: - Multi-Device Onboarding
     case loginMethod
     case passcodeTypeSelection

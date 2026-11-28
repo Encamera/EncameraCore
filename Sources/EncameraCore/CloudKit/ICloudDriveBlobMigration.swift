@@ -13,7 +13,8 @@
 //
 //  A pass starts from `starter`, which `ICloudDriveAlbumMigration` calls after
 //  every run that ends `.prepared` and which is the user's request for the
-//  album (a tap on the album's upgrade card or on its banner waiting to resume,
+//  album (Start Upgrade on the intro the album's upgrade card opens, a tap on
+//  its banner waiting to resume,
 //  or the album step the scheduler runs to continue a requested album); from
 //  `startPass`, a one-off (the end of an item edit or an item move); and
 //  from the resume of a paused album described below. Requested albums are kept
