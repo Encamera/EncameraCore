@@ -131,8 +131,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
     /// The album step over the fake store, starting `startBlobMigration` for every
     /// album it prepares.
     private func makeAlbumStep(store: CloudKitMediaStoring? = nil,
-                               startBlobMigration: @escaping @MainActor (String, URL) async -> Void = { _, _ in },
-                               albumFolders: (() -> [URL])? = nil)
+                               startBlobMigration: @escaping @MainActor (String, URL) async -> Void = { _, _ in })
         -> ICloudDriveAlbumMigration {
         let store: CloudKitMediaStoring = store ?? self.store!
         return ICloudDriveAlbumMigration(albumManager: albumManager,
@@ -145,15 +144,13 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
                                          conflictVersions: { _ in [] },
                                          flipRegistry: ICloudDriveAlbumFlipRegistry(),
                                          zoneWalkRequests: CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults()),
-                                         albumFolders: albumFolders,
                                          startBlobMigration: startBlobMigration,
                                          folderWatches: folderWatches,
                                          makeFolderChangeSource: { [unowned self] in
                                              let source = FakeFolderChangeSource()
                                              self.changeSources.append(source)
                                              return source
-                                         },
-                                         finish: albumFinish)
+                                         })
     }
 
     /// An iCloud Drive album folder holding `count` real encrypted photos, plus
@@ -2152,9 +2149,7 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID))
 
         // Later runs watch nothing, for the folder or for its return.
-        let step = makeAlbumStep(albumFolders: { [] })
-        _ = await step.runEveryFolder()
-        _ = await step.run(folder: prepared.folder)
+        _ = await makeAlbumStep().run(folder: prepared.folder)
         XCTAssertEqual(changeSources.count, 1, "no watch is started again")
         XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID))
     }
@@ -2188,37 +2183,6 @@ final class ICloudDriveBlobMigrationTests: XCTestCase {
         XCTAssertTrue(listed.contains { $0.id == prepared.cloudKitAlbum.id }, "beside the CloudKit album")
         XCTAssertEqual(changeSources.count, 1, "nothing watched for the folder's return")
         XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID))
-    }
-
-    func testLinkedFolderRemovedElsewhereIsFinishedOnNextRun() async throws {
-        let prepared = try await prepareAlbum(count: 1)
-        // A pass that moves everything but cannot confirm the folder empty.
-        let first = await passAndFinish(prepared)
-        XCTAssertEqual(first, .kept(.contentsUnknown))
-        // The folder goes: another device finished the album, or this device
-        // died after removing it.
-        try FileManager.default.removeItem(at: prepared.folder)
-
-        // A folder whose marker this device cannot read yet may be the album's
-        // folder renamed: nothing is finished.
-        let other = prepared.folder.deletingLastPathComponent().appendingPathComponent("renamed-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
-        let evictedMarker = ICloudPlaceholderName.placeholderURL(forMaterialized: ICloudDriveAlbumMarkerFile.url(inAlbumDirectory: other))
-        try Data().write(to: evictedMarker)
-        _ = await makeAlbumStep(albumFolders: { [other] }).runEveryFolder()
-        XCTAssertTrue(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID))
-        XCTAssertNotNil(CloudKitAlbumMarker.read(albumID: prepared.albumID)?.iCloudDriveFolderPath)
-        XCTAssertTrue(folderWatches.isWatching(albumID: prepared.albumID))
-
-        try FileManager.default.removeItem(at: other)
-        _ = await makeAlbumStep(albumFolders: { [] }).runEveryFolder()
-
-        assertFinished(prepared)
-        XCTAssertFalse(folderWatches.isWatching(albumID: prepared.albumID), "its watch is stopped")
-        let partly = await ICloudDriveAlbumFinish.isPartlyOnICloudDrive(prepared.cloudKitAlbum, albumManager: albumManager)
-        XCTAssertFalse(partly)
-        XCTAssertTrue(albumManager.fetchAlbumsFromSources().contains { $0.id == prepared.cloudKitAlbum.id },
-                      "the album is still listed")
     }
 
     // MARK: - Scratch

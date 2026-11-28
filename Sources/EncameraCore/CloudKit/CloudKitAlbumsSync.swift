@@ -13,16 +13,8 @@
 //  marker file appears, changes or finishes downloading
 //  (`ICloudDriveAlbumMarkerMonitor`).
 //
-//  After the walk, the iCloud Drive album migration
-//  (`ICloudDriveAlbumMigration.runEveryFolder()`) runs for every album folder
-//  whose marker file names an album; a folder without one waits for the user's
-//  start. It runs after each pass until one run gets past its conditions
-//  (unlocked, foreground, network, account, iCloud Drive) in this process with a
-//  folder that was not only waiting for the user's start, and after every walk the
-//  marker monitor starts. Once any album step has skipped for want of a network
-//  (`ICloudDriveAlbumMigration.didWaitForNetwork`), whether this actor's run or a
-//  user's move, the migration runs again at the next
-//  `NetworkMonitor.pathDidChange`. It is never awaited by launch.
+//  The sync never runs the iCloud Drive album migration
+//  (`ICloudDriveAlbumMigration`): only a user's start does.
 //
 //  The walk itself is not held for Wi-Fi. On a device that has the folder, album
 //  sync adopts the `EncAlbum` on its own and the album list then hides the
@@ -33,7 +25,6 @@
 //
 
 import Foundation
-import os
 
 public actor CloudKitAlbumsSync: DebugPrintable {
 
@@ -42,7 +33,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     private let makeCoordinator: @Sendable (AlbumManaging) -> CloudKitSyncCoordinator
     private let makeFolderWalk: @Sendable (AlbumManaging) -> ICloudDriveAlbumFolderWalk
     private let markerMonitor: ICloudDriveAlbumMarkerMonitor?
-    private let makeICloudDriveAlbumMigration: (@Sendable @MainActor (AlbumManaging) -> ICloudDriveAlbumMigration)?
     /// Gates reconciliation on the launch-time credential wait having resolved.
     /// `CloudKitAlbumReconciler` matches synced keys against a one-way album-id
     /// hash, so running it while iCloud Keychain credentials are still in flight
@@ -55,9 +45,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     private let statusReporter: CloudKitSyncStatusReporter?
     private var observer: NSObjectProtocol?
     private var keyLibraryObserver: NSObjectProtocol?
-    private var networkPathObserver: NSObjectProtocol?
-    private var albumStepWaitObserver: NSObjectProtocol?
-    private let networkNotificationCenter: NotificationCenter
 
     /// The most recent count of remote albums that could not be materialized for lack
     /// of a synced key (key backup off). The UI reads this to prompt "N albums need
@@ -68,19 +55,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     private(set) var resyncRequested = false
     private var activeFolderWalk: Task<Void, Never>?
     private var folderWalkRequested = false
-    private var activeAlbumMigration: Task<Bool, Never>?
-    private var albumMigrationRequested = false
-    /// Whether a migration pass got past its conditions in this process with a
-    /// folder that was not only waiting for the user's start
-    /// (`AlbumMigrationPassResult.ranBeyondAwaitingUserStart`).
-    private(set) var albumMigrationRanThisLaunch = false
-    /// Set from the observer of `ICloudDriveAlbumMigration.didWaitForNetwork`,
-    /// which is posted on the main actor during a run, so it is set before the run
-    /// returns.
-    private let albumStepWaitedForNetwork = OSAllocatedUnfairLock(initialState: false)
-    /// Whether an album step skipped for want of a network since the last
-    /// migration run started, so the migration runs again when the network changes.
-    var albumMigrationWaitingForNetwork: Bool { albumStepWaitedForNetwork.withLock { $0 } }
 
     public init(albumManager: AlbumManaging,
                 observeNotifications: Bool = true,
@@ -88,12 +62,9 @@ public actor CloudKitAlbumsSync: DebugPrintable {
                 statusReporter: CloudKitSyncStatusReporter? = nil,
                 makeReconciler: (@Sendable (AlbumManaging) -> CloudKitAlbumReconciler)? = nil,
                 makeCoordinator: (@Sendable (AlbumManaging) -> CloudKitSyncCoordinator)? = nil,
-                makeFolderWalk: (@Sendable (AlbumManaging) -> ICloudDriveAlbumFolderWalk)? = nil,
-                makeICloudDriveAlbumMigration: (@Sendable @MainActor (AlbumManaging) -> ICloudDriveAlbumMigration)? = nil,
-                networkNotificationCenter: NotificationCenter = .default) {
+                makeFolderWalk: (@Sendable (AlbumManaging) -> ICloudDriveAlbumFolderWalk)? = nil) {
         self.albumManager = albumManager
         self.isReadyToSync = isReadyToSync
-        self.networkNotificationCenter = networkNotificationCenter
         self.statusReporter = statusReporter
         self.makeReconciler = makeReconciler ?? { albumManager in
             CloudKitAlbumReconciler(store: CloudKitStoreProvider.makeStore(""),
@@ -107,12 +78,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         }
         let markerMonitor = observeNotifications ? ICloudDriveAlbumMarkerMonitor() : nil
         self.markerMonitor = markerMonitor
-        // Without notifications (the configuration tests build) the migration runs
-        // only when a test hands in its own.
-        self.makeICloudDriveAlbumMigration = makeICloudDriveAlbumMigration ?? (observeNotifications ? { @Sendable @MainActor albumManager in
-            ICloudDriveAlbumMigration(albumManager: albumManager,
-                                      startBlobMigration: ICloudDriveBlobMigration.starter(albumManager: albumManager))
-        } : nil)
         if observeNotifications {
             observer = NotificationCenter.default.addObserver(
                 forName: .cloudKitZoneChanged, object: nil, queue: nil
@@ -127,24 +92,10 @@ public actor CloudKitAlbumsSync: DebugPrintable {
                 Task { await self?.syncAll() }
             }
         }
-        if self.makeICloudDriveAlbumMigration != nil {
-            networkPathObserver = networkNotificationCenter.addObserver(
-                forName: NetworkMonitor.pathDidChange, object: nil, queue: nil
-            ) { [weak self] _ in
-                Task { await self?.networkPathDidChange() }
-            }
-            let albumStepWaitedForNetwork = albumStepWaitedForNetwork
-            albumStepWaitObserver = NotificationCenter.default.addObserver(
-                forName: ICloudDriveAlbumMigration.didWaitForNetwork, object: nil, queue: nil
-            ) { _ in
-                albumStepWaitedForNetwork.withLock { $0 = true }
-            }
-        }
         if let markerMonitor {
             markerMonitor.onChange = { [weak self] in
                 Task(priority: .utility) {
                     await self?.walkICloudDriveAlbumFolders()
-                    await self?.migrateICloudDriveAlbums()
                 }
             }
             Task { @MainActor in markerMonitor.start() }
@@ -159,8 +110,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
     deinit {
         if let observer { NotificationCenter.default.removeObserver(observer) }
         if let keyLibraryObserver { NotificationCenter.default.removeObserver(keyLibraryObserver) }
-        if let networkPathObserver { networkNotificationCenter.removeObserver(networkPathObserver) }
-        if let albumStepWaitObserver { NotificationCenter.default.removeObserver(albumStepWaitObserver) }
     }
 
     /// Walks the zone once, reconciles album *existence* from what the walk and the
@@ -217,46 +166,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         await task.value
     }
 
-    /// Runs the iCloud Drive album migration for every album folder once
-    /// (`ICloudDriveAlbumMigration.runEveryFolder()`). A call during a run joins it
-    /// and has it run again when it finishes. Returns whether a run got past its
-    /// conditions with a folder that was not only waiting for the user's start.
-    @discardableResult
-    public func migrateICloudDriveAlbums() async -> Bool {
-        guard let makeICloudDriveAlbumMigration else { return false }
-        guard isReadyToSync() else {
-            printDebug("migrateICloudDriveAlbums skip reason=awaitingCredentialRestore")
-            return false
-        }
-        if let active = activeAlbumMigration {
-            albumMigrationRequested = true
-            return await active.value
-        }
-        let albumManager = self.albumManager
-        let task = Task<Bool, Never>(priority: .utility) {
-            defer { activeAlbumMigration = nil }
-            var ran = false
-            repeat {
-                albumMigrationRequested = false
-                albumStepWaitedForNetwork.withLock { $0 = false }
-                let result = await makeICloudDriveAlbumMigration(albumManager).runEveryFolder()
-                if result.ranBeyondAwaitingUserStart { ran = true }
-            } while albumMigrationRequested
-            if ran { albumMigrationRanThisLaunch = true }
-            return ran
-        }
-        activeAlbumMigration = task
-        return await task.value
-    }
-
-    /// Runs the album migration again after an album step skipped for want of a
-    /// network. A run still offline skips again and keeps waiting.
-    private func networkPathDidChange() async {
-        guard albumMigrationWaitingForNetwork else { return }
-        printDebug("networkPathDidChange; running the album migration an album step skipped for want of a network")
-        await migrateICloudDriveAlbums()
-    }
-
     private func performSyncAll() async {
         guard isReadyToSync() else {
             printDebug("performSyncAll skip reason=awaitingCredentialRestore")
@@ -264,9 +173,6 @@ public actor CloudKitAlbumsSync: DebugPrintable {
         }
         await performCloudKitPass()
         await walkICloudDriveAlbumFolders()
-        if !albumMigrationRanThisLaunch {
-            await migrateICloudDriveAlbums()
-        }
     }
 
     private func performCloudKitPass() async {

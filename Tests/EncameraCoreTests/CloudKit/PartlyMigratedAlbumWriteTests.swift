@@ -157,8 +157,7 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
     }
 
     private func makeAlbumStep(albumManager: AlbumManager? = nil,
-                               albumDeletion: ICloudDriveAlbumDeletion? = nil,
-                               albumFolders: (() -> [URL])? = nil) -> ICloudDriveAlbumMigration {
+                               albumDeletion: ICloudDriveAlbumDeletion? = nil) -> ICloudDriveAlbumMigration {
         let store = self.store!
         let albumManager = albumManager ?? self.albumManager!
         return ICloudDriveAlbumMigration(albumManager: albumManager,
@@ -171,7 +170,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
                                          conflictVersions: { _ in [] },
                                          flipRegistry: ICloudDriveAlbumFlipRegistry(),
                                          zoneWalkRequests: CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults()),
-                                         albumFolders: albumFolders,
                                          startBlobMigration: { _, _ in },
                                          folderWatches: folderWatches,
                                          makeFolderChangeSource: { [unowned self] in
@@ -179,7 +177,6 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
                                              self.changeSources.append(source)
                                              return source
                                          },
-                                         finish: albumFinish,
                                          albumDeletion: albumDeletion ?? self.albumDeletion)
     }
 
@@ -801,11 +798,10 @@ final class PartlyMigratedAlbumWriteTests: XCTestCase {
         XCTAssertFalse(walked.changedAlbumMarker)
         XCTAssertFalse(CloudKitAlbumMarker.exists(albumID: prepared.albumID))
 
-        let step = makeAlbumStep(albumManager: relaunched, albumDeletion: relaunchedDeletion,
-                                 albumFolders: { [prepared] in [prepared.folder] })
-        _ = await step.runEveryFolder()
+        let step = makeAlbumStep(albumManager: relaunched, albumDeletion: relaunchedDeletion)
+        let outcome = await step.run(folder: prepared.folder)
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: prepared.folder.path), "the album step removes the remnant")
+        XCTAssertEqual(outcome, .skipped(.albumNotFound), "the album step does not run for the remnant")
         XCTAssertFalse(CloudKitAlbumMarker.exists(albumID: prepared.albumID), "the album step does not bring the album back")
         XCTAssertFalse(MigrationPlanStore.hasICloudDriveMigrationPlan(cloudKitAlbumID: prepared.albumID), "nor its plan")
         XCTAssertEqual(store.savedAlbumCalls.count, savesAtDelete, "nor its record")

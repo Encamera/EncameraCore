@@ -119,7 +119,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
                                writeMarkerFile: ((ICloudDriveAlbumMarkerFile, URL) throws -> Void)? = nil,
                                makeVerifiedDelete: ((CloudKitMediaStoring) -> ICloudDriveComponentDeleting)? = nil,
                                flipRegistry: ICloudDriveAlbumFlipRegistry = ICloudDriveAlbumFlipRegistry(),
-                               albumFolders: (() -> [URL])? = nil,
                                startBlobMigration: (@MainActor (String, URL) async -> Void)? = nil) -> ICloudDriveAlbumMigration {
         let store = self.store!
         return ICloudDriveAlbumMigration(albumManager: albumManager,
@@ -137,7 +136,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
                                          makeVerifiedDelete: makeVerifiedDelete ?? { ICloudDriveVerifiedDelete(store: $0) },
                                          flipRegistry: flipRegistry,
                                          zoneWalkRequests: zoneWalkRequests,
-                                         albumFolders: albumFolders,
                                          startBlobMigration: startBlobMigration ?? { [unowned self] albumID, folder in
                                              self.blobMigrationStarts.append(BlobMigrationStart(albumID: albumID, folder: folder))
                                          })
@@ -476,71 +474,6 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
                        "the blob migration starts on cellular and waits for Wi-Fi itself")
     }
 
-    func testNetworkReturnStartsSkippedAlbumStep() async throws {
-        let drive = try await makeDriveAlbum()
-        let albumID = UUID().uuidString
-        try ICloudDriveAlbumMarkerFile(albumID: albumID).write(toAlbumDirectory: drive.folder)
-        store.seedAlbum(record(albumID: albumID, for: drive.album))
-        let hasNetwork = NetworkFlag()
-        let center = NotificationCenter()
-        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { hasNetwork.value },
-                                                        isOnUnmeteredNetwork: { false }),
-                                      albumFolders: { [drive.folder] })
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
-                                      makeICloudDriveAlbumMigration: { _ in migration },
-                                      networkNotificationCenter: center)
-
-        let ranOffline = await sync.migrateICloudDriveAlbums()
-        XCTAssertFalse(ranOffline)
-        let waiting = await sync.albumMigrationWaitingForNetwork
-        XCTAssertTrue(waiting, "a launch with no network runs the album step again when the network changes")
-        XCTAssertNil(CloudKitAlbumMarker.read(albumID: albumID))
-
-        // A path change that is still offline runs nothing.
-        center.post(name: NetworkMonitor.pathDidChange, object: nil)
-        try await Task.sleep(for: .milliseconds(200))
-        XCTAssertNil(CloudKitAlbumMarker.read(albumID: albumID))
-        XCTAssertTrue(blobMigrationStarts.isEmpty)
-
-        // A cellular network is enough for the album step.
-        hasNetwork.value = true
-        center.post(name: NetworkMonitor.pathDidChange, object: nil)
-
-        let deadline = Date().addingTimeInterval(10)
-        while blobMigrationStarts.isEmpty, Date() < deadline {
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        let start = try XCTUnwrap(blobMigrationStarts.first, "the network returning runs the skipped album step without a relaunch")
-        XCTAssertEqual(start.albumID, albumID)
-        XCTAssertNotNil(CloudKitAlbumMarker.read(albumID: albumID), "the marked album is adopted")
-        let stillWaiting = await sync.albumMigrationWaitingForNetwork
-        XCTAssertFalse(stillWaiting)
-    }
-
-    func testNetworkReturnRerunsAlbumStepAUserMoveSkipped() async throws {
-        let drive = try await makeDriveAlbum()
-        let hasNetwork = NetworkFlag()
-        hasNetwork.value = true
-        let center = NotificationCenter()
-        let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { hasNetwork.value },
-                                                        isOnUnmeteredNetwork: { hasNetwork.value }),
-                                      albumFolders: { [] })
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
-                                      makeICloudDriveAlbumMigration: { _ in migration },
-                                      networkNotificationCenter: center)
-        let ranOnline = await sync.migrateICloudDriveAlbums()
-        XCTAssertTrue(ranOnline)
-        let waitingAfterLaunch = await sync.albumMigrationWaitingForNetwork
-        XCTAssertFalse(waitingAfterLaunch)
-
-        // The user starts the move offline, outside the sync's own run.
-        hasNetwork.value = false
-        let userMove = await run(drive, migration)
-        XCTAssertEqual(userMove, .skipped(.offline))
-        let waiting = await sync.albumMigrationWaitingForNetwork
-        XCTAssertTrue(waiting, "a user move skipped offline is run again when the network returns")
-    }
-
     // MARK: - Markers that cannot be used as they are
 
     func testEvictedMarkerRequestsDownloadAndMintsNothing() async throws {
@@ -862,7 +795,7 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
             .contains { $0.storageOption == .icloud && $0.name == drive.album.name })
     }
 
-    // MARK: - Every launch
+    // MARK: - Device conditions
 
     private final class DeleteSpy: ICloudDriveComponentDeleting, @unchecked Sendable {
         private let lock = NSLock()
@@ -875,119 +808,18 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         }
     }
 
-    private func byFolderName(_ outcomes: [URL: ICloudDriveAlbumMigration.AlbumMigrationRunOutcome]) -> [String: ICloudDriveAlbumMigration.AlbumMigrationRunOutcome] {
-        Dictionary(uniqueKeysWithValues: outcomes.map { ($0.key.lastPathComponent, $0.value) })
-    }
-
     /// The index file of the CloudKit album `albumID`, if this device has one.
     private func indexEntries(albumID: String) async -> [MediaIndexEntry]? {
         await albumManager.mediaIndexStore(forAlbumID: albumID)?.reloadFromDisk()?.entries
     }
 
-    /// A pass runs for every album folder whose marker names an album, hands
-    /// each prepared album to the blob migration, and every index a run created
-    /// has its whole-zone walk asked for. A second pass over albums and folders
-    /// in parity saves nothing, deletes nothing and changes no index.
-    func testRunsForEveryMarkedFolder() async throws {
-        let marked = try await makeDriveAlbum(count: 1)
-        let fresh = try await makeDriveAlbum(count: 2)
-        let earlier = await run(marked)
-        guard case .prepared(let markedID) = earlier else { return XCTFail("expected prepared, got \(earlier)") }
-        let started = await run(fresh)
-        guard case .prepared(let freshID) = started else { return XCTFail("expected prepared, got \(started)") }
-        blobMigrationStarts = []
-        let spy = DeleteSpy()
-        let migration = makeMigration(makeVerifiedDelete: { _ in spy })
-
-        let first = await migration.runEveryFolder()
-
-        guard case .ran(let ran) = first else { return XCTFail("expected a pass, got \(first)") }
-        XCTAssertEqual(byFolderName(ran), [marked.folder.lastPathComponent: .prepared(albumID: markedID),
-                                           fresh.folder.lastPathComponent: .prepared(albumID: freshID)])
-        XCTAssertEqual(markerFile(in: fresh), .present(ICloudDriveAlbumMarkerFile(albumID: freshID)))
-        XCTAssertEqual(Set(blobMigrationStarts.map { "\($0.albumID)/\($0.folder.lastPathComponent)" }),
-                       ["\(markedID)/\(marked.folder.lastPathComponent)", "\(freshID)/\(fresh.folder.lastPathComponent)"])
-        XCTAssertTrue(zoneWalkRequests.requested().isSuperset(of: [markedID, freshID]),
-                      "each album whose index the run created gets a whole-zone walk")
-        let freshIndex = await indexEntries(albumID: freshID)
-        XCTAssertEqual(Set(freshIndex?.map(\.id) ?? []), Set(fresh.mediaIDs))
-
-        let savesBefore = store.savedAlbumCalls.count
-        let filesBefore = [try mediaSnapshot(marked), try mediaSnapshot(fresh)]
-        let indexesBefore = [await indexEntries(albumID: markedID), await indexEntries(albumID: freshID)]
-        let markedPlanBefore = await plan(marked, albumID: markedID)?.items
-        let freshPlanBefore = await plan(fresh, albumID: freshID)?.items
-
-        let second = await migration.runEveryFolder()
-
-        guard case .ran(let ranAgain) = second else { return XCTFail("expected a pass, got \(second)") }
-        XCTAssertEqual(byFolderName(ranAgain), [marked.folder.lastPathComponent: .prepared(albumID: markedID),
-                                                fresh.folder.lastPathComponent: .prepared(albumID: freshID)])
-        XCTAssertEqual(store.savedAlbumCalls.count, savesBefore, "no album record saved again")
-        XCTAssertTrue(store.uploadCalls.isEmpty)
-        XCTAssertTrue(spy.recordNames.isEmpty, "nothing in parity is passed to the delete")
-        XCTAssertEqual([try mediaSnapshot(marked), try mediaSnapshot(fresh)], filesBefore)
-        let indexesAfter = [await indexEntries(albumID: markedID), await indexEntries(albumID: freshID)]
-        XCTAssertEqual(indexesAfter, indexesBefore)
-        let markedPlanAfter = await plan(marked, albumID: markedID)?.items
-        let freshPlanAfter = await plan(fresh, albumID: freshID)?.items
-        XCTAssertEqual(markedPlanAfter, markedPlanBefore)
-        XCTAssertEqual(freshPlanAfter, freshPlanBefore)
-        XCTAssertEqual(listed(marked, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.cloudKit])
-        XCTAssertEqual(listed(fresh, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.cloudKit])
-    }
-
     // MARK: - Starting only from the user
 
-    /// The automatic pass leaves a folder without a marker exactly as it is: no
-    /// marker, no record saved, no flip, no blob migration, and no `FolderGate`
-    /// wait behind it.
-    func testRunEveryFolderSkipsFolderWithoutMarker() async throws {
-        let drive = try await makeDriveAlbum()
-        let before = try mediaSnapshot(drive)
-        let migration = makeMigration(albumFolders: { [drive.folder] })
-
-        let pass = await migration.runEveryFolder()
-
-        XCTAssertEqual(pass, .ran([drive.folder: .skipped(.awaitingUserStart)]))
-        XCTAssertFalse(pass.ranBeyondAwaitingUserStart)
-        XCTAssertEqual(markerFile(in: drive), .absent, "no marker written")
-        XCTAssertTrue(serverAlbumCalls.isEmpty, "no album id is resolved or saved")
-        XCTAssertTrue(blobMigrationStarts.isEmpty)
-        XCTAssertTrue(zoneWalkRequests.requested().isEmpty)
-        XCTAssertEqual(try mediaSnapshot(drive), before)
-        assertNothingWritten(drive)
-        assertListedAsICloudDriveOnly(drive)
-    }
-
-    /// A folder whose marker names a saved album, as after a run killed after the
-    /// marker write or another device's start, is resumed and flipped.
-    func testRunEveryFolderResumesFolderWithMarker() async throws {
-        let marked = try await makeDriveAlbum()
-        let unmarked = try await makeDriveAlbum(count: 1)
-        let albumID = UUID().uuidString
-        try ICloudDriveAlbumMarkerFile(albumID: albumID).write(toAlbumDirectory: marked.folder)
-        store.seedAlbum(record(albumID: albumID, for: marked.album))
-        let migration = makeMigration(albumFolders: { [marked.folder, unmarked.folder] })
-
-        let pass = await migration.runEveryFolder()
-
-        guard case .ran(let ran) = pass else { return XCTFail("expected a pass, got \(pass)") }
-        XCTAssertEqual(byFolderName(ran), [marked.folder.lastPathComponent: .prepared(albumID: albumID),
-                                           unmarked.folder.lastPathComponent: .skipped(.awaitingUserStart)])
-        XCTAssertTrue(pass.ranBeyondAwaitingUserStart)
-        XCTAssertTrue(store.savedAlbumCalls.isEmpty, "the marked album is adopted, not saved")
-        XCTAssertEqual(blobMigrationStarts, [BlobMigrationStart(albumID: albumID, folder: marked.folder)])
-        XCTAssertEqual(listed(marked, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.cloudKit])
-        XCTAssertEqual(listed(unmarked, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.icloud])
-        XCTAssertEqual(markerFile(in: unmarked), .absent)
-    }
-
-    /// The user's start still mints and marks a folder without a marker.
-    func testRunAlbumStillMintsAndMarksFolderWithoutMarker() async throws {
+    /// The user's start mints and marks a folder without a marker.
+    func testRunAlbumMintsAndMarksFolderWithoutMarker() async throws {
         let drive = try await makeDriveAlbum()
 
-        let outcome = await makeMigration(albumFolders: { [drive.folder] }).run(album: drive.album)
+        let outcome = await makeMigration().run(album: drive.album)
 
         guard case .prepared(let albumID) = outcome else { return XCTFail("expected prepared, got \(outcome)") }
         touchedAlbumIDs.insert(albumID)
@@ -997,64 +829,21 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         XCTAssertEqual(blobMigrationStarts, [BlobMigrationStart(albumID: albumID, folder: drive.folder)])
     }
 
-    /// A sync whose pass only found folders waiting for the user's start has not
-    /// run the migration this launch, so its later passes keep running it; a pass
-    /// after the user's start, which resumes the folder, has.
-    func testSyncPassThatOnlyAwaitedUserStartDoesNotCountAsRan() async throws {
-        let drive = try await makeDriveAlbum()
-        let migration = makeMigration(albumFolders: { [drive.folder] })
-        let sync = CloudKitAlbumsSync(albumManager: albumManager, observeNotifications: false,
-                                      makeICloudDriveAlbumMigration: { _ in migration },
-                                      networkNotificationCenter: NotificationCenter())
-
-        let ran = await sync.migrateICloudDriveAlbums()
-
-        XCTAssertFalse(ran)
-        let ranThisLaunch = await sync.albumMigrationRanThisLaunch
-        XCTAssertFalse(ranThisLaunch)
-        XCTAssertEqual(markerFile(in: drive), .absent)
-        XCTAssertTrue(store.savedAlbumCalls.isEmpty)
-
-        let started = await migration.run(album: drive.album)
-        guard case .prepared(let albumID) = started else { return XCTFail("expected prepared, got \(started)") }
-        touchedAlbumIDs.insert(albumID)
-
-        let ranAfterStart = await sync.migrateICloudDriveAlbums()
-
-        XCTAssertTrue(ranAfterStart)
-        let ranThisLaunchAfterStart = await sync.albumMigrationRanThisLaunch
-        XCTAssertTrue(ranThisLaunchAfterStart)
-    }
-
     /// While the phone is locked (protected data unavailable) or the app runs in
-    /// the background, as in a background task run, a pass lists no
-    /// folder and a run reaches nothing. The device conditions read the phone's
-    /// own protected-data and run state.
+    /// device conditions read the phone's own protected-data and run state.
     func testSkipsWhenLockedOrProtectedDataUnavailable() async throws {
         let drive = try await makeDriveAlbum()
         let before = try mediaSnapshot(drive)
-        var listedFolders = 0
-        let countFolders = { () -> [URL] in
-            listedFolders += 1
-            return [drive.folder]
-        }
 
-        let locked = makeMigration(conditions: .init(isUnlocked: { false }, hasNetwork: { true }, isOnUnmeteredNetwork: { true }),
-                                   albumFolders: countFolders)
-        let lockedPass = await locked.runEveryFolder()
-        XCTAssertEqual(lockedPass, .skipped(.locked))
+        let locked = makeMigration(conditions: .init(isUnlocked: { false }, hasNetwork: { true }, isOnUnmeteredNetwork: { true }))
         let lockedRun = await locked.run(album: drive.album)
         XCTAssertEqual(lockedRun, .skipped(.locked))
 
         let background = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true }, isOnUnmeteredNetwork: { true },
-                                                         isInBackground: { true }),
-                                       albumFolders: countFolders)
-        let backgroundPass = await background.runEveryFolder()
-        XCTAssertEqual(backgroundPass, .skipped(.inBackground))
+                                                         isInBackground: { true }))
         let backgroundRun = await run(drive, background)
         XCTAssertEqual(backgroundRun, .skipped(.inBackground))
 
-        XCTAssertEqual(listedFolders, 0, "no folder is listed")
         XCTAssertEqual(storesMade, 0, "nothing reaches the server")
         XCTAssertEqual(markerFile(in: drive), .absent)
         XCTAssertEqual(try mediaSnapshot(drive), before)
@@ -1071,41 +860,7 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         #endif
     }
 
-    /// Offline, or with the account unavailable, a pass lists no folder and leaves
-    /// every iCloud Drive album exactly as it was.
-    func testSkipsWhenOfflineOrNoAccount() async throws {
-        let first = try await makeDriveAlbum()
-        let second = try await makeDriveAlbum(count: 1)
-        let before = [try mediaSnapshot(first), try mediaSnapshot(second)]
-        var listedFolders = 0
-        let countFolders = { () -> [URL] in
-            listedFolders += 1
-            return [first.folder, second.folder]
-        }
-
-        let offline = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { false }, isOnUnmeteredNetwork: { false }),
-                                    albumFolders: countFolders)
-        let offlinePass = await offline.runEveryFolder()
-        XCTAssertEqual(offlinePass, .skipped(.offline))
-
-        store.accountAvailableValue = false
-        let signedOut = makeMigration(albumFolders: countFolders)
-        let signedOutPass = await signedOut.runEveryFolder()
-        XCTAssertEqual(signedOutPass, .skipped(.accountUnavailable))
-
-        XCTAssertEqual(listedFolders, 0, "no folder is listed")
-        XCTAssertTrue(serverAlbumCalls.isEmpty)
-        XCTAssertTrue(blobMigrationStarts.isEmpty)
-        XCTAssertEqual(markerFile(in: first), .absent)
-        XCTAssertEqual(markerFile(in: second), .absent)
-        XCTAssertEqual([try mediaSnapshot(first), try mediaSnapshot(second)], before)
-        assertNothingWritten(first)
-        assertListedAsICloudDriveOnly(first)
-        assertListedAsICloudDriveOnly(second)
-    }
-
-    /// With iCloud Drive off for the app, nothing runs: no folder is listed or
-    /// read, no record is fetched, nothing is indexed, swept or deleted, and the
+    /// With iCloud Drive off for the app, nothing runs: no folder is read, no record is fetched, nothing is indexed, swept or deleted, and the
     /// blob migration never starts. That holds for a folder whose marker names an
     /// album with a file already in CloudKit, which a run would sweep.
     func testDeviceWithoutICloudDriveNeverScansSweepsOrDeletes() async throws {
@@ -1120,24 +875,16 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
             mediaID: uploaded, mediaType: .photo, createdAt: Date(), sizeBytes: try XCTUnwrap(uploadedURL.fileSizeBytes()),
             creationDeviceID: "other-device", schemaVersion: 1, recordChangeTag: "tag"))
         let before = try mediaSnapshot(drive)
-        var listedFolders = 0
         let spy = DeleteSpy()
         let migration = makeMigration(conditions: .init(isUnlocked: { true }, hasNetwork: { true }, isOnUnmeteredNetwork: { true },
                                                         hasICloudDrive: { false }),
-                                      makeVerifiedDelete: { _ in spy },
-                                      albumFolders: {
-                                          listedFolders += 1
-                                          return [drive.folder]
-                                      })
+                                      makeVerifiedDelete: { _ in spy })
 
-        let pass = await migration.runEveryFolder()
         let folderRun = await migration.run(folder: drive.folder)
         let albumRun = await migration.run(album: drive.album)
 
-        XCTAssertEqual(pass, .skipped(.iCloudDriveUnavailable))
         XCTAssertEqual(folderRun, .skipped(.iCloudDriveUnavailable))
         XCTAssertEqual(albumRun, .skipped(.iCloudDriveUnavailable))
-        XCTAssertEqual(listedFolders, 0, "no folder is listed")
         XCTAssertEqual(storesMade, 0, "nothing reaches the server")
         XCTAssertTrue(store.callOrder.isEmpty)
         XCTAssertTrue(spy.recordNames.isEmpty, "nothing is deleted")
@@ -1185,14 +932,5 @@ final class ICloudDriveAlbumMigrationTests: XCTestCase {
         XCTAssertEqual(listed(drive, in: albumManager.fetchAlbumsFromSources(includingHidden: true)), [.cloudKit])
         XCTAssertEqual(blobMigrationStarts, [BlobMigrationStart(albumID: albumID, folder: drive.folder)])
         XCTAssertFalse(CloudKitMigrationManager.isActive(albumID: drive.album.id), "the album is released")
-    }
-}
-
-private final class NetworkFlag: @unchecked Sendable {
-    private let lock = NSLock()
-    private var stored = false
-    var value: Bool {
-        get { lock.withLock { stored } }
-        set { lock.withLock { stored = newValue } }
     }
 }

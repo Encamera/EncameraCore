@@ -855,6 +855,8 @@ public enum L10n {
     public static let itemChangedDuringMove = L10n.tr("Localizable", "CloudKitMigration.ItemChangedDuringMove", fallback: "This item changed after it was copied to iCloud, so it was kept on this device. The copy in iCloud is the earlier version.")
     /// Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.
     public static let membershipCheckFailed = L10n.tr("Localizable", "CloudKitMigration.MembershipCheckFailed", fallback: "Couldn't check iCloud for items still in this album, so the move stopped before finishing. Nothing was lost. Check your connection, then resume the move.")
+    /// Close this screen and tap the upgrade banner to resume.
+    public static let migrationBannerAwaitingResume = L10n.tr("Localizable", "CloudKitMigration.MigrationBannerAwaitingResume", fallback: "Close this screen and tap the upgrade banner to resume.")
     /// %@ %@ can't be upgraded right now
     public static func migrationBannerFailedCount(_ p1: Any, _ p2: Any) -> String {
       return L10n.tr("Localizable", "CloudKitMigration.MigrationBannerFailedCount", String(describing: p1), String(describing: p2), fallback: "%@ %@ can't be upgraded right now")
@@ -987,6 +989,8 @@ public enum L10n {
     public static let schemaNotDeployedMessage = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedMessage", fallback: "iCloud isn't ready for this version of Encamera yet. Your photos are safe on this device — please make sure Encamera is up to date and try again later.")
     /// iCloud can't accept this album yet
     public static let schemaNotDeployedTitle = L10n.tr("Localizable", "CloudKitMigration.SchemaNotDeployedTitle", fallback: "iCloud can't accept this album yet")
+    /// Upgrade paused: tap to resume
+    public static let taskRowAwaitingResumeTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowAwaitingResumeTitle", fallback: "Upgrade paused: tap to resume")
     /// Paused in Low Power Mode
     public static let taskRowPausedLowPowerModeTitle = L10n.tr("Localizable", "CloudKitMigration.TaskRowPausedLowPowerModeTitle", fallback: "Paused in Low Power Mode")
     /// Upgrade paused: device must cool

@@ -32,10 +32,10 @@
 //  4. The caller then issues the album record's delete.
 //
 //  A process that dies after step 1 leaves a folder this device no longer lists;
-//  the next `ICloudDriveAlbumMigration.runEveryFolder()` removes it. A folder whose
-//  marker names the album and that comes back later, through another device
-//  still syncing it, is removed the same way, and never shows as a plain iCloud
-//  Drive album. A folder whose marker names another album is never removed.
+//  `removeLeftoverFolders()` removes it, which nothing calls on its own. A folder
+//  whose marker names the album and that comes back later, through another
+//  device still syncing it, is removed the same way, and never shows as a plain
+//  iCloud Drive album. A folder whose marker names another album is never removed.
 //
 //  An erase that deletes the media removes every linked folder at once
 //  (`removeEveryLinkedFolder()`), whatever album it belongs to, and forgets the

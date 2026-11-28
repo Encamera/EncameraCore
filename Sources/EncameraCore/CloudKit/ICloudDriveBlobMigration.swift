@@ -451,6 +451,18 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
     /// `userInfo["albumID"]` names the album.
     public static let itemDidFinish = Notification.Name("ICloudDriveBlobMigration.itemDidFinish")
 
+    /// Posted on the loop's `DeviceResourceStateObserver.notificationCenter`
+    /// when a pass for an album starts and when it ends.
+    /// `userInfo["albumID"]` names the album.
+    public static let passStateDidChange = Notification.Name("ICloudDriveBlobMigration.passStateDidChange")
+
+    /// Whether the album `albumID` is being moved in this process: a pass is
+    /// running for it, or one paused and the loop is waiting to start it again.
+    /// False after a launch until something starts a pass for the album.
+    public static func isActive(albumID: String) -> Bool {
+        isRunning(albumID: albumID) || pauseReason(albumID: albumID) != nil
+    }
+
     /// Why the loop is waiting to resume the album `albumID`, or nil when it is not.
     /// Held in memory only.
     public static func pauseReason(albumID: String) -> PauseReason? {
@@ -720,6 +732,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
             return false
         }
         Self.running[albumID] = self
+        postPassStateChange(albumID)
         stopRequested = false
         return true
     }
@@ -765,6 +778,11 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
 
     private func postPauseStateChange(_ albumID: String) {
         deviceResourceStateObserver.notificationCenter.post(name: Self.pauseStateDidChange, object: nil,
+                                                            userInfo: ["albumID": albumID])
+    }
+
+    private func postPassStateChange(_ albumID: String) {
+        deviceResourceStateObserver.notificationCenter.post(name: Self.passStateDidChange, object: nil,
                                                             userInfo: ["albumID": albumID])
     }
 
@@ -815,6 +833,7 @@ public final class ICloudDriveBlobMigration: DebugPrintable {
 
     private func endMigrationPass(_ albumID: String) {
         Self.running[albumID] = nil
+        postPassStateChange(albumID)
         let waiters = passEndWaiters
         passEndWaiters = []
         for waiter in waiters { waiter.resume() }

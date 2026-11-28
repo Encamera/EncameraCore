@@ -24,11 +24,11 @@
 //
 //  The order is: remove the folder, stop its watch, delete the plan, drop the
 //  link. A process that dies after the folder is removed leaves a link to a
-//  folder that is gone, with or without the plan; the album step finishes such an
-//  album on its next run (`completeRemovedFolder`), as it does on any other device
-//  whose linked folder went because the device that finished removed it. The
-//  folder walk leaves a link to a missing folder as it is and lists the CloudKit
-//  album either way, so no crash point shows two albums or none.
+//  folder that is gone, with or without the plan, as does any other device whose
+//  linked folder went because the device that finished removed it; the album's
+//  next pass finishes such an album (`completeRemovedFolder`). The folder walk
+//  leaves a link to a missing folder as it is and lists the CloudKit album
+//  either way, so no crash point shows two albums or none.
 //
 //  Nothing watches the folder once it is removed, and nothing watches for it to
 //  come back. An older build that writes into the album afterwards recreates the

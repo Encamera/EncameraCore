@@ -619,6 +619,7 @@
 "CloudKitMigration.MigrationBannerPausedAccountUnavailable" = "Paused until you sign in to iCloud in Settings.";
 "CloudKitMigration.MigrationBannerPausedSchemaNotDeployed" = "Paused until iCloud is ready for this version of Encamera. Make sure Encamera is up to date.";
 "CloudKitMigration.MigrationBannerPausedWaitingForWiFi" = "Paused until your device is on Wi-Fi.";
+"CloudKitMigration.MigrationBannerAwaitingResume" = "Close this screen and tap the upgrade banner to resume.";
 "CloudKitMigration.MigrationScreenKeepsAwake" = "Your device stays awake while this screen is open and the upgrade is running.";
 "CloudKitMigration.MigrationBannerQuotaTitle" = "iCloud storage full, paused";
 "CloudKitMigration.MigrationBannerQuotaSpaceNeeded" = "This album needs about %@ more iCloud storage to finish upgrading.";
@@ -630,6 +631,7 @@
 "CloudKitMigration.TaskRowPausedWiFiTitle" = "Upgrade paused: need Wi-Fi";
 "CloudKitMigration.TaskRowPausedLowPowerModeTitle" = "Paused in Low Power Mode";
 "CloudKitMigration.TaskRowPausedThermalTitle" = "Upgrade paused: device must cool";
+"CloudKitMigration.TaskRowAwaitingResumeTitle" = "Upgrade paused: tap to resume";
 
 /* ./Encamera/Lightbox/LightboxController.swift - Edit Mode */
 "Lightbox.Edit" = "Edit";

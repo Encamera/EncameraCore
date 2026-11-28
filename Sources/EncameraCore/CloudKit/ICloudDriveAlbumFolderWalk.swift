@@ -24,8 +24,7 @@
 //    (`ICloudDriveAlbumMigration`) follows the marker on its next run.
 //  - A folder whose marker names an album deleted on this device
 //    (`DeletedCloudKitAlbums`) is not adopted and not listed; the album's
-//    delete, or the next `ICloudDriveAlbumMigration.runEveryFolder()`, removes it
-//    (`ICloudDriveAlbumDeletion`).
+//    delete removes it (`ICloudDriveAlbumDeletion`).
 //  - Every other folder is listed as a plain iCloud Drive album: no marker, an
 //    evicted marker (whose download is requested), a record confirmed gone, a
 //    record not visible yet, or a marker that cannot be used as it is.

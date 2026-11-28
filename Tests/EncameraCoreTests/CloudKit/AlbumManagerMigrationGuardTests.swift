@@ -311,8 +311,7 @@ final class AlbumManagerMigrationGuardTests: XCTestCase {
             zoneWalkRequests: CloudKitZoneWalkRequests(defaults: makeIsolatedDefaults()),
             startBlobMigration: { _, _ in },
             folderWatches: folderWatches,
-            makeFolderChangeSource: { SilentFolderChangeSource() },
-            finish: albumFinish)
+            makeFolderChangeSource: { SilentFolderChangeSource() })
         guard case .prepared(let albumID) = await albumStep.run(folder: model.baseURL) else {
             XCTFail("precondition: the album step prepared the album")
             throw NotPrepared()

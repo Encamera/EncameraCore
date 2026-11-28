@@ -52,19 +52,11 @@
 //  does nothing at all and never reads the iCloud Drive container: such a device
 //  sees only the album's CloudKit components.
 //
-//  Only a user's start (`run(album:)`, from `CloudKitMigrationManager`) runs it
-//  for a folder without a marker file, so only a user's start writes a marker on
-//  this device. `runEveryFolder()` runs it for every iCloud Drive album folder on
-//  this device whose marker names an album, resuming an album whose run died
-//  after the marker write and adopting one another device started, which the app
-//  does at launch and whenever an album folder's marker file changes
-//  (`CloudKitAlbumsSync`). A folder without a marker is skipped
-//  (`MigrationSkipReason.awaitingUserStart`). A prepared album's folder is watched
-//  (`ICloudDriveFolderWatches`) and the album is handed to `startBlobMigration`,
-//  which moves its media; once it is done, `ICloudDriveAlbumFinish` removes the
-//  folder and stops the watch. `runEveryFolder()` also finishes every album whose
-//  linked folder is gone, removed on another device or by a run that died
-//  before it deleted the plan and dropped the link.
+//  Only a user's start (`run(album:)`, from `CloudKitMigrationManager`) runs it:
+//  nothing runs it at launch or for every album folder. A prepared album's
+//  folder is watched (`ICloudDriveFolderWatches`) and the album is handed to
+//  `startBlobMigration`, which moves its media; once it is done,
+//  `ICloudDriveAlbumFinish` removes the folder and stops the watch.
 //
 //  A marker it cannot read as one album is never replaced by a new id, which
 //  would split the folder into two albums: an evicted marker has its download
@@ -96,12 +88,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     }
 
     public enum MigrationSkipReason: Equatable, Sendable {
-        /// The folder has no marker file, so no user started its upgrade;
-        /// `runEveryFolder()` leaves it for the user's start.
-        case awaitingUserStart
         case locked
-        /// No network. `CloudKitAlbumsSync` runs the step again when the network
-        /// changes.
+        /// No network.
         case offline
         case accountUnavailable
         /// The folder is not an iCloud Drive album on this device.
@@ -130,9 +118,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         case inBackground
         /// A server call or a write failed; `step` names which.
         case failed(step: String, error: String)
-
-        /// Whether the run waits for a network.
-        public var waitsForNetwork: Bool { self == .offline }
 
         init(_ unmet: MigrationDeviceConditions.Unmet) {
             switch unmet {
@@ -204,21 +189,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         }
     }
 
-    /// What `runEveryFolder()` did.
-    public enum AlbumMigrationPassResult: Equatable, Sendable {
-        /// No folder was looked at.
-        case skipped(MigrationSkipReason)
-        /// Each folder's run, keyed by folder.
-        case ran([URL: AlbumMigrationRunOutcome])
-
-        /// Whether the pass got past its conditions and listed a folder that was
-        /// not only waiting for a user's start, or listed no folder at all.
-        public var ranBeyondAwaitingUserStart: Bool {
-            guard case .ran(let outcomes) = self else { return false }
-            return outcomes.isEmpty || outcomes.values.contains { $0 != .skipped(.awaitingUserStart) }
-        }
-    }
-
     private let albumManager: AlbumManaging
     private let makeStore: () -> CloudKitMediaStoring
     private let materializer: ICloudDriveMaterializing
@@ -231,11 +201,9 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     private let makeVerifiedDelete: (CloudKitMediaStoring) -> ICloudDriveComponentDeleting
     private let flipRegistry: ICloudDriveAlbumFlipRegistry
     private let zoneWalkRequests: CloudKitZoneWalkRequests
-    private let albumFolders: () -> [URL]
     private let startBlobMigration: @MainActor (_ albumID: String, _ folder: URL) async -> Void
     private let folderWatches: ICloudDriveFolderWatches
     private let makeFolderChangeSource: @MainActor () -> ICloudDriveFolderChangeSource
-    private let albumFinish: ICloudDriveAlbumFinish
     private let albumDeletion: ICloudDriveAlbumDeletion
     private var store: CloudKitMediaStoring?
 
@@ -251,14 +219,12 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     ///   - flipRegistry: where the run holds the albums whose flip it owns.
     ///   - zoneWalkRequests: where the run asks the sync to walk the whole zone
     ///     for an album whose index it creates.
-    ///   - albumFolders: the iCloud Drive album folders `runEveryFolder()` runs for.
     ///   - startBlobMigration: moves a prepared album's media from its folder
     ///     into CloudKit. Called after every run that ends `.prepared`.
     ///   - folderWatches: where a prepared album's folder watch is kept.
     ///   - makeFolderChangeSource: what a folder watch listens to.
-    ///   - finish: finishes an album whose linked folder is gone.
     ///   - albumDeletion: the albums deleted on this device, whose folders are
-    ///     removed rather than run.
+    ///     never run.
     public init(albumManager: AlbumManaging,
                 makeStore: @escaping () -> CloudKitMediaStoring = { CloudKitStoreProvider.makeStore("iCloudDriveAlbumMigration") },
                 materializer: ICloudDriveMaterializing? = nil,
@@ -271,11 +237,9 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
                 makeVerifiedDelete: @escaping (CloudKitMediaStoring) -> ICloudDriveComponentDeleting = { ICloudDriveVerifiedDelete(store: $0) },
                 flipRegistry: ICloudDriveAlbumFlipRegistry = .shared,
                 zoneWalkRequests: CloudKitZoneWalkRequests = CloudKitZoneWalkRequests(),
-                albumFolders: (() -> [URL])? = nil,
                 startBlobMigration: @escaping @MainActor (_ albumID: String, _ folder: URL) async -> Void = { _, _ in },
                 folderWatches: ICloudDriveFolderWatches = .shared,
                 makeFolderChangeSource: @escaping @MainActor () -> ICloudDriveFolderChangeSource = { ICloudDriveFolderMetadataQuery() },
-                finish: ICloudDriveAlbumFinish? = nil,
                 albumDeletion: ICloudDriveAlbumDeletion = .shared) {
         self.albumManager = albumManager
         self.makeStore = makeStore
@@ -289,41 +253,13 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
         self.makeVerifiedDelete = makeVerifiedDelete
         self.flipRegistry = flipRegistry
         self.zoneWalkRequests = zoneWalkRequests
-        self.albumFolders = albumFolders ?? { ICloudDriveAlbumFolderWalk.albumFolders() }
         self.startBlobMigration = startBlobMigration
         self.folderWatches = folderWatches
         self.makeFolderChangeSource = makeFolderChangeSource
-        self.albumFinish = finish ?? ICloudDriveAlbumFinish(albumManager: albumManager, folderWatches: folderWatches)
         self.albumDeletion = albumDeletion
     }
 
     // MARK: - Entry points
-
-    /// Runs for every iCloud Drive album folder on this device whose marker file
-    /// is there, one after another. A folder without a marker is skipped
-    /// (`.awaitingUserStart`) before its `FolderGate` is taken. Lists no folder
-    /// unless a run may do anything now. First removes every folder whose marker
-    /// names an album deleted on this device.
-    public func runEveryFolder() async -> AlbumMigrationPassResult {
-        if let reason = await unmetCondition() {
-            _ = skip(reason)
-            return .skipped(reason)
-        }
-        await albumDeletion.removeLeftoverFolders(in: albumFolders())
-        var outcomes: [URL: AlbumMigrationRunOutcome] = [:]
-        let folders = albumFolders()
-        for folder in folders {
-            if case .absent = readMarker(in: folder) {
-                outcomes[folder] = skip(.awaitingUserStart)
-                continue
-            }
-            outcomes[folder] = await run(folder: folder)
-        }
-        await completeRemovedFolders(listed: folders)
-        let prepared = outcomes.values.filter { if case .prepared = $0 { true } else { false } }.count
-        printDebug("runEveryFolder ok folders=\(outcomes.count) prepared=\(prepared)")
-        return .ran(outcomes)
-    }
 
     /// Runs for the iCloud Drive album folder `folder`, as
     /// `ICloudDriveAlbumFolderWalk.albumFolders()` lists it.
@@ -342,9 +278,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
     }
 
     /// Runs for one folder while holding `FolderGate` for it, so a second run for
-    /// the same folder (the sync's pass and a user's start, which build separate
-    /// instances) waits, then reads the marker the first wrote and joins its album
-    /// rather than minting another.
+    /// the same folder from another instance waits, then reads the marker the
+    /// first wrote and joins its album rather than minting another.
     private func run(album: Album, folder: URL) async -> AlbumMigrationRunOutcome {
         let gateKey = folder.standardizedFileURL.resolvingSymlinksInPath().path
         await FolderGate.shared.acquire(gateKey)
@@ -386,36 +321,6 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
                                      changeSource: makeChangeSource(),
                                      linkedFolder: { $0 == albumID ? folder : nil })
         }
-    }
-
-    /// Finishes every album on this device whose linked folder is gone: the
-    /// device that finished the album removed it, here or on another device, and
-    /// the plan or the link outlived it. An album a listed folder's marker names
-    /// is not finished, even when its linked path is gone.
-    private func completeRemovedFolders(listed folders: [URL]) async {
-        guard let named = extractAlbumIDsInFolderMarkersIfAllReadable(in: folders) else { return }
-        for entry in CloudKitAlbumMarker.all() where !named.contains(entry.albumID) {
-            guard let linked = entry.marker.linkedICloudDriveFolderURL() else { continue }
-            let folderGone = !FileManager.default.fileExists(atPath: linked.path)
-            guard folderGone, !ICloudDriveBlobMigration.isRunning(albumID: entry.albumID) else { continue }
-            printDebug("linked folder gone albumID=\(entry.albumID)")
-            await albumFinish.completeRemovedFolder(albumID: entry.albumID)
-        }
-    }
-
-    /// The album IDs the markers in `folders` name, or nil when any marker cannot
-    /// be read: that folder may be a linked one an older build renamed, so the
-    /// album it names is unknown and no album can be finished safely.
-    private func extractAlbumIDsInFolderMarkersIfAllReadable(in folders: [URL]) -> Set<String>? {
-        var named = Set<String>()
-        for folder in folders {
-            switch readMarker(in: folder) {
-            case .absent: continue
-            case .present(let marker): named.insert(marker.albumID)
-            case .evicted, .conflicted, .unreadable: return nil
-            }
-        }
-        return named
     }
 
     /// The first condition that keeps a run from doing anything now, checked
@@ -780,15 +685,8 @@ public final class ICloudDriveAlbumMigration: DebugPrintable {
                      creationDate: creationDate ?? cloudKitAlbum.creationDate, key: cloudKitAlbum.key)
     }
 
-    /// Posted on `NotificationCenter.default` each time a run, or
-    /// `runEveryFolder()`, skips for want of a network (`MigrationSkipReason.waitsForNetwork`).
-    public static let didWaitForNetwork = Notification.Name("ICloudDriveAlbumMigration.didWaitForNetwork")
-
     private func skip(_ reason: MigrationSkipReason) -> AlbumMigrationRunOutcome {
         printDebug("run skipped reason=\(Self.logName(reason))")
-        if reason.waitsForNetwork {
-            NotificationCenter.default.post(name: Self.didWaitForNetwork, object: nil)
-        }
         return .skipped(reason)
     }
 
